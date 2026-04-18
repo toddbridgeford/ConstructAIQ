@@ -340,7 +340,7 @@ return (
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
             <XAxis dataKey="month" tick={{ fontFamily: "'DM Mono', monospace", fontSize: 9, fill: T.text3 }} tickLine={false} axisLine={false} interval={3} />
             <YAxis tick={{ fontFamily: "'DM Mono', monospace", fontSize: 9, fill: T.text3 }} tickLine={false} axisLine={false} width={48} tickFormatter={v => v.toLocaleString()} />
-            <Tooltip content={<BloomTooltip />} />
+            <Tooltip content={BloomTooltip} />
             <ReferenceLine x="Jan '26" stroke="rgba(255,255,255,0.1)" strokeDasharray="4 4" label={{ value: "FORECAST →", position: "insideTopRight", fill: T.text3, fontFamily: "'DM Mono', monospace", fontSize: 8 }} />
 
             {/* 95% band */}
@@ -537,7 +537,7 @@ return (
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
             <XAxis dataKey="month" tick={{ fontFamily: "'DM Mono', monospace", fontSize: 8, fill: T.text3 }} tickLine={false} axisLine={false} interval={5} />
             <YAxis tick={{ fontFamily: "'DM Mono', monospace", fontSize: 8, fill: T.text3 }} tickLine={false} axisLine={false} width={42} domain={["auto", "auto"]} />
-            <Tooltip content={<BloomTooltip />} />
+            <Tooltip content={BloomTooltip} />
             <Area type="monotone" dataKey="value" stroke={T.green} strokeWidth={2} fill="url(#empGrad)" dot={false} name="Employment (K)" />
           </AreaChart>
         </ResponsiveContainer>
@@ -551,7 +551,7 @@ return (
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
             <XAxis dataKey="month" tick={{ fontFamily: "'DM Mono', monospace", fontSize: 8, fill: T.text3 }} tickLine={false} axisLine={false} interval={5} />
             <YAxis tick={{ fontFamily: "'DM Mono', monospace", fontSize: 8, fill: T.text3 }} tickLine={false} axisLine={false} width={42} domain={["auto", "auto"]} />
-            <Tooltip content={<BloomTooltip />} />
+            <Tooltip content={BloomTooltip} />
             <Line type="monotone" dataKey="starts" stroke={T.blue} strokeWidth={2} dot={false} name="Starts (K)" />
             <Line type="monotone" dataKey="permits" stroke={T.amber} strokeWidth={2} strokeDasharray="5 3" dot={false} name="Permits (K)" />
           </LineChart>
