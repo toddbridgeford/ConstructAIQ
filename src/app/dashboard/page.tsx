@@ -1,33 +1,33 @@
-import { useState, useEffect, useRef } from “react”;
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from “recharts”;
+import { useState, useEffect, useRef } from "react";
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from "recharts";
 
 // ── DESIGN TOKENS ──────────────────────────────────────────────────────────
 const T = {
-bg0: “#08080A”,
-bg1: “#0E0E11”,
-bg2: “#141417”,
-bg3: “#1C1C21”,
-bg4: “#242429”,
-border: “rgba(255,255,255,0.06)”,
-borderHi: “rgba(0,149,255,0.3)”,
-blue: “#0095FF”,
-blueLt: “#40B8FF”,
-blueDim: “rgba(0,149,255,0.12)”,
-blueGlow: “rgba(0,149,255,0.06)”,
-green: “#30D158”,
-greenDim: “rgba(48,209,88,0.12)”,
-red: “#FF453A”,
-redDim: “rgba(255,69,58,0.12)”,
-amber: “#FF9F0A”,
-purple: “#BF5AF2”,
-text0: “#F5F5F7”,
-text1: “#AEAEB2”,
-text2: “#636366”,
-text3: “#3A3A3C”,
+bg0: "#08080A",
+bg1: "#0E0E11",
+bg2: "#141417",
+bg3: "#1C1C21",
+bg4: "#242429",
+border: "rgba(255,255,255,0.06)",
+borderHi: "rgba(0,149,255,0.3)",
+blue: "#0095FF",
+blueLt: "#40B8FF",
+blueDim: "rgba(0,149,255,0.12)",
+blueGlow: "rgba(0,149,255,0.06)",
+green: "#30D158",
+greenDim: "rgba(48,209,88,0.12)",
+red: "#FF453A",
+redDim: "rgba(255,69,58,0.12)",
+amber: "#FF9F0A",
+purple: "#BF5AF2",
+text0: "#F5F5F7",
+text1: "#AEAEB2",
+text2: "#636366",
+text3: "#3A3A3C",
 };
 
 // ── SYNTHETIC DATA ──────────────────────────────────────────────────────────
-const months = [“Feb ’24”,“Mar”,“Apr”,“May”,“Jun”,“Jul”,“Aug”,“Sep”,“Oct”,“Nov”,“Dec”,“Jan ’25”,“Feb”,“Mar”,“Apr”,“May”,“Jun”,“Jul”,“Aug”,“Sep”,“Oct”,“Nov”,“Dec”,“Jan ’26”,“Feb”,“Mar”];
+const months = ["Feb '24","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan '25","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan '26","Feb","Mar"];
 
 function genSpend(base, variance) {
 return months.map((m, i) => {
@@ -59,52 +59,52 @@ value: Math.round(8100 + i * 8.8 + Math.sin(i / 4) * 45 + (Math.random() - 0.5) 
 }));
 
 const materialData = [
-{ name: “Lumber”, ticker: “LBR”, value: 512, chg: +3.2, chg30: +8.1, signal: “BUY” },
-{ name: “Steel HR”, ticker: “SHR”, value: 748, chg: -1.4, chg30: -3.7, signal: “SELL” },
-{ name: “Copper”, ticker: “CU”, value: 4.82, chg: +0.8, chg30: +5.2, signal: “HOLD” },
-{ name: “Concrete”, ticker: “RMC”, value: 168, chg: +0.2, chg30: +2.1, signal: “BUY” },
-{ name: “Gypsum”, ticker: “GYP”, value: 234, chg: -0.6, chg30: -1.8, signal: “HOLD” },
-{ name: “Rebar”, ticker: “RBR”, value: 680, chg: -2.1, chg30: -6.2, signal: “SELL” },
+{ name: "Lumber", ticker: "LBR", value: 512, chg: +3.2, chg30: +8.1, signal: "BUY" },
+{ name: "Steel HR", ticker: "SHR", value: 748, chg: -1.4, chg30: -3.7, signal: "SELL" },
+{ name: "Copper", ticker: "CU", value: 4.82, chg: +0.8, chg30: +5.2, signal: "HOLD" },
+{ name: "Concrete", ticker: "RMC", value: 168, chg: +0.2, chg30: +2.1, signal: "BUY" },
+{ name: "Gypsum", ticker: "GYP", value: 234, chg: -0.6, chg30: -1.8, signal: "HOLD" },
+{ name: "Rebar", ticker: "RBR", value: 680, chg: -2.1, chg30: -6.2, signal: "SELL" },
 ];
 
 const sectorHeat = [
-{ sector: “Residential”, spend: 945, mom: +2.1, yoy: +4.3, heat: 0.72 },
-{ sector: “Commercial”, spend: 412, mom: -0.8, yoy: +1.2, heat: 0.41 },
-{ sector: “Infrastructure”, spend: 398, mom: +3.4, yoy: +8.7, heat: 0.88 },
-{ sector: “Industrial”, spend: 187, mom: +1.1, yoy: +3.9, heat: 0.61 },
-{ sector: “Healthcare”, spend: 134, mom: -1.2, yoy: -0.4, heat: 0.29 },
-{ sector: “Education”, spend: 98, mom: +0.4, yoy: +1.8, heat: 0.45 },
-{ sector: “Energy”, spend: 312, mom: +5.2, yoy: +14.2, heat: 0.95 },
-{ sector: “Transportation”, spend: 276, mom: +2.8, yoy: +9.1, heat: 0.81 },
+{ sector: "Residential", spend: 945, mom: +2.1, yoy: +4.3, heat: 0.72 },
+{ sector: "Commercial", spend: 412, mom: -0.8, yoy: +1.2, heat: 0.41 },
+{ sector: "Infrastructure", spend: 398, mom: +3.4, yoy: +8.7, heat: 0.88 },
+{ sector: "Industrial", spend: 187, mom: +1.1, yoy: +3.9, heat: 0.61 },
+{ sector: "Healthcare", spend: 134, mom: -1.2, yoy: -0.4, heat: 0.29 },
+{ sector: "Education", spend: 98, mom: +0.4, yoy: +1.8, heat: 0.45 },
+{ sector: "Energy", spend: 312, mom: +5.2, yoy: +14.2, heat: 0.95 },
+{ sector: "Transportation", spend: 276, mom: +2.8, yoy: +9.1, heat: 0.81 },
 ];
 
 const regionData = [
-{ region: “South”, score: 94, permits: 312, spend: 618, employ: 2840, trend: “↑” },
-{ region: “Mountain West”, score: 88, permits: 187, spend: 289, employ: 1240, trend: “↑” },
-{ region: “Mid-Atlantic”, score: 71, permits: 143, spend: 412, employ: 1890, trend: “→” },
-{ region: “Southeast”, score: 83, permits: 224, spend: 378, employ: 1620, trend: “↑” },
-{ region: “Midwest”, score: 62, permits: 118, spend: 287, employ: 1340, trend: “→” },
-{ region: “Pacific”, score: 79, permits: 198, spend: 498, employ: 2180, trend: “↓” },
-{ region: “Northeast”, score: 58, permits: 89, spend: 312, employ: 1410, trend: “↓” },
-{ region: “Southwest”, score: 86, permits: 201, spend: 334, employ: 1580, trend: “↑” },
+{ region: "South", score: 94, permits: 312, spend: 618, employ: 2840, trend: "↑" },
+{ region: "Mountain West", score: 88, permits: 187, spend: 289, employ: 1240, trend: "↑" },
+{ region: "Mid-Atlantic", score: 71, permits: 143, spend: 412, employ: 1890, trend: "→" },
+{ region: "Southeast", score: 83, permits: 224, spend: 378, employ: 1620, trend: "↑" },
+{ region: "Midwest", score: 62, permits: 118, spend: 287, employ: 1340, trend: "→" },
+{ region: "Pacific", score: 79, permits: 198, spend: 498, employ: 2180, trend: "↓" },
+{ region: "Northeast", score: 58, permits: 89, spend: 312, employ: 1410, trend: "↓" },
+{ region: "Southwest", score: 86, permits: 201, spend: 334, employ: 1580, trend: "↑" },
 ];
 
 const signals = [
-{ type: “BULLISH”, label: “Infrastructure Surge”, detail: “IIJA funds accelerating Q2–Q3”, time: “2m ago”, conf: 94 },
-{ type: “WARNING”, label: “Labor Shortage Signal”, detail: “Craft unemployment 2.8% — 12-yr low”, time: “8m ago”, conf: 87 },
-{ type: “BULLISH”, label: “Energy Build Expansion”, detail: “Grid hardening projects up 34% YoY”, time: “15m ago”, conf: 91 },
-{ type: “BEARISH”, label: “Multifamily Correction”, detail: “Permit pullback accelerating in SunBelt”, time: “31m ago”, conf: 78 },
-{ type: “DATA”, label: “BLS Release”, detail: “Construction +18,400 jobs — March 2026”, time: “1h ago”, conf: 100 },
-{ type: “WARNING”, label: “Steel Cost Pressure”, detail: “HRC futures up 7.2% in 30 days”, time: “2h ago”, conf: 82 },
+{ type: "BULLISH", label: "Infrastructure Surge", detail: "IIJA funds accelerating Q2–Q3", time: "2m ago", conf: 94 },
+{ type: "WARNING", label: "Labor Shortage Signal", detail: "Craft unemployment 2.8% — 12-yr low", time: "8m ago", conf: 87 },
+{ type: "BULLISH", label: "Energy Build Expansion", detail: "Grid hardening projects up 34% YoY", time: "15m ago", conf: 91 },
+{ type: "BEARISH", label: "Multifamily Correction", detail: "Permit pullback accelerating in SunBelt", time: "31m ago", conf: 78 },
+{ type: "DATA", label: "BLS Release", detail: "Construction +18,400 jobs — March 2026", time: "1h ago", conf: 100 },
+{ type: "WARNING", label: "Steel Cost Pressure", detail: "HRC futures up 7.2% in 30 days", time: "2h ago", conf: 82 },
 ];
 
 const forecastTable = [
-{ horizon: “1 Month”, sector: “Total Construction”, base: 2218, bull: 2285, bear: 2151, conf: “HIGH”, accuracy: “97.2%” },
-{ horizon: “3 Months”, sector: “Total Construction”, base: 2290, bull: 2410, bear: 2140, conf: “HIGH”, accuracy: “94.8%” },
-{ horizon: “6 Months”, sector: “Total Construction”, base: 2380, bull: 2560, bear: 2180, conf: “MED”, accuracy: “91.3%” },
-{ horizon: “12 Months”, sector: “Total Construction”, base: 2490, bull: 2740, bear: 2210, conf: “MED”, accuracy: “87.6%” },
-{ horizon: “3 Months”, sector: “Residential”, base: 962, bull: 1040, bear: 890, conf: “HIGH”, accuracy: “93.1%” },
-{ horizon: “3 Months”, sector: “Infrastructure”, base: 418, bull: 465, bear: 388, conf: “HIGH”, accuracy: “95.4%” },
+{ horizon: "1 Month", sector: "Total Construction", base: 2218, bull: 2285, bear: 2151, conf: "HIGH", accuracy: "97.2%" },
+{ horizon: "3 Months", sector: "Total Construction", base: 2290, bull: 2410, bear: 2140, conf: "HIGH", accuracy: "94.8%" },
+{ horizon: "6 Months", sector: "Total Construction", base: 2380, bull: 2560, bear: 2180, conf: "MED", accuracy: "91.3%" },
+{ horizon: "12 Months", sector: "Total Construction", base: 2490, bull: 2740, bear: 2210, conf: "MED", accuracy: "87.6%" },
+{ horizon: "3 Months", sector: "Residential", base: 962, bull: 1040, bear: 890, conf: "HIGH", accuracy: "93.1%" },
+{ horizon: "3 Months", sector: "Infrastructure", base: 418, bull: 465, bear: 388, conf: "HIGH", accuracy: "95.4%" },
 ];
 
 // ── MINI SPARKLINE ─────────────────────────────────────────────────────────
@@ -116,12 +116,12 @@ const pts = vals.map((v, i) => {
 const x = (i / (vals.length - 1)) * w;
 const y = h - ((v - min) / (max - min || 1)) * h;
 return `${x},${y}`;
-}).join(” “);
+}).join(" ");
 const fill = pts + ` ${w},${h} 0,${h}`;
 return (
 <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
 <defs>
-<linearGradient id={`sg-${color}`} x1=“0” y1=“0” x2=“0” y2=“1”>
+<linearGradient id={`sg-${color}`} x1="0" y1="0" x2="0" y2="1">
 <stop offset="0%" stopColor={color} stopOpacity="0.3" />
 <stop offset="100%" stopColor={color} stopOpacity="0" />
 </linearGradient>
@@ -136,12 +136,12 @@ return (
 function BloomTooltip({ active, payload, label }) {
 if (!active || !payload?.length) return null;
 return (
-<div style={{ background: T.bg3, border: `1px solid ${T.border}`, padding: “10px 14px”, borderRadius: 4, minWidth: 160 }}>
-<div style={{ fontFamily: “‘DM Mono’, monospace”, fontSize: 10, color: T.text2, letterSpacing: “0.1em”, marginBottom: 6 }}>{label}</div>
+<div style={{ background: T.bg3, border: `1px solid ${T.border}`, padding: "10px 14px", borderRadius: 4, minWidth: 160 }}>
+<div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: T.text2, letterSpacing: "0.1em", marginBottom: 6 }}>{label}</div>
 {payload.map((p, i) => p.value != null && (
-<div key={i} style={{ display: “flex”, justifyContent: “space-between”, gap: 16, marginBottom: 2 }}>
-<span style={{ fontFamily: “‘DM Mono’, monospace”, fontSize: 11, color: p.stroke || p.fill || T.text1 }}>{p.name}</span>
-<span style={{ fontFamily: “‘DM Mono’, monospace”, fontSize: 11, color: T.text0, fontWeight: 600 }}>{p.value?.toLocaleString()}</span>
+<div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 16, marginBottom: 2 }}>
+<span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: p.stroke || p.fill || T.text1 }}>{p.name}</span>
+<span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: T.text0, fontWeight: 600 }}>{p.value?.toLocaleString()}</span>
 </div>
 ))}
 </div>
@@ -150,38 +150,38 @@ return (
 
 // ── HEAT COLOR ─────────────────────────────────────────────────────────────
 function heatColor(v) {
-if (v > 0.85) return “#30D158”;
-if (v > 0.65) return “#0095FF”;
-if (v > 0.45) return “#FF9F0A”;
-if (v > 0.25) return “#FF6B35”;
-return “#FF453A”;
+if (v > 0.85) return "#30D158";
+if (v > 0.65) return "#0095FF";
+if (v > 0.45) return "#FF9F0A";
+if (v > 0.25) return "#FF6B35";
+return "#FF453A";
 }
 
 function signalColor(t) {
-if (t === “BULLISH”) return T.green;
-if (t === “BEARISH”) return T.red;
-if (t === “WARNING”) return T.amber;
+if (t === "BULLISH") return T.green;
+if (t === "BEARISH") return T.red;
+if (t === "WARNING") return T.amber;
 return T.blue;
 }
 
 // ── TICKER ─────────────────────────────────────────────────────────────────
 function Ticker() {
 const items = [
-“TTLCONS $2,190B ▲0.42%”, “HOUST 1,487K ▲7.22%”, “PERMIT 1,386K ▼0.87%”,
-“EMPLOY 8,330K ▲0.31%”, “LBR $512 ▲3.2%”, “SHR $748 ▼1.4%”, “CU $4.82 ▲0.8%”,
-“TLRESCONS $945B ▼0.74%”, “10YR 4.32% ▼2bp”, “PPI CONST +4.1% YoY”,
-“JOLTS CONST 312K”, “AGC BCI 58.4 ▲”, “INFRA PIPELINE $890B”,
+"TTLCONS $2,190B ▲0.42%", "HOUST 1,487K ▲7.22%", "PERMIT 1,386K ▼0.87%",
+"EMPLOY 8,330K ▲0.31%", "LBR $512 ▲3.2%", "SHR $748 ▼1.4%", "CU $4.82 ▲0.8%",
+"TLRESCONS $945B ▼0.74%", "10YR 4.32% ▼2bp", "PPI CONST +4.1% YoY",
+"JOLTS CONST 312K", "AGC BCI 58.4 ▲", "INFRA PIPELINE $890B",
 ];
 return (
-<div style={{ background: T.bg1, borderBottom: `1px solid ${T.border}`, height: 32, display: “flex”, alignItems: “center”, overflow: “hidden”, position: “relative” }}>
-<div style={{ position: “absolute”, left: 0, width: 80, height: “100%”, background: `linear-gradient(to right, ${T.bg1}, transparent)`, zIndex: 2 }} />
-<div style={{ position: “absolute”, right: 0, width: 80, height: “100%”, background: `linear-gradient(to left, ${T.bg1}, transparent)`, zIndex: 2 }} />
-<div style={{ display: “flex”, gap: 40, animation: “tickerScroll 60s linear infinite”, whiteSpace: “nowrap”, paddingLeft: 40 }}>
+<div style={{ background: T.bg1, borderBottom: `1px solid ${T.border}`, height: 32, display: "flex", alignItems: "center", overflow: "hidden", position: "relative" }}>
+<div style={{ position: "absolute", left: 0, width: 80, height: "100%", background: `linear-gradient(to right, ${T.bg1}, transparent)`, zIndex: 2 }} />
+<div style={{ position: "absolute", right: 0, width: 80, height: "100%", background: `linear-gradient(to left, ${T.bg1}, transparent)`, zIndex: 2 }} />
+<div style={{ display: "flex", gap: 40, animation: "tickerScroll 60s linear infinite", whiteSpace: "nowrap", paddingLeft: 40 }}>
 {[…items, …items].map((item, i) => {
-const up = item.includes(“▲”);
-const down = item.includes(“▼”);
+const up = item.includes("▲");
+const down = item.includes("▼");
 return (
-<span key={i} style={{ fontFamily: “‘DM Mono’, monospace”, fontSize: 10, letterSpacing: “0.06em”, color: up ? T.green : down ? T.red : T.text1 }}>
+<span key={i} style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.06em", color: up ? T.green : down ? T.red : T.text1 }}>
 {item}
 </span>
 );
@@ -195,18 +195,18 @@ return (
 function StatCard({ label, value, unit, chg, chgLabel, sparkData, delay = 0 }) {
 const pos = chg >= 0;
 return (
-<div style={{ background: T.bg2, border: `1px solid ${T.border}`, borderRadius: 6, padding: “16px 18px”, display: “flex”, flexDirection: “column”, gap: 4, opacity: 0, animation: `fadeUp 0.5s ease ${delay}s forwards` }}>
-<div style={{ fontFamily: “‘DM Mono’, monospace”, fontSize: 9, letterSpacing: “0.15em”, color: T.text2, textTransform: “uppercase” }}>{label}</div>
-<div style={{ display: “flex”, alignItems: “baseline”, gap: 6 }}>
-<span style={{ fontFamily: “‘Syne’, sans-serif”, fontSize: 26, fontWeight: 700, color: T.text0, letterSpacing: “-0.02em” }}>{value}</span>
-<span style={{ fontFamily: “‘DM Mono’, monospace”, fontSize: 11, color: T.text2 }}>{unit}</span>
+<div style={{ background: T.bg2, border: `1px solid ${T.border}`, borderRadius: 6, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 4, opacity: 0, animation: `fadeUp 0.5s ease ${delay}s forwards` }}>
+<div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.15em", color: T.text2, textTransform: "uppercase" }}>{label}</div>
+<div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+<span style={{ fontFamily: "'Syne', sans-serif", fontSize: 26, fontWeight: 700, color: T.text0, letterSpacing: "-0.02em" }}>{value}</span>
+<span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: T.text2 }}>{unit}</span>
 </div>
-<div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “flex-end”, marginTop: 4 }}>
+<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 4 }}>
 <div>
-<span style={{ fontFamily: “‘DM Mono’, monospace”, fontSize: 10, color: pos ? T.green : T.red, fontWeight: 600 }}>
-{pos ? “▲” : “▼”} {Math.abs(chg)}%
+<span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: pos ? T.green : T.red, fontWeight: 600 }}>
+{pos ? "▲" : "▼"} {Math.abs(chg)}%
 </span>
-<span style={{ fontFamily: “‘DM Mono’, monospace”, fontSize: 9, color: T.text3, marginLeft: 4 }}>{chgLabel}</span>
+<span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: T.text3, marginLeft: 4 }}>{chgLabel}</span>
 </div>
 <Spark data={sparkData} color={pos ? T.green : T.red} />
 </div>
@@ -216,8 +216,8 @@ return (
 
 // ── MAIN DASHBOARD ─────────────────────────────────────────────────────────
 export default function ConstructAIQTerminal() {
-const [activeTab, setActiveTab] = useState(“overview”);
-const [activeModel, setActiveModel] = useState(“spend”);
+const [activeTab, setActiveTab] = useState("overview");
+const [activeModel, setActiveModel] = useState("spend");
 const [time, setTime] = useState(new Date());
 
 useEffect(() => {
@@ -226,15 +226,15 @@ return () => clearInterval(t);
 }, []);
 
 const tabs = [
-{ id: “overview”, label: “Overview” },
-{ id: “forecast”, label: “AI Forecast” },
-{ id: “sectors”, label: “Sectors” },
-{ id: “regional”, label: “Regional” },
-{ id: “materials”, label: “Materials” },
+{ id: "overview", label: "Overview" },
+{ id: "forecast", label: "AI Forecast" },
+{ id: "sectors", label: "Sectors" },
+{ id: "regional", label: "Regional" },
+{ id: "materials", label: "Materials" },
 ];
 
 return (
-<div style={{ background: T.bg0, minHeight: “100vh”, fontFamily: “‘DM Sans’, sans-serif”, color: T.text0 }}>
+<div style={{ background: T.bg0, minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", color: T.text0 }}>
 <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap'); @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } } @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } } @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } } @keyframes scanline { 0% { top: -2px; } 100% { top: 100%; } } * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: thin; scrollbar-color: #2C2C2E transparent; } ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: #2C2C2E; border-radius: 2px; } .tab-btn { background: transparent; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.04em; padding: 6px 14px; border-radius: 4px; transition: all 0.15s; } .tab-active { background: rgba(0,149,255,0.15); color: #0095FF; } .tab-inactive { color: #636366; } .tab-inactive:hover { color: #AEAEB2; background: rgba(255,255,255,0.04); } .row-hover:hover { background: rgba(255,255,255,0.03) !important; } .signal-row:hover { background: rgba(0,149,255,0.04) !important; cursor: default; }`}</style>
 
 ```
