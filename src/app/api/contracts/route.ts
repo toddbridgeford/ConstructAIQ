@@ -1,11 +1,35 @@
-Create src/app/api/contracts/route.ts
+export async function GET() {
+  const url = "https://api.usaspending.gov/api/v2/search/spending_by_award/";
 
-Fetch from USASpending.gov API:
-https://api.usaspending.gov/api/v2/search/spending_by_award/
+  const body = {
+    filters: {
+      naics_codes: ["236","237","238"],
+      time_period: [{ start_date: "2026-01-01", end_date: "2026-04-18" }],
+      award_type_codes: ["A","B","C","D"]
+    },
+    fields: ["Award ID","Recipient Name","Award Amount","Place of Performance State Code","Description"],
+    sort: "Award Amount",
+    order: "desc",
+    limit: 20,
+    page: 1
+  };
 
-Filter: NAICS codes 23* (all construction)
-Return: Top 20 contract awards by value, last 30 days
-Fields: award_id, recipient_name, award_amount, 
-        place_of_performance_state, description
-
-No API key required — public endpoint.
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      next: { revalidate: 3600 }
+    });
+    const data = await res.json();
+    return Response.json({
+      source: "USASpending.gov",
+      series: "Federal Construction Contract Awards",
+      awards: data.results ?? [],
+      total: data.page_metadata?.total ?? 0,
+      updated: new Date().toISOString()
+    });
+  } catch (e) {
+    return Response.json({ error: "USASpending fetch failed", detail: String(e) }, { status: 500 });
+  }
+}
