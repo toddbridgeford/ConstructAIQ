@@ -39,7 +39,7 @@ return { month: m, value: Math.round(base + trend + seasonal + noise) };
 }
 
 const spendData = genSpend(2050, 60).map((d, i) => ({
-…d,
+...d,
 forecast: i >= 22 ? d.value + Math.round((i - 22) * 4.2) : null,
 upper95: i >= 22 ? d.value + Math.round((i - 22) * 4.2) + Math.round((i - 22) * 8) : null,
 lower95: i >= 22 ? d.value + Math.round((i - 22) * 4.2) - Math.round((i - 22) * 7) : null,
@@ -111,7 +111,7 @@ const forecastTable = [
 function Spark({ data, color = T.blue, positive = true }) {
 const w = 80, h = 28;
 const vals = data.map(d => d.value || d.starts || d);
-const min = Math.min(…vals), max = Math.max(…vals);
+const min = Math.min(...vals), max = Math.max(...vals);
 const pts = vals.map((v, i) => {
 const x = (i / (vals.length - 1)) * w;
 const y = h - ((v - min) / (max - min || 1)) * h;
@@ -177,7 +177,7 @@ return (
 <div style={{ position: "absolute", left: 0, width: 80, height: "100%", background: `linear-gradient(to right, ${T.bg1}, transparent)`, zIndex: 2 }} />
 <div style={{ position: "absolute", right: 0, width: 80, height: "100%", background: `linear-gradient(to left, ${T.bg1}, transparent)`, zIndex: 2 }} />
 <div style={{ display: "flex", gap: 40, animation: "tickerScroll 60s linear infinite", whiteSpace: "nowrap", paddingLeft: 40 }}>
-{[…items, …items].map((item, i) => {
+{[...items, ...items].map((item, i) => {
 const up = item.includes("▲");
 const down = item.includes("▼");
 return (
