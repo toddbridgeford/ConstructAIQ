@@ -237,7 +237,6 @@ return (
 <div style={{ background: T.bg0, minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", color: T.text0 }}>
 <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap'); @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } } @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } } @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } } @keyframes scanline { 0% { top: -2px; } 100% { top: 100%; } } * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: thin; scrollbar-color: #2C2C2E transparent; } ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: #2C2C2E; border-radius: 2px; } .tab-btn { background: transparent; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.04em; padding: 6px 14px; border-radius: 4px; transition: all 0.15s; } .tab-active { background: rgba(0,149,255,0.15); color: #0095FF; } .tab-inactive { color: #636366; } .tab-inactive:hover { color: #AEAEB2; background: rgba(255,255,255,0.04); } .row-hover:hover { background: rgba(255,255,255,0.03) !important; } .signal-row:hover { background: rgba(0,149,255,0.04) !important; cursor: default; }`}</style>
 
-```
   {/* TOP NAV */}
   <nav style={{ background: T.bg1, borderBottom: `1px solid ${T.border}`, height: 52, display: "flex", alignItems: "center", padding: "0 24px", gap: 0, position: "sticky", top: 0, zIndex: 100 }}>
     <div style={{ display: "flex", alignItems: "baseline", gap: 2, marginRight: 32 }}>
@@ -565,7 +564,6 @@ return (
     </div>
   </div>
 </div>
-```
 
 );
 }
