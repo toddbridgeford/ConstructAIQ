@@ -52,6 +52,7 @@ export interface Signal {
   method?:         string
   value_at_signal?: number
   threshold?: number
+  threshold?: number
 }
 
 /** Upsert multiple observations in one call */
