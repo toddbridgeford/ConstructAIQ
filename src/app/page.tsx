@@ -1,30 +1,30 @@
-“use client”;
-import { useState, useEffect } from “react”;
+"use client";
+import { useState, useEffect } from "react";
 
 /* ─────────────────────────────────────────────────────────
 LOGO — GitHub raw URL (also works once copied to /public/)
 ───────────────────────────────────────────────────────── */
-const LOGO = “https://raw.githubusercontent.com/toddbridgeford/ConstructAIQ/Predictive-Model/ConstructAIQWhiteLogo.svg”;
+const LOGO = "https://raw.githubusercontent.com/toddbridgeford/ConstructAIQ/Predictive-Model/ConstructAIQWhiteLogo.svg";
 
-const blue       = “#0A84FF”;
-const blueHover  = “#409CFF”;
-const blueDim    = “rgba(10,132,255,0.12)”;
-const blueBorder = “rgba(10,132,255,0.25)”;
-const green      = “#30D158”;
-const red        = “#FF453A”;
-const amber      = “#FF9F0A”;
+const blue       = "#0A84FF";
+const blueHover  = "#409CFF";
+const blueDim    = "rgba(10,132,255,0.12)";
+const blueBorder = "rgba(10,132,255,0.25)";
+const green      = "#30D158";
+const red        = "#FF453A";
+const amber      = "#FF9F0A";
 
 const TICKS = [
-[“TTLCONS  $2,190B”, “+0.42%”, true],
-[“HOUST  1,487K”,    “+7.22%”, true],
-[“PERMIT  1,386K”,   “−0.87%”, false],
-[“EMPLOY  8,330K”,   “+0.31%”, true],
-[“LUMBER  $512”,     “+3.2%”,  true],
-[“STEEL HR  $748”,   “−1.4%”,  false],
-[“COPPER  $4.82”,    “+0.8%”,  true],
-[“IIJA  $890B”,      “ACTIVE”, null],
-[“10YR  4.32%”,      “−2bp”,   false],
-[“AGC BCI  58.4”,    “+2.1”,   true],
+["TTLCONS  $2,190B", "+0.42%", true],
+["HOUST  1,487K",    "+7.22%", true],
+["PERMIT  1,386K",   "−0.87%", false],
+["EMPLOY  8,330K",   "+0.31%", true],
+["LUMBER  $512",     "+3.2%",  true],
+["STEEL HR  $748",   "−1.4%",  false],
+["COPPER  $4.82",    "+0.8%",  true],
+["IIJA  $890B",      "ACTIVE", null],
+["10YR  4.32%",      "−2bp",   false],
+["AGC BCI  58.4",    "+2.1",   true],
 ];
 
 /* ══════════════════════════════════════════════════════════
@@ -34,21 +34,21 @@ function GlobalStyles() {
 return (
 <style>{`
 @font-face {
-font-family: ‘Aeonik Pro’;
-src: url(‘https://db.onlinewebfonts.com/t/12ff62164c9778917bddb93c6379cf47.woff2’) format(‘woff2’);
+font-family: 'Aeonik Pro';
+src: url('https://db.onlinewebfonts.com/t/12ff62164c9778917bddb93c6379cf47.woff2') format('woff2');
 font-weight: 400; font-display: swap;
 }
 @font-face {
-font-family: ‘Aeonik Pro’;
-src: url(‘https://db.onlinewebfonts.com/t/81c9cfcec66a1bb46e90e184f4d04641.woff2’) format(‘woff2’);
+font-family: 'Aeonik Pro';
+src: url('https://db.onlinewebfonts.com/t/81c9cfcec66a1bb46e90e184f4d04641.woff2') format('woff2');
 font-weight: 500; font-display: swap;
 }
 @font-face {
-font-family: ‘Aeonik Pro’;
-src: url(‘https://db.onlinewebfonts.com/t/362636484f8ad521fec5a297fdc0ab12.woff2’) format(‘woff2’);
+font-family: 'Aeonik Pro';
+src: url('https://db.onlinewebfonts.com/t/362636484f8ad521fec5a297fdc0ab12.woff2') format('woff2');
 font-weight: 700; font-display: swap;
 }
-@import url(‘https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap’);
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 ```
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -391,7 +391,7 @@ return (
 <div className="ticker-track fm">
 {all.map(([label, chg, up], i) => (
 <span key={i} className="ticker-item">
-<span style={{ color: “rgba(255,255,255,0.30)” }}>{label}</span>
+<span style={{ color: "rgba(255,255,255,0.30)" }}>{label}</span>
 {chg && <span style={{ color: up === true ? green : up === false ? red : blue, fontWeight: 500 }}>{chg}</span>}
 </span>
 ))}
@@ -406,35 +406,35 @@ const [open, setOpen] = useState(false);
 return (
 <>
 <nav className={`nav fa ${scrolled ? "on" : ""}`}>
-<a href=”/” style={{ display: “flex”, alignItems: “center”, minHeight: 44 }}>
+<a href="/" style={{ display: "flex", alignItems: "center", minHeight: 44 }}>
 <img src={LOGO} alt="ConstructAIQ" className="nav-logo-img" />
 </a>
 <div className="nav-center">
-{[[“Features”,”#features”],[“Data”,”#data”],[“Pricing”,”#pricing”],[“About”,”#about”]].map(([l,h]) => (
+{[["Features","#features"],["Data","#data"],["Pricing","#pricing"],["About","#about"]].map(([l,h]) => (
 <a key={l} href={h} className="nav-a">{l}</a>
 ))}
 </div>
 <div className="nav-right">
-<a href=”/dashboard” className=“btn-t fm” style={{ fontSize: 10, letterSpacing: “0.1em”, height: 40 }}>
+<a href="/dashboard" className="btn-t fm" style={{ fontSize: 10, letterSpacing: "0.1em", height: 40 }}>
 LIVE TERMINAL →
 </a>
-<a href=”#access” className=“btn-f fa” style={{ height: 40, fontSize: 14 }}>Get Access</a>
+<a href="#access" className="btn-f fa" style={{ height: 40, fontSize: 14 }}>Get Access</a>
 </div>
-<button className=“ham” onClick={() => setOpen(o => !o)} aria-label=“Menu”>
+<button className="ham" onClick={() => setOpen(o => !o)} aria-label="Menu">
 <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-<rect y=“0”  width=“22” height=“2” rx=“1” fill={open ? blue : “rgba(255,255,255,0.66)”} style={{ transition: “fill 0.15s” }} />
-<rect y=“7”  width=“15” height=“2” rx=“1” fill={open ? blue : “rgba(255,255,255,0.66)”} style={{ transition: “fill 0.15s” }} />
-<rect y=“14” width=“22” height=“2” rx=“1” fill={open ? blue : “rgba(255,255,255,0.66)”} style={{ transition: “fill 0.15s” }} />
+<rect y="0"  width="22" height="2" rx="1" fill={open ? blue : "rgba(255,255,255,0.66)"} style={{ transition: "fill 0.15s" }} />
+<rect y="7"  width="15" height="2" rx="1" fill={open ? blue : "rgba(255,255,255,0.66)"} style={{ transition: "fill 0.15s" }} />
+<rect y="14" width="22" height="2" rx="1" fill={open ? blue : "rgba(255,255,255,0.66)"} style={{ transition: "fill 0.15s" }} />
 </svg>
 </button>
 </nav>
 <div className={`mob-menu fa ${open ? "open" : ""}`}>
-{[[“Features”,”#features”],[“Data”,”#data”],[“Pricing”,”#pricing”],[“About”,”#about”]].map(([l,h]) => (
-<a key={l} href={h} className=“mob-a” onClick={() => setOpen(false)}>{l}</a>
+{[["Features","#features"],["Data","#data"],["Pricing","#pricing"],["About","#about"]].map(([l,h]) => (
+<a key={l} href={h} className="mob-a" onClick={() => setOpen(false)}>{l}</a>
 ))}
 <div className="mob-ctas">
-<a href=”/dashboard” className=“btn-g fa” onClick={() => setOpen(false)} style={{ fontSize: 14 }}>Open Live Terminal →</a>
-<a href=”#access” className=“btn-fl fa” onClick={() => setOpen(false)}>Get Early Access</a>
+<a href="/dashboard" className="btn-g fa" onClick={() => setOpen(false)} style={{ fontSize: 14 }}>Open Live Terminal →</a>
+<a href="#access" className="btn-fl fa" onClick={() => setOpen(false)}>Get Early Access</a>
 </div>
 </div>
 </>
@@ -446,8 +446,8 @@ function PCard({ tier, price, unit, desc, features, cta, featured }) {
 return (
 <div className={`price-card fa ${featured ? "price-feat" : ""}`}>
 {featured && <div className="price-badge fm">MOST POPULAR</div>}
-<div className=“price-tier fm” style={{ color: featured ? blue : “rgba(255,255,255,0.28)” }}>{tier}</div>
-<div style={{ display: “flex”, alignItems: “baseline”, gap: 4 }}>
+<div className="price-tier fm" style={{ color: featured ? blue : "rgba(255,255,255,0.28)" }}>{tier}</div>
+<div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
 <span className="price-num">{price}</span>
 {unit && <span className="price-unit">{unit}</span>}
 </div>
@@ -460,10 +460,10 @@ return (
 </div>
 ))}
 </div>
-<a href=”#access”
-className={featured ? “btn-fl fa” : “btn-g fa”}
-style={{ width: “100%”, fontSize: 14, fontWeight: featured ? 600 : 500, height: 44,
-…(featured ? {} : { color: blue, borderColor: “rgba(10,132,255,0.26)”, background: “rgba(10,132,255,0.08)”, height: 44, borderRadius: 12 })
+<a href="#access"
+className={featured ? "btn-fl fa" : "btn-g fa"}
+style={{ width: "100%", fontSize: 14, fontWeight: featured ? 600 : 500, height: 44,
+…(featured ? {} : { color: blue, borderColor: "rgba(10,132,255,0.26)", background: "rgba(10,132,255,0.08)", height: 44, borderRadius: 12 })
 }}>
 {cta}
 </a>
@@ -479,12 +479,12 @@ const [scrolled, setScrolled] = useState(false);
 
 useEffect(() => {
 const h = () => setScrolled(window.scrollY > 40);
-window.addEventListener(“scroll”, h, { passive: true });
-return () => window.removeEventListener(“scroll”, h);
+window.addEventListener("scroll", h, { passive: true });
+return () => window.removeEventListener("scroll", h);
 }, []);
 
 return (
-<div className=“fa” style={{ background: “#060608”, color: “#fff”, minHeight: “100vh”, overflowX: “hidden” }}>
+<div className="fa" style={{ background: "#060608", color: "#fff", minHeight: "100vh", overflowX: "hidden" }}>
 <GlobalStyles />
 <Nav scrolled={scrolled} />
 <Ticker />
