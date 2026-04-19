@@ -1,389 +1,301 @@
-"use client";
-import { useState, useEffect } from "react";
+// @ts-nocheck
+"use client"
+import { useState, useEffect } from "react"
 
-/* ─────────────────────────────────────────────────────────
-LOGO — GitHub raw URL (also works once copied to /public/)
-───────────────────────────────────────────────────────── */
-const LOGO = "https://raw.githubusercontent.com/toddbridgeford/ConstructAIQ/Predictive-Model/ConstructAIQWhiteLogo.svg";
+var SYS = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+var MONO = "ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace"
+var AMBER = "#f5a623"
+var GREEN = "#30d158"
+var RED = "#ff453a"
+var BLUE = "#0a84ff"
+var BG0 = "#000"
+var BG1 = "#0d0d0d"
+var BG2 = "#1a1a1a"
+var BG3 = "#222"
+var BD1 = "#2a2a2a"
+var T1 = "#ffffff"
+var T2 = "#ebebf0"
+var T3 = "#a0a0ab"
+var T4 = "#6e6e73"
 
-const blue       = "#0A84FF";
-const blueHover  = "#409CFF";
-const blueDim    = "rgba(10,132,255,0.12)";
-const blueBorder = "rgba(10,132,255,0.25)";
-const green      = "#30D158";
-const red        = "#FF453A";
-const amber      = "#FF9F0A";
-
-const TICKS = [
-["TTLCONS  $2,190B", "+0.42%", true],
-["HOUST  1,487K",    "+7.22%", true],
-["PERMIT  1,386K",   "−0.87%", false],
-["EMPLOY  8,330K",   "+0.31%", true],
-["LUMBER  $512",     "+3.2%",  true],
-["STEEL HR  $748",   "−1.4%",  false],
-["COPPER  $4.82",    "+0.8%",  true],
-["IIJA  $890B",      "ACTIVE", null],
-["10YR  4.32%",      "−2bp",   false],
-["AGC BCI  58.4",    "+2.1",   true],
-];
-
-/* ══════════════════════════════════════════════════════════
-GLOBAL STYLES — Apple HIG compliant responsive CSS
-══════════════════════════════════════════════════════════ */
-function GlobalStyles(){return null;}
-
-/* ── TICKER ──────────────────────────────────────────────────────────────── */
-function Ticker() {
-const all = [...TICKS, ...TICKS];
-return (
-<div className="ticker">
-<div className="ticker-edge-l" />
-<div className="ticker-edge-r" />
-<div className="ticker-track fm">
-{all.map(([label, chg, up], i) => (
-<span key={i} className="ticker-item">
-<span style={{ color: "rgba(255,255,255,0.30)" }}>{label}</span>
-{chg && <span style={{ color: up === true ? green : up === false ? red : blue, fontWeight: 500 }}>{chg}</span>}
-</span>
-))}
-</div>
-</div>
-);
+function LiveStat({ label, value, change, color }) {
+  return (
+    <div style={{ textAlign: "center", padding: "20px 24px", background: BG2, borderRadius: 16, border: "1px solid " + BD1, flex: 1, minWidth: 140 }}>
+      <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 8 }}>{label}</div>
+      <div style={{ fontFamily: MONO, fontSize: 26, color: color || AMBER, fontWeight: 700, lineHeight: 1 }}>{value}</div>
+      {change && <div style={{ fontFamily: MONO, fontSize: 13, color: parseFloat(change) >= 0 ? GREEN : RED, marginTop: 6 }}>{parseFloat(change) >= 0 ? "+" : ""}{change}% MoM</div>}
+    </div>
+  )
 }
 
-/* ── NAV ─────────────────────────────────────────────────────────────────── */
-function Nav({ scrolled }) {
-const [open, setOpen] = useState(false);
-return (
-<>
-<nav className={`nav fa ${scrolled ? "on" : ""}`}>
-<a href="/" style={{ display: "flex", alignItems: "center", minHeight: 44 }}>
-<img src={LOGO} alt="ConstructAIQ" className="nav-logo-img" />
-</a>
-<div className="nav-center">
-{[["Features","#features"],["Data","#data"],["Pricing","#pricing"],["About","#about"]].map(([l,h]) => (
-<a key={l} href={h} className="nav-a">{l}</a>
-))}
-</div>
-<div className="nav-right">
-<a href="/dashboard" className="btn-t fm" style={{ fontSize: 10, letterSpacing: "0.1em", height: 40 }}>
-LIVE TERMINAL →
-</a>
-<a href="#access" className="btn-f fa" style={{ height: 40, fontSize: 14 }}>Get Access</a>
-</div>
-<button className="ham" onClick={() => setOpen(o => !o)} aria-label="Menu">
-<svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-<rect y="0"  width="22" height="2" rx="1" fill={open ? blue : "rgba(255,255,255,0.66)"} style={{ transition: "fill 0.15s" }} />
-<rect y="7"  width="15" height="2" rx="1" fill={open ? blue : "rgba(255,255,255,0.66)"} style={{ transition: "fill 0.15s" }} />
-<rect y="14" width="22" height="2" rx="1" fill={open ? blue : "rgba(255,255,255,0.66)"} style={{ transition: "fill 0.15s" }} />
-</svg>
-</button>
-</nav>
-<div className={`mob-menu fa ${open ? "open" : ""}`}>
-{[["Features","#features"],["Data","#data"],["Pricing","#pricing"],["About","#about"]].map(([l,h]) => (
-<a key={l} href={h} className="mob-a" onClick={() => setOpen(false)}>{l}</a>
-))}
-<div className="mob-ctas">
-<a href="/dashboard" className="btn-g fa" onClick={() => setOpen(false)} style={{ fontSize: 14 }}>Open Live Terminal →</a>
-<a href="#access" className="btn-fl fa" onClick={() => setOpen(false)}>Get Early Access</a>
-</div>
-</div>
-</>
-);
-}
-
-/* ── PRICING CARD ────────────────────────────────────────────────────────── */
-function PCard({ tier, price, unit, desc, features, cta, featured }) {
-return (
-<div className={`price-card fa ${featured ? "price-feat" : ""}`}>
-{featured && <div className="price-badge fm">MOST POPULAR</div>}
-<div className="price-tier fm" style={{ color: featured ? blue : "rgba(255,255,255,0.28)" }}>{tier}</div>
-<div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-<span className="price-num">{price}</span>
-{unit && <span className="price-unit">{unit}</span>}
-</div>
-<div className="price-desc">{desc}</div>
-<div className="price-feats">
-{features.map((f, i) => (
-<div key={i} className="price-row">
-<span className="price-ck">✓</span>
-<span className="price-txt">{f}</span>
-</div>
-))}
-</div>
-<a href="#access"
-className={featured ? "btn-fl fa" : "btn-g fa"}
-style={{ width: "100%", fontSize: 14, fontWeight: featured ? 600 : 500, height: 44,
-...(featured ? {} : { color: blue, borderColor: "rgba(10,132,255,0.26)", background: "rgba(10,132,255,0.08)", height: 44, borderRadius: 12 })
-}}>
-{cta}
-</a>
-</div>
-);
-}
-
-/* ══════════════════════════════════════════════════════════
-MAIN PAGE
-══════════════════════════════════════════════════════════ */
-export default function Home() {
-const [scrolled, setScrolled] = useState(false);
-
-useEffect(() => {
-const h = () => setScrolled(window.scrollY > 40);
-window.addEventListener("scroll", h, { passive: true });
-return () => window.removeEventListener("scroll", h);
-}, []);
-
-return (
-<div className="fa" style={{ background: "#060608", color: "#fff", minHeight: "100vh", overflowX: "hidden" }}>
-
-<Nav scrolled={scrolled} />
-<Ticker />
-
-  {/* ────── HERO ────── */}
-  <section className="hero">
-    <div className="eyebrow d1 fa">
-      <div className="live-dot" />
-      <span className="fm" style={{ fontSize: 10, letterSpacing: "0.1em", color: green }}>LIVE</span>
-      <div style={{ width: 1, height: 12, background: "rgba(255,255,255,0.12)" }} />
-      <span className="fm" style={{ fontSize: 10, letterSpacing: "0.1em", color: "rgba(255,255,255,0.34)" }}>312 SOURCES</span>
-    </div>
-    <h1 className="hero-h1 fa d2">
-      The Construction<br />
-      <span className="grad-text">Intelligence Terminal.</span>
-    </h1>
-    <p className="hero-sub fa d3">
-      Market signals.<br />Before the market moves.
-    </p>
-    <div className="hero-ctas d4">
-      <a href="#access" className="btn-fl fa">Get Early Access</a>
-      <a href="/dashboard" className="btn-g fa">
-        View Live Terminal <span style={{ color: blue }}>→</span>
-      </a>
-    </div>
-    <div className="hero-pills d5">
-      {[
-        { t: "BULLISH", txt: "Infrastructure Surge", c: green },
-        { t: "WARNING", txt: "Craft Labor 12-yr Low", c: amber },
-        { t: "DATA",    txt: "BLS +18,400 Jobs",     c: blue  },
-        { t: "BEARISH", txt: "Multifamily Pullback", c: red   },
-      ].map(({ t, txt, c }, i) => (
-        <div key={i} className="pill fa" style={{ background: `${c}10`, border: `1px solid ${c}20` }}>
-          <div className="pill-dot" style={{ background: c }} />
-          <span className="pill-type fm" style={{ color: c }}>{t}</span>
-          <span className="pill-text">{txt}</span>
-        </div>
-      ))}
-    </div>
-  </section>
-
-  {/* ────── STATS ────── */}
-  <div className="div" />
-  <div className="stats">
-    {[
-      { v: "312",  u: "",    l: "Data Sources",      s: "Federal + State",    c: blue  },
-      { v: "94.8", u: "%",   l: "Forecast Accuracy", s: "12-Month Horizon",   c: green },
-      { v: "4",    u: " hrs",l: "Data Freshness",    s: "Rolling Updates",    c: amber },
-      { v: "50",   u: "+",   l: "Metro Markets",     s: "Full U.S. Coverage", c: blue  },
-    ].map((s, i) => (
-      <div key={i} className="stat">
-        <div className="stat-v fa" style={{ color: s.c }}>
-          {s.v}<span style={{ fontSize: "0.44em" }}>{s.u}</span>
-        </div>
-        <div className="stat-l fa">{s.l}</div>
-        <div className="stat-s fm">{s.s}</div>
+function FeatureCard({ icon, title, desc, tag }) {
+  return (
+    <div style={{ background: BG2, borderRadius: 16, padding: "28px 24px", border: "1px solid " + BD1, flex: 1, minWidth: 260 }}>
+      <div style={{ fontSize: 32, marginBottom: 16 }}>{icon}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <div style={{ fontFamily: SYS, fontSize: 17, color: T1, fontWeight: 600 }}>{title}</div>
+        {tag && <div style={{ fontFamily: MONO, fontSize: 11, color: AMBER, background: "#3d280022", border: "1px solid " + AMBER + "44", borderRadius: 6, padding: "2px 8px" }}>{tag}</div>}
       </div>
-    ))}
-  </div>
-  <div className="div" />
+      <div style={{ fontFamily: SYS, fontSize: 15, color: T3, lineHeight: 1.6 }}>{desc}</div>
+    </div>
+  )
+}
 
-  {/* ────── FEATURES ────── */}
-  <section id="features" className="sec">
-    <div className="wrap">
-      <div className="hd-center">
-        <div className="eyebrow-lbl fm">Platform</div>
-        <h2 className="h2">Intelligence that moves<br />at construction speed.</h2>
-        <p className="sub">Six modules. One terminal. Zero manual aggregation.</p>
-      </div>
-      <div className="feat-grid">
-        {[
-          { icon: "◎", tag: "AI FORECAST", title: "Predictive Market Model",   desc: "Predict spend, permits, and labor 12 months out. 94.8% accuracy." },
-          { icon: "◈", tag: "DATA",         title: "312 Sources Unified",       desc: "Every federal feed. All 50 state permit offices. One platform." },
-          { icon: "⬡", tag: "SECTORS",      title: "Sector Heat Map",           desc: "8 construction sectors. Real-time momentum scores." },
-          { icon: "△", tag: "LABOR",         title: "Craft Labor Intelligence",  desc: "Wage pressure signals across 200+ metropolitan areas." },
-          { icon: "◻", tag: "MATERIALS",    title: "Materials Cost Monitor",    desc: "BUY. SELL. HOLD. AI-scored signals on 6 key commodities." },
-          { icon: "⬤", tag: "FEDERAL",      title: "Pipeline Tracker",          desc: "$890B in IIJA and federal contracts. None missed." },
-        ].map((f, i) => (
-          <div key={i} className="feat-card">
-            <div className="feat-tag fm">{f.tag}</div>
-            <div className="feat-icon">{f.icon}</div>
-            <div className="feat-title fa">{f.title}</div>
-            <div className="feat-desc fa">{f.desc}</div>
+function SignalPill({ type, text }) {
+  var col = type === "BULLISH" ? GREEN : type === "BEARISH" ? RED : AMBER
+  var bg = type === "BULLISH" ? "#0a2e14" : type === "BEARISH" ? "#2e0a0a" : "#3d2800"
+  var icon = type === "BULLISH" ? "▲" : type === "BEARISH" ? "▼" : "⚠"
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: bg, border: "1px solid " + col + "44", borderRadius: 20, padding: "6px 14px", margin: "4px" }}>
+      <span style={{ fontFamily: MONO, fontSize: 12, color: col }}>{icon}</span>
+      <span style={{ fontFamily: SYS, fontSize: 14, color: col, fontWeight: 500 }}>{text}</span>
+    </div>
+  )
+}
+
+export default function HomePage() {
+  var [email, setEmail] = useState("")
+  var [status, setStatus] = useState("")
+  var [submitting, setSubmitting] = useState(false)
+  var [spend, setSpend] = useState(null)
+  var [employ, setEmploy] = useState(null)
+  var [signals, setSignals] = useState([])
+
+  useEffect(function () {
+    async function load() {
+      try { var r = await fetch("/api/census"); if (r.ok) setSpend(await r.json()) } catch (e) {}
+      try { var r = await fetch("/api/bls");    if (r.ok) setEmploy(await r.json()) } catch (e) {}
+      try { var r = await fetch("/api/signals"); if (r.ok) { var d = await r.json(); setSignals(d.signals || []) } } catch (e) {}
+    }
+    load()
+  }, [])
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!email || submitting) return
+    setSubmitting(true)
+    try {
+      var r = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, source: "homepage" })
+      })
+      if (r.ok) {
+        setStatus("success")
+        setEmail("")
+      } else {
+        setStatus("error")
+      }
+    } catch (e) {
+      setStatus("error")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  var spendVal = spend?.value ?? spend?.latest?.value ?? 2190
+  var spendMom = spend?.mom ?? spend?.latest?.mom ?? 0.3
+  var empVal   = employ?.value ?? employ?.latest?.value ?? 8330
+  var empMom   = employ?.mom ?? employ?.latest?.mom ?? 0.31
+
+  var bullish = signals.filter(function(s) { return s.type === "BULLISH" })
+  var bearish = signals.filter(function(s) { return s.type === "BEARISH" })
+  var warning = signals.filter(function(s) { return s.type === "WARNING" })
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS,
+      paddingBottom: "env(safe-area-inset-bottom, 20px)",
+    }}>
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        a { color: inherit; text-decoration: none; }
+        button { outline: none; font-family: inherit; cursor: pointer; border: none; }
+        input { outline: none; font-family: inherit; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+      `}</style>
+
+      {/* NAV */}
+      <nav style={{
+        position: "sticky", top: 0, zIndex: 100,
+        background: BG1 + "ee", backdropFilter: "blur(12px)",
+        borderBottom: "1px solid " + BD1,
+        padding: "0 32px", display: "flex", alignItems: "center",
+        justifyContent: "space-between", height: 60,
+        paddingTop: "env(safe-area-inset-top, 0px)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <img src="https://raw.githubusercontent.com/toddbridgeford/ConstructAIQ/Predictive-Model/ConstructAIQWhiteLogo.svg"
+            style={{ height: 24 }} alt="ConstructAIQ" />
+          <div style={{ width: 1, height: 24, background: BD1 }} />
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>CONSTRUCTION INTELLIGENCE</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: GREEN, boxShadow: "0 0 8px " + GREEN + "88", animation: "pulse 2s infinite" }} />
+            <span style={{ fontFamily: MONO, fontSize: 12, color: GREEN }}>LIVE</span>
           </div>
-        ))}
-      </div>
-    </div>
-  </section>
-
-  {/* ────── HOW IT WORKS ────── */}
-  <div className="sec-dk">
-    <section className="sec">
-      <div className="wrap">
-        <div className="hd-center">
-          <div className="eyebrow-lbl fm">How It Works</div>
-          <h2 className="h2" style={{ fontSize: "clamp(26px,3.5vw,44px)" }}>
-            Raw data.<br />Refined signal.
-          </h2>
-        </div>
-        <div className="steps">
-          {[
-            { n: "01", t: "Ingest",  d: "312 feeds. Every 4 hours. Fully automatic.",          c: blue  },
-            { n: "02", t: "Analyze", d: "AI ensemble models. 20 years of construction data.",   c: green },
-            { n: "03", t: "Act",     d: "Your signal. Confidence intervals. Before the bid.",   c: amber },
-          ].map((s, i) => (
-            <div key={i} className="step">
-              <div className="step-n fm" style={{ color: s.c }}>{s.n}</div>
-              <div className="step-t fa">{s.t}</div>
-              <div className="step-d fa">{s.d}</div>
-              <div className="step-bar" style={{ background: `linear-gradient(to right, ${s.c}, transparent)` }} />
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  </div>
-
-  {/* ────── DATA SOURCES ────── */}
-  <section id="data" className="sec">
-    <div className="wrap">
-      <div className="data-2col">
-        <div>
-          <div className="eyebrow-lbl fm">Data Infrastructure</div>
-          <h2 className="h2">One platform.<br />Every source<br />that matters.</h2>
-          <p className="sub" style={{ marginBottom: 36 }}>
-            Federal agencies. State permit offices. Commodity exchanges. Normalized, weighted, refreshed every four hours.
-          </p>
-          <a href="/dashboard" className="btn-t fm" style={{ fontSize: 10, letterSpacing: "0.1em" }}>
-            VIEW LIVE TERMINAL →
+          <a href="/dashboard">
+            <button style={{
+              background: AMBER, color: "#000", fontFamily: MONO, fontSize: 13, fontWeight: 700,
+              padding: "8px 20px", borderRadius: 10, letterSpacing: "0.06em",
+              minHeight: 44,
+            }}>DASHBOARD →</button>
           </a>
         </div>
-        <div className="srcs fm">
-          {["Census Bureau VIP","BLS CES / QCEW","FRED / Fed Reserve","HUD SOCDS","DOT FHWA","AGC Data Digest","USASpending.gov","RSMeans Cost Index","Dodge Construction","50 State Permit APIs","FEMA Flood Maps","EPA Air Quality"].map((s, i) => (
-            <div key={i} className="src">{s}</div>
-          ))}
-        </div>
-      </div>
-    </div>
-  </section>
+      </nav>
 
-  {/* ────── TERMINAL STRIP ────── */}
-  <div className="t-strip">
-    <div className="wrap">
-      <div className="t-strip-in">
-        <div>
-          <div className="fm" style={{ fontSize: 9.5, letterSpacing: "0.16em", color: blue, marginBottom: 8, textTransform: "uppercase" }}>Live — No Login Required</div>
-          <div className="fa" style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.025em", color: "#fff" }}>See the full Bloomberg-grade terminal.</div>
-        </div>
-        <a href="/dashboard" className="btn-fl fa" style={{ flexShrink: 0 }}>Open Terminal</a>
-      </div>
-    </div>
-  </div>
+      {/* HERO */}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 32px 60px" }}>
+        <div style={{ textAlign: "center", marginBottom: 64 }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: BG2, border: "1px solid " + AMBER + "44", borderRadius: 20,
+            padding: "6px 16px", marginBottom: 28,
+          }}>
+            <span style={{ fontFamily: MONO, fontSize: 12, color: AMBER }}>▲ Phase 3 Live</span>
+            <span style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>3-Model AI Ensemble · 16 APIs · Real-Time Intelligence</span>
+          </div>
 
-  {/* ────── PRICING ────── */}
-  <section id="pricing" className="sec">
-    <div className="wrap">
-      <div className="hd-center">
-        <div className="eyebrow-lbl fm">Pricing</div>
-        <h2 className="h2">Plans for every scale.</h2>
-        <p className="sub">Early access pricing. Locked in at launch.</p>
-      </div>
-      <div className="price-grid">
-        <PCard tier="Starter"      price="$490"   unit="/mo" desc="New markets. Sharp instincts."   cta="Start Free Trial"  featured={false}
-          features={["5 metro dashboards","Monthly AI forecasts","Materials cost index","Permit volume trends","Email support"]} />
-        <PCard tier="Professional" price="$1,490" unit="/mo" desc="For ENR 400 firms."              cta="Get Early Access"  featured={true}
-          features={["25 metro dashboards","Weekly forecast updates","Full labor market signals","Federal pipeline monitor","Bid intelligence module","API 50k calls/mo","Slack / Teams alerts","Priority support"]} />
-        <PCard tier="Enterprise"   price="Custom" unit=""    desc="For ENR 100."                    cta="Contact Sales"     featured={false}
-          features={["Unlimited metro coverage","Daily data refresh","Scenario modeling suite","Portfolio stress-testing","Dedicated analyst","Unlimited API access","SSO + audit logs","SLA guarantee"]} />
-      </div>
-    </div>
-  </section>
+          <h1 style={{
+            fontFamily: SYS, fontSize: 52, fontWeight: 700, lineHeight: 1.1,
+            color: T1, marginBottom: 20, letterSpacing: "-0.02em",
+          }}>
+            The Bloomberg Terminal<br />
+            <span style={{ color: AMBER }}>for Construction</span>
+          </h1>
 
-  {/* ────── WHO WE SERVE ────── */}
-  <div id="about" className="sec-dk">
-    <section className="sec">
-      <div className="wrap">
-        <div className="hd-center">
-          <div className="eyebrow-lbl fm">Who We Serve</div>
-          <h2 className="h2" style={{ fontSize: "clamp(26px,3.5vw,44px)" }}>Built for professionals<br />who move the market.</h2>
-        </div>
-        <div className="serve-grid">
-          {[
-            { em: "📊", role: "Economists",      org: "NAHB · AGC · Regional Fed", desc: "Unified construction data. No manual aggregation. Cite it in your next report." },
-            { em: "🏗️", role: "Contractors",     org: "ENR 400 to ENR 100",        desc: "Sharpen bids. Time procurement. Expand into new markets with confidence." },
-            { em: "🏦", role: "Capital Markets", org: "Lenders · PE · REITs",       desc: "Underwrite deals with forward data. Stress-test portfolios against 12-month forecasts." },
-          ].map((a, i) => (
-            <div key={i} className="serve-card">
-              <div className="serve-em">{a.em}</div>
-              <div className="serve-role fa">{a.role}</div>
-              <div className="serve-org fm">{a.org}</div>
-              <div className="serve-desc fa">{a.desc}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  </div>
-
-  {/* ────── CTA BAND ────── */}
-  <section id="access" className="cta-sec">
-    <div className="wrap">
-      <div className="eyebrow-lbl fm" style={{ marginBottom: 28 }}>Early Access</div>
-      <h2 className="cta-h2 fa">
-        The market<br />
-        <span className="grad-text">doesn't wait.</span>
-      </h2>
-      <p className="cta-sub fa">Neither should you.</p>
-      <div className="cta-form">
-        <input type="email" placeholder="your@email.com" className="cta-inp fa" />
-        <button className="btn-fl fa">Request Access</button>
-      </div>
-      <div className="cta-disc fm">No spam — launch updates only</div>
-    </div>
-  </section>
-
-  {/* ────── FOOTER ────── */}
-  <footer className="ftr">
-    <div className="wrap">
-      <div className="ftr-grid">
-        <div>
-          <img src={LOGO} alt="ConstructAIQ" style={{ height: 24, marginBottom: 20 }} />
-          <p className="fa" style={{ fontSize: 13.5, color: "rgba(255,255,255,0.34)", lineHeight: 1.76, maxWidth: 255, marginBottom: 24, fontWeight: 400, letterSpacing: "-0.005em" }}>
-            AI-powered construction market intelligence. 312 sources. One terminal.
+          <p style={{
+            fontFamily: SYS, fontSize: 19, color: T3, lineHeight: 1.6,
+            maxWidth: 580, margin: "0 auto 40px",
+          }}>
+            Real-time construction spending, permits, employment, and AI-powered 12-month forecasts. Built for economists, developers, and construction executives.
           </p>
-          <a href="/dashboard" className="btn-t fm" style={{ fontSize: 9.5, letterSpacing: "0.1em", height: 36 }}>OPEN TERMINAL →</a>
+
+          {/* Email capture */}
+          <form onSubmit={handleSubmit} style={{ display: "flex", gap: 10, maxWidth: 460, margin: "0 auto 16px", justifyContent: "center" }}>
+            <input
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={function(e) { setEmail(e.target.value) }}
+              style={{
+                flex: 1, background: BG2, border: "1px solid " + BD1, borderRadius: 12,
+                padding: "13px 18px", color: T1, fontSize: 15, minHeight: 50,
+              }}
+            />
+            <button type="submit" disabled={submitting} style={{
+              background: AMBER, color: "#000", fontWeight: 700, fontSize: 15,
+              padding: "0 24px", borderRadius: 12, minHeight: 50, minWidth: 120,
+              opacity: submitting ? 0.7 : 1,
+            }}>
+              {submitting ? "..." : "Get Access"}
+            </button>
+          </form>
+          {status === "success" && <div style={{ fontFamily: SYS, fontSize: 14, color: GREEN }}>✓ You're on the list. We'll be in touch.</div>}
+          {status === "error"   && <div style={{ fontFamily: SYS, fontSize: 14, color: RED }}>Something went wrong. Try again.</div>}
+          <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 10 }}>
+            No spam. Used by construction economists and project developers.
+          </div>
         </div>
-        {[
-          { h: "Product", ls: ["Features","Pricing","Data Sources","API Docs","Changelog"] },
-          { h: "Company", ls: ["About","Blog","Careers","Press","Contact"] },
-          { h: "Legal",   ls: ["Privacy","Terms","Data Usage","Security","Cookies"] },
-        ].map((col, i) => (
-          <div key={i}>
-            <div className="ftr-hd fm">{col.h}</div>
-            <div className="ftr-links">
-              {col.ls.map(l => <a key={l} href="#" className="ftr-lnk fa">{l}</a>)}
+
+        {/* LIVE STATS */}
+        <div style={{ marginBottom: 64 }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 16, textAlign: "center" }}>LIVE DATA — UPDATED EVERY 4 HOURS</div>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <LiveStat label="TOTAL CONSTRUCTION SPEND" value={"$" + (spendVal / 1000).toFixed(1) + "B"} change={spendMom?.toFixed(2)} color={AMBER} />
+            <LiveStat label="CONSTRUCTION EMPLOYMENT" value={(empVal >= 1000 ? (empVal / 1000).toFixed(1) + "K" : empVal) + "K"} change={empMom?.toFixed(2)} color={GREEN} />
+            <LiveStat label="ACTIVE AI SIGNALS" value={signals.length || "6"} color={BLUE} />
+            <LiveStat label="API ENDPOINTS" value="16" color={T2} />
+          </div>
+        </div>
+
+        {/* LIVE SIGNALS */}
+        {signals.length > 0 && (
+          <div style={{ marginBottom: 64, background: BG1, borderRadius: 20, padding: "28px 24px", border: "1px solid " + BD1 }}>
+            <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 16 }}>TODAY'S MARKET INTELLIGENCE</div>
+            <div style={{ display: "flex", flexWrap: "wrap" }}>
+              {signals.map(function(s, i) {
+                return <SignalPill key={i} type={s.type} text={s.title} />
+              })}
             </div>
           </div>
-        ))}
-      </div>
-      <div className="ftr-btm">
-        <span className="ftr-copy fm">© 2026 ConstructAIQ Inc. All rights reserved.</span>
-        <div className="ftr-soc">
-          {["LinkedIn","X / Twitter","GitHub"].map(s => <a key={s} href="#" className="ftr-sl fm">{s}</a>)}
+        )}
+
+        {/* FEATURES */}
+        <div style={{ marginBottom: 64 }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 24, textAlign: "center" }}>PLATFORM CAPABILITIES</div>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <FeatureCard
+              icon="📡"
+              title="Signal Intelligence"
+              tag="AI-POWERED"
+              desc="Z-score anomaly detection, trend reversals, divergence signals, and acceleration patterns across 12 government data series."
+            />
+            <FeatureCard
+              icon="🤖"
+              title="3-Model Ensemble"
+              tag="XGBOOST"
+              desc="Holt-Winters, SARIMA, and XGBoost gradient boosting combined with accuracy weighting. 12-month forecasts with 80% and 95% confidence intervals."
+            />
+            <FeatureCard
+              icon="🗺"
+              title="50-State Coverage"
+              tag="BEA + FRED"
+              desc="State-level construction activity, permit trends, and regional GDP contributions. HOT / GROWING / COOLING classification by state."
+            />
+            <FeatureCard
+              icon="💹"
+              title="Materials Intelligence"
+              tag="BLS + EIA"
+              desc="Real-time BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI crude, and diesel. Composite procurement index updated hourly."
+            />
+          </div>
+        </div>
+
+        {/* DATA SOURCES */}
+        <div style={{ marginBottom: 64, background: BG1, borderRadius: 20, padding: "32px 24px", border: "1px solid " + BD1 }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 24, textAlign: "center" }}>DATA SOURCES</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
+            {["Census Bureau", "Bureau of Labor Statistics", "FRED / St. Louis Fed", "Bureau of Economic Analysis", "EIA", "USASpending.gov", "ENR", "Construction Dive", "NAHB", "AGC"].map(function(s, i) {
+              return (
+                <div key={i} style={{ background: BG2, border: "1px solid " + BD1, borderRadius: 10, padding: "8px 16px" }}>
+                  <span style={{ fontFamily: SYS, fontSize: 14, color: T3 }}>{s}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div style={{ textAlign: "center", padding: "48px 32px", background: "linear-gradient(135deg, #1a1200 0%, #0d0d0d 100%)", borderRadius: 24, border: "1px solid " + AMBER + "33" }}>
+          <div style={{ fontFamily: SYS, fontSize: 28, fontWeight: 700, color: T1, marginBottom: 12 }}>Ready to see the intelligence?</div>
+          <div style={{ fontFamily: SYS, fontSize: 16, color: T3, marginBottom: 28, maxWidth: 480, margin: "0 auto 28px" }}>
+            The dashboard is live now. No login required.
+          </div>
+          <a href="/dashboard">
+            <button style={{
+              background: AMBER, color: "#000", fontFamily: MONO, fontSize: 15, fontWeight: 700,
+              padding: "16px 40px", borderRadius: 14, letterSpacing: "0.06em", minHeight: 52,
+            }}>OPEN DASHBOARD →</button>
+          </a>
+          <div style={{ marginTop: 16 }}>
+            <a href="/pricing" style={{ fontFamily: SYS, fontSize: 14, color: T4, textDecoration: "underline" }}>View pricing plans</a>
+          </div>
         </div>
       </div>
-    </div>
-  </footer>
-</div>
 
-);
+      {/* FOOTER */}
+      <footer style={{ borderTop: "1px solid " + BD1, padding: "32px", textAlign: "center", marginTop: 64 }}>
+        <img src="https://raw.githubusercontent.com/toddbridgeford/ConstructAIQ/Predictive-Model/ConstructAIQWhiteLogo.svg"
+          style={{ height: 20, marginBottom: 12 }} alt="ConstructAIQ" />
+        <div style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>
+          Construction Intelligence Platform · constructaiq.trade
+        </div>
+        <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 6 }}>
+          Data: Census Bureau · BLS · FRED · BEA · EIA · USASpending.gov
+        </div>
+      </footer>
+    </div>
+  )
 }
