@@ -51,6 +51,7 @@ export interface Signal {
   confidence?:     number
   method?:         string
   value_at_signal?: number
+  threshold?: number
 }
 
 /** Upsert multiple observations in one call */
