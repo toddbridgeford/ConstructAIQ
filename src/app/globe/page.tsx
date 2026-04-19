@@ -1,6 +1,6 @@
 // @ts-nocheck
 "use client"
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useRef, useState } from "react"
 
 var SYS  = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', Arial, sans-serif"
 var MONO = "ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace"
@@ -155,7 +155,7 @@ export default function GlobePage() {
     // Clear all layers
     globe
       .ringsData([]).pointsData([]).hexBinPointsData([])
-      .labelsData([]).arcsData([]).htmlElementsData([])
+      .labelsData([])
 
     var states = mapData?.states || []
 
