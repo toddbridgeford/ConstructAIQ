@@ -1,15 +1,18 @@
 /**
- * ForecastEngine Ensemble
+ * ForecastEngine Ensemble v2
  * ─────────────────────────────────────────────────────────────
- * Combines Holt-Winters and SARIMA forecasts using accuracy-
- * weighted averaging. Weights are derived from each model's
- * in-sample MAPE — better models get higher weight.
+ * Three-model accuracy-weighted ensemble:
+ *   1. Holt-Winters DES (α=0.30 β=0.08)
+ *   2. SARIMA(1,1,0)(0,1,0)[12]
+ *   3. XGBoost Gradient Boosted Regression Trees
  *
- * Future: add Prophet and XGBoost models to the ensemble.
+ * Weights derived from in-sample MAPE. Lower MAPE = higher weight.
+ * XGBoost falls back gracefully if insufficient data (<16 obs).
  */
 
-import { hwForecast,     type HWResult,     type HWPoint     } from './holtwinters'
-import { sarimaForecast, type SARIMAResult, type SARIMAPoint } from './sarima'
+import { hwForecast,        type HWResult     } from './holtwinters'
+import { sarimaForecast,    type SARIMAResult  } from './sarima'
+import { xgboostForecast,   type ForecastResult as XGBResult } from './xgboost'
 
 export interface EnsemblePoint {
   base: number
@@ -20,9 +23,9 @@ export interface EnsemblePoint {
 }
 
 export interface ModelResult {
-  model:   string
-  weight:  number
-  mape:    number
+  model:    string
+  weight:   number
+  mape:     number
   accuracy: number
   forecast: EnsemblePoint[]
 }
@@ -32,11 +35,13 @@ export interface EnsembleResult {
   models:    ModelResult[]
   bestModel: string
   metrics: {
-    accuracy:    number
-    mape:        number
-    hwWeight:    number
-    sarimaWeight: number
-    n:           number
+    accuracy:      number
+    mape:          number
+    hwWeight:      number
+    sarimaWeight:  number
+    xgboostWeight: number
+    n:             number
+    models:        number
   }
 }
 
@@ -44,42 +49,88 @@ export function runEnsemble(
   vals:    number[],
   periods: number = 12,
 ): EnsembleResult | null {
+
+  // ── Run all three models ────────────────────────────────────
   const hw     = hwForecast(vals, periods)
   const sarima = sarimaForecast(vals, periods)
 
-  if (!hw && !sarima) return null
+  // XGBoost requires feature window — only run with sufficient data
+  let xgb: XGBResult | null = null
+  if (vals.length >= 20) {
+    try {
+      xgb = xgboostForecast(vals, periods)
+    } catch (e) {
+      console.warn('[ensemble] xgboost failed, skipping:', e)
+    }
+  }
+
+  if (!hw && !sarima && !xgb) return null
 
   const models: ModelResult[] = []
 
+  // ── Holt-Winters ─────────────────────────────────────────────
   if (hw) {
     models.push({
       model:    'holt-winters',
-      weight:   0,           // computed below
+      weight:   0,
       mape:     hw.metrics.mape,
       accuracy: hw.metrics.accuracy,
-      forecast: hw.forecast.map(p => ({ base:p.base, lo80:p.lo80, hi80:p.hi80, lo95:p.lo95, hi95:p.hi95 })),
+      forecast: hw.forecast.map(p => ({
+        base: p.base, lo80: p.lo80, hi80: p.hi80, lo95: p.lo95, hi95: p.hi95,
+      })),
     })
   }
 
+  // ── SARIMA ───────────────────────────────────────────────────
   if (sarima) {
     models.push({
       model:    'sarima',
       weight:   0,
       mape:     sarima.metrics.mape,
       accuracy: sarima.metrics.accuracy,
-      forecast: sarima.forecast.map(p => ({ base:p.base, lo80:p.lo80, hi80:p.hi80, lo95:p.lo95, hi95:p.hi95 })),
+      forecast: sarima.forecast.map(p => ({
+        base: p.base, lo80: p.lo80, hi80: p.hi80, lo95: p.lo95, hi95: p.hi95,
+      })),
     })
   }
 
-  // ── Compute accuracy-based weights ────────────────────────
-  // Weight = 1/MAPE  (lower MAPE = higher weight)
-  const invMapes  = models.map(m => m.mape > 0 ? 1 / m.mape : 10)
-  const totalInv  = invMapes.reduce((s, x) => s + x, 0)
-  const weights   = invMapes.map(im => im / totalInv)
+  // ── XGBoost ──────────────────────────────────────────────────
+  if (xgb && xgb.forecasts.length > 0) {
+    const xgbMape = xgb.mape > 0 ? xgb.mape : 5.0  // fallback if 0
+    const xgbAcc  = Math.max(0, 100 - xgbMape)
 
-  models.forEach((m, i) => { m.weight = Math.round(weights[i] * 100) / 100 })
+    // Build confidence bounds from XGBoost lowerBound/upperBound
+    const xgbForecast: EnsemblePoint[] = xgb.forecasts.map((base, i) => {
+      const lo = xgb!.lowerBound[i] ?? base * 0.97
+      const hi = xgb!.upperBound[i] ?? base * 1.03
+      const mid80lo = base - (base - lo) * 0.6
+      const mid80hi = base + (hi - base) * 0.6
+      return {
+        base: r1(base),
+        lo80: r1(mid80lo),
+        hi80: r1(mid80hi),
+        lo95: r1(lo),
+        hi95: r1(hi),
+      }
+    })
 
-  // ── Build ensemble forecast ────────────────────────────────
+    models.push({
+      model:    'xgboost',
+      weight:   0,
+      mape:     r2(xgbMape),
+      accuracy: r1(xgbAcc),
+      forecast: xgbForecast,
+    })
+  }
+
+  // ── Compute accuracy-based weights (1/MAPE normalised) ───────
+  const invMapes = models.map(m => m.mape > 0 ? 1 / m.mape : 10)
+  const totalInv = invMapes.reduce((s, x) => s + x, 0)
+  const weights  = invMapes.map(im => im / totalInv)
+
+  models.forEach((m, i) => { m.weight = r2(weights[i]) })
+
+  // ── Build weighted ensemble forecast ─────────────────────────
   const ensemble: EnsemblePoint[] = []
 
   for (let h = 0; h < periods; h++) {
@@ -104,43 +155,46 @@ export function runEnsemble(
     })
   }
 
-  // ── Ensemble accuracy (weighted average MAPE) ─────────────
-  const ensembleMape = models.reduce((s, m, i) => s + weights[i] * m.mape, 0)
-  const bestModel    = models.reduce((a, b) => a.mape < b.mape ? a : b).model
-  const hwWeight     = models.find(m => m.model === 'holt-winters')?.weight || 0
-  const sarimaWeight = models.find(m => m.model === 'sarima')?.weight || 0
-  const n            = hw?.metrics.n || sarima?.metrics.n || 0
+  // ── Ensemble metrics ──────────────────────────────────────────
+  const ensembleMape   = models.reduce((s, m, i) => s + weights[i] * m.mape, 0)
+  const bestModel      = models.reduce((a, b) => a.mape < b.mape ? a : b).model
+  const hwWeight       = models.find(m => m.model === 'holt-winters')?.weight ?? 0
+  const sarimaWeight   = models.find(m => m.model === 'sarima')?.weight ?? 0
+  const xgboostWeight  = models.find(m => m.model === 'xgboost')?.weight ?? 0
+  const n              = hw?.metrics.n ?? sarima?.metrics.n ?? vals.length
 
   return {
     ensemble,
     models,
     bestModel,
     metrics: {
-      accuracy:     r1(100 - ensembleMape),
-      mape:         r2(ensembleMape),
-      hwWeight:     r2(hwWeight),
-      sarimaWeight: r2(sarimaWeight),
+      accuracy:      r1(100 - ensembleMape),
+      mape:          r2(ensembleMape),
+      hwWeight:      r2(hwWeight),
+      sarimaWeight:  r2(sarimaWeight),
+      xgboostWeight: r2(xgboostWeight),
       n,
+      models:        models.length,
     },
   }
 }
 
-// ── Build Recharts-ready data series ───────────────────────────
+// ── Chart series builder ────────────────────────────────────────
 export interface ChartPoint {
   m:    string
-  v:    number | null   // historical value
-  b:    number | null   // forecast base
-  lo8:  number | null   // 80% lower
-  hi8:  number | null   // 80% upper
-  lo9:  number | null   // 95% lower
-  hi9:  number | null   // 95% upper
+  v:    number | null
+  b:    number | null
+  lo8:  number | null
+  hi8:  number | null
+  lo9:  number | null
+  hi9:  number | null
 }
 
 export function buildChartSeries(
-  histMonths:  string[],
-  histVals:    number[],
-  fcstMonths:  string[],
-  result:      EnsembleResult | null,
+  histMonths: string[],
+  histVals:   number[],
+  fcstMonths: string[],
+  result:     EnsembleResult | null,
 ): ChartPoint[] {
   const hist: ChartPoint[] = histMonths.map((m, i) => ({
     m, v: histVals[i], b: null, lo8: null, hi8: null, lo9: null, hi9: null,
@@ -154,13 +208,14 @@ export function buildChartSeries(
 
   const fcst: ChartPoint[] = result ? fcstMonths.map((m, i) => {
     const p = result.ensemble[i]
-    return p ? { m, v: null, b: p.base, lo8: p.lo80, hi8: p.hi80, lo9: p.lo95, hi9: p.hi95 }
-             : { m, v: null, b: null, lo8: null, hi8: null, lo9: null, hi9: null }
+    return p
+      ? { m, v: null, b: p.base, lo8: p.lo80, hi8: p.hi80, lo9: p.lo95, hi9: p.hi95 }
+      : { m, v: null, b: null,   lo8: null,    hi8: null,    lo9: null,   hi9: null   }
   }) : []
 
   return [...hist, bridge, ...fcst]
 }
 
-// ── helpers ──────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────
 function r1(x: number) { return Math.round(x * 10) / 10 }
 function r2(x: number) { return Math.round(x * 100) / 100 }
