@@ -32,7 +32,7 @@ GLOBAL STYLES — Apple HIG compliant responsive CSS
 ══════════════════════════════════════════════════════════ */
 function GlobalStyles() {
 return (
-<style>{`
+<style dangerouslySetInnerHTML={{__html: `
 @font-face {
 font-family: 'Aeonik Pro';
 src: url('https://db.onlinewebfonts.com/t/12ff62164c9778917bddb93c6379cf47.woff2') format('woff2');
@@ -375,7 +375,7 @@ font-weight: 700; font-display: swap;
     .cta-form .btn-fl { width: 100%; }
     .ftr { padding: 56px 0 calc(32px + env(safe-area-inset-bottom,0)); }
   }
-`}</style>
+`}} />
 ```
 
 );
