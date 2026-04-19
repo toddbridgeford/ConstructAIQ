@@ -140,7 +140,6 @@ return (
 <Nav scrolled={scrolled} />
 <Ticker />
 
-```
   {/* ────── HERO ────── */}
   <section className="hero">
     <div className="eyebrow d1 fa">
@@ -385,7 +384,6 @@ return (
     </div>
   </footer>
 </div>
-```
 
 );
 }
