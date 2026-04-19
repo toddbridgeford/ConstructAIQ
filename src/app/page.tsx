@@ -34,7 +34,7 @@ function GlobalStyles(){return null;}
 
 /* ── TICKER ──────────────────────────────────────────────────────────────── */
 function Ticker() {
-const all = […TICKS, …TICKS];
+const all = [...TICKS, ...TICKS];
 return (
 <div className="ticker">
 <div className="ticker-edge-l" />
@@ -114,7 +114,7 @@ return (
 <a href="#access"
 className={featured ? "btn-fl fa" : "btn-g fa"}
 style={{ width: "100%", fontSize: 14, fontWeight: featured ? 600 : 500, height: 44,
-…(featured ? {} : { color: blue, borderColor: "rgba(10,132,255,0.26)", background: "rgba(10,132,255,0.08)", height: 44, borderRadius: 12 })
+...(featured ? {} : { color: blue, borderColor: "rgba(10,132,255,0.26)", background: "rgba(10,132,255,0.08)", height: 44, borderRadius: 12 })
 }}>
 {cta}
 </a>
