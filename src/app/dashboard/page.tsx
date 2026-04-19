@@ -1,5 +1,5 @@
-"use client";
 // @ts-nocheck
+"use client";
 import { useState, useEffect, useMemo } from "react";
 import {
   ComposedChart, AreaChart, LineChart,
