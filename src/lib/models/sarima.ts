@@ -35,18 +35,21 @@ export interface SARIMAResult {
   }
 }
 
+const MIN_OBS        = 18
+const SEASONAL_PERIOD = 12
+
 export function sarimaForecast(
   vals:    number[],
   periods: number = 12,
 ): SARIMAResult | null {
-  if (!vals || vals.length < 18) return null
+  if (!vals || vals.length < MIN_OBS) return null
   const v = vals.filter(x => x != null && !isNaN(x))
   const n = v.length
-  if (n < 18) return null
+  if (n < MIN_OBS) return null
 
   // ── Step 1: Seasonal differencing  ∇_12 y_t = y_t - y_{t-12} ──
   const sdiff: number[] = []
-  for (let i = 12; i < n; i++) sdiff.push(v[i] - v[i - 12])
+  for (let i = SEASONAL_PERIOD; i < n; i++) sdiff.push(v[i] - v[i - SEASONAL_PERIOD])
 
   // ── Step 2: First-order differencing  ∇ z_t = z_t - z_{t-1} ───
   const diff: number[] = []
@@ -76,7 +79,7 @@ export function sarimaForecast(
   const sigma  = Math.sqrt(sigma2)
 
   // In-sample MAPE on original scale (undoing the differencing)
-  const vHat = reconstructFromDiff(diff.map((d, i) => (i < ny ? phi * (i > 0 ? diff[i-1] : 0) : 0)), v, 12)
+  const vHat = reconstructFromDiff(diff.map((d, i) => (i < ny ? phi * (i > 0 ? diff[i-1] : 0) : 0)), v, SEASONAL_PERIOD)
   const mape = v.slice(14).reduce((s, vi, i) => {
     const idx = 14 + i
     if (idx >= vHat.length || vi === 0) return s
@@ -100,7 +103,7 @@ export function sarimaForecast(
     sdiffExt.push(nextSD)
 
     // Undo seasonal difference: add the seasonal-diff to the value 12 steps back
-    const idx12  = vExt.length - 12
+    const idx12  = vExt.length - SEASONAL_PERIOD
     const nextV  = idx12 >= 0 ? vExt[idx12] + nextSD : nextSD
     vExt.push(nextV)
 
@@ -140,10 +143,10 @@ export function sarimaForecast(
 
 /** Approximate reconstruction — for in-sample MAPE only */
 function reconstructFromDiff(diffFitted: number[], orig: number[], s: number): number[] {
-  const result = [...orig.slice(0, s + 2)]
+  const result: number[] = [...orig.slice(0, s + 2)]
   for (let i = s + 2; i < orig.length; i++) {
-    const sd  = (result[i - s] !== undefined ? result[i - s] : orig[i - s])
-    result.push(sd + diffFitted[i - s - 2] || orig[i])
+    const seasonal = result[i - s] ?? orig[i - s]
+    result.push(seasonal + (diffFitted[i - s - 2] ?? 0))
   }
   return result
 }

@@ -104,7 +104,7 @@ function fitTree(
     .filter(() => Math.random() < config.colsample)
 
   for (const f of featureMask) {
-    const values = [...new Set(X.map(x => x[f]))].sort((a, b) => a - b)
+    const values = Array.from(new Set(X.map(x => x[f]))).sort((a, b) => a - b)
     const thresholds = values.slice(0, -1).map((v, i) => (v + values[i + 1]) / 2)
 
     for (const threshold of thresholds.slice(0, 32)) { // max 32 splits
@@ -217,6 +217,12 @@ export class XGBoost {
   }
 }
 
+// ── Tuneable hyperparameters ──────────────────────────────────────────────────
+const ESTIMATORS    = 60
+const MAX_DEPTH      = 3
+const LEARNING_RATE  = 0.1
+const MIN_OBS        = 20   // minimum series length for proper feature engineering
+
 // ── Main forecast function ────────────────────────────────────────────────────
 export function xgboostForecast(
   series: number[],
@@ -225,7 +231,7 @@ export function xgboostForecast(
 ): ForecastResult {
   const lookback = Math.min(12, Math.floor(series.length / 3))
 
-  if (series.length < lookback + 4) {
+  if (series.length < Math.max(MIN_OBS, lookback + 4)) {
     // Insufficient data — return trend extrapolation
     const trend = (series[series.length - 1] - series[0]) / series.length
     const forecasts = Array.from({ length: periods }, (_, i) => series[series.length - 1] + trend * (i + 1))
@@ -248,7 +254,9 @@ export function xgboostForecast(
   const yVal   = y.slice(splitIdx)
 
   const model = new XGBoost({
-    nEstimators: 60, maxDepth: 3, learningRate: 0.1,
+    nEstimators:  ESTIMATORS,
+    maxDepth:     MAX_DEPTH,
+    learningRate: LEARNING_RATE,
     subsample: 0.8, colsample: 0.8, lambda: 1.0,
   })
   model.fit(XTrain, yTrain)
@@ -264,14 +272,10 @@ export function xgboostForecast(
 
   for (let step = 0; step < periods; step++) {
     const feats = buildFeatures(history, lookback)
-    if (feats.length === 0) {
-      forecasts.push(history[history.length - 1])
-    } else {
-      const lastFeat = feats[feats.length - 1]
-      const pred = model.predict([lastFeat])[0]
-      forecasts.push(pred)
-      history.push(pred)
-    }
+    if (feats.length === 0) throw new Error(`XGBoost: feature build failed at step ${step}`)
+    const pred = model.predict([feats[feats.length - 1]])[0]
+    forecasts.push(pred)
+    history.push(pred)
   }
 
   // Uncertainty bounds based on validation RMSE
