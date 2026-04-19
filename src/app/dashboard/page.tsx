@@ -54,7 +54,7 @@ var DCSS = [
 ].join("");
 
 /* ── Holt-Winters (inline) ────────────────────────────────── */
-function hwForecast(vals, periods, alpha, beta) {
+function hwForecast(vals, periods = 12, alpha = 0.30, beta = 0.08) {
   var a = alpha !== undefined ? alpha : 0.30;
   var b = beta  !== undefined ? beta  : 0.08;
   var h = periods !== undefined ? periods : 12;
