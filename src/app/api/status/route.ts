@@ -98,11 +98,11 @@ export async function GET() {
       nextHarvest:   'Every 4 hours (cron: 0 */4 * * *)',
     },
     apis: {
-      total:    16,
-      healthy:  16,
+      total:    14,
+      healthy:  14,
       routes: [
         '/api/census', '/api/bls', '/api/fred', '/api/rates',
-        '/api/ppi', '/api/jolts', '/api/forecast', '/api/contracts',
+        '/api/forecast', '/api/contracts',
         '/api/bea', '/api/eia', '/api/signals', '/api/news',
         '/api/map', '/api/pricewatch', '/api/subscribe', '/api/status',
       ],
@@ -116,7 +116,7 @@ export async function GET() {
     responseMs: Date.now() - start,
   }, {
     headers: {
-      'Cache-Control': 'no-store',
+      'Cache-Control': 'public, s-maxage=60',
       'X-ConstructAIQ-Status': overall,
     },
   })

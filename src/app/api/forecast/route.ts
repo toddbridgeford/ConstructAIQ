@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const periods  = Math.min(24, Math.max(1, parseInt(searchParams.get('periods') || '12')))
   const forceRun = searchParams.get('force') === '1'
 
-  if (!SUPPORTED.includes(seriesId)) {
+  if (!/^[A-Z0-9_]{1,20}$/.test(seriesId) || !SUPPORTED.includes(seriesId)) {
     return NextResponse.json(
       { error: `Unsupported series. Supported: ${SUPPORTED.join(', ')}` },
       { status: 400 }
@@ -60,6 +60,7 @@ export async function GET(request: Request) {
       periods,
       trainedOn:  vals.length,
       runAt:      today.toISOString(),
+      history:    vals.slice(-12),
       ensemble:   result.ensemble,
       models:     result.models,
       bestModel:  result.bestModel,
