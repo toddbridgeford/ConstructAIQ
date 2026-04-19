@@ -201,7 +201,7 @@ export class XGBoost {
 
       // Update predictions
       for (let i = 0; i < X.length; i++) {
-        preds[i] += this.config.learningRate * predictNode(tree.root, X[i])
+        preds[i] += this.config.learningRate * predictNode(tree, X[i])
       }
     }
   }
