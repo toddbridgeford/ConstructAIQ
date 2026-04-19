@@ -28,7 +28,7 @@ interface XGBConfig {
   minChildWeight?: number  // Min sum of hessians in child (default: 1)
 }
 
-interface ForecastResult {
+export interface ForecastResult {
   forecasts:  number[]
   dates:      string[]
   lowerBound: number[]
