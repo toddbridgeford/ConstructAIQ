@@ -9,10 +9,8 @@ export async function GET() {
   try {
     if (!EIA_KEY) return NextResponse.json(getSyntheticEIA(), { headers: { 'Cache-Control': 'public, s-maxage=14400' } })
 
-    const res = await fetch(
-      \`https://api.eia.gov/v2/total-energy/data/?api_key=\${EIA_KEY}&frequency=monthly&data[0]=value&facets[msn][]=CNCBUS&sort[0][column]=period&sort[0][direction]=desc&length=24\`,
-      { signal: AbortSignal.timeout(10000) }
-    )
+    const url = 'https://api.eia.gov/v2/total-energy/data/?api_key=' + EIA_KEY + '&frequency=monthly&data[0]=value&facets[msn][]=CNCBUS&sort[0][column]=period&sort[0][direction]=desc&length=24'
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
     if (!res.ok) return NextResponse.json(getSyntheticEIA(), { headers: { 'Cache-Control': 'public, s-maxage=14400' } })
 
     const data = await res.json()
