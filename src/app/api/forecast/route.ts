@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { runEnsemble, type EnsembleResult } from '@/lib/models/ensemble'
+import { runEnsemble, type EnsembleResult, type ModelResult } from '@/lib/models/ensemble'
 import { supabase, upsertForecasts, type ForecastRow } from '@/lib/supabase'
 
 // Real API data baked-in (last refresh Apr 19 2026)
@@ -134,7 +134,7 @@ async function loadObservationsFromDB(seriesId: string): Promise<number[] | null
       .order('obs_date', { ascending: true })
       .limit(60)
     if (error || !data?.length) return null
-    return data.map((r: any) => r.value)
+    return data.map((r: { value: number }) => r.value)
   } catch {
     return null
   }
@@ -158,7 +158,7 @@ async function getCachedForecast(seriesId: string, periods: number) {
       periods,
       cached:    true,
       runAt:     data[0].created_at,
-      ensemble:  data.map((r: any) => ({
+      ensemble:  data.map((r: { base_value: number; lo80: number; hi80: number; lo95: number; hi95: number }) => ({
         base: r.base_value, lo80: r.lo80, hi80: r.hi80, lo95: r.lo95, hi95: r.hi95,
       })),
     }
@@ -172,7 +172,8 @@ async function persistForecast(seriesId: string, result: EnsembleResult, periods
   const rows: ForecastRow[] = []
 
   // Persist all model variants
-  for (const m of [...result.models, { model:'ensemble', forecast:result.ensemble, mape:result.metrics.mape, accuracy:result.metrics.accuracy, weight:1 }]) {
+  const allModels: ModelResult[] = [...result.models, { model:'ensemble', forecast:result.ensemble, mape:result.metrics.mape, accuracy:result.metrics.accuracy, weight:1 }]
+  for (const m of allModels) {
     for (let h = 0; h < periods; h++) {
       const p = m.forecast[h]
       if (!p) continue
@@ -180,7 +181,7 @@ async function persistForecast(seriesId: string, result: EnsembleResult, periods
         .toISOString().slice(0, 10)
       rows.push({
         series_id:     seriesId,
-        model:         (m as any).model || 'ensemble',
+        model:         m.model,
         run_date:      today,
         horizon_month: hDate,
         horizon_steps: h + 1,
@@ -189,9 +190,9 @@ async function persistForecast(seriesId: string, result: EnsembleResult, periods
         hi80:          p.hi80,
         lo95:          p.lo95,
         hi95:          p.hi95,
-        mape:          (m as any).mape,
-        accuracy:      (m as any).accuracy,
-        weight:        (m as any).weight || 1,
+        mape:          m.mape,
+        accuracy:      m.accuracy,
+        weight:        m.weight,
       })
     }
   }

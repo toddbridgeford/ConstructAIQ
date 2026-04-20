@@ -16,14 +16,15 @@ export async function GET() {
     const data = await res.json()
     const rows = data?.response?.data || []
 
-    const series = rows
-      .filter((r: any) => r.value != null)
-      .map((r: any) => ({
+    type EiaRow = { period: string; value: string | null; 'unit-name'?: string }
+    const series = (rows as EiaRow[])
+      .filter(r => r.value != null)
+      .map(r => ({
         period: r.period,
-        value: parseFloat(r.value),
+        value: parseFloat(r.value!),
         unit: r['unit-name'] || 'Trillion BTU',
       }))
-      .sort((a: any, b: any) => a.period.localeCompare(b.period))
+      .sort((a, b) => a.period.localeCompare(b.period))
 
     const latest = series[series.length - 1]
     const prev   = series[series.length - 2]

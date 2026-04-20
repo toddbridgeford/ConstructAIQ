@@ -22,10 +22,12 @@ export async function GET(request: Request) {
 
     if (!res.ok) throw new Error(`USGS returned ${res.status}`)
 
+    type UsgsFeature = { id: string; properties: { mag?: number; place?: string; time?: number; url?: string; felt?: number }; geometry: { coordinates: [number, number, number] } }
+    type SeismicEvent = { id: string; place: string; magnitude: number; depth: number; lat: number; lng: number; time: number; url: string; felt: number; riskLevel: string; constructionImpact: string }
     const data = await res.json()
-    const features = data?.features || []
+    const features: UsgsFeature[] = data?.features || []
 
-    const events = features.map((f: any) => {
+    const events: SeismicEvent[] = features.map(f => {
       const props = f.properties || {}
       const coords = f.geometry?.coordinates || [0, 0, 0]
       const mag = props.mag || 0
@@ -51,12 +53,12 @@ export async function GET(request: Request) {
         riskLevel,
         constructionImpact,
       }
-    }).filter((e: any) => !isNaN(e.lat) && !isNaN(e.lng))
+    }).filter(e => !isNaN(e.lat) && !isNaN(e.lng))
 
     // Aggregate by US region
-    const usEvents  = events.filter((e: any) => e.lat > 24 && e.lat < 72 && e.lng > -170 && e.lng < -65)
-    const highRisk  = events.filter((e: any) => e.magnitude >= 4).length
-    const critical  = events.filter((e: any) => e.magnitude >= 6).length
+    const usEvents  = events.filter(e => e.lat > 24 && e.lat < 72 && e.lng > -170 && e.lng < -65)
+    const highRisk  = events.filter(e => e.magnitude >= 4).length
+    const critical  = events.filter(e => e.magnitude >= 6).length
 
     return NextResponse.json({
       source:    'USGS Earthquake Hazards Program',
@@ -65,7 +67,7 @@ export async function GET(request: Request) {
       events,
       summary: {
         highRisk, critical,
-        maxMagnitude: events.length > 0 ? Math.max(...events.map((e: any) => e.magnitude)) : 0,
+        maxMagnitude: events.length > 0 ? Math.max(...events.map(e => e.magnitude)) : 0,
         period:  `Last ${days} days`,
         minMag,
       },

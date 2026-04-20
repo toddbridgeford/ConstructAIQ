@@ -17,7 +17,10 @@ const COMPANIES = [
   { ticker:'MLM',  name:'Martin Marietta',        cik:'0000916076', segment:'Aggregates' },
 ]
 
-async function fetchCompanyFacts(cik: string): Promise<any> {
+type XbrlUnit = { form: string; val: number; end: string; filed?: string }
+type XbrlFacts = { facts?: { 'us-gaap'?: Record<string, { units?: { USD?: XbrlUnit[] } }> } }
+
+async function fetchCompanyFacts(cik: string): Promise<XbrlFacts | null> {
   const paddedCik = cik.replace('0x','').padStart(10,'0')
   const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${paddedCik}.json`
   try {
@@ -32,7 +35,7 @@ async function fetchCompanyFacts(cik: string): Promise<any> {
   }
 }
 
-function extractLatestRevenue(facts: any): { current: number; previous: number; change: number } | null {
+function extractLatestRevenue(facts: XbrlFacts): { current: number; previous: number; change: number } | null {
   try {
     // Revenue is typically in us-gaap:Revenues or us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
     const gaap = facts?.facts?.['us-gaap'] || {}
@@ -44,8 +47,8 @@ function extractLatestRevenue(facts: any): { current: number; previous: number; 
     if (!revSeries?.units?.USD) return null
 
     const annualData = revSeries.units.USD
-      .filter((d: any) => d.form === '10-K' && d.val && d.end)
-      .sort((a: any, b: any) => new Date(b.end).getTime() - new Date(a.end).getTime())
+      .filter(d => d.form === '10-K' && d.val && d.end)
+      .sort((a, b) => new Date(b.end).getTime() - new Date(a.end).getTime())
       .slice(0, 2)
 
     if (annualData.length < 2) return null
@@ -64,7 +67,7 @@ function extractLatestRevenue(facts: any): { current: number; previous: number; 
   }
 }
 
-function extractBacklog(facts: any): number | null {
+function extractBacklog(facts: XbrlFacts): number | null {
   try {
     const gaap = facts?.facts?.['us-gaap'] || {}
     // Look for backlog-related fields
@@ -73,8 +76,8 @@ function extractBacklog(facts: any): number | null {
 
     if (!backlogSeries?.units?.USD) return null
     const latest = backlogSeries.units.USD
-      .filter((d: any) => d.val)
-      .sort((a: any, b: any) => new Date(b.end || b.filed).getTime() - new Date(a.end || a.filed).getTime())[0]
+      .filter(d => d.val)
+      .sort((a, b) => new Date(b.end || b.filed || '').getTime() - new Date(a.end || a.filed || '').getTime())[0]
 
     return latest ? parseFloat((latest.val / 1e9).toFixed(2)) : null
   } catch {

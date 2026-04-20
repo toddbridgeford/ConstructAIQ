@@ -54,14 +54,15 @@ async function fetchFeed(feed: typeof FEEDS[0]) {
 export async function GET() {
   try {
     const results=await Promise.allSettled(FEEDS.map(fetchFeed))
-    const all: any[]=[]
+    type NewsItem = { id: string; title: string; summary: string; url: string; source: string; category: string; sentiment: string; tags: string[]; publishedAt: string; relevance: number }
+    const all: NewsItem[]=[]
     results.forEach(r=>{ if(r.status==='fulfilled') all.push(...r.value) })
     all.sort((a,b)=>b.relevance-a.relevance)
     const seen=new Set<string>()
     const unique=all.filter(i=>{ const k=i.title.toLowerCase().slice(0,40); if(seen.has(k)) return false; seen.add(k); return true }).slice(0,20)
     const items=unique.length>0?unique:fallback()
-    const bull=items.filter((i:any)=>i.sentiment==='BULLISH').length
-    const bear=items.filter((i:any)=>i.sentiment==='BEARISH').length
+    const bull=items.filter(i=>i.sentiment==='BULLISH').length
+    const bear=items.filter(i=>i.sentiment==='BEARISH').length
     return NextResponse.json({source:'ConstructAIQ NewsIntel',live:unique.length>0,items,count:items.length,
       marketSentiment:bull>bear?'CAUTIOUSLY BULLISH':bear>bull?'CAUTIOUSLY BEARISH':'MIXED',updated:new Date().toISOString()},
       {headers:{'Cache-Control':'public, s-maxage=1800'}})

@@ -53,7 +53,7 @@ export async function GET(request: Request) {
         .limit(60)
 
       if (data && data.length >= s.minObs) {
-        obsMap[s.id] = data.map((r: any) => r.value)
+        obsMap[s.id] = data.map((r: { value: number }) => r.value)
       }
     } catch (e) {
       errors.push(`load_${s.id}: ${e}`)
@@ -209,7 +209,7 @@ async function detectAndSaveSignals(
     }
 
     // Trend reversal: AR trend sign flip
-    const hw = result.models.find((m: any) => m.model === 'holt-winters')
+    const hw = result.models.find(m => m.model === 'holt-winters')
     if (hw) {
       const trend3  = vals[n-1] - vals[n-4]  // 3-month trend
       const trend12 = vals[n-1] - vals[Math.max(0,n-13)]  // 12-month trend
