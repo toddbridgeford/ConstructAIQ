@@ -1,16 +1,34 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const SUPA_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL  || ''
-const ANON_KEY  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-const SVC_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+// Defer createClient until first use so Next.js build-time static analysis
+// (which imports modules without env vars present) doesn't throw.
+function lazy(factory: () => SupabaseClient): SupabaseClient {
+  let instance: SupabaseClient | null = null
+  return new Proxy({} as SupabaseClient, {
+    get(_, prop) {
+      if (!instance) instance = factory()
+      const v = (instance as unknown as Record<string | symbol, unknown>)[prop]
+      return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(instance) : v
+    },
+  })
+}
 
 /** Public client — read-only dashboard queries */
-export const supabase = createClient(SUPA_URL, ANON_KEY)
+export const supabase = lazy(() =>
+  createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
+)
 
 /** Service-role client — write access for cron jobs */
-export const supabaseAdmin = createClient(SUPA_URL, SVC_KEY || ANON_KEY, {
-  auth: { persistSession: false },
-})
+export const supabaseAdmin = lazy(() =>
+  createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false } },
+  )
+)
 
 /* ── Typed helpers ─────────────────────────────────────────── */
 
