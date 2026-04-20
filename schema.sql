@@ -214,12 +214,45 @@ COMMENT ON COLUMN subscribers.active IS 'FALSE when the subscriber has unsubscri
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS harvest_log (
     id               BIGSERIAL    PRIMARY KEY,
-    completed_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    series_harvested TEXT[],
-    error            TEXT
+    run_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    sources          TEXT[],
+    records_upserted INTEGER,
+    errors           TEXT[],
+    duration_ms      INTEGER,
+    triggered_by     TEXT         DEFAULT 'cron'
 );
 
-COMMENT ON TABLE  harvest_log                   IS 'Execution log for scheduled data-harvest cron jobs.';
-COMMENT ON COLUMN harvest_log.completed_at       IS 'Timestamp when the harvest job completed (success or failure).';
-COMMENT ON COLUMN harvest_log.series_harvested   IS 'Array of series IDs successfully updated during this run.';
-COMMENT ON COLUMN harvest_log.error              IS 'Error message if the run failed; NULL on success.';
+COMMENT ON TABLE  harvest_log                    IS 'Execution log for scheduled data-harvest cron jobs.';
+COMMENT ON COLUMN harvest_log.run_at             IS 'Timestamp when the harvest job ran.';
+COMMENT ON COLUMN harvest_log.sources            IS 'Array of series IDs successfully harvested in this run.';
+COMMENT ON COLUMN harvest_log.records_upserted   IS 'Total observation rows inserted or updated.';
+COMMENT ON COLUMN harvest_log.errors             IS 'Array of error messages encountered during the run.';
+COMMENT ON COLUMN harvest_log.duration_ms        IS 'Wall-clock duration of the run in milliseconds.';
+COMMENT ON COLUMN harvest_log.triggered_by       IS 'Trigger type: cron, manual, or webhook.';
+
+CREATE INDEX IF NOT EXISTS idx_harvest_log_run_at
+    ON harvest_log (run_at DESC);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: forecast_log
+-- Execution log for scheduled ensemble forecast cron jobs.  One row per run.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS forecast_log (
+    id                 BIGSERIAL    PRIMARY KEY,
+    run_at             TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    series_processed   TEXT[],
+    models_run         TEXT[],
+    forecasts_written  INTEGER,
+    duration_ms        INTEGER
+);
+
+COMMENT ON TABLE  forecast_log                     IS 'Execution log for scheduled ensemble forecast cron jobs.';
+COMMENT ON COLUMN forecast_log.run_at              IS 'Timestamp when the forecast job ran.';
+COMMENT ON COLUMN forecast_log.series_processed    IS 'Array of series IDs for which forecasts were computed.';
+COMMENT ON COLUMN forecast_log.models_run          IS 'List of model names used in the ensemble run.';
+COMMENT ON COLUMN forecast_log.forecasts_written   IS 'Total number of forecast rows upserted.';
+COMMENT ON COLUMN forecast_log.duration_ms         IS 'Wall-clock duration of the run in milliseconds.';
+
+CREATE INDEX IF NOT EXISTS idx_forecast_log_run_at
+    ON forecast_log (run_at DESC);

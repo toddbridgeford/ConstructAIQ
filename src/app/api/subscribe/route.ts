@@ -4,11 +4,31 @@ import { supabaseAdmin } from '@/lib/supabase'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+// Simple in-process rate limit: max 5 subscriptions per IP per hour
+const ipSubmits = new Map<string, { count: number; resetAt: number }>()
+
+function checkSubscribeRateLimit(ip: string): boolean {
+  const now   = Date.now()
+  const entry = ipSubmits.get(ip)
+  if (!entry || now > entry.resetAt) {
+    ipSubmits.set(ip, { count: 1, resetAt: now + 3600_000 })
+    return true
+  }
+  if (entry.count >= 5) return false
+  entry.count++
+  return true
+}
+
 export async function POST(request: Request) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown'
+  if (!checkSubscribeRateLimit(ip)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   try {
     const { email, source = 'homepage', plan = 'waitlist' } = await request.json()
 
-    if (!email || !email.includes('@')) {
+    if (!email || !email.includes('@') || email.length > 320) {
       return NextResponse.json({ error: 'Valid email required' }, { status: 400 })
     }
 
