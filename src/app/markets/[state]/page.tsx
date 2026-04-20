@@ -1,7 +1,7 @@
 "use client"
 import Image from "next/image"
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { font, color } from "@/lib/theme"
 import {
   BarChart, Bar, LineChart, Line,
@@ -223,12 +223,10 @@ function gradeBg(grade: string): string {
   return color.redDim
 }
 
-interface StaticParams {
-  params: { state: string }
-}
+type StaticParams = { params: Promise<{ state: string }> }
 
 export default function StatePage({ params }: StaticParams) {
-  const slug = params.state
+  const { state: slug } = use(params)
   const [forecastUnlocked, setForecastUnlocked] = useState(false)
   const [emailInput, setEmailInput] = useState("")
 

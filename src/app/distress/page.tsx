@@ -103,6 +103,7 @@ function ComponentBar({ label, score }: { label: string; score: number }) {
 }
 
 export default function DistressPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [data, setData]         = useState<any>(null)
   const [loading, setLoading]   = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)

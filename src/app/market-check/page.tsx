@@ -75,6 +75,7 @@ function classificationStyle(cls: string): { bg: string; color: string } {
 
 export default function MarketCheckPage() {
   const [query, setQuery]                   = useState("")
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [results, setResults]               = useState<any>(null)
   const [loading, setLoading]               = useState(false)
   const [suggestions, setSuggestions]       = useState<string[]>([])
@@ -137,8 +138,8 @@ export default function MarketCheckPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Request failed")
       setResults(data)
-    } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -484,6 +485,7 @@ export default function MarketCheckPage() {
                   SIMILAR MARKETS
                 </div>
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {results.comparables.map((comp: any) => {
                     const cs = classificationStyle(comp.classification)
                     return (
