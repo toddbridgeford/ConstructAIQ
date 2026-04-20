@@ -4,7 +4,7 @@ import { checkRateLimit, incrementUsage } from '@/lib/ratelimit'
 
 // Middleware runs in Edge Runtime — no `export const runtime` needed.
 
-const PUBLIC_PATHS = new Set(['/api/status', '/api/subscribe', '/api/keys/issue'])
+const PUBLIC_PATHS = new Set(['/api/status', '/api/subscribe', '/api/keys/issue', '/api/widget-data'])
 
 // ── Pre-launch site lockdown ──────────────────────────────────────────────────
 // Set SITE_LOCKED=true in Vercel env vars to password-protect all pages.
