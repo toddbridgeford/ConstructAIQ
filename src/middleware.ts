@@ -1,25 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { validateApiKey } from '@/lib/auth'
+import { checkRateLimit } from '@/lib/ratelimit'
 
-// These routes never require a key — public by design
+export const runtime = 'nodejs'
+
 const PUBLIC_PATHS = new Set(['/api/status', '/api/subscribe', '/api/keys/issue'])
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
+
   if (!pathname.startsWith('/api/') || PUBLIC_PATHS.has(pathname)) {
     return NextResponse.next()
   }
 
   const key = req.headers.get('x-api-key')
 
-  // Key provided: validate its format before it reaches the route handler.
-  // Full DB validation (rate limits, active flag) happens inside each route via /api/keys/issue?key=.
-  // Unauthenticated requests are still allowed for dashboard-origin compatibility.
-  // TODO: enforce key requirement once the dashboard passes x-api-key on all fetches.
-  if (key !== null && !key.startsWith('caiq_')) {
+  if (key === null) {
+    return NextResponse.next()
+  }
+
+  if (!key.startsWith('caiq_')) {
     return NextResponse.json({ error: 'Invalid API key format' }, { status: 401 })
   }
 
-  return NextResponse.next()
+  const keyInfo = await validateApiKey(key)
+
+  if (!keyInfo.valid) {
+    return NextResponse.json({ error: keyInfo.error ?? 'Unauthorized' }, { status: 401 })
+  }
+
+  const rpm = keyInfo.rpm_limit ?? 60
+  const rl = await checkRateLimit(keyInfo.key_hash!, rpm)
+
+  if (!rl.allowed) {
+    const retryAfter = rl.reset ? Math.ceil((rl.reset - Date.now()) / 1000) : 60
+    return NextResponse.json(
+      { error: 'Rate limit exceeded' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(retryAfter),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': String(rl.reset ?? ''),
+        },
+      }
+    )
+  }
+
+  const res = NextResponse.next()
+  res.headers.set('x-key-plan', keyInfo.plan ?? '')
+  res.headers.set('x-key-hash', keyInfo.key_hash!)
+  return res
 }
 
 export const config = { matcher: '/api/:path*' }
