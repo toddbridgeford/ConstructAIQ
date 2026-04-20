@@ -24,7 +24,6 @@ const BG0       = color.bg0,      BG1 = color.bg1, BG2 = color.bg2, BG3 = color.
 const BD1       = color.bd1,      BD2 = color.bd2, BD3 = color.bd3
 const T1        = color.t1,       T2  = color.t2,  T3  = color.t3,  T4  = color.t4
 
-// ── MAIN DASHBOARD v7 ─────────────────────────────────────────────────────────
 export default function Dashboard() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [spend,  setSpend]    = useState<any>(null)
@@ -103,6 +102,7 @@ export default function Dashboard() {
     { id: "map",      icon: "", label: "States",   badge: states.length },
     { id: "prices",   icon: "", label: "Prices",   badge: commodities.length },
     { id: "scenario", icon: "", label: "Scenario", badge: null },
+    { id: "model",    icon: "", label: "Model",    badge: null },
   ]
 
   return (
@@ -120,13 +120,9 @@ export default function Dashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ"
                  style={{ height: 22, width: "auto" }} />
-          <div style={{ width: 1, height: 20, background: BD1 }} />
-          <span style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.06em" }}>
-            CONSTRUCTION INTELLIGENCE
-          </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          {([
+          {sigs && ([
             { label: `▲ ${bullN}`, col: GREEN, bg: GREEN_DIM },
             { label: `▼ ${bearN}`, col: RED,   bg: RED_DIM  },
             { label: `⚠ ${warnN}`, col: AMBER,  bg: AMBER_DIM },
@@ -135,7 +131,7 @@ export default function Dashboard() {
               <span style={{ fontFamily: MONO, fontSize: 11, color: p.col }}>{p.label}</span>
             </div>
           ))}
-          <div style={{ width: 1, height: 16, background: BD1 }} />
+          {sigs && <div style={{ width: 1, height: 16, background: BD1 }} />}
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: GREEN,
                           boxShadow: `0 0 5px ${GREEN}`, animation: "pulse 2s infinite" }} />
@@ -197,36 +193,6 @@ export default function Dashboard() {
               <ForecastChart foreData={fore} width={Math.max(chartW, 400)} height={360} />
             </div>
 
-            {(fore?.models?.length ?? 0) > 0 && (
-              <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {fore!.models.map((m, i) => {
-                  const col = m.model === "holt-winters" ? GREEN : m.model === "xgboost" ? BLUE : AMBER
-                  const pct = Math.round((m.weight ?? 0) * 100)
-                  return (
-                    <div key={i} style={{ flex: "1 1 180px", background: BG2, borderRadius: 10,
-                                          padding: "10px 12px", border: `1px solid ${BD1}` }}>
-                      <div style={{ display: "flex", justifyContent: "space-between",
-                                    alignItems: "center", marginBottom: 6 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <div style={{ width: 8, height: 8, borderRadius: 2, background: col }} />
-                          <span style={{ fontFamily: MONO, fontSize: 11, color: T2,
-                                         fontWeight: 600, textTransform: "uppercase" }}>{m.model}</span>
-                        </div>
-                        <span style={{ fontFamily: MONO, fontSize: 11, color: col }}>{pct}%</span>
-                      </div>
-                      <div style={{ background: BG3, borderRadius: 3, height: 4, overflow: "hidden" }}>
-                        <div style={{ background: col, height: "100%", width: `${pct}%`,
-                                      borderRadius: 3, transition: "width 0.5s ease" }} />
-                      </div>
-                      <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, color: T4 }}>MAPE {m.mape}%</span>
-                        <span style={{ fontFamily: MONO, fontSize: 10, color: GREEN }}>Acc {m.accuracy}%</span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
           </div>
 
           {/* ── SUPPORTING TABS ── */}
@@ -245,9 +211,8 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div style={{ padding: 40, textAlign: "center" }}>
-                    <div style={{ fontSize: 36, marginBottom: 12 }}>📡</div>
-                    <div style={{ fontFamily: SYS, fontSize: 16, color: T2, fontWeight: 600 }}>Generating Signals</div>
-                    <div style={{ fontFamily: MONO, fontSize: 12, color: T4, marginTop: 8 }}>/api/signals?generate=1</div>
+                    <div style={{ fontFamily: SYS, fontSize: 16, color: T2, fontWeight: 600, marginBottom: 8 }}>Signals generating</div>
+                    <div style={{ fontFamily: MONO, fontSize: 12, color: T4 }}>Connecting to data feeds…</div>
                   </div>
                 )}
               </div>
@@ -267,7 +232,7 @@ export default function Dashboard() {
             {tab === "map" && (
               <div style={{ background: BG1, borderRadius: 14, padding: 14, border: `1px solid ${BD1}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div style={{ fontFamily: MONO, fontSize: 13, color: AMBER, fontWeight: 600 }}>STATE CONSTRUCTION ACTIVITY</div>
+                  <div style={{ fontFamily: SYS, fontSize: 13, color: T2, fontWeight: 700, letterSpacing: "-0.01em" }}>State Construction Activity</div>
                 </div>
                 <div style={{ maxHeight: 440, overflowY: "auto" }}>
                   {states.slice(0, 25).map(s => (
@@ -281,7 +246,7 @@ export default function Dashboard() {
             {/* PRICES */}
             {tab === "prices" && (
               <div style={{ background: BG1, borderRadius: 14, padding: 14, border: `1px solid ${BD1}` }}>
-                <div style={{ fontFamily: MONO, fontSize: 13, color: AMBER, fontWeight: 600, marginBottom: 12 }}>COMMODITY & MATERIALS WATCH</div>
+                <div style={{ fontFamily: SYS, fontSize: 13, color: T2, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: 12 }}>Commodity & Materials Watch</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   {(commodities.length > 0 ? commodities : ([
                     { name: "Lumber",   value: 421.8, mom: -3.74, yoy: -15.2, unit: "PPI",  signal: "BUY",  trend: "DOWN" },
@@ -296,8 +261,49 @@ export default function Dashboard() {
             {/* SCENARIO */}
             {tab === "scenario" && (
               <div style={{ background: BG1, borderRadius: 14, padding: 14, border: `1px solid ${BD1}` }}>
-                <div style={{ fontFamily: MONO, fontSize: 13, color: AMBER, fontWeight: 600, marginBottom: 16 }}>SCENARIO BUILDER</div>
+                <div style={{ fontFamily: SYS, fontSize: 13, color: T2, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: 16 }}>Scenario Builder</div>
                 <ScenarioBuilder />
+              </div>
+            )}
+
+            {/* MODEL */}
+            {tab === "model" && (
+              <div style={{ background: BG1, borderRadius: 14, padding: 14, border: `1px solid ${BD1}` }}>
+                <div style={{ fontFamily: SYS, fontSize: 13, color: T2, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: 16 }}>Forecast Model</div>
+                {(fore?.models?.length ?? 0) > 0 ? (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {fore!.models.map((m, i) => {
+                      const col = m.model === "holt-winters" ? GREEN : m.model === "xgboost" ? BLUE : AMBER
+                      const pct = Math.round((m.weight ?? 0) * 100)
+                      return (
+                        <div key={i} style={{ flex: "1 1 180px", background: BG2, borderRadius: 10,
+                                              padding: "10px 12px", border: `1px solid ${BD1}` }}>
+                          <div style={{ display: "flex", justifyContent: "space-between",
+                                        alignItems: "center", marginBottom: 6 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <div style={{ width: 8, height: 8, borderRadius: 2, background: col }} />
+                              <span style={{ fontFamily: SYS, fontSize: 12, color: T2,
+                                             fontWeight: 600, textTransform: "capitalize" }}>{m.model}</span>
+                            </div>
+                            <span style={{ fontFamily: MONO, fontSize: 11, color: col }}>{pct}%</span>
+                          </div>
+                          <div style={{ background: BG3, borderRadius: 3, height: 4, overflow: "hidden" }}>
+                            <div style={{ background: col, height: "100%", width: `${pct}%`,
+                                          borderRadius: 3, transition: "width 0.5s ease" }} />
+                          </div>
+                          <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
+                            <span style={{ fontFamily: MONO, fontSize: 10, color: T4 }}>MAPE {m.mape}%</span>
+                            <span style={{ fontFamily: MONO, fontSize: 10, color: GREEN }}>Acc {m.accuracy}%</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ padding: 40, textAlign: "center" }}>
+                    <div style={{ fontFamily: SYS, fontSize: 15, color: T4 }}>Model data unavailable</div>
+                  </div>
+                )}
               </div>
             )}
 

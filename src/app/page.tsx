@@ -68,7 +68,7 @@ function EmailCaptureForm({ source, label }: { source: string; label: string }) 
 }
 
 function ForecastPreview({ currentValue }: { currentValue: number }) {
-  const W = 640, H = 200
+  const W = 640, H = 280
   const hist  = [0.52, 0.54, 0.57, 0.55, 0.59, 0.61, 0.58, 0.63, 0.65, 0.62, 0.68, 0.70]
   const fcast = [0.70, 0.72, 0.74, 0.71, 0.76, 0.78, 0.75, 0.80, 0.82, 0.79, 0.84, 0.87]
   const pad   = { t: 16, r: 20, b: 32, l: 12 }
@@ -112,7 +112,7 @@ function ForecastPreview({ currentValue }: { currentValue: number }) {
         ${(currentValue / 1000).toFixed(1)}B
       </text>
       <text x={px(total - 1) + 8} y={py(fcast[fcast.length - 1]) - 8} textAnchor="start"
-            fill={BLUE} fontSize={10} fontFamily={MONO} fontWeight="600">+4.2%</text>
+            fill={BLUE} fontSize={10} fontFamily={MONO} fontWeight="600" fillOpacity={0.7}>+4.2%</text>
     </svg>
   )
 }
@@ -223,20 +223,20 @@ export default function HomePage() {
         </p>
 
         <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 16 }}>
-          <Link href="/dashboard">
-            <button style={{ background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600,
-                             padding: "13px 28px", borderRadius: 12, minHeight: 48, border: "none",
-                             cursor: "pointer", letterSpacing: "-0.01em",
-                             boxShadow: "0 4px 20px rgba(10,132,255,0.36)" }}>
-              See Live Intelligence →
-            </button>
+          <Link href="/dashboard"
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                     background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600,
+                     padding: "13px 28px", borderRadius: 12, minHeight: 48,
+                     letterSpacing: "-0.01em", textDecoration: "none",
+                     boxShadow: "0 4px 20px rgba(10,132,255,0.36)" }}>
+            See Live Intelligence →
           </Link>
-          <Link href="/pricing">
-            <button style={{ background: "transparent", color: T2, fontSize: 15, fontWeight: 500,
-                             padding: "13px 24px", borderRadius: 12, minHeight: 48,
-                             border: `1px solid ${BD2}`, cursor: "pointer", letterSpacing: "-0.01em" }}>
-              View Pricing
-            </button>
+          <Link href="/pricing"
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                     background: "transparent", color: T2, fontSize: 15, fontWeight: 500,
+                     padding: "13px 24px", borderRadius: 12, minHeight: 48,
+                     border: `1px solid ${BD2}`, letterSpacing: "-0.01em", textDecoration: "none" }}>
+            View Pricing
           </Link>
         </div>
 
@@ -321,8 +321,8 @@ export default function HomePage() {
       {/* ── THREE OUTCOME CARDS ── */}
       <section style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 40px" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ fontFamily: MONO, fontSize: 10, color: BLUE,
-                        letterSpacing: "0.14em", marginBottom: 14 }}>WHAT YOU GET</div>
+          <div style={{ fontFamily: SYS, fontSize: 11, color: BLUE, fontWeight: 600,
+                        letterSpacing: "0.06em", marginBottom: 14, textTransform: "uppercase" }}>What you get</div>
           <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, color: T1,
                        letterSpacing: "-0.03em", lineHeight: 1.1 }}>One system. Every signal.</h2>
         </div>
@@ -353,8 +353,9 @@ export default function HomePage() {
       <section style={{ background: BG1, borderTop: `1px solid ${BD1}`, borderBottom: `1px solid ${BD1}`, padding: "80px 0" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 40px" }}>
           <div style={{ textAlign: "center", marginBottom: 48 }}>
-            <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.14em", marginBottom: 14 }}>
-              PLATFORM INTELLIGENCE
+            <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                          letterSpacing: "0.06em", marginBottom: 14, textTransform: "uppercase" }}>
+              Platform Intelligence
             </div>
             <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, color: T1,
                          letterSpacing: "-0.03em", lineHeight: 1.1, marginBottom: 12 }}>
@@ -470,8 +471,9 @@ export default function HomePage() {
       {/* ── FORECASTING DEEP-DIVE ── */}
       <section style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 40px" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.14em", marginBottom: 14 }}>
-            HOW IT WORKS
+          <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                        letterSpacing: "0.06em", marginBottom: 14, textTransform: "uppercase" }}>
+            How it works
           </div>
           <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, color: T1,
                        letterSpacing: "-0.03em", lineHeight: 1.1 }}>
@@ -506,8 +508,9 @@ export default function HomePage() {
       <section style={{ background: BG1, borderTop: `1px solid ${BD1}`, padding: "80px 0" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 40px" }}>
           <div style={{ textAlign: "center", marginBottom: 48 }}>
-            <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.14em", marginBottom: 14 }}>
-              WHO IT&apos;S FOR
+            <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                          letterSpacing: "0.06em", marginBottom: 14, textTransform: "uppercase" }}>
+              Who it&apos;s for
             </div>
             <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, color: T1,
                          letterSpacing: "-0.03em", lineHeight: 1.1 }}>
@@ -537,8 +540,9 @@ export default function HomePage() {
         <div style={{ background: "linear-gradient(135deg,rgba(10,132,255,0.08) 0%,rgba(6,6,8,0) 60%)",
                       border: "1px solid rgba(10,132,255,0.18)", borderRadius: 24,
                       padding: "60px 48px", textAlign: "center" }}>
-          <div style={{ fontFamily: MONO, fontSize: 10, color: BLUE, letterSpacing: "0.14em", marginBottom: 20 }}>
-            WEEKLY BRIEFING
+          <div style={{ fontFamily: SYS, fontSize: 11, color: BLUE, fontWeight: 600,
+                        letterSpacing: "0.06em", marginBottom: 20, textTransform: "uppercase" }}>
+            Weekly Briefing
           </div>
           <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, color: T1,
                        letterSpacing: "-0.03em", lineHeight: 1.1, marginBottom: 14 }}>
@@ -554,20 +558,20 @@ export default function HomePage() {
           </div>
           <div style={{ marginTop: 40, paddingTop: 32, borderTop: `1px solid ${BD1}`,
                         display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/dashboard">
-              <button style={{ background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600,
-                               padding: "13px 28px", borderRadius: 12, minHeight: 48,
-                               border: "none", cursor: "pointer", letterSpacing: "-0.01em",
-                               boxShadow: "0 4px 20px rgba(10,132,255,0.36)" }}>
-                Open Dashboard →
-              </button>
+            <Link href="/dashboard"
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                       background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600,
+                       padding: "13px 28px", borderRadius: 12, minHeight: 48,
+                       letterSpacing: "-0.01em", textDecoration: "none",
+                       boxShadow: "0 4px 20px rgba(10,132,255,0.36)" }}>
+              Open Dashboard →
             </Link>
-            <Link href="/pricing">
-              <button style={{ background: "transparent", color: T2, fontSize: 15, fontWeight: 500,
-                               padding: "13px 24px", borderRadius: 12, minHeight: 48,
-                               border: `1px solid ${BD2}`, cursor: "pointer", letterSpacing: "-0.01em" }}>
-                View Pricing
-              </button>
+            <Link href="/pricing"
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                       background: "transparent", color: T2, fontSize: 15, fontWeight: 500,
+                       padding: "13px 24px", borderRadius: 12, minHeight: 48,
+                       border: `1px solid ${BD2}`, letterSpacing: "-0.01em", textDecoration: "none" }}>
+              View Pricing
             </Link>
           </div>
         </div>
