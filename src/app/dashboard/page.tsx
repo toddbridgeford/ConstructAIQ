@@ -10,6 +10,7 @@ import { StateRow } from "./components/StateRow"
 import { ScenarioBuilder } from "./components/ScenarioBuilder"
 import { TabBar } from "./components/TabBar"
 import { LeftPanel } from "./components/LeftPanel"
+import { ErrorBoundary } from "./components/ErrorBoundary"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -121,6 +122,7 @@ export default function Dashboard() {
         input[type=range]{appearance:auto}
         @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
       `}</style>
+      <ErrorBoundary>
 
       {/* HEADER */}
       <div style={{
@@ -333,6 +335,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      </ErrorBoundary>
     </div>
   )
 }
