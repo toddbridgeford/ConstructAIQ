@@ -18,84 +18,77 @@ const T2    = color.t2
 const T3    = color.t3
 const T4    = color.t4
 
-interface PlanFeature {
-  text: string
-  included: boolean
-}
-
 interface Plan {
-  name: string
-  price: string
-  priceSub: string
-  rpm: string
-  rpd: string
+  tier:      string
+  tagline:   string
+  price:     string
+  priceSub:  string
   highlight: boolean
-  badge?: string
-  features: PlanFeature[]
-  ctaLabel: string
+  badge?:    string
+  outcomes:  string[]
+  forWho:    string
+  ctaLabel:  string
+  ctaHref:   string
 }
 
 const PLANS: Plan[] = [
   {
-    name: "Starter",
-    price: "$490",
+    tier:     "INTELLIGENCE",
+    tagline:  "Everything you need to get started",
+    price:    "$490",
     priceSub: "per month",
-    rpm: "60 req/min",
-    rpd: "1,000 req/day",
     highlight: false,
-    features: [
-      { text: "All API endpoints (census, bls, rates, signals, news, map, pricewatch, forecast)", included: true },
-      { text: "12-month AI ensemble forecast (HW + SARIMA + XGBoost)", included: true },
-      { text: "Real-time market signals", included: true },
-      { text: "CSV data export", included: true },
-      { text: "Dashboard access", included: true },
-      { text: "Up to 60 req/min, 1,000 req/day", included: true },
-      { text: "Priority support", included: false },
-      { text: "Dedicated support + SLA", included: false },
-      { text: "Custom rate limits", included: false },
+    outcomes: [
+      "12-month AI-powered construction forecasts",
+      "Real-time market signals across 12 data series",
+      "50-state activity map (HOT / GROWING / COOLING)",
+      "Materials buy/sell/hold signals",
+      "Full dashboard access",
+      "CSV data export for your own analysis",
+      "All 14 live data endpoints",
     ],
-    ctaLabel: "Get Starter Key",
+    forWho:   "Ideal for individual analysts, project developers, and small teams.",
+    ctaLabel: "Get Started",
+    ctaHref:  "/contact",
   },
   {
-    name: "Professional",
-    price: "$1,490",
-    priceSub: "per month",
-    rpm: "300 req/min",
-    rpd: "10,000 req/day",
+    tier:      "INSTITUTIONAL",
+    tagline:   "For teams that move markets",
+    price:     "$1,490",
+    priceSub:  "per month",
     highlight: true,
-    badge: "MOST POPULAR",
-    features: [
-      { text: "All API endpoints (census, bls, rates, signals, news, map, pricewatch, forecast)", included: true },
-      { text: "12-month AI ensemble forecast (HW + SARIMA + XGBoost)", included: true },
-      { text: "Real-time market signals", included: true },
-      { text: "CSV data export", included: true },
-      { text: "Dashboard access", included: true },
-      { text: "Up to 300 req/min, 10,000 req/day", included: true },
-      { text: "Priority support", included: true },
-      { text: "Dedicated support + SLA", included: false },
-      { text: "Custom rate limits", included: false },
+    badge:     "MOST POPULAR",
+    outcomes: [
+      "Everything in Intelligence, plus:",
+      "5x higher data throughput for team workflows",
+      "Priority email support (24-hour response)",
+      "Quarterly market outlook report (PDF)",
+      "Historical data back to 2000",
+      "Bulk CSV export & scheduled data pulls",
+      "Suitable for embedding in internal dashboards",
     ],
-    ctaLabel: "Get Pro Key",
+    forWho:   "Built for banks, government agencies, investment firms, and developer groups.",
+    ctaLabel: "Get Institutional Access",
+    ctaHref:  "/contact",
   },
   {
-    name: "Enterprise",
-    price: "Custom",
+    tier:     "ENTERPRISE",
+    tagline:  "White-glove intelligence at scale",
+    price:    "Custom",
     priceSub: "contact us",
-    rpm: "1,000+ req/min",
-    rpd: "100,000+ req/day",
     highlight: false,
-    features: [
-      { text: "All API endpoints (census, bls, rates, signals, news, map, pricewatch, forecast)", included: true },
-      { text: "12-month AI ensemble forecast (HW + SARIMA + XGBoost)", included: true },
-      { text: "Real-time market signals", included: true },
-      { text: "CSV data export", included: true },
-      { text: "Dashboard access", included: true },
-      { text: "Custom rate limits", included: true },
-      { text: "Priority support", included: true },
-      { text: "Dedicated support + SLA", included: true },
-      { text: "Custom integrations", included: true },
+    outcomes: [
+      "Everything in Institutional, plus:",
+      "Unlimited data throughput",
+      "Dedicated account manager",
+      "99.9% uptime SLA",
+      "Custom integrations (Bloomberg, Salesforce, BI tools)",
+      "On-site briefings and executive reports",
+      "Co-branded research deliverables",
     ],
-    ctaLabel: "Contact Sales",
+    forWho:   "For large banks, federal agencies, REITs, and enterprise construction groups.",
+    ctaLabel: "Talk to Sales",
+    ctaHref:  "/contact",
   },
 ]
 
@@ -114,7 +107,6 @@ function PricingCard({ plan }: { plan: Plan }) {
       maxWidth: 380,
       display: "flex",
       flexDirection: "column",
-      gap: 0,
       position: "relative",
       boxShadow: plan.highlight ? `0 0 40px ${AMBER}22` : "none",
     }}>
@@ -138,55 +130,34 @@ function PricingCard({ plan }: { plan: Plan }) {
         </div>
       )}
 
-      {/* Plan name */}
-      <div style={{ fontFamily: MONO, fontSize: 13, color: plan.highlight ? AMBER : T4, letterSpacing: "0.12em", marginBottom: 12 }}>
-        {plan.name.toUpperCase()}
+      <div style={{ fontFamily: MONO, fontSize: 13, color: plan.highlight ? AMBER : T4, letterSpacing: "0.12em", marginBottom: 8 }}>
+        {plan.tier}
       </div>
+      <div style={{ fontFamily: SYS, fontSize: 15, color: T3, marginBottom: 20, lineHeight: 1.5 }}>{plan.tagline}</div>
 
-      {/* Price */}
-      <div style={{ marginBottom: 8 }}>
+      <div style={{ marginBottom: 24 }}>
         <span style={{ fontFamily: SYS, fontSize: 48, fontWeight: 700, color: T1, letterSpacing: "-0.02em" }}>{plan.price}</span>
         {plan.price !== "Custom" && (
           <span style={{ fontFamily: SYS, fontSize: 16, color: T4, marginLeft: 6 }}>/mo</span>
         )}
-      </div>
-      <div style={{ fontFamily: SYS, fontSize: 14, color: T4, marginBottom: 24 }}>{plan.priceSub}</div>
-
-      {/* Rate limits */}
-      <div style={{ background: BG1, borderRadius: 12, padding: "14px 16px", marginBottom: 28, border: `1px solid ${BD2}` }}>
-        <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 10 }}>RATE LIMITS</div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-          <span style={{ fontFamily: SYS, fontSize: 14, color: T3 }}>Per minute</span>
-          <span style={{ fontFamily: MONO, fontSize: 14, color: AMBER, fontWeight: 700 }}>{plan.rpm}</span>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span style={{ fontFamily: SYS, fontSize: 14, color: T3 }}>Per day</span>
-          <span style={{ fontFamily: MONO, fontSize: 14, color: AMBER, fontWeight: 700 }}>{plan.rpd}</span>
-        </div>
+        {plan.price === "Custom" && (
+          <div style={{ fontFamily: SYS, fontSize: 14, color: T4, marginTop: 4 }}>Pricing based on your needs</div>
+        )}
       </div>
 
-      {/* Features */}
-      <div style={{ flex: 1, marginBottom: 28 }}>
-        {plan.features.map((f, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
-            <span style={{
-              fontFamily: MONO,
-              fontSize: 13,
-              color: f.included ? GREEN : T4,
-              flexShrink: 0,
-              marginTop: 1,
-            }}>
-              {f.included ? "✓" : "✗"}
-            </span>
-            <span style={{ fontFamily: SYS, fontSize: 14, color: f.included ? T2 : T4, lineHeight: 1.5 }}>
-              {f.text}
-            </span>
+      <div style={{ flex: 1, marginBottom: 24 }}>
+        {plan.outcomes.map((o, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
+            <span style={{ fontFamily: MONO, fontSize: 13, color: GREEN, flexShrink: 0, marginTop: 1 }}>✓</span>
+            <span style={{ fontFamily: SYS, fontSize: 14, color: i === 0 && plan.tier !== "INTELLIGENCE" ? T4 : T2, lineHeight: 1.5, fontStyle: i === 0 && plan.tier !== "INTELLIGENCE" ? "italic" : "normal" }}>{o}</span>
           </div>
         ))}
+        <div style={{ marginTop: 16, padding: "12px 16px", background: BG1, borderRadius: 10, border: `1px solid ${BD2}` }}>
+          <span style={{ fontFamily: SYS, fontSize: 13, color: T3 }}>{plan.forWho}</span>
+        </div>
       </div>
 
-      {/* CTA */}
-      <a href="/api/keys/issue" style={{ display: "block" }}>
+      <Link href={plan.ctaHref} style={{ display: "block" }}>
         <button style={{
           width: "100%",
           background: plan.highlight ? AMBER : "transparent",
@@ -200,20 +171,15 @@ function PricingCard({ plan }: { plan: Plan }) {
           minHeight: 50,
           border: plan.highlight ? "none" : `1px solid ${AMBER}`,
           cursor: "pointer",
-          transition: "opacity 0.15s",
         }}>
           {plan.ctaLabel} →
         </button>
-      </a>
+      </Link>
     </div>
   )
 }
 
 export default function PricingPage() {
-  const curlExample = `curl -X POST https://constructaiq.trade/api/keys/issue \\
-  -H "Content-Type: application/json" \\
-  -d '{"email":"you@example.com","plan":"starter"}'`
-
   return (
     <div style={{ minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS, paddingBottom: "env(safe-area-inset-bottom,20px)" }}>
       <style>{`
@@ -244,9 +210,9 @@ export default function PricingPage() {
           <Link href="/dashboard">
             <button style={{ background: "transparent", color: T3, fontFamily: MONO, fontSize: 13, padding: "8px 16px", borderRadius: 10, border: `1px solid ${BD1}`, minHeight: 44 }}>DASHBOARD</button>
           </Link>
-          <a href="/api/keys/issue">
-            <button style={{ background: AMBER, color: "#000", fontFamily: MONO, fontSize: 13, fontWeight: 700, padding: "8px 20px", borderRadius: 10, letterSpacing: "0.06em", minHeight: 44 }}>GET API KEY →</button>
-          </a>
+          <Link href="/contact">
+            <button style={{ background: AMBER, color: "#000", fontFamily: MONO, fontSize: 13, fontWeight: 700, padding: "8px 20px", borderRadius: 10, letterSpacing: "0.06em", minHeight: 44 }}>TALK TO US →</button>
+          </Link>
         </div>
       </nav>
 
@@ -260,71 +226,60 @@ export default function PricingPage() {
           </div>
 
           <h1 style={{ fontFamily: SYS, fontSize: 48, fontWeight: 700, lineHeight: 1.1, color: T1, marginBottom: 16, letterSpacing: "-0.02em" }}>
-            Construction Intelligence,<br />
-            <span style={{ color: AMBER }}>At Every Scale</span>
+            Intelligence that pays for itself<br />
+            <span style={{ color: AMBER }}>on the first insight</span>
           </h1>
 
-          <p style={{ fontFamily: SYS, fontSize: 18, color: T3, lineHeight: 1.6, maxWidth: 540, margin: "0 auto" }}>
-            API access to real-time construction data, AI forecasts, and market signals. Choose the plan that fits your workflow.
+          <p style={{ fontFamily: SYS, fontSize: 18, color: T3, lineHeight: 1.6, maxWidth: 560, margin: "0 auto" }}>
+            One missed market signal costs more than a year of ConstructAIQ. Choose the tier that fits your team.
           </p>
         </div>
 
         {/* Pricing Cards */}
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "center", marginBottom: 72, alignItems: "stretch" }}>
-          {PLANS.map(plan => <PricingCard key={plan.name} plan={plan} />)}
+          {PLANS.map(plan => <PricingCard key={plan.tier} plan={plan} />)}
         </div>
 
-        {/* API Key CTA / curl example */}
-        <div style={{ background: BG1, borderRadius: 24, padding: "48px 40px", border: `1px solid ${BD1}`, marginBottom: 48 }}>
-          <div style={{ display: "flex", gap: 40, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ flex: 1, minWidth: 240 }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, color: AMBER, letterSpacing: "0.12em", marginBottom: 12 }}>GET YOUR API KEY</div>
-              <div style={{ fontFamily: SYS, fontSize: 24, fontWeight: 700, color: T1, marginBottom: 10 }}>Start building in seconds</div>
-              <div style={{ fontFamily: SYS, fontSize: 15, color: T3, lineHeight: 1.6, marginBottom: 24 }}>
-                Issue an API key instantly. Keys are scoped to your plan&apos;s rate limits and activate immediately.
-              </div>
-              <a href="/api/keys/issue">
-                <button style={{ background: AMBER, color: "#000", fontFamily: MONO, fontSize: 14, fontWeight: 700, padding: "14px 28px", borderRadius: 12, letterSpacing: "0.06em", minHeight: 50 }}>
-                  Issue API Key →
-                </button>
-              </a>
-            </div>
-            <div style={{ flex: 1, minWidth: 300 }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 10 }}>EXAMPLE REQUEST</div>
-              <div style={{ background: "#0a0a0a", borderRadius: 12, padding: "20px 24px", border: `1px solid ${BD2}`, overflowX: "auto" }}>
-                <pre style={{ fontFamily: MONO, fontSize: 13, color: GREEN, lineHeight: 1.7, margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
-                  {curlExample}
-                </pre>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Feature comparison note */}
-        <div style={{ background: BG2, borderRadius: 16, padding: "28px 32px", border: `1px solid ${BD1}`, marginBottom: 48 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 20, textAlign: "center" }}>ALL PLANS INCLUDE</div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center" }}>
+        {/* What every plan delivers */}
+        <div style={{ background: BG2, borderRadius: 20, padding: "40px", border: `1px solid ${BD1}`, marginBottom: 48 }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 24, textAlign: "center" }}>EVERY PLAN DELIVERS</div>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "center" }}>
             {[
-              "Census Bureau data",
-              "BLS employment data",
-              "FRED rates & indicators",
-              "Housing starts + permits",
-              "AI ensemble forecasts",
-              "Market signals",
-              "State-level map data",
-              "Materials pricewatch",
-              "News intelligence",
-              "CSV export",
-            ].map((item, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontFamily: MONO, fontSize: 13, color: GREEN }}>✓</span>
-                <span style={{ fontFamily: SYS, fontSize: 14, color: T3 }}>{item}</span>
+              { icon: "📡", label: "Real-time signals",        desc: "Know before the market moves" },
+              { icon: "🤖", label: "AI 12-month forecasts",    desc: "Ensemble of 3 proven models" },
+              { icon: "🗺",  label: "All 50 states",           desc: "HOT / GROWING / COOLING map" },
+              { icon: "💹", label: "Materials intelligence",   desc: "BUY / SELL / HOLD signals" },
+              { icon: "📊", label: "Full dashboard",           desc: "No login required for demo" },
+              { icon: "📥", label: "Export your data",         desc: "CSV, JSON, or direct API" },
+            ].map(({ icon, label, desc }) => (
+              <div key={label} style={{ textAlign: "center", minWidth: 140, flex: "1 1 140px" }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>{icon}</div>
+                <div style={{ fontFamily: SYS, fontSize: 14, color: T1, fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                <div style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>{desc}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Back to dashboard link */}
+        {/* FAQ */}
+        <div style={{ background: BG1, borderRadius: 20, padding: "40px", border: `1px solid ${BD1}`, marginBottom: 48 }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 28, textAlign: "center" }}>COMMON QUESTIONS</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 720, margin: "0 auto" }}>
+            {[
+              { q: "Do I need technical expertise to use this?", a: "No. The dashboard requires zero technical knowledge. The API is available for teams that want to embed data into their own tools." },
+              { q: "Can I try it before subscribing?", a: "Yes — the live dashboard is accessible without any account. See the data and signals before you commit to a plan." },
+              { q: "How quickly can I get access?", a: "Contact us and we typically have accounts active within one business day. Enterprise contracts take 2–5 days for procurement." },
+              { q: "Is my data private?", a: "All plans include private API keys. We never share your usage data or contact information with third parties." },
+            ].map(({ q, a }) => (
+              <div key={q}>
+                <div style={{ fontFamily: SYS, fontSize: 16, color: T1, fontWeight: 600, marginBottom: 8 }}>{q}</div>
+                <div style={{ fontFamily: SYS, fontSize: 15, color: T3, lineHeight: 1.6 }}>{a}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Back links */}
         <div style={{ textAlign: "center" }}>
           <Link href="/dashboard" style={{ fontFamily: SYS, fontSize: 15, color: T4, textDecoration: "underline" }}>
             ← Back to Dashboard
