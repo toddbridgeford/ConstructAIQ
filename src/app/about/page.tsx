@@ -1,0 +1,367 @@
+"use client"
+import Image from "next/image"
+import Link from "next/link"
+
+const SYS  = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+const MONO = "ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace"
+const AMBER = "#f5a623"
+const GREEN = "#30d158"
+const BG0 = "#000", BG1 = "#0d0d0d", BG2 = "#1a1a1a"
+const BD1 = "#2a2a2a"
+const T1 = "#fff", T2 = "#ebebf0", T3 = "#a0a0ab", T4 = "#6e6e73"
+
+interface CapabilityCard {
+  icon: string
+  title: string
+  desc: string
+}
+
+interface DataSource {
+  name: string
+  desc: string
+}
+
+const CAPABILITIES: CapabilityCard[] = [
+  {
+    icon: "📡",
+    title: "Signal Intelligence",
+    desc: "Z-score anomaly detection, trend reversals, divergence signals across 12 government data series.",
+  },
+  {
+    icon: "🤖",
+    title: "3-Model AI Ensemble",
+    desc: "Holt-Winters + SARIMA + XGBoost accuracy-weighted ensemble. 12-month forecasts with 80% and 95% confidence intervals.",
+  },
+  {
+    icon: "🗺",
+    title: "50-State Coverage",
+    desc: "State-level construction activity, permit trends, and regional GDP. HOT / GROWING / COOLING classification by state.",
+  },
+  {
+    icon: "💹",
+    title: "Materials Intelligence",
+    desc: "Real-time BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI crude, and diesel.",
+  },
+]
+
+const DATA_SOURCES: DataSource[] = [
+  {
+    name: "Census Bureau",
+    desc: "Monthly construction spending across residential, commercial, and public segments.",
+  },
+  {
+    name: "Bureau of Labor Statistics",
+    desc: "Construction employment, wages, and JOLTS job openings data.",
+  },
+  {
+    name: "FRED / St. Louis Fed",
+    desc: "30+ macroeconomic indicators: rates, housing starts, permits, PPI.",
+  },
+  {
+    name: "Bureau of Economic Analysis",
+    desc: "State-level GDP contributions from construction sector.",
+  },
+  {
+    name: "EIA",
+    desc: "Energy input costs directly impacting construction materials and operations.",
+  },
+  {
+    name: "USASpending.gov",
+    desc: "Federal contract award data — tracking IIJA and infrastructure spending.",
+  },
+  {
+    name: "ENR",
+    desc: "Engineering News-Record industry analysis and contract intelligence.",
+  },
+  {
+    name: "Construction Dive",
+    desc: "Real-time news and sentiment signals from the trades.",
+  },
+  {
+    name: "NAHB",
+    desc: "Housing market conditions, builder confidence, and residential pipeline.",
+  },
+  {
+    name: "AGC",
+    desc: "Associated General Contractors labor market data and industry trends.",
+  },
+]
+
+function CapCard({ card }: { card: CapabilityCard }) {
+  return (
+    <div style={{
+      background: BG2,
+      border: `1px solid ${BD1}`,
+      borderRadius: 16,
+      padding: "28px 24px",
+      flex: "1 1 calc(50% - 12px)",
+      minWidth: 260,
+    }}>
+      <div style={{ fontSize: 32, marginBottom: 14 }}>{card.icon}</div>
+      <div style={{ fontFamily: SYS, fontSize: 17, fontWeight: 600, color: T1, marginBottom: 10 }}>
+        {card.title}
+      </div>
+      <div style={{ fontFamily: SYS, fontSize: 15, color: T3, lineHeight: 1.65 }}>
+        {card.desc}
+      </div>
+    </div>
+  )
+}
+
+function SourceCard({ source }: { source: DataSource }) {
+  return (
+    <div style={{
+      background: BG1,
+      border: `1px solid ${BD1}`,
+      borderRadius: 10,
+      padding: "14px 18px",
+      flex: "1 1 calc(33.33% - 16px)",
+      minWidth: 240,
+    }}>
+      <div style={{ fontFamily: SYS, fontSize: 14, fontWeight: 600, color: T2, marginBottom: 6 }}>
+        {source.name}
+      </div>
+      <div style={{ fontFamily: SYS, fontSize: 13, color: T3, lineHeight: 1.55 }}>
+        {source.desc}
+      </div>
+    </div>
+  )
+}
+
+export default function AboutPage() {
+  return (
+    <div style={{ minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS, paddingBottom: "env(safe-area-inset-bottom,20px)" }}>
+      <style>{`
+        *{box-sizing:border-box;margin:0;padding:0}
+        a{color:inherit;text-decoration:none}
+        button{outline:none;font-family:inherit;cursor:pointer;border:none}
+      `}</style>
+
+      {/* NAV */}
+      <nav style={{
+        position: "sticky", top: 0, zIndex: 100,
+        background: BG1 + "ee", backdropFilter: "blur(12px)",
+        borderBottom: `1px solid ${BD1}`,
+        padding: "0 32px", display: "flex", alignItems: "center",
+        justifyContent: "space-between", height: 60,
+        paddingTop: "env(safe-area-inset-top,0px)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <Link href="/">
+            <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ" style={{ height: 24, width: "auto" }} />
+          </Link>
+          <div style={{ width: 1, height: 24, background: BD1 }} />
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>ABOUT</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Link href="/dashboard">
+            <button style={{ background: "transparent", color: T3, fontFamily: MONO, fontSize: 13, padding: "8px 16px", borderRadius: 10, border: `1px solid ${BD1}`, minHeight: 44 }}>
+              DASHBOARD
+            </button>
+          </Link>
+          <Link href="/pricing">
+            <button style={{ background: "transparent", color: T3, fontFamily: MONO, fontSize: 13, padding: "8px 16px", borderRadius: 10, border: `1px solid ${BD1}`, minHeight: 44 }}>
+              PRICING
+            </button>
+          </Link>
+          <Link href="/">
+            <button style={{ background: "transparent", color: T4, fontFamily: SYS, fontSize: 14, padding: "8px 16px", borderRadius: 10, border: "none", minHeight: 44 }}>
+              ← Home
+            </button>
+          </Link>
+        </div>
+      </nav>
+
+      <div style={{ maxWidth: 1060, margin: "0 auto", padding: "72px 32px 80px" }}>
+
+        {/* HEADER */}
+        <div style={{ textAlign: "center", marginBottom: 72 }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: BG2, border: `1px solid ${AMBER}44`,
+            borderRadius: 20, padding: "6px 16px", marginBottom: 28,
+          }}>
+            <span style={{ fontFamily: MONO, fontSize: 12, color: AMBER }}>▲ Our Mission</span>
+          </div>
+
+          <h1 style={{
+            fontFamily: SYS, fontSize: 52, fontWeight: 700,
+            lineHeight: 1.1, color: T1, marginBottom: 20,
+            letterSpacing: "-0.02em",
+          }}>
+            Built for the People<br />
+            <span style={{ color: AMBER }}>Who Move Capital</span>
+          </h1>
+
+          <p style={{
+            fontFamily: SYS, fontSize: 18, color: T3,
+            lineHeight: 1.7, maxWidth: 600, margin: "0 auto",
+          }}>
+            We aggregate 16 government and industry data sources, apply a 3-model AI ensemble, and translate the output into signals that help institutional investors, federal agencies, and industry leaders make faster, better decisions.
+          </p>
+        </div>
+
+        {/* SECTION 1 — MISSION STATEMENT */}
+        <div style={{
+          background: BG1, border: `1px solid ${BD1}`,
+          borderRadius: 20, padding: "40px",
+          marginBottom: 56,
+        }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.12em", marginBottom: 20 }}>
+            MISSION STATEMENT
+          </div>
+          <p style={{
+            fontFamily: SYS, fontSize: 17, color: T2,
+            lineHeight: 1.8, maxWidth: 780,
+          }}>
+            ConstructAIQ was built to give the people who move capital — not concrete — the clearest possible view of where the construction sector is heading. We aggregate 16 government and industry data sources, apply a 3-model AI ensemble, and translate the output into signals that help institutional investors, federal agencies, and industry leaders make faster, better decisions.
+          </p>
+        </div>
+
+        {/* SECTION 2 — THE PLATFORM */}
+        <div style={{ marginBottom: 56 }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.12em", marginBottom: 8 }}>
+            THE PLATFORM
+          </div>
+          <h2 style={{ fontFamily: SYS, fontSize: 28, fontWeight: 700, color: T1, marginBottom: 28, letterSpacing: "-0.01em" }}>
+            Four Pillars of Construction Intelligence
+          </h2>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
+            {CAPABILITIES.map((card) => (
+              <CapCard key={card.title} card={card} />
+            ))}
+          </div>
+        </div>
+
+        {/* SECTION 3 — THE TEAM */}
+        <div style={{ marginBottom: 56 }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.12em", marginBottom: 8 }}>
+            THE TEAM
+          </div>
+          <h2 style={{ fontFamily: SYS, fontSize: 28, fontWeight: 700, color: T1, marginBottom: 28, letterSpacing: "-0.01em" }}>
+            Built by Industry Insiders
+          </h2>
+          <div style={{
+            background: BG1, border: `1px solid ${BD1}`,
+            borderRadius: 20, padding: "36px 40px",
+            display: "flex", alignItems: "flex-start", gap: 28,
+            flexWrap: "wrap",
+          }}>
+            {/* Avatar placeholder */}
+            <div style={{
+              width: 80, height: 80, borderRadius: "50%",
+              background: BG2, border: `1px solid ${BD1}`,
+              flexShrink: 0, display: "flex", alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <span style={{ fontFamily: SYS, fontSize: 28, color: T4, userSelect: "none" }}>TB</span>
+            </div>
+
+            {/* Bio */}
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
+                <div style={{ fontFamily: SYS, fontSize: 20, fontWeight: 700, color: T1 }}>
+                  Todd Bridgeford
+                </div>
+                <div style={{
+                  fontFamily: MONO, fontSize: 11, color: AMBER,
+                  background: "#3d280022", border: `1px solid ${AMBER}44`,
+                  borderRadius: 6, padding: "3px 10px", letterSpacing: "0.08em",
+                }}>
+                  FOUNDER & CEO
+                </div>
+              </div>
+              <p style={{
+                fontFamily: SYS, fontSize: 15, color: T3, lineHeight: 1.7,
+                maxWidth: 640,
+              }}>
+                Construction industry veteran turned data entrepreneur. Built ConstructAIQ to bring institutional-grade intelligence to the sector that moves 13% of US GDP.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 4 — DATA SOURCES */}
+        <div style={{ marginBottom: 64 }}>
+          <div style={{
+            background: BG2, border: `1px solid ${BD1}`,
+            borderRadius: 20, padding: "36px 36px 40px",
+          }}>
+            <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.12em", marginBottom: 28, textAlign: "center" }}>
+              OUR DATA SOURCES
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "flex-start" }}>
+              {DATA_SOURCES.map((source) => (
+                <SourceCard key={source.name} source={source} />
+              ))}
+            </div>
+            <div style={{
+              marginTop: 28, paddingTop: 24,
+              borderTop: `1px solid ${BD1}`,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}>
+              <span style={{ fontFamily: MONO, fontSize: 12, color: GREEN }}>✓</span>
+              <span style={{ fontFamily: SYS, fontSize: 14, color: T3 }}>
+                All sources are official government or recognised industry publishers. Data refreshed every 4 hours.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA SECTION */}
+        <div style={{
+          textAlign: "center", padding: "56px 40px",
+          background: "linear-gradient(135deg,#1a1200 0%,#0d0d0d 100%)",
+          borderRadius: 24, border: `1px solid ${AMBER}33`,
+        }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: AMBER, letterSpacing: "0.12em", marginBottom: 16 }}>
+            GET STARTED
+          </div>
+          <div style={{
+            fontFamily: SYS, fontSize: 32, fontWeight: 700,
+            color: T1, marginBottom: 14, letterSpacing: "-0.01em",
+          }}>
+            Ready to See the Intelligence?
+          </div>
+          <div style={{
+            fontFamily: SYS, fontSize: 16, color: T3,
+            lineHeight: 1.6, maxWidth: 480, margin: "0 auto 32px",
+          }}>
+            The dashboard is live now. No login required. Explore real-time construction signals, AI forecasts, and state-level market data.
+          </div>
+          <Link href="/dashboard">
+            <button style={{
+              background: AMBER, color: "#000",
+              fontFamily: MONO, fontSize: 15, fontWeight: 700,
+              padding: "16px 40px", borderRadius: 14,
+              letterSpacing: "0.06em", minHeight: 52,
+            }}>
+              OPEN DASHBOARD →
+            </button>
+          </Link>
+          <div style={{ marginTop: 16 }}>
+            <Link href="/pricing" style={{ fontFamily: SYS, fontSize: 14, color: T4, textDecoration: "underline" }}>
+              View pricing plans
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* FOOTER */}
+      <footer style={{ borderTop: `1px solid ${BD1}`, padding: "32px", textAlign: "center" }}>
+        <Image
+          src="/ConstructAIQWhiteLogo.svg"
+          width={100} height={20}
+          alt="ConstructAIQ"
+          style={{ height: 20, width: "auto", marginBottom: 12 }}
+        />
+        <div style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>
+          Construction Intelligence Platform · constructaiq.trade
+        </div>
+        <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 6 }}>
+          Data: Census Bureau · BLS · FRED · BEA · EIA · USASpending.gov
+        </div>
+      </footer>
+    </div>
+  )
+}

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { upsertObservations, touchSeries, supabaseAdmin, type Observation } from '@/lib/supabase'
 
-const CRON_SECRET = process.env.CRON_SECRET || ''
+// Read per-request so env changes take effect without redeploying
+function cronSecret() { return process.env.CRON_SECRET || '' }
 
 // ── API Base URLs ──────────────────────────────────────────
 const FRED_KEY   = process.env.FRED_API_KEY   || ''
@@ -15,7 +16,8 @@ export const maxDuration = 60  // seconds (Vercel Pro allows 60s for cron)
 export async function GET(request: Request) {
   // Verify Vercel cron secret
   const auth = request.headers.get('authorization')
-  if (CRON_SECRET && auth !== `Bearer ${CRON_SECRET}`) {
+  const secret = cronSecret()
+  if (secret && auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

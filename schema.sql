@@ -256,3 +256,69 @@ COMMENT ON COLUMN forecast_log.duration_ms         IS 'Wall-clock duration of th
 
 CREATE INDEX IF NOT EXISTS idx_forecast_log_run_at
     ON forecast_log (run_at DESC);
+
+
+-- =============================================================================
+-- Row-Level Security (RLS)
+--
+-- The application uses two Supabase roles:
+--   anon  — public (unauthenticated) reads via NEXT_PUBLIC_SUPABASE_ANON_KEY
+--   service_role — server-side writes via SUPABASE_SERVICE_ROLE_KEY
+--
+-- RLS is enabled on all tables. The anon role may only read public data
+-- (series metadata, observations, forecasts, signals). All write operations
+-- and access to sensitive tables (api_keys, subscribers, harvest_log,
+-- forecast_log) require the service_role key.
+-- =============================================================================
+
+-- Enable RLS on every table
+ALTER TABLE series       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE observations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forecasts    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE api_keys     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE signals      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscribers  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE harvest_log  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forecast_log ENABLE ROW LEVEL SECURITY;
+
+-- Public read access for market data tables (anon can read, not write)
+CREATE POLICY IF NOT EXISTS "anon_read_series"
+    ON series FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "anon_read_observations"
+    ON observations FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "anon_read_forecasts"
+    ON forecasts FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "anon_read_signals"
+    ON signals FOR SELECT TO anon USING (true);
+
+-- api_keys: no anon access — service_role only (bypasses RLS by default in Supabase)
+-- subscribers, harvest_log, forecast_log: service_role only (no anon policies = no access)
+
+-- Service role gets full access on all tables (Supabase service_role bypasses RLS by default;
+-- these explicit policies are belt-and-suspenders for any direct psql access patterns)
+CREATE POLICY IF NOT EXISTS "service_all_series"
+    ON series FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_observations"
+    ON observations FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_forecasts"
+    ON forecasts FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_api_keys"
+    ON api_keys FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_signals"
+    ON signals FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_subscribers"
+    ON subscribers FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_harvest_log"
+    ON harvest_log FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_forecast_log"
+    ON forecast_log FOR ALL TO service_role USING (true) WITH CHECK (true);
