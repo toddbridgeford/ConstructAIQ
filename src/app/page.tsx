@@ -189,12 +189,12 @@ export default function HomePage() {
                           boxShadow: `0 0 6px ${GREEN}`, animation: "pulse 2s infinite" }} />
             <span style={{ fontFamily: MONO, fontSize: 11, color: GREEN, letterSpacing: "0.08em" }}>LIVE</span>
           </div>
-          <Link href="/dashboard">
-            <button style={{ background: BLUE, color: "#fff", fontSize: 14, fontWeight: 600,
-                             padding: "8px 20px", borderRadius: 10, minHeight: 40,
-                             border: "none", cursor: "pointer", letterSpacing: "-0.01em" }}>
-              Open Dashboard
-            </button>
+          <Link href="/dashboard"
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                     background: BLUE, color: "#fff", fontSize: 14, fontWeight: 600,
+                     padding: "8px 20px", borderRadius: 10, minHeight: 40,
+                     letterSpacing: "-0.01em", textDecoration: "none" }}>
+            Open Dashboard
           </Link>
         </div>
       </nav>
@@ -265,14 +265,8 @@ export default function HomePage() {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
               <div>
-                <div style={{ fontFamily: MONO, fontSize: 10, color: T4,
-                              letterSpacing: "0.08em", marginBottom: 4 }}>12-MO FORECAST</div>
+                <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 500, marginBottom: 4 }}>12-mo forecast</div>
                 <div style={{ fontFamily: MONO, fontSize: 20, fontWeight: 700, color: BLUE }}>+4.2%</div>
-              </div>
-              <div>
-                <div style={{ fontFamily: MONO, fontSize: 10, color: T4,
-                              letterSpacing: "0.08em", marginBottom: 4 }}>MODEL ACCURACY</div>
-                <div style={{ fontFamily: MONO, fontSize: 20, fontWeight: 700, color: GREEN }}>94.1%</div>
               </div>
             </div>
           </div>
@@ -307,8 +301,9 @@ export default function HomePage() {
         <div style={{ borderTop: `1px solid ${BD1}`, borderBottom: `1px solid ${BD1}`,
                       padding: "18px 0", display: "flex", alignItems: "center",
                       justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-          <span style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.12em", whiteSpace: "nowrap" }}>
-            DATA FROM
+          <span style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                         letterSpacing: "0.04em", whiteSpace: "nowrap", textTransform: "uppercase" }}>
+            Data from
           </span>
           {SOURCES.map((s, i) => (
             <span key={i} style={{ fontSize: 12, color: T4, fontWeight: 500,
@@ -340,7 +335,7 @@ export default function HomePage() {
           ].map(({ n, title, desc, col }) => (
             <div key={n} style={{ background: BG1, border: `1px solid ${BD1}`, borderRadius: 20,
                                   padding: "32px 28px", display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, color: col, letterSpacing: "0.1em", opacity: 0.6 }}>{n}</div>
+              <div style={{ fontFamily: SYS, fontSize: 11, color: col, fontWeight: 700, opacity: 0.5 }}>{n}</div>
               <h3 style={{ fontSize: 19, fontWeight: 700, color: T1, letterSpacing: "-0.02em", lineHeight: 1.3 }}>{title}</h3>
               <p style={{ fontSize: 14, color: T3, lineHeight: 1.7, fontWeight: 400 }}>{desc}</p>
               <div style={{ height: 2, width: 32, background: col, borderRadius: 1, opacity: 0.5, marginTop: "auto" }} />
@@ -370,8 +365,9 @@ export default function HomePage() {
             {/* State activity */}
             <div style={{ flex: "1 1 240px", background: BG2, borderRadius: 18, border: `1px solid ${BD1}`,
                           padding: "22px", minHeight: 260, display: "flex", flexDirection: "column" }}>
-              <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.1em", marginBottom: 18 }}>
-                STATE ACTIVITY
+              <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                            letterSpacing: "0.04em", marginBottom: 18, textTransform: "uppercase" }}>
+                State Activity
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
                 {[
@@ -391,8 +387,8 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-              <Link href="/dashboard" style={{ fontFamily: MONO, fontSize: 11, color: T4,
-                                               marginTop: 18, display: "block", letterSpacing: "0.06em" }}>
+              <Link href="/dashboard" style={{ fontFamily: SYS, fontSize: 13, color: T4,
+                                               marginTop: 18, display: "block", fontWeight: 500 }}>
                 All 50 states →
               </Link>
             </div>
@@ -400,8 +396,9 @@ export default function HomePage() {
             {/* Materials signals */}
             <div style={{ flex: "1 1 240px", background: BG2, borderRadius: 18, border: `1px solid ${BD1}`,
                           padding: "22px", minHeight: 260, display: "flex", flexDirection: "column" }}>
-              <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.1em", marginBottom: 18 }}>
-                MATERIALS SIGNALS
+              <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                            letterSpacing: "0.04em", marginBottom: 18, textTransform: "uppercase" }}>
+                Materials Signals
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
                 {[
@@ -422,8 +419,8 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-              <Link href="/dashboard" style={{ fontFamily: MONO, fontSize: 11, color: T4,
-                                               marginTop: 18, display: "block", letterSpacing: "0.06em" }}>
+              <Link href="/dashboard" style={{ fontFamily: SYS, fontSize: 13, color: T4,
+                                               marginTop: 18, display: "block", fontWeight: 500 }}>
                 Full signals →
               </Link>
             </div>
@@ -431,14 +428,15 @@ export default function HomePage() {
             {/* Live market data */}
             <div style={{ flex: "1 1 240px", background: BG2, borderRadius: 18, border: `1px solid ${BD1}`,
                           padding: "22px", minHeight: 260, display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.1em" }}>LIVE MARKET DATA</div>
+              <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                            letterSpacing: "0.04em", textTransform: "uppercase" }}>Live Market Data</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
                 {[
                   { lbl: "TOTAL CONSTRUCTION SPEND", val: `$${(spendVal / 1000).toFixed(1)}B`, mom: spendMom, col: AMBER },
                   { lbl: "CONSTRUCTION EMPLOYMENT",  val: empVal >= 1000 ? `${(empVal / 1000).toFixed(1)}M` : `${empVal}K`, mom: empMom, col: GREEN },
                 ].map(({ lbl, val, mom, col }, idx) => (
                   <div key={idx} style={{ paddingBottom: 14, borderBottom: `1px solid ${BD1}` }}>
-                    <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.08em", marginBottom: 5 }}>{lbl}</div>
+                    <div style={{ fontFamily: SYS, fontSize: 10, color: T4, fontWeight: 600, letterSpacing: "0.04em", marginBottom: 5, textTransform: "uppercase" }}>{lbl}</div>
                     <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color: col, lineHeight: 1 }}>{val}</div>
                     <div style={{ fontFamily: MONO, fontSize: 12, color: mom >= 0 ? GREEN : RED, marginTop: 3 }}>
                       {mom >= 0 ? "+" : ""}{mom?.toFixed(2)}% MoM
@@ -446,7 +444,7 @@ export default function HomePage() {
                   </div>
                 ))}
                 <div>
-                  <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.08em", marginBottom: 5 }}>ACTIVE AI SIGNALS</div>
+                  <div style={{ fontFamily: SYS, fontSize: 10, color: T4, fontWeight: 600, letterSpacing: "0.04em", marginBottom: 5, textTransform: "uppercase" }}>Active AI Signals</div>
                   <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color: BLUE, lineHeight: 1 }}>
                     {signals.length || 6}
                   </div>
@@ -459,8 +457,9 @@ export default function HomePage() {
       {/* ── LIVE SIGNALS ── */}
       {signals.length > 0 && (
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 40px 0" }}>
-          <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.12em", marginBottom: 12 }}>
-            TODAY&apos;S SIGNALS
+          <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                        letterSpacing: "0.04em", marginBottom: 12, textTransform: "uppercase" }}>
+            Today&apos;s Signals
           </div>
           <div style={{ display: "flex", flexWrap: "wrap" }}>
             {signals.slice(0, 8).map((s, i) => <SignalPill key={i} type={s.type} text={s.title} />)}
@@ -553,8 +552,8 @@ export default function HomePage() {
             construction professional needs to know.
           </p>
           <EmailCaptureForm source="weekly-brief" label="Subscribe Free" />
-          <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.08em", marginTop: 14 }}>
-            NO SPAM · UNSUBSCRIBE ANYTIME · 2,000+ SUBSCRIBERS
+          <div style={{ fontFamily: SYS, fontSize: 12, color: T4, marginTop: 14 }}>
+            No spam. Unsubscribe anytime. 2,000+ subscribers.
           </div>
           <div style={{ marginTop: 40, paddingTop: 32, borderTop: `1px solid ${BD1}`,
                         display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
@@ -588,8 +587,8 @@ export default function HomePage() {
             <Link key={label} href={href} style={{ fontSize: 13, color: T4 }}>{label}</Link>
           ))}
         </div>
-        <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.06em" }}>
-          © 2026 CONSTRUCTAIQ
+        <div style={{ fontFamily: SYS, fontSize: 12, color: T4 }}>
+          © 2026 ConstructAIQ
         </div>
       </footer>
 

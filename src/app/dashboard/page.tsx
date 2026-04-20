@@ -20,8 +20,8 @@ const AMBER     = color.amber,    AMBER_DIM = color.amberDim
 const GREEN     = color.green,    GREEN_DIM = color.greenDim
 const RED       = color.red,      RED_DIM   = color.redDim
 const BLUE      = color.blue,     BLUE_DIM  = color.blueDim
-const BG0       = color.bg0,      BG1 = color.bg1, BG2 = color.bg2, BG3 = color.bg3, BG4 = color.bg4
-const BD1       = color.bd1,      BD2 = color.bd2, BD3 = color.bd3
+const BG0       = color.bg0,      BG1 = color.bg1, BG2 = color.bg2, BG3 = color.bg3
+const BD1       = color.bd1,      BD2 = color.bd2
 const T1        = color.t1,       T2  = color.t2,  T3  = color.t3,  T4  = color.t4
 
 export default function Dashboard() {
@@ -85,7 +85,6 @@ export default function Dashboard() {
   const empMom      = employ?.mom   ?? employ?.latest?.mom   ?? 0
   const rate30      = rates?.mortgage30 ?? rates?.data?.MORTGAGE30US?.value ?? 6.85
   const rate10      = rates?.treasury10 ?? rates?.data?.DGS10?.value        ?? 4.28
-  const spread      = Number(rate30) - Number(rate10)
   const signals     = sigs?.signals      ?? []
   const newsItems   = newsD?.items       ?? []
   const states      = mapD?.states       ?? []

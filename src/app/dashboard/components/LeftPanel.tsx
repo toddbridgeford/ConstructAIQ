@@ -45,20 +45,20 @@ export function LeftPanel({
 
       {/* Primary KPI */}
       <div style={{ background: BG1, borderRadius: 14, padding: "16px 14px", border: `1px solid ${BD1}` }}>
-        <div style={{ fontFamily: MONO, fontSize: 10, color: T4, marginBottom: 8, letterSpacing: "0.08em" }}>TOTAL SPEND</div>
+        <div style={{ fontFamily: SYS, fontSize: 10, color: T4, marginBottom: 8, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>Total Spend</div>
         <div style={{ fontFamily: MONO, fontSize: 28, color: AMBER, fontWeight: 700, lineHeight: 1 }}>{fmtB(spendVal)}</div>
         <div style={{ fontFamily: MONO, fontSize: 12, color: spendMom >= 0 ? GREEN : RED, marginTop: 6 }}>{fmtPct(spendMom)} MoM</div>
       </div>
 
       {/* Secondary KPIs */}
       <div style={{ background: BG1, borderRadius: 14, padding: "14px", border: `1px solid ${BD1}` }}>
-        <div style={{ fontFamily: MONO, fontSize: 10, color: T4, marginBottom: 6, letterSpacing: "0.08em" }}>EMPLOYMENT</div>
+        <div style={{ fontFamily: SYS, fontSize: 10, color: T4, marginBottom: 6, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>Employment</div>
         <div style={{ fontFamily: MONO, fontSize: 20, color: GREEN, fontWeight: 700, lineHeight: 1 }}>{fmtK(empVal)}K</div>
         <div style={{ fontFamily: MONO, fontSize: 11, color: empMom >= 0 ? GREEN : RED, marginTop: 4 }}>{fmtPct(empMom)} MoM</div>
       </div>
 
       <div style={{ background: BG1, borderRadius: 14, padding: "14px", border: `1px solid ${BD1}` }}>
-        <div style={{ fontFamily: MONO, fontSize: 10, color: T4, marginBottom: 6, letterSpacing: "0.08em" }}>30YR RATE</div>
+        <div style={{ fontFamily: SYS, fontSize: 10, color: T4, marginBottom: 6, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>30yr Rate</div>
         <div style={{ fontFamily: MONO, fontSize: 20, color: T2, fontWeight: 700, lineHeight: 1 }}>{fmtN(rate30)}%</div>
         <div style={{ fontFamily: MONO, fontSize: 11, color: T4, marginTop: 4 }}>{fmtN(rate10)}% 10-yr</div>
       </div>
@@ -73,7 +73,7 @@ export function LeftPanel({
                                   boxShadow: f.ok ? `0 0 4px ${GREEN}` : "none" }} />
           ))}
         </div>
-        <span style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.06em" }}>
+        <span style={{ fontFamily: MONO, fontSize: 10, color: T4 }}>
           {feedsOk}/8
         </span>
       </div>
