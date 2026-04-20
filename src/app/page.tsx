@@ -161,6 +161,7 @@ export default function HomePage() {
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             {[
               { label: "Intelligence", href: "/dashboard" },
+              { label: "Globe",        href: "/globe" },
               { label: "Markets",      href: "/markets" },
               { label: "Tools",        href: "/market-check" },
               { label: "Who It's For", href: "#audience" },
@@ -372,6 +373,7 @@ export default function HomePage() {
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <FeatureCard icon="📡" title="Signal Intelligence" tag="AI-POWERED" desc="Z-score anomaly detection, trend reversals, divergence signals, and acceleration patterns across 12 government data series." />
             <FeatureCard icon="🤖" title="3-Model Ensemble"   tag="XGBOOST"   desc="Holt-Winters, SARIMA, and XGBoost gradient boosting combined with accuracy weighting. 12-month forecasts with 80% and 95% confidence intervals." />
+            <FeatureCard icon="🌐" title="3D GeoIntel Globe"  tag="6 LENSES"   desc="Interactive 3D globe with MACRO, FEDERAL, GROUND TRUTH, DISTRESS, RISK, and LABOR lenses. Live CDI rings, orbit contract bubbles, seismic events, and state fly-to search." />
             <FeatureCard icon="🗺" title="50-State Coverage"  tag="BEA + FRED" desc="State-level construction activity, permit trends, and regional GDP contributions. HOT / GROWING / COOLING classification by state." />
             <FeatureCard icon="💹" title="Materials Intelligence" tag="BLS + EIA" desc="Real-time BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI crude, and diesel. Composite procurement index updated hourly." />
           </div>
