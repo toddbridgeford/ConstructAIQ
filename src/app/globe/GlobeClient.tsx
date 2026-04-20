@@ -340,6 +340,19 @@ export default function GlobeClient() {
 
   var al=LENSES.find(function(l){return l.id===lens})||LENSES[0]
 
+  // Live ticker — computed before JSX to avoid IIFE-in-JSX SWC issues
+  var tickerParts=["TTLCONS $2.19T  ▲2.1%","PERMITS 1,386K ann.","PPI MATERIALS +8.4%","EMPLOYMENT 8.1M"]
+  if(distressD&&distressD.watchlist){
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    distressD.watchlist.slice(0,3).forEach(function(m:any){tickerParts.push("CDI: "+m.market+" "+m.cdi.toFixed(1)+" ("+m.classification+")")})
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  seis.slice(0,2).forEach(function(s:any){if(s.magnitude)tickerParts.push("SEISMIC: M"+s.magnitude+" "+(s.place||"").slice(0,28))})
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  wx.slice(0,2).forEach(function(w:any){if(w.event)tickerParts.push((w.event||"")+" · "+(w.area||"").slice(0,22))})
+  var tickerTxt=tickerParts.join("    ◆    ")
+  var tickerDur=Math.max(30,tickerTxt.length*0.11)
+
   return (
     <div style={{width:"100vw",height:"100vh",background:"#000",overflow:"hidden",position:"relative",fontFamily:SYS}}>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}a{color:inherit;text-decoration:none}button{cursor:pointer;border:none;outline:none}::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#333;border-radius:2px}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}`}</style>
@@ -423,8 +436,8 @@ export default function GlobeClient() {
         })}
       </div>
 
-      {/* INTEL PANEL */}
-      {sel&&(
+      {/* INTEL PANEL — all entity types except distress (has its own panel below) */}
+      {sel&&sel.type!=="distress"&&(
         <div style={{position:"absolute",top:80,right:20,zIndex:20,width:290,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(12px)",border:"1px solid "+BD1,borderRadius:16,padding:20,maxHeight:"70vh",overflowY:"auto"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
             <span style={{fontFamily:MONO,fontSize:12,color:al.color,fontWeight:700,letterSpacing:"0.1em"}}>{sel.type.toUpperCase()} INTEL</span>
@@ -543,23 +556,12 @@ export default function GlobeClient() {
       )}
 
       {/* LIVE TICKER */}
-      {(function(){
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        var parts:string[]=["TTLCONS $2.19T  ▲2.1%","PERMITS 1,386K ann.","PPI MATERIALS +8.4%","EMPLOYMENT 8.1M"]
-        if(distressD&&distressD.watchlist){distressD.watchlist.slice(0,3).forEach(function(m:any){parts.push("CDI: "+m.market+" "+m.cdi.toFixed(1)+" ("+m.classification+")")})}
-        if(seis.length>0){seis.slice(0,2).forEach(function(s:any){parts.push("SEISMIC: M"+s.magnitude+" "+(s.place||"").slice(0,28))})}
-        if(wx.length>0){wx.slice(0,2).forEach(function(w:any){parts.push((w.event||"")+" · "+(w.area||"").slice(0,22))})}
-        var txt=parts.join("    ◆    ")
-        var dur=Math.max(30,txt.length*0.11)
-        return(
-          <div style={{position:"absolute",bottom:120,left:0,right:0,zIndex:20,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(4px)",borderTop:"1px solid rgba(255,255,255,0.05)",borderBottom:"1px solid rgba(255,255,255,0.05)",height:26,overflow:"hidden",display:"flex",alignItems:"center"}}>
-            <div style={{display:"flex",whiteSpace:"nowrap",animation:"marquee "+dur+"s linear infinite",willChange:"transform"}}>
-              <span style={{fontFamily:MONO,fontSize:10,color:"#555",paddingRight:60}}>{txt}</span>
-              <span style={{fontFamily:MONO,fontSize:10,color:"#555",paddingRight:60}}>{txt}</span>
-            </div>
-          </div>
-        )
-      })()}
+      <div style={{position:"absolute",bottom:120,left:0,right:0,zIndex:20,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(4px)",borderTop:"1px solid rgba(255,255,255,0.05)",borderBottom:"1px solid rgba(255,255,255,0.05)",height:26,overflow:"hidden",display:"flex",alignItems:"center"}}>
+        <div style={{display:"flex",whiteSpace:"nowrap",animation:"marquee "+tickerDur+"s linear infinite",willChange:"transform"}}>
+          <span style={{fontFamily:MONO,fontSize:10,color:"#555",paddingRight:60}}>{tickerTxt}</span>
+          <span style={{fontFamily:MONO,fontSize:10,color:"#555",paddingRight:60}}>{tickerTxt}</span>
+        </div>
+      </div>
 
       {/* STATS */}
       <div style={{position:"absolute",bottom:154,left:20,zIndex:20,display:"flex",flexDirection:"column",gap:5}}>
