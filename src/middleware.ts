@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateApiKey } from '@/lib/auth'
-import { checkRateLimit } from '@/lib/ratelimit'
+import { checkRateLimit, incrementUsage } from '@/lib/ratelimit'
 
-export const runtime = 'nodejs'
+// Middleware runs in Edge Runtime — no `export const runtime` needed.
 
 const PUBLIC_PATHS = new Set(['/api/status', '/api/subscribe', '/api/keys/issue'])
 
@@ -15,6 +15,7 @@ export async function middleware(req: NextRequest) {
 
   const key = req.headers.get('x-api-key')
 
+  // No key → dashboard/public access (product is intentionally open)
   if (key === null) {
     return NextResponse.next()
   }
@@ -30,7 +31,8 @@ export async function middleware(req: NextRequest) {
   }
 
   const rpm = keyInfo.rpm_limit ?? 60
-  const rl = await checkRateLimit(keyInfo.key_hash!, rpm)
+  const rpd = keyInfo.rpd_limit ?? 1000
+  const rl  = await checkRateLimit(keyInfo.key_hash!, rpm, rpd)
 
   if (!rl.allowed) {
     const retryAfter = rl.reset ? Math.ceil((rl.reset - Date.now()) / 1000) : 60
@@ -39,13 +41,16 @@ export async function middleware(req: NextRequest) {
       {
         status: 429,
         headers: {
-          'Retry-After': String(retryAfter),
+          'Retry-After':          String(retryAfter),
           'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': String(rl.reset ?? ''),
+          'X-RateLimit-Reset':     String(rl.reset ?? ''),
         },
       }
     )
   }
+
+  // Fire-and-forget usage increment — never blocks the request
+  incrementUsage(keyInfo.key_hash!).catch(() => undefined)
 
   const res = NextResponse.next()
   res.headers.set('x-key-plan', keyInfo.plan ?? '')

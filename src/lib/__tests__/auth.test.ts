@@ -24,7 +24,9 @@ describe('validateApiKey', () => {
     vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key')
     global.fetch = vi.fn().mockRejectedValue(new Error('network error'))
 
-    await expect(validateApiKey('caiq_abc123')).rejects.toThrow('network error')
+    const result = await validateApiKey('caiq_abc123')
+
+    expect(result).toEqual({ valid: false, error: 'Auth lookup failed' })
   })
 
   it('returns Auth lookup failed when fetch returns non-ok status', async () => {

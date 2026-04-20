@@ -27,20 +27,29 @@ export async function validateApiKey(key: string): Promise<KeyInfo> {
 
   const url = `${supabaseUrl}/rest/v1/api_keys?key_hash=eq.${keyHash}&select=plan,rpm_limit,rpd_limit,active&limit=1`
 
-  const res = await fetch(url, {
-    headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-      'Content-Type': 'application/json',
-    },
-  })
+  let res: Response
+  try {
+    res = await fetch(url, {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+      },
+    })
+  } catch {
+    return { valid: false, error: 'Auth lookup failed' }
+  }
 
   if (!res.ok) {
     return { valid: false, error: 'Auth lookup failed' }
   }
 
-  const rows: Array<{ plan: string; rpm_limit: number; rpd_limit: number; active: boolean }> =
-    await res.json()
+  let rows: Array<{ plan: string; rpm_limit: number; rpd_limit: number; active: boolean }>
+  try {
+    rows = await res.json()
+  } catch {
+    return { valid: false, error: 'Auth lookup failed' }
+  }
 
   if (!rows.length) {
     return { valid: false, error: 'Invalid key' }
