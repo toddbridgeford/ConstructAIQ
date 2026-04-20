@@ -194,7 +194,7 @@ export default function HomePage() {
           </div>
 
           <h1 style={{ fontFamily: SYS, fontSize: 52, fontWeight: 700, lineHeight: 1.1, color: T1, marginBottom: 20, letterSpacing: "-0.02em" }}>
-            The Bloomberg Terminal<br />
+            The Intelligence Platform<br />
             <span style={{ color: AMBER }}>for Construction</span>
           </h1>
 
