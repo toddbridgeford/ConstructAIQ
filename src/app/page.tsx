@@ -161,11 +161,11 @@ export default function HomePage() {
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             {[
               { label: "Intelligence", href: "/dashboard" },
+              { label: "Markets",      href: "/markets" },
+              { label: "Tools",        href: "/market-check" },
               { label: "Who It's For", href: "#audience" },
-              { label: "Research",     href: "/research" },
               { label: "Pricing",      href: "/pricing" },
               { label: "About",        href: "/about" },
-              { label: "Contact",      href: "/contact" },
             ].map(({ label, href }) => (
               <Link key={label} href={href} style={{ fontFamily: SYS, fontSize: 14, color: T3, padding: "6px 10px", borderRadius: 8, transition: "color 0.15s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = T1)}
