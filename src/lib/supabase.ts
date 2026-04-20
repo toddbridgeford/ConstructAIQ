@@ -1,14 +1,22 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const SUPA_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL  || ''
-const ANON_KEY  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-const SVC_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL  || ''
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const SVC_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+
+// Guard createClient calls so module-level evaluation during Next.js
+// build (when env vars aren't injected) doesn't throw "supabaseUrl is required".
+// At runtime in production the URL is always present.
+function makeClient(url: string, key: string, opts?: Parameters<typeof createClient>[2]): SupabaseClient {
+  if (!url) return null as unknown as SupabaseClient
+  return createClient(url, key, opts)
+}
 
 /** Public client — read-only dashboard queries */
-export const supabase = createClient(SUPA_URL, ANON_KEY)
+export const supabase = makeClient(SUPA_URL, ANON_KEY)
 
 /** Service-role client — write access for cron jobs */
-export const supabaseAdmin = createClient(SUPA_URL, SVC_KEY || ANON_KEY, {
+export const supabaseAdmin = makeClient(SUPA_URL, SVC_KEY || ANON_KEY, {
   auth: { persistSession: false },
 })
 
