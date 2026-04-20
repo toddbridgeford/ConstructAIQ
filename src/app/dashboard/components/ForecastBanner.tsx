@@ -127,16 +127,17 @@ export function ForecastBanner({ foreData, spendHistory }: ForecastBannerProps) 
             <Tooltip content={<CustomTooltip />} />
 
             {/* CI band */}
-            <Area type="monotone" dataKey="hi" stroke="none" fill="url(#ciGrad)" dot={false} legendType="none" />
-            <Area type="monotone" dataKey="lo" stroke="none" fill={color.bg2} dot={false} legendType="none" />
+            <Area type="monotone" dataKey="hi" stroke="none" fill="url(#ciGrad)" dot={false} legendType="none" isAnimationActive={false} connectNulls />
+            <Area type="monotone" dataKey="lo" stroke="none" fill={color.bg2} dot={false} legendType="none" isAnimationActive={false} connectNulls />
 
             {/* Historical */}
             <Area type="monotone" dataKey="hist" stroke={color.amber} strokeWidth={2} fill="url(#histGrad)" dot={false} name="hist"
+              isAnimationActive={false} connectNulls
               activeDot={{ r: 3, fill: color.amber, stroke: color.bg3, strokeWidth: 2 }} />
 
             {/* Forecast (dashed stroke) */}
             <Area type="monotone" dataKey="fore" stroke={color.blue} strokeWidth={2} strokeDasharray="5 3"
-              fill="url(#foreGrad)" dot={false} name="fore"
+              fill="url(#foreGrad)" dot={false} name="fore" isAnimationActive={false} connectNulls
               activeDot={{ r: 3, fill: color.blue, stroke: color.bg3, strokeWidth: 2 }} />
 
             {/* TODAY line */}
