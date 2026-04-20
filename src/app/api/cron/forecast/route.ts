@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { runEnsemble, type EnsembleResult } from '@/lib/models/ensemble'
 import { supabase, supabaseAdmin, upsertForecasts, insertSignal, type ForecastRow } from '@/lib/supabase'
 
-const CRON_SECRET = process.env.CRON_SECRET || ''
+function cronSecret() { return process.env.CRON_SECRET || '' }
 
 // Series to forecast and their current seed data
 const FORECAST_SERIES = [
@@ -29,7 +29,8 @@ export const maxDuration = 60
 
 export async function GET(request: Request) {
   const auth = request.headers.get('authorization')
-  if (CRON_SECRET && auth !== `Bearer ${CRON_SECRET}`) {
+  const secret = cronSecret()
+  if (secret && auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
