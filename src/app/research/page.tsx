@@ -375,13 +375,13 @@ export default function ResearchPage() {
   const lockedBriefings = [
     {
       date: "Mar 24, 2026",
-      title: "Week 12: …",
-      summary: "…",
+      title: "Week 12: Steel Futures Break 3-Month High — Input Cost Watch",
+      summary: "Hot-rolled coil surged 8.4% in 10 days. Analysis of what this means for commercial project margins heading into Q2.",
     },
     {
       date: "Mar 17, 2026",
-      title: "Week 11: …",
-      summary: "…",
+      title: "Week 11: Fed Holds — What Flat Rates Mean for Construction Finance",
+      summary: "No cut, no hike. We model three rate scenarios through December 2026 and their effect on residential starts and CRE pipeline.",
     },
   ]
 
