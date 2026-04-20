@@ -9,50 +9,27 @@ html {
 }
 
 body {
-  background: #0D0F0E;
-  color: #E8E4DC;
-  font-family: 'DM Sans', sans-serif;
+  background: #060608;
+  color: #fff;
+  font-family: 'Aeonik Pro', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
+a { text-decoration: none; color: inherit; }
+img { display: block; }
+button { cursor: pointer; font-family: inherit; border: none; background: none; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
 
-/* CIQ */
-@font-face {
-font-family: 'Aeonik Pro';
-src: url('https://db.onlinewebfonts.com/t/12ff62164c9778917bddb93c6379cf47.woff2') format('woff2');
-font-weight: 400; font-display: swap;
-}
-@font-face {
-font-family: 'Aeonik Pro';
-src: url('https://db.onlinewebfonts.com/t/81c9cfcec66a1bb46e90e184f4d04641.woff2') format('woff2');
-font-weight: 500; font-display: swap;
-}
-@font-face {
-font-family: 'Aeonik Pro';
-src: url('https://db.onlinewebfonts.com/t/362636484f8ad521fec5a297fdc0ab12.woff2') format('woff2');
-font-weight: 700; font-display: swap;
-}
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-
-```
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html {
-    scroll-behavior: smooth;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-  }
-  body { background: #060608; color: #fff; }
-  a { text-decoration: none; color: inherit; }
-  img { display: block; }
-  button { cursor: pointer; font-family: inherit; border: none; background: none; }
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
-
+/* Aeonik Pro is the design-system typeface. Self-host woff2 files in /public/fonts/
+   and add @font-face declarations here when available.
+   Until then the fallback chain renders cleanly on all platforms. */
   .fa {
-    font-family: 'Aeonik Pro','Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+    font-family: 'Aeonik Pro', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
   }
   .fm {
-    font-family: 'SF Mono','Fira Code','JetBrains Mono',monospace;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
   }
 
   @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
@@ -277,7 +254,7 @@ font-weight: 700; font-display: swap;
   .cta-h2 { font-size: 72px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.03; color: #fff; margin-bottom: 16px; }
   .cta-sub { font-size: 18px; color: rgba(255,255,255,0.42); font-weight: 400; letter-spacing: -0.01em; margin-bottom: 52px; }
   .cta-form { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
-  .cta-inp { height: 52px; padding: 0 20px; width: 296px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.11); color: #fff; font-size: 15px; outline: none; transition: border-color 0.15s; backdrop-filter: blur(8px); font-family: 'Aeonik Pro','Plus Jakarta Sans',-apple-system,sans-serif; }
+  .cta-inp { height: 52px; padding: 0 20px; width: 296px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.11); color: #fff; font-size: 15px; outline: none; transition: border-color 0.15s; backdrop-filter: blur(8px); font-family: 'Aeonik Pro', -apple-system, BlinkMacSystemFont, sans-serif; }
   .cta-inp::placeholder { color: rgba(255,255,255,0.28); }
   .cta-inp:focus { border-color: rgba(10,132,255,0.42); }
   .cta-disc { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.18); }

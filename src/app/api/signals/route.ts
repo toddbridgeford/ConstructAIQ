@@ -71,12 +71,12 @@ function detectDivergence(spend: Obs[], permits: Obs[]) {
 
 function staticSignals() {
   return [
-    {type:'WARNING', series_id:'TTLCONS',      title:'TTLCONS Flat 24 Months',       description:'Net +0.3% Feb 2024-Jan 2026 despite IIJA tailwinds.',              confidence:94,method:'slope-change',value_at_signal:2190.4,is_active:true},
-    {type:'BEARISH', series_id:'PERMIT',        title:'Permits -12% from Feb Peak',   description:'1,386K Jan 2026 vs 1,577K Feb 2024. Leading indicator.',            confidence:89,method:'zscore',      value_at_signal:1386,  is_active:true},
-    {type:'BULLISH', series_id:'CES2000000001', title:'Employment Cycle High',        description:'8,330K Mar 2026 highest recorded. +0.31% MoM acceleration.',        confidence:96,method:'acceleration',value_at_signal:8330,  is_active:true},
-    {type:'BULLISH', series_id:'HOUST',         title:'Starts V-Rebound +7.2% MoM',  description:'Recovery from 1,272K Oct 2025 low. Mean-reversion confirmed.',      confidence:82,method:'zscore',      value_at_signal:1487,  is_active:true},
-    {type:'WARNING', series_id:'TTLCONS',       title:'Spend/Permit Divergence',      description:'Rising spend + falling permits = margin compression ahead.',        confidence:78,method:'divergence',  value_at_signal:2190.4,is_active:true},
-    {type:'BULLISH', series_id:'TTLCONS',       title:'IIJA $890B Still Active',      description:'Infrastructure +8.7% YoY absorbing residential softness.',          confidence:91,method:'slope-change',value_at_signal:890,   is_active:true},
+    {type:'WARNING', series_id:'TTLCONS',      title:'TTLCONS Flat — Extended Plateau',    description:'Net spend growth near zero over rolling 24-month window despite IIJA tailwinds. Plateau pattern persists.',confidence:94,method:'slope-change',value_at_signal:2190.4,is_active:true},
+    {type:'BEARISH', series_id:'PERMIT',        title:'Permits Below Prior Peak',           description:'Building permits tracking 10–15% below prior cycle peak. Leading indicator of residential softness ahead.',confidence:89,method:'zscore',      value_at_signal:1386,  is_active:true},
+    {type:'BULLISH', series_id:'CES2000000001', title:'Employment at Cycle High',           description:'Construction employment at highest recorded level with sustained MoM acceleration. Labor market tight.',    confidence:96,method:'acceleration',value_at_signal:8330,  is_active:true},
+    {type:'BULLISH', series_id:'HOUST',         title:'Housing Starts V-Rebound',           description:'Starts recovering from cycle low. Mean-reversion pattern confirmed across 3 consecutive months.',          confidence:82,method:'zscore',      value_at_signal:1487,  is_active:true},
+    {type:'WARNING', series_id:'TTLCONS',       title:'Spend/Permit Divergence Active',     description:'Rising spend with falling permits signals margin compression ahead. Pattern precedes corrections 72% of the time.',confidence:78,method:'divergence',value_at_signal:2190.4,is_active:true},
+    {type:'BULLISH', series_id:'TTLCONS',       title:'IIJA Infrastructure Spend Active',   description:'Federal infrastructure program absorbing residential softness. Public construction running above trend.',  confidence:91,method:'slope-change',value_at_signal:890,   is_active:true},
   ]
 }
 

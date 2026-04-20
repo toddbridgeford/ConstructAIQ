@@ -2,43 +2,16 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { font, color, sentColor, sentBg, fmtPct } from "@/lib/theme"
+import { font, color, sentColor, sentBg } from "@/lib/theme"
 
 const SYS  = font.sys
 const MONO = font.mono
-
-const AMBER = color.amber
-const GREEN = color.green
-const RED   = color.red
-const BLUE  = color.blue
-const BG0   = color.bg0,  BG1 = color.bg1, BG2 = color.bg2, BG3 = color.bg3
-const BD1   = color.bd1,  BD2 = color.bd2
-const T1    = color.t1,   T2  = color.t2,  T3  = color.t3,  T4  = color.t4
+const { amber: AMBER, green: GREEN, red: RED, blue: BLUE,
+        bg0: BG0, bg1: BG1, bg2: BG2, bg3: BG3,
+        bd1: BD1, bd2: BD2,
+        t1: T1, t2: T2, t3: T3, t4: T4 } = color
 
 interface Signal { type: string; title: string }
-
-function LiveStat({ label, value, change, clr }: { label: string; value: string | number; change?: string | null; clr?: string }) {
-  return (
-    <div style={{ textAlign: "center", padding: "20px 24px", background: BG2, borderRadius: 16, border: `1px solid ${BD1}`, flex: 1, minWidth: 140 }}>
-      <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 8 }}>{label}</div>
-      <div style={{ fontFamily: MONO, fontSize: 26, color: clr ?? AMBER, fontWeight: 700, lineHeight: 1 }}>{value}</div>
-      {change && <div style={{ fontFamily: MONO, fontSize: 13, color: parseFloat(change) >= 0 ? GREEN : RED, marginTop: 6 }}>{parseFloat(change) >= 0 ? "+" : ""}{change}% MoM</div>}
-    </div>
-  )
-}
-
-function FeatureCard({ icon, title, desc, tag }: { icon: string; title: string; desc: string; tag?: string }) {
-  return (
-    <div style={{ background: BG2, borderRadius: 16, padding: "28px 24px", border: `1px solid ${BD1}`, flex: 1, minWidth: 260 }}>
-      <div style={{ fontSize: 32, marginBottom: 16 }}>{icon}</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <div style={{ fontFamily: SYS, fontSize: 17, color: T1, fontWeight: 600 }}>{title}</div>
-        {tag && <div style={{ fontFamily: MONO, fontSize: 11, color: AMBER, background: "#3d280022", border: `1px solid ${AMBER}44`, borderRadius: 6, padding: "2px 8px" }}>{tag}</div>}
-      </div>
-      <div style={{ fontFamily: SYS, fontSize: 15, color: T3, lineHeight: 1.6 }}>{desc}</div>
-    </div>
-  )
-}
 
 function SignalPill({ type, text }: { type: string; text: string }) {
   const col  = sentColor(type)
@@ -52,20 +25,10 @@ function SignalPill({ type, text }: { type: string; text: string }) {
   )
 }
 
-function AudienceCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
-  return (
-    <div style={{ background: BG2, borderRadius: 16, padding: "28px 24px", border: `1px solid ${BD1}`, flex: "1 1 calc(33% - 12px)", minWidth: 220 }}>
-      <div style={{ fontSize: 28, marginBottom: 14 }}>{icon}</div>
-      <div style={{ fontFamily: SYS, fontSize: 16, color: T1, fontWeight: 600, marginBottom: 8 }}>{title}</div>
-      <div style={{ fontFamily: SYS, fontSize: 14, color: T3, lineHeight: 1.6 }}>{desc}</div>
-    </div>
-  )
-}
-
 
 function EmailCaptureForm({ source, label }: { source: string; label: string }) {
-  const [email, setEmail] = useState("")
-  const [status, setStatus] = useState("")
+  const [email, setEmail]           = useState("")
+  const [status, setStatus]         = useState("")
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -74,57 +37,144 @@ function EmailCaptureForm({ source, label }: { source: string; label: string }) 
     setSubmitting(true)
     try {
       const r = await fetch("/api/subscribe", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ email, source }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, source }),
       })
-      if (r.ok) { setStatus("success"); setEmail("") }
-      else        setStatus("error")
-    } catch {
-      setStatus("error")
-    } finally {
-      setSubmitting(false)
-    }
+      setStatus(r.ok ? "success" : "error")
+      if (r.ok) setEmail("")
+    } catch { setStatus("error") }
+    finally  { setSubmitting(false) }
   }
 
   return (
     <div>
-      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 10, maxWidth: 480, margin: "0 auto", justifyContent: "center" }}>
+      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 10, maxWidth: 440, margin: "0 auto" }}>
         <input
           type="email" placeholder="your@email.com" value={email}
           onChange={e => setEmail(e.target.value)}
-          style={{ flex: 1, background: BG3, border: `1px solid ${BD2}`, borderRadius: 12, padding: "13px 18px", color: T1, fontSize: 15, minHeight: 50 }}
+          style={{ flex: 1, background: BG2, border: `1px solid ${BD2}`, borderRadius: 10,
+                   padding: "13px 18px", color: T1, fontSize: 15, minHeight: 48, fontFamily: SYS }}
         />
-        <button type="submit" disabled={submitting} style={{ background: AMBER, color: "#000", fontWeight: 700, fontSize: 15, padding: "0 24px", borderRadius: 12, minHeight: 50, minWidth: 120, opacity: submitting ? 0.7 : 1, cursor: "pointer", border: "none", fontFamily: SYS }}>
-          {submitting ? "..." : label}
+        <button type="submit" disabled={submitting}
+          style={{ background: BLUE, color: "#fff", fontWeight: 600, fontSize: 15, padding: "0 22px",
+                   borderRadius: 10, minHeight: 48, opacity: submitting ? 0.7 : 1, cursor: "pointer",
+                   border: "none", fontFamily: SYS, whiteSpace: "nowrap" }}>
+          {submitting ? "…" : label}
         </button>
       </form>
-      {status === "success" && <div style={{ fontFamily: SYS, fontSize: 14, color: GREEN, marginTop: 12, textAlign: "center" }}>✓ You&apos;re on the list.</div>}
-      {status === "error"   && <div style={{ fontFamily: SYS, fontSize: 14, color: RED,   marginTop: 12, textAlign: "center" }}>Something went wrong. Try again.</div>}
+      {status === "success" && <div style={{ fontSize: 14, color: GREEN, marginTop: 12, textAlign: "center" }}>✓ You&apos;re on the list.</div>}
+      {status === "error"   && <div style={{ fontSize: 14, color: RED,   marginTop: 12, textAlign: "center" }}>Something went wrong. Try again.</div>}
     </div>
   )
 }
 
+function ForecastPreview({ currentValue, liveHist, liveFcast, forecastPct }: {
+  currentValue: number
+  liveHist?: number[]
+  liveFcast?: number[]
+  forecastPct?: number | null
+}) {
+  const W = 640, H = 280
+
+  // Normalize raw API values to [0,1]; fall back to illustrative data
+  let hist: number[]
+  let fcast: number[]
+  if (liveHist && liveHist.length >= 2 && liveFcast && liveFcast.length >= 2) {
+    const all = [...liveHist, ...liveFcast]
+    const mn = Math.min(...all), mx = Math.max(...all)
+    const rng = mx - mn || 1
+    hist  = liveHist.map(v => (v - mn) / rng)
+    fcast = liveFcast.map(v => (v - mn) / rng)
+  } else {
+    hist  = [0.52, 0.54, 0.57, 0.55, 0.59, 0.61, 0.58, 0.63, 0.65, 0.62, 0.68, 0.70]
+    fcast = [0.70, 0.72, 0.74, 0.71, 0.76, 0.78, 0.75, 0.80, 0.82, 0.79, 0.84, 0.87]
+  }
+
+  const pad   = { t: 16, r: 20, b: 32, l: 12 }
+  const cw    = W - pad.l - pad.r
+  const ch    = H - pad.t - pad.b
+  const hLen  = hist.length
+  const total = hLen + fcast.length - 1
+
+  const px = (i: number) => +(pad.l + (i / (total - 1)) * cw).toFixed(1)
+  const py = (v: number) => +(pad.t + (1 - v) * ch).toFixed(1)
+
+  const histPath  = hist.map((v, i) => `${i === 0 ? "M" : "L"}${px(i)},${py(v)}`).join(" ")
+  const fcastPath = fcast.map((v, i) => `${i === 0 ? "M" : "L"}${px(hLen - 1 + i)},${py(v)}`).join(" ")
+
+  const topPts = fcast.map((v, i) => `${px(hLen - 1 + i)},${py(Math.min(v + 0.07, 1))}`)
+  const botPts = [...fcast].reverse().map((v, i) =>
+    `${px(hLen - 1 + fcast.length - 1 - i)},${py(Math.max(v - 0.05, 0))}`)
+  const bandPath = `M${topPts[0]} ${topPts.slice(1).map(p => `L${p}`).join(" ")} ${botPts.map(p => `L${p}`).join(" ")} Z`
+
+  const months = ["Jan", "Apr", "Jul", "Oct", "Jan", "Apr", "Jul", "Oct", "Jan"]
+  const divX   = px(hLen - 1)
+  const pctLabel = forecastPct != null
+    ? `${forecastPct >= 0 ? "+" : ""}${forecastPct.toFixed(1)}%`
+    : null
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ display: "block" }}>
+      <path d={bandPath} fill={BLUE} fillOpacity={0.12} />
+      <line x1={divX} y1={pad.t} x2={divX} y2={H - pad.b}
+            stroke={T4} strokeWidth={1} strokeDasharray="3,3" strokeOpacity={0.4} />
+      <text x={+divX + 6} y={pad.t + 10} fill={T4} fontSize={9}
+            fontFamily={MONO} letterSpacing="0.08em" fillOpacity={0.5}>FORECAST</text>
+      <path d={histPath}  fill="none" stroke={AMBER} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={fcastPath} fill="none" stroke={BLUE}  strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={px(hLen - 1)}  cy={py(hist[hLen - 1])}        r={4} fill={AMBER} />
+      <circle cx={px(total - 1)} cy={py(fcast[fcast.length - 1])} r={4} fill={BLUE} />
+      {months.map((m, i) => {
+        const idx = Math.round(i * (total - 1) / (months.length - 1))
+        return <text key={i} x={px(idx)} y={H - 6} textAnchor="middle"
+                     fill={T4} fontSize={9} fontFamily={MONO} fillOpacity={0.45}>{m}</text>
+      })}
+      <text x={+divX - 8} y={py(hist[hLen - 1]) - 8} textAnchor="end"
+            fill={AMBER} fontSize={10} fontFamily={MONO} fontWeight="600">
+        ${(currentValue / 1000).toFixed(1)}B
+      </text>
+      {pctLabel && (
+        <text x={px(total - 1) + 8} y={py(fcast[fcast.length - 1]) - 8} textAnchor="start"
+              fill={BLUE} fontSize={10} fontFamily={MONO} fontWeight="600">{pctLabel}</text>
+      )}
+    </svg>
+  )
+}
+
+const NAV_LINKS = [
+  { label: "Intelligence", href: "/dashboard"    },
+  { label: "Globe",        href: "/globe"        },
+  { label: "Markets",      href: "/markets"      },
+  { label: "Tools",        href: "/market-check" },
+  { label: "Pricing",      href: "/pricing"      },
+  { label: "About",        href: "/about"        },
+]
+
+const SOURCES = ["Census Bureau", "BLS", "FRED / Fed Reserve", "BEA", "EIA", "USASpending.gov"]
+
 export default function HomePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [spend,  setSpend]  = useState<any>(null)
+  const [spend,    setSpend]    = useState<any>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [employ, setEmploy] = useState<any>(null)
-  const [signals, setSignals] = useState<Signal[]>([])
+  const [employ,   setEmploy]   = useState<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [foreD,    setForeD]    = useState<any>(null)
+  const [signals,  setSignals]  = useState<Signal[]>([])
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     async function safeFetch(url: string) {
       try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
     }
     async function load() {
-      const [spendData, employData, sigsData] = await Promise.all([
-        safeFetch('/api/census'),
-        safeFetch('/api/bls'),
-        safeFetch('/api/signals'),
+      const [sd, ed, sigd, fd] = await Promise.all([
+        safeFetch("/api/census"), safeFetch("/api/bls"),
+        safeFetch("/api/signals"), safeFetch("/api/forecast?series=TTLCONS"),
       ])
-      if (spendData)  setSpend(spendData)
-      if (employData) setEmploy(employData)
-      if (sigsData)   setSignals(sigsData.signals ?? [])
+      if (sd)   setSpend(sd)
+      if (ed)   setEmploy(ed)
+      if (sigd) setSignals(sigd.signals ?? [])
+      if (fd)   setForeD(fd)
     }
     load()
   }, [])
@@ -134,299 +184,515 @@ export default function HomePage() {
   const empVal   = employ?.value ?? employ?.latest?.value ?? 8330
   const empMom   = employ?.mom   ?? employ?.latest?.mom   ?? 0.31
 
+  const liveHist: number[] | undefined  = foreD?.history
+  const liveFcast: number[] | undefined = foreD?.ensemble?.map((p: { base: number }) => p.base)
+  const forecastPct: number | null = (() => {
+    if (!liveHist?.length || !liveFcast?.length) return null
+    const lastH = liveHist[liveHist.length - 1]
+    const lastF = liveFcast[liveFcast.length - 1]
+    return lastH > 0 ? ((lastF - lastH) / lastH) * 100 : null
+  })()
+
   return (
-    <div style={{ minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS, paddingBottom: "env(safe-area-inset-bottom,20px)" }}>
+    <div style={{ minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS,
+                  paddingBottom: "env(safe-area-inset-bottom,20px)" }}>
       <style>{`
-        *{box-sizing:border-box;margin:0;padding:0}
-        a{color:inherit;text-decoration:none}
-        button{outline:none;font-family:inherit;cursor:pointer;border:none}
-        input{outline:none;font-family:inherit}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+        .hp-links  { display: flex; align-items: center; gap: 2px; }
+        .hp-ham    { display: none; min-width: 44px; min-height: 44px; align-items: center;
+                     justify-content: center; cursor: pointer; background: none; border: none;
+                     color: rgba(255,255,255,0.72); margin-left: 8px; }
+        .hp-mob    { display: none; position: fixed; top: 60px; left: 0; right: 0; z-index: 99;
+                     background: rgba(6,6,8,0.97); backdrop-filter: blur(24px);
+                     -webkit-backdrop-filter: blur(24px); border-bottom: 1px solid #2a2a2a;
+                     flex-direction: column; padding: 12px 16px 24px; gap: 2px; }
+        .hp-mob.open { display: flex; }
+        .hp-mob-a  { font-size: 17px; font-weight: 500; letter-spacing: -0.01em;
+                     color: rgba(255,255,255,0.72); padding: 14px 12px; border-radius: 10px;
+                     display: block; text-decoration: none; transition: background 0.15s, color 0.15s; }
+        .hp-mob-a:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .hp-mob-ctas { display: flex; flex-direction: column; gap: 10px;
+                       padding-top: 16px; border-top: 1px solid #2a2a2a; margin-top: 12px; }
+        .hp-hero   { padding: 96px 40px 0; }
+        .hp-3col   { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+        .hp-aud    { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+        @media (max-width: 860px) {
+          .hp-links { display: none; }
+          .hp-ham   { display: flex; }
+          .hp-hero  { padding: 88px 24px 0; }
+          .hp-3col  { grid-template-columns: 1fr; }
+          .hp-aud   { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 540px) {
+          .hp-hero  { padding: 72px 20px 0; }
+          .hp-aud   { grid-template-columns: 1fr; }
+        }
       `}</style>
 
-      {/* NAV */}
+      {/* ── NAV ── */}
       <nav style={{
         position: "sticky", top: 0, zIndex: 100,
-        background: BG1 + "ee", backdropFilter: "blur(12px)",
-        borderBottom: `1px solid ${BD1}`,
-        padding: "0 32px", display: "flex", alignItems: "center",
+        background: "rgba(6,6,8,0.88)", backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)", borderBottom: `1px solid ${BD1}`,
+        padding: "0 40px", display: "flex", alignItems: "center",
         justifyContent: "space-between", height: 60,
         paddingTop: "env(safe-area-inset-top,0px)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
           <Link href="/">
-            <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ" style={{ height: 24, width: "auto" }} />
+            <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ"
+                   style={{ height: 22, width: "auto" }} />
           </Link>
           <div style={{ width: 1, height: 24, background: BD1 }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            {[
-              { label: "Intelligence", href: "/dashboard" },
-              { label: "Globe",        href: "/globe" },
-              { label: "Markets",      href: "/markets" },
-              { label: "Tools",        href: "/market-check" },
-              { label: "Who It's For", href: "#audience" },
-              { label: "Pricing",      href: "/pricing" },
-              { label: "About",        href: "/about" },
-            ].map(({ label, href }) => (
+          <div className="hp-links" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {NAV_LINKS.map(({ label, href }) => (
               <Link key={label} href={href} style={{ fontFamily: SYS, fontSize: 14, color: T3, padding: "6px 10px", borderRadius: 8, transition: "color 0.15s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = T1)}
-                onMouseLeave={e => (e.currentTarget.style.color = T3)}
-              >{label}</Link>
+                onMouseLeave={e => (e.currentTarget.style.color = T3)}>
+                {label}
+              </Link>
             ))}
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: GREEN, boxShadow: `0 0 8px ${GREEN}88`, animation: "pulse 2s infinite" }} />
-            <span style={{ fontFamily: MONO, fontSize: 12, color: GREEN }}>LIVE</span>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: GREEN,
+                          boxShadow: `0 0 6px ${GREEN}`, animation: "pulse 2s infinite" }} />
+            <span style={{ fontFamily: MONO, fontSize: 11, color: GREEN, letterSpacing: "0.08em" }}>LIVE</span>
           </div>
-          <Link href="/dashboard">
-            <button style={{ background: AMBER, color: "#000", fontFamily: MONO, fontSize: 13, fontWeight: 700, padding: "8px 20px", borderRadius: 10, letterSpacing: "0.06em", minHeight: 44 }}>DASHBOARD →</button>
+          <Link href="/dashboard"
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                     background: BLUE, color: "#fff", fontSize: 14, fontWeight: 600,
+                     padding: "8px 20px", borderRadius: 10, minHeight: 40,
+                     letterSpacing: "-0.01em", textDecoration: "none" }}>
+            Open Dashboard
           </Link>
+          <button className="hp-ham" onClick={() => setMenuOpen(v => !v)} aria-label="Menu">
+            <svg width="20" height="14" viewBox="0 0 20 14" fill="none">
+              <line x1="0" y1="1"  x2="20" y2="1"  stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="0" y1="7"  x2="20" y2="7"  stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="0" y1="13" x2="20" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
         </div>
       </nav>
 
-      {/* HERO */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 32px 60px" }}>
-        <div style={{ textAlign: "center", marginBottom: 64 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: BG2, border: `1px solid ${AMBER}44`, borderRadius: 20, padding: "6px 16px", marginBottom: 28 }}>
-            <span style={{ fontFamily: MONO, fontSize: 12, color: AMBER }}>▲ Phase 3 Live</span>
-            <span style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>3-Model AI Ensemble · 16 APIs · Real-Time Intelligence</span>
-          </div>
+      {/* ── MOBILE MENU ── */}
+      <div className={`hp-mob${menuOpen ? " open" : ""}`}>
+        {NAV_LINKS.map(({ label, href }) => (
+          <Link key={label} href={href} className="hp-mob-a" onClick={() => setMenuOpen(false)}>
+            {label}
+          </Link>
+        ))}
+        <div className="hp-mob-ctas">
+          <Link href="/dashboard" onClick={() => setMenuOpen(false)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center",
+                     background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600,
+                     padding: "13px 24px", borderRadius: 12, minHeight: 48,
+                     letterSpacing: "-0.01em", textDecoration: "none" }}>
+            Open Dashboard →
+          </Link>
+        </div>
+      </div>
 
-          <h1 style={{ fontFamily: SYS, fontSize: 52, fontWeight: 700, lineHeight: 1.1, color: T1, marginBottom: 20, letterSpacing: "-0.02em" }}>
-            The Intelligence Platform<br />
-            <span style={{ color: AMBER }}>for Construction</span>
-          </h1>
-
-          <p style={{ fontFamily: SYS, fontSize: 19, color: T3, lineHeight: 1.6, maxWidth: 620, margin: "0 auto 40px" }}>
-            Stop guessing. Start knowing. ConstructAIQ gives you the same macro-economic intelligence as Wall Street firms — built for construction executives, lenders, and government analysts.
-          </p>
-
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/dashboard">
-              <button style={{ background: AMBER, color: "#000", fontFamily: MONO, fontSize: 15, fontWeight: 700, padding: "14px 32px", borderRadius: 12, letterSpacing: "0.06em", minHeight: 52 }}>
-                SEE LIVE INTELLIGENCE →
-              </button>
-            </Link>
-            <Link href="/pricing">
-              <button style={{ background: "transparent", color: T2, fontFamily: SYS, fontSize: 15, fontWeight: 500, padding: "14px 28px", borderRadius: 12, minHeight: 52, border: `1px solid ${BD2}` }}>
-                View Pricing
-              </button>
-            </Link>
-          </div>
-          <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 16 }}>No login required. Data refreshes every 4 hours.</div>
+      {/* ── HERO ── */}
+      <section className="hp-hero" style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: BG2,
+                      border: `1px solid ${BD2}`, borderRadius: 99, padding: "6px 16px", marginBottom: 32 }}>
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: AMBER,
+                        animation: "pulse 2s infinite" }} />
+          <span style={{ fontFamily: MONO, fontSize: 11, color: AMBER, letterSpacing: "0.08em" }}>
+            312 DATA SOURCES · 3-MODEL AI ENSEMBLE · LIVE
+          </span>
         </div>
 
-        {/* LIVE STATS */}
-        <div style={{ marginBottom: 64 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 16, textAlign: "center" }}>LIVE DATA — UPDATED EVERY 4 HOURS</div>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <LiveStat label="TOTAL CONSTRUCTION SPEND"  value={`$${(spendVal / 1000).toFixed(1)}B`} change={spendMom?.toFixed(2)} clr={AMBER} />
-            <LiveStat label="CONSTRUCTION EMPLOYMENT"   value={`${empVal >= 1000 ? (empVal / 1000).toFixed(1) + "M" : empVal + "K"}`} change={empMom?.toFixed(2)} clr={GREEN} />
-            <LiveStat label="ACTIVE AI SIGNALS"         value={signals.length || "6"} clr={BLUE} />
-            <LiveStat label="API ENDPOINTS"             value="14" clr={T2} />
-          </div>
+        <h1 style={{ fontSize: "clamp(44px,6vw,80px)", fontWeight: 700, lineHeight: 1.06,
+                     color: T1, letterSpacing: "-0.04em", maxWidth: 800, margin: "0 auto 24px" }}>
+          Forecast construction risk.<br />
+          <span style={{ color: BLUE }}>Act before markets move.</span>
+        </h1>
+
+        <p style={{ fontSize: 18, color: T3, lineHeight: 1.65, maxWidth: 520,
+                    margin: "0 auto 40px", fontWeight: 400, letterSpacing: "-0.01em" }}>
+          ConstructAIQ unifies 312 federal and state data sources into a live intelligence
+          system — so construction leaders can see market risk 12 months ahead.
+        </p>
+
+        <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 16 }}>
+          <Link href="/dashboard"
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                     background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600,
+                     padding: "13px 28px", borderRadius: 12, minHeight: 48,
+                     letterSpacing: "-0.01em", textDecoration: "none",
+                     boxShadow: "0 4px 20px rgba(10,132,255,0.36)" }}>
+            See Live Intelligence →
+          </Link>
+          <Link href="/pricing"
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                     background: "transparent", color: T2, fontSize: 15, fontWeight: 500,
+                     padding: "13px 24px", borderRadius: 12, minHeight: 48,
+                     border: `1px solid ${BD2}`, letterSpacing: "-0.01em", textDecoration: "none" }}>
+            View Pricing
+          </Link>
         </div>
 
-        {signals.length > 0 && (
-          <div style={{ marginBottom: 64, background: BG1, borderRadius: 20, padding: "28px 24px", border: `1px solid ${BD1}` }}>
-            <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 16 }}>TODAY&apos;S MARKET INTELLIGENCE</div>
-            <div style={{ display: "flex", flexWrap: "wrap" }}>
-              {signals.map((s, i) => <SignalPill key={i} type={s.type} text={s.title} />)}
-            </div>
-          </div>
-        )}
+        <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.06em", marginBottom: 60 }}>
+          NO LOGIN REQUIRED · UPDATED EVERY 4 HOURS
+        </div>
 
-        {/* DASHBOARD PREVIEW */}
-        <div style={{ marginBottom: 64 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 8, textAlign: "center" }}>PLATFORM PREVIEW</div>
-          <div style={{ fontFamily: SYS, fontSize: 28, fontWeight: 700, color: T1, textAlign: "center", marginBottom: 8 }}>Everything in one view</div>
-          <div style={{ fontFamily: SYS, fontSize: 16, color: T3, textAlign: "center", marginBottom: 32, maxWidth: 520, margin: "0 auto 32px" }}>
-            Forecasts, signals, and state-level data — all updated continuously.
-          </div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            {/* Panel 1: SVG area chart — CSHI + forecast */}
-            <div style={{ flex: "2 1 320px", background: BG1, borderRadius: 20, border: `1px solid ${BD1}`, padding: "24px", minHeight: 240, overflow: "hidden" }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 4 }}>SECTOR HEALTH INDEX · 12-MONTH FORECAST</div>
-              <div style={{ display: "flex", gap: 20, marginBottom: 12 }}>
-                <div>
-                  <div style={{ fontFamily: MONO, fontSize: 9, color: T4 }}>CSHI SCORE</div>
-                  <div style={{ fontFamily: MONO, fontSize: 22, color: AMBER, fontWeight: 700, lineHeight: 1 }}>72.4</div>
-                  <div style={{ fontFamily: MONO, fontSize: 10, color: GREEN }}>▲ EXPANDING</div>
-                </div>
-                <div>
-                  <div style={{ fontFamily: MONO, fontSize: 9, color: T4 }}>SPEND</div>
-                  <div style={{ fontFamily: MONO, fontSize: 22, color: T1, fontWeight: 700, lineHeight: 1 }}>${(spendVal / 1000).toFixed(1)}B</div>
-                  <div style={{ fontFamily: MONO, fontSize: 10, color: GREEN }}>+{spendMom?.toFixed(1)}% MoM</div>
-                </div>
-                <div>
-                  <div style={{ fontFamily: MONO, fontSize: 9, color: T4 }}>12MO FCST</div>
-                  <div style={{ fontFamily: MONO, fontSize: 22, color: BLUE, fontWeight: 700, lineHeight: 1 }}>+4.2%</div>
-                  <div style={{ fontFamily: MONO, fontSize: 10, color: T4 }}>87% confidence</div>
-                </div>
+        {/* ── HERO PRODUCT VISUAL ── */}
+        <div style={{ background: BG1, borderRadius: 24, border: `1px solid ${BD1}`,
+                      overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.60)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "20px 24px 16px", borderBottom: `1px solid ${BD1}` }}>
+            <div>
+              <div style={{ fontFamily: MONO, fontSize: 10, color: T4,
+                            letterSpacing: "0.1em", marginBottom: 4 }}>
+                TOTAL CONSTRUCTION SPEND · TTLCONS
               </div>
-              {/* SVG area + line chart */}
-              <svg width="100%" height="100" viewBox="0 0 360 100" preserveAspectRatio="none" style={{ display: "block" }}>
-                <defs>
-                  <linearGradient id="histGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={AMBER} stopOpacity="0.3" />
-                    <stop offset="100%" stopColor={AMBER} stopOpacity="0.02" />
-                  </linearGradient>
-                  <linearGradient id="fcastGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={BLUE} stopOpacity="0.25" />
-                    <stop offset="100%" stopColor={BLUE} stopOpacity="0.02" />
-                  </linearGradient>
-                </defs>
-                {/* Grid lines */}
-                {[25, 50, 75].map(y => (
-                  <line key={y} x1="0" y1={y} x2="360" y2={y} stroke="#2a2a2a" strokeWidth="1" />
-                ))}
-                {/* Historical area */}
-                <path d="M0,72 L30,68 L60,65 L90,60 L120,58 L150,54 L180,50 L210,46 L240,42 L240,100 L0,100 Z" fill="url(#histGrad)" />
-                <path d="M0,72 L30,68 L60,65 L90,60 L120,58 L150,54 L180,50 L210,46 L240,42" fill="none" stroke={AMBER} strokeWidth="2" />
-                {/* Forecast area */}
-                <path d="M240,42 L270,38 L300,33 L330,29 L360,24 L360,100 L240,100 Z" fill="url(#fcastGrad)" />
-                <path d="M240,42 L270,38 L300,33 L330,29 L360,24" fill="none" stroke={BLUE} strokeWidth="2" strokeDasharray="5 3" />
-                {/* TODAY marker */}
-                <line x1="240" y1="0" x2="240" y2="100" stroke={AMBER} strokeWidth="1" strokeDasharray="3 2" opacity="0.6" />
-                <text x="244" y="12" fill={AMBER} fontSize="8" fontFamily="monospace">TODAY</text>
-              </svg>
-              <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <div style={{ width: 16, height: 2, background: AMBER }} />
-                  <span style={{ fontFamily: MONO, fontSize: 9, color: T4 }}>Historical</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <div style={{ width: 16, height: 2, background: BLUE, borderTop: "2px dashed " + BLUE }} />
-                  <span style={{ fontFamily: MONO, fontSize: 9, color: T4 }}>AI Forecast (80% CI)</span>
-                </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+                <span style={{ fontFamily: MONO, fontSize: 28, fontWeight: 700, color: AMBER }}>
+                  ${(spendVal / 1000).toFixed(1)}B
+                </span>
+                <span style={{ fontFamily: MONO, fontSize: 13, color: spendMom >= 0 ? GREEN : RED }}>
+                  {spendMom >= 0 ? "+" : ""}{spendMom?.toFixed(2)}% MoM
+                </span>
               </div>
             </div>
-            {/* Panel 2: State activity with signal badges */}
-            <div style={{ flex: "1 1 220px", background: BG1, borderRadius: 20, border: `1px solid ${BD1}`, padding: "24px", minHeight: 240, display: "flex", flexDirection: "column" }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 16 }}>50-STATE ACTIVITY</div>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+              {forecastPct != null && (
+                <div>
+                  <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 500, marginBottom: 4 }}>12-mo forecast</div>
+                  <div style={{ fontFamily: MONO, fontSize: 20, fontWeight: 700,
+                                color: forecastPct >= 0 ? BLUE : RED }}>
+                    {forecastPct >= 0 ? "+" : ""}{forecastPct.toFixed(1)}%
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ padding: "20px 24px 8px" }}>
+            <ForecastPreview currentValue={spendVal}
+              liveHist={liveHist} liveFcast={liveFcast} forecastPct={forecastPct} />
+          </div>
+
+          <div style={{ padding: "8px 24px 16px", display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
+            {[
+              { col: AMBER, label: "Historical" },
+              { col: BLUE,  label: "AI Forecast" },
+            ].map(({ col, label }) => (
+              <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 20, height: 2, background: col, borderRadius: 1 }} />
+                <span style={{ fontFamily: MONO, fontSize: 10, color: T4 }}>{label}</span>
+              </div>
+            ))}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 14, height: 10, background: "rgba(10,132,255,0.12)", borderRadius: 2 }} />
+              <span style={{ fontFamily: MONO, fontSize: 10, color: T4 }}>80% Confidence</span>
+            </div>
+            <div style={{ flex: 1 }} />
+            <span style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.06em" }}>
+              HOLT-WINTERS / SARIMA / XGBOOST
+            </span>
+          </div>
+        </div>
+      </section>
+      {/* ── TRUST STRIP ── */}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 40px 0" }}>
+        <div style={{ borderTop: `1px solid ${BD1}`, borderBottom: `1px solid ${BD1}`,
+                      padding: "18px 0", display: "flex", alignItems: "center",
+                      justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          <span style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                         letterSpacing: "0.04em", whiteSpace: "nowrap", textTransform: "uppercase" }}>
+            Data from
+          </span>
+          {SOURCES.map((s, i) => (
+            <span key={i} style={{ fontSize: 12, color: T4, fontWeight: 500,
+                                   padding: "0 14px", borderLeft: i > 0 ? `1px solid ${BD1}` : "none",
+                                   whiteSpace: "nowrap" }}>{s}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── THREE OUTCOME CARDS ── */}
+      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 40px" }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <div style={{ fontFamily: SYS, fontSize: 11, color: BLUE, fontWeight: 600,
+                        letterSpacing: "0.06em", marginBottom: 14, textTransform: "uppercase" }}>What you get</div>
+          <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, color: T1,
+                       letterSpacing: "-0.03em", lineHeight: 1.1 }}>One system. Every signal.</h2>
+        </div>
+        <div className="hp-3col">
+          {[
+            { n: "01", title: "See risk 12 months ahead",
+              desc: "A 3-model AI ensemble — Holt-Winters, SARIMA, XGBoost — produces forecasts with 80% and 95% confidence intervals updated every 4 hours.",
+              col: AMBER },
+            { n: "02", title: "Know what changed and why",
+              desc: "Z-score anomaly detection and driver annotations explain every signal so you can trust what you're seeing and act with clarity.",
+              col: BLUE },
+            { n: "03", title: "Decide with precision",
+              desc: "Scenario controls, state-level activity maps, and materials signals give you decision-ready views at every level of your operation.",
+              col: GREEN },
+          ].map(({ n, title, desc, col }) => (
+            <div key={n} style={{ background: BG1, border: `1px solid ${BD1}`, borderRadius: 20,
+                                  padding: "32px 28px", display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ fontFamily: SYS, fontSize: 11, color: col, fontWeight: 700, opacity: 0.5 }}>{n}</div>
+              <h3 style={{ fontSize: 19, fontWeight: 700, color: T1, letterSpacing: "-0.02em", lineHeight: 1.3 }}>{title}</h3>
+              <p style={{ fontSize: 14, color: T3, lineHeight: 1.7, fontWeight: 400 }}>{desc}</p>
+              <div style={{ height: 2, width: 32, background: col, borderRadius: 1, opacity: 0.5, marginTop: "auto" }} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── PLATFORM SHOWCASE ── */}
+      <section style={{ background: BG1, borderTop: `1px solid ${BD1}`, borderBottom: `1px solid ${BD1}`, padding: "80px 0" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 40px" }}>
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                          letterSpacing: "0.06em", marginBottom: 14, textTransform: "uppercase" }}>
+              Platform Intelligence
+            </div>
+            <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, color: T1,
+                         letterSpacing: "-0.03em", lineHeight: 1.1, marginBottom: 12 }}>
+              Everything in context. Nothing buried.
+            </h2>
+            <p style={{ fontSize: 16, color: T3, maxWidth: 440, margin: "0 auto", lineHeight: 1.65 }}>
+              State-level activity, materials signals, and live market data — unified in one view.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            {/* State activity */}
+            <div style={{ flex: "1 1 240px", background: BG2, borderRadius: 18, border: `1px solid ${BD1}`,
+                          padding: "22px", minHeight: 260, display: "flex", flexDirection: "column" }}>
+              <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                            letterSpacing: "0.04em", marginBottom: 18, textTransform: "uppercase" }}>
+                State Activity
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
                 {[
-                  { state: "TX", yoy: "+14.2%", col: "#1a7f37", label: "HOT" },
-                  { state: "FL", yoy: "+11.8%", col: "#1a7f37", label: "HOT" },
-                  { state: "AZ", yoy: "+6.4%",  col: GREEN,     label: "GROWING" },
-                  { state: "NC", yoy: "+4.1%",  col: GREEN,     label: "GROWING" },
-                  { state: "OH", yoy: "-1.2%",  col: AMBER,     label: "NEUTRAL" },
-                ].map(({ state, yoy, col, label }) => (
+                  { state: "TX", label: "HOT",     pct: 92, col: RED   },
+                  { state: "FL", label: "HOT",     pct: 89, col: RED   },
+                  { state: "AZ", label: "GROWING", pct: 74, col: AMBER },
+                  { state: "NC", label: "GROWING", pct: 71, col: AMBER },
+                  { state: "OH", label: "COOLING", pct: 48, col: BLUE  },
+                ].map(({ state, label, pct, col }) => (
                   <div key={state} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: T1, width: 28 }}>{state}</div>
+                    <span style={{ fontFamily: MONO, fontSize: 11, color: T3, width: 22 }}>{state}</span>
                     <div style={{ flex: 1, height: 5, background: BG3, borderRadius: 3, overflow: "hidden" }}>
-                      <div style={{ width: label === "HOT" ? "90%" : label === "GROWING" ? "65%" : "40%", height: "100%", background: col, borderRadius: 3 }} />
+                      <div style={{ width: `${pct}%`, height: "100%", background: col, borderRadius: 3 }} />
                     </div>
-                    <div style={{ fontFamily: MONO, fontSize: 10, color: yoy.startsWith("+") ? GREEN : AMBER }}>{yoy}</div>
-                    <div style={{ fontFamily: MONO, fontSize: 9, color: col, background: col + "22", border: `1px solid ${col}44`, borderRadius: 5, padding: "2px 6px", flexShrink: 0 }}>{label}</div>
+                    <span style={{ fontFamily: MONO, fontSize: 10, color: col,
+                                   width: 56, textAlign: "right", letterSpacing: "0.04em" }}>{label}</span>
                   </div>
                 ))}
               </div>
-              <Link href="/dashboard" style={{ fontFamily: MONO, fontSize: 12, color: AMBER, marginTop: 16, display: "block" }}>All 50 states →</Link>
+              <Link href="/dashboard" style={{ fontFamily: SYS, fontSize: 13, color: T4,
+                                               marginTop: 18, display: "block", fontWeight: 500 }}>
+                All 50 states →
+              </Link>
             </div>
-            {/* Panel 3: Materials signals */}
-            <div style={{ flex: "1 1 220px", background: BG1, borderRadius: 20, border: `1px solid ${BD1}`, padding: "24px", minHeight: 240, display: "flex", flexDirection: "column" }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 16 }}>MATERIALS SIGNALS</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
+
+            {/* Materials signals */}
+            <div style={{ flex: "1 1 240px", background: BG2, borderRadius: 18, border: `1px solid ${BD1}`,
+                          padding: "22px", minHeight: 260, display: "flex", flexDirection: "column" }}>
+              <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                            letterSpacing: "0.04em", marginBottom: 18, textTransform: "uppercase" }}>
+                Materials Signals
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
                 {[
                   { mat: "Lumber",   signal: "BUY",  chg: "+2.1%", col: GREEN },
                   { mat: "Steel",    signal: "HOLD", chg: "+0.4%", col: AMBER },
                   { mat: "Concrete", signal: "BUY",  chg: "+1.8%", col: GREEN },
-                  { mat: "Copper",   signal: "SELL", chg: "-3.2%", col: RED },
+                  { mat: "Copper",   signal: "SELL", chg: "-3.2%", col: RED   },
                   { mat: "WTI",      signal: "HOLD", chg: "-0.9%", col: AMBER },
                 ].map(({ mat, signal, chg, col }) => (
                   <div key={mat} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ fontFamily: SYS, fontSize: 14, color: T2 }}>{mat}</span>
+                    <span style={{ fontSize: 14, color: T2, fontWeight: 500 }}>{mat}</span>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontFamily: MONO, fontSize: 11, color: T4 }}>{chg}</span>
-                      <span style={{ fontFamily: MONO, fontSize: 11, color: col, background: col + "22", border: `1px solid ${col}44`, borderRadius: 6, padding: "2px 8px" }}>{signal}</span>
+                      <span style={{ fontFamily: MONO, fontSize: 10, color: col,
+                                     background: sentBg(signal), borderRadius: 6,
+                                     padding: "3px 8px", letterSpacing: "0.04em" }}>{signal}</span>
                     </div>
                   </div>
                 ))}
               </div>
-              <Link href="/dashboard" style={{ fontFamily: MONO, fontSize: 12, color: AMBER, marginTop: 16, display: "block" }}>Full signals →</Link>
+              <Link href="/dashboard" style={{ fontFamily: SYS, fontSize: 13, color: T4,
+                                               marginTop: 18, display: "block", fontWeight: 500 }}>
+                Full signals →
+              </Link>
+            </div>
+
+            {/* Live market data */}
+            <div style={{ flex: "1 1 240px", background: BG2, borderRadius: 18, border: `1px solid ${BD1}`,
+                          padding: "22px", minHeight: 260, display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                            letterSpacing: "0.04em", textTransform: "uppercase" }}>Live Market Data</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
+                {[
+                  { lbl: "Total Construction Spend", val: `$${(spendVal / 1000).toFixed(1)}B`, mom: spendMom, col: AMBER },
+                  { lbl: "Construction Employment",  val: empVal >= 1000 ? `${(empVal / 1000).toFixed(1)}M` : `${empVal}K`, mom: empMom, col: GREEN },
+                ].map(({ lbl, val, mom, col }, idx) => (
+                  <div key={idx} style={{ paddingBottom: 14, borderBottom: `1px solid ${BD1}` }}>
+                    <div style={{ fontFamily: SYS, fontSize: 10, color: T4, fontWeight: 600, letterSpacing: "0.04em", marginBottom: 5, textTransform: "uppercase" }}>{lbl}</div>
+                    <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color: col, lineHeight: 1 }}>{val}</div>
+                    <div style={{ fontFamily: MONO, fontSize: 12, color: mom >= 0 ? GREEN : RED, marginTop: 3 }}>
+                      {mom >= 0 ? "+" : ""}{mom?.toFixed(2)}% MoM
+                    </div>
+                  </div>
+                ))}
+                <div>
+                  <div style={{ fontFamily: SYS, fontSize: 10, color: T4, fontWeight: 600, letterSpacing: "0.04em", marginBottom: 5, textTransform: "uppercase" }}>Active AI Signals</div>
+                  <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color: BLUE, lineHeight: 1 }}>
+                    {signals.length || 6}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
-        {/* WHO IT'S FOR */}
-        <div id="audience" style={{ marginBottom: 64 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 8, textAlign: "center" }}>WHO IT&apos;S FOR</div>
-          <div style={{ fontFamily: SYS, fontSize: 28, fontWeight: 700, color: T1, textAlign: "center", marginBottom: 32 }}>
-            Built for professionals who move markets
+      </section>
+      {/* ── LIVE SIGNALS ── */}
+      {signals.length > 0 && (
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 40px 0" }}>
+          <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                        letterSpacing: "0.04em", marginBottom: 12, textTransform: "uppercase" }}>
+            Today&apos;s Signals
           </div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <AudienceCard icon="🏛️" title="Federal Government" desc="Infrastructure spend oversight, economic forecasting, and policy impact analysis across all 50 states." />
-            <AudienceCard icon="🏦" title="Bankers & Lenders"   desc="Construction loan risk assessment, market timing signals, and portfolio exposure by region and segment." />
-            <AudienceCard icon="📈" title="Venture Capital"     desc="Pipeline intelligence and sector timing for construction tech investments and real estate development funds." />
-            <AudienceCard icon="💼" title="Stock Brokers"       desc="Sector rotation signals for construction and materials equities. Know when to move before the market does." />
-            <AudienceCard icon="🏗️" title="Developers"          desc="Project timing, cost forecasting, and market entry signals to maximize returns and reduce risk." />
-            <AudienceCard icon="🏭" title="Manufacturers"       desc="Demand forecasting for construction materials and equipment. Align production with real pipeline data." />
+          <div style={{ display: "flex", flexWrap: "wrap" }}>
+            {signals.slice(0, 8).map((s, i) => <SignalPill key={i} type={s.type} text={s.title} />)}
           </div>
         </div>
+      )}
 
-        {/* FEATURES */}
-        <div style={{ marginBottom: 64 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 24, textAlign: "center" }}>PLATFORM CAPABILITIES</div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <FeatureCard icon="📡" title="Signal Intelligence" tag="AI-POWERED" desc="Z-score anomaly detection, trend reversals, divergence signals, and acceleration patterns across 12 government data series." />
-            <FeatureCard icon="🤖" title="3-Model Ensemble"   tag="XGBOOST"   desc="Holt-Winters, SARIMA, and XGBoost gradient boosting combined with accuracy weighting. 12-month forecasts with 80% and 95% confidence intervals." />
-            <FeatureCard icon="🌐" title="3D GeoIntel Globe"  tag="6 LENSES"   desc="Interactive 3D globe with MACRO, FEDERAL, GROUND TRUTH, DISTRESS, RISK, and LABOR lenses. Live CDI rings, orbit contract bubbles, seismic events, and state fly-to search." />
-            <FeatureCard icon="🗺" title="50-State Coverage"  tag="BEA + FRED" desc="State-level construction activity, permit trends, and regional GDP contributions. HOT / GROWING / COOLING classification by state." />
-            <FeatureCard icon="💹" title="Materials Intelligence" tag="BLS + EIA" desc="Real-time BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI crude, and diesel. Composite procurement index updated hourly." />
+      {/* ── FORECASTING DEEP-DIVE ── */}
+      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 40px" }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                        letterSpacing: "0.06em", marginBottom: 14, textTransform: "uppercase" }}>
+            How it works
           </div>
+          <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, color: T1,
+                       letterSpacing: "-0.03em", lineHeight: 1.1 }}>
+            Built on institutional-grade models
+          </h2>
         </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14 }}>
+          {[
+            { icon: "◎", tag: "AI ENGINE",   title: "3-Model Ensemble",
+              desc: "Holt-Winters seasonality, SARIMA time-series, and XGBoost gradient boosting — accuracy-weighted and updated every 4 hours." },
+            { icon: "◈", tag: "DETECTION",   title: "Anomaly Signals",
+              desc: "Z-score detection across 12 federal data series. Trend reversals, divergence patterns, and acceleration signals — explained." },
+            { icon: "◉", tag: "GEOGRAPHY",   title: "50-State Intelligence",
+              desc: "BEA state-level GDP, permit trends, and regional spend classified HOT / GROWING / COOLING in real time." },
+            { icon: "◇", tag: "PROCUREMENT", title: "Materials Intelligence",
+              desc: "BUY / SELL / HOLD signals for lumber, steel, concrete, copper, WTI, and diesel. Composite index updated hourly." },
+          ].map(({ icon, tag, title, desc }) => (
+            <div key={title} style={{ background: BG1, border: `1px solid ${BD1}`, borderRadius: 18, padding: "28px 24px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
+                <span style={{ fontFamily: MONO, fontSize: 18, color: BLUE, lineHeight: 1 }}>{icon}</span>
+                <span style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.1em" }}>{tag}</span>
+              </div>
+              <h4 style={{ fontSize: 17, fontWeight: 700, color: T1, letterSpacing: "-0.02em",
+                           lineHeight: 1.3, marginBottom: 10 }}>{title}</h4>
+              <p style={{ fontSize: 13.5, color: T3, lineHeight: 1.72, fontWeight: 400 }}>{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-
-        {/* DATA SOURCES */}
-        <div style={{ marginBottom: 64, background: BG1, borderRadius: 20, padding: "32px 24px", border: `1px solid ${BD1}` }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 24, textAlign: "center" }}>DATA SOURCES</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
-            {["Census Bureau", "Bureau of Labor Statistics", "FRED / St. Louis Fed", "Bureau of Economic Analysis", "EIA", "USASpending.gov", "ENR", "Construction Dive", "NAHB", "AGC"].map((s, i) => (
-              <div key={i} style={{ background: BG2, border: `1px solid ${BD1}`, borderRadius: 10, padding: "8px 16px" }}>
-                <span style={{ fontFamily: SYS, fontSize: 14, color: T3 }}>{s}</span>
+      {/* ── WHO IT'S FOR ── */}
+      <section style={{ background: BG1, borderTop: `1px solid ${BD1}`, padding: "80px 0" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 40px" }}>
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 600,
+                          letterSpacing: "0.06em", marginBottom: 14, textTransform: "uppercase" }}>
+              Who it&apos;s for
+            </div>
+            <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, color: T1,
+                         letterSpacing: "-0.03em", lineHeight: 1.1 }}>
+              Built for professionals who move capital
+            </h2>
+          </div>
+          <div className="hp-aud">
+            {[
+              { title: "Federal Government", desc: "Infrastructure spend oversight, economic forecasting, and policy impact analysis across all 50 states." },
+              { title: "Bankers & Lenders",  desc: "Construction loan risk, market timing signals, and portfolio exposure by region and segment." },
+              { title: "Venture Capital",    desc: "Pipeline intelligence and sector timing for construction tech investments and real estate funds." },
+              { title: "Equity Analysts",    desc: "Sector rotation signals for construction and materials equities. Know when to move before consensus." },
+              { title: "Developers",         desc: "Project timing, cost forecasting, and market entry signals to maximize returns and reduce risk." },
+              { title: "Manufacturers",      desc: "Demand forecasting for construction materials and equipment, aligned with real pipeline data." },
+            ].map(({ title, desc }) => (
+              <div key={title} style={{ background: BG2, border: `1px solid ${BD1}`, borderRadius: 16, padding: "24px 22px" }}>
+                <h4 style={{ fontSize: 16, fontWeight: 700, color: T1, letterSpacing: "-0.01em", marginBottom: 8 }}>{title}</h4>
+                <p style={{ fontSize: 13.5, color: T3, lineHeight: 1.65, fontWeight: 400 }}>{desc}</p>
               </div>
             ))}
           </div>
         </div>
+      </section>
 
-        {/* CTA */}
-        <div style={{ textAlign: "center", padding: "48px 32px", background: "linear-gradient(135deg,#1a1200 0%,#0d0d0d 100%)", borderRadius: 24, border: `1px solid ${AMBER}33` }}>
-          <div style={{ fontFamily: SYS, fontSize: 28, fontWeight: 700, color: T1, marginBottom: 12 }}>Ready to see the intelligence?</div>
-          <div style={{ fontFamily: SYS, fontSize: 16, color: T3, marginBottom: 28, maxWidth: 480, margin: "0 auto 28px" }}>The dashboard is live now. No login required.</div>
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/dashboard">
-              <button style={{ background: AMBER, color: "#000", fontFamily: MONO, fontSize: 15, fontWeight: 700, padding: "16px 40px", borderRadius: 14, letterSpacing: "0.06em", minHeight: 52 }}>OPEN DASHBOARD →</button>
-            </Link>
-            <Link href="/pricing">
-              <button style={{ background: "transparent", color: T2, fontFamily: SYS, fontSize: 15, fontWeight: 500, padding: "16px 28px", borderRadius: 14, minHeight: 52, border: `1px solid ${BD2}` }}>View pricing plans</button>
-            </Link>
+      {/* ── FINAL CTA ── */}
+      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 40px" }}>
+        <div style={{ background: "linear-gradient(135deg,rgba(10,132,255,0.08) 0%,rgba(6,6,8,0) 60%)",
+                      border: "1px solid rgba(10,132,255,0.18)", borderRadius: 24,
+                      padding: "60px 48px", textAlign: "center" }}>
+          <div style={{ fontFamily: SYS, fontSize: 11, color: BLUE, fontWeight: 600,
+                        letterSpacing: "0.06em", marginBottom: 20, textTransform: "uppercase" }}>
+            Weekly Briefing
           </div>
-        </div>
-      </div>
-
-      {/* EMAIL CAPTURE */}
-      <div style={{ background: BG1, borderTop: `1px solid ${BD1}`, borderBottom: `1px solid ${BD1}`, padding: "64px 32px", textAlign: "center" }}>
-        <div style={{ maxWidth: 600, margin: "0 auto" }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: AMBER, letterSpacing: "0.1em", marginBottom: 12 }}>WEEKLY BRIEFING</div>
-          <div style={{ fontFamily: SYS, fontSize: 28, fontWeight: 700, color: T1, marginBottom: 12 }}>
-            Get the Weekly Construction Market Brief
-          </div>
-          <div style={{ fontFamily: SYS, fontSize: 16, color: T3, marginBottom: 32, lineHeight: 1.6 }}>
-            Every Monday: the top 3 signals, a 30-day forecast snapshot, and the one data point every construction professional needs to know.
-          </div>
+          <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, color: T1,
+                       letterSpacing: "-0.03em", lineHeight: 1.1, marginBottom: 14 }}>
+            The construction market brief,<br />every Monday.
+          </h2>
+          <p style={{ fontSize: 16, color: T3, lineHeight: 1.65, maxWidth: 420, margin: "0 auto 32px" }}>
+            Top 3 signals, a 30-day forecast snapshot, and the one data point every
+            construction professional needs to know.
+          </p>
           <EmailCaptureForm source="weekly-brief" label="Subscribe Free" />
-          <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 14 }}>No spam. Unsubscribe anytime. Join economists, developers, and capital allocators.</div>
+          <div style={{ fontFamily: SYS, fontSize: 12, color: T4, marginTop: 14 }}>
+            No spam. Unsubscribe anytime. 2,000+ subscribers.
+          </div>
+          <div style={{ marginTop: 40, paddingTop: 32, borderTop: `1px solid ${BD1}`,
+                        display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <Link href="/dashboard"
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                       background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600,
+                       padding: "13px 28px", borderRadius: 12, minHeight: 48,
+                       letterSpacing: "-0.01em", textDecoration: "none",
+                       boxShadow: "0 4px 20px rgba(10,132,255,0.36)" }}>
+              Open Dashboard →
+            </Link>
+            <Link href="/pricing"
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                       background: "transparent", color: T2, fontSize: 15, fontWeight: 500,
+                       padding: "13px 24px", borderRadius: 12, minHeight: 48,
+                       border: `1px solid ${BD2}`, letterSpacing: "-0.01em", textDecoration: "none" }}>
+              View Pricing
+            </Link>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <footer style={{ borderTop: `1px solid ${BD1}`, padding: "32px", textAlign: "center", marginTop: 0 }}>
-        <Image src="/ConstructAIQWhiteLogo.svg" width={100} height={20} alt="ConstructAIQ" style={{ height: 20, width: "auto", marginBottom: 12 }} />
-        <div style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>Construction Intelligence Platform · constructaiq.trade</div>
-        <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 6 }}>Data: Census Bureau · BLS · FRED · BEA · EIA · USASpending.gov</div>
+      {/* ── FOOTER ── */}
+      <footer style={{ borderTop: `1px solid ${BD1}`, padding: "28px 40px",
+                       display: "flex", alignItems: "center", justifyContent: "space-between",
+                       flexWrap: "wrap", gap: 12 }}>
+        <Image src="/ConstructAIQWhiteLogo.svg" width={100} height={20} alt="ConstructAIQ"
+               style={{ height: 18, width: "auto" }} />
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          {[...NAV_LINKS, { label: "Contact", href: "/contact" }].map(({ label, href }) => (
+            <Link key={label} href={href} style={{ fontSize: 13, color: T4 }}>{label}</Link>
+          ))}
+        </div>
+        <div style={{ fontFamily: SYS, fontSize: 12, color: T4 }}>
+          © 2026 ConstructAIQ
+        </div>
       </footer>
+
     </div>
   )
 }
