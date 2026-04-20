@@ -62,16 +62,6 @@ function AudienceCard({ icon, title, desc }: { icon: string; title: string; desc
   )
 }
 
-function TestimonialCard({ quote, name, title }: { quote: string; name: string; title: string }) {
-  return (
-    <div style={{ background: BG2, borderRadius: 16, padding: "28px 24px", border: `1px solid ${BD1}`, flex: 1, minWidth: 260 }}>
-      <div style={{ fontFamily: SYS, fontSize: 14, color: T4, marginBottom: 6 }}>★★★★★</div>
-      <p style={{ fontFamily: SYS, fontSize: 15, color: T2, lineHeight: 1.7, marginBottom: 20, fontStyle: "italic" }}>&ldquo;{quote}&rdquo;</p>
-      <div style={{ fontFamily: SYS, fontSize: 14, color: T1, fontWeight: 600 }}>{name}</div>
-      <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 2 }}>{title}</div>
-    </div>
-  )
-}
 
 function EmailCaptureForm({ source, label }: { source: string; label: string }) {
   const [email, setEmail] = useState("")
@@ -255,51 +245,81 @@ export default function HomePage() {
             Forecasts, signals, and state-level data — all updated continuously.
           </div>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            {/* Panel 1: Forecast chart */}
+            {/* Panel 1: SVG area chart — CSHI + forecast */}
             <div style={{ flex: "2 1 320px", background: BG1, borderRadius: 20, border: `1px solid ${BD1}`, padding: "24px", minHeight: 240, overflow: "hidden" }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 16 }}>12-MONTH FORECAST · TTLCONS</div>
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 120 }}>
-                {[65, 68, 72, 70, 75, 78, 74, 80, 82, 79, 85, 88, 84, 90, 93].map((h, i) => (
-                  <div key={i} style={{
-                    flex: 1, height: `${h}%`,
-                    background: i < 10 ? `${AMBER}99` : `${BLUE}66`,
-                    borderRadius: "3px 3px 0 0",
-                    border: i === 9 ? `1px solid ${AMBER}` : "none",
-                  }} />
-                ))}
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-                <span style={{ fontFamily: MONO, fontSize: 11, color: T4 }}>Historical</span>
-                <span style={{ fontFamily: MONO, fontSize: 11, color: BLUE }}>← AI Forecast →</span>
-              </div>
-              <div style={{ marginTop: 16, display: "flex", gap: 16 }}>
+              <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 4 }}>SECTOR HEALTH INDEX · 12-MONTH FORECAST</div>
+              <div style={{ display: "flex", gap: 20, marginBottom: 12 }}>
                 <div>
-                  <div style={{ fontFamily: MONO, fontSize: 11, color: T4 }}>CURRENT</div>
-                  <div style={{ fontFamily: MONO, fontSize: 20, color: AMBER, fontWeight: 700 }}>${(spendVal / 1000).toFixed(1)}B</div>
+                  <div style={{ fontFamily: MONO, fontSize: 9, color: T4 }}>CSHI SCORE</div>
+                  <div style={{ fontFamily: MONO, fontSize: 22, color: AMBER, fontWeight: 700, lineHeight: 1 }}>72.4</div>
+                  <div style={{ fontFamily: MONO, fontSize: 10, color: GREEN }}>▲ EXPANDING</div>
                 </div>
                 <div>
-                  <div style={{ fontFamily: MONO, fontSize: 11, color: T4 }}>12MO FORECAST</div>
-                  <div style={{ fontFamily: MONO, fontSize: 20, color: BLUE, fontWeight: 700 }}>+4.2%</div>
+                  <div style={{ fontFamily: MONO, fontSize: 9, color: T4 }}>SPEND</div>
+                  <div style={{ fontFamily: MONO, fontSize: 22, color: T1, fontWeight: 700, lineHeight: 1 }}>${(spendVal / 1000).toFixed(1)}B</div>
+                  <div style={{ fontFamily: MONO, fontSize: 10, color: GREEN }}>+{spendMom?.toFixed(1)}% MoM</div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: MONO, fontSize: 9, color: T4 }}>12MO FCST</div>
+                  <div style={{ fontFamily: MONO, fontSize: 22, color: BLUE, fontWeight: 700, lineHeight: 1 }}>+4.2%</div>
+                  <div style={{ fontFamily: MONO, fontSize: 10, color: T4 }}>87% confidence</div>
+                </div>
+              </div>
+              {/* SVG area + line chart */}
+              <svg width="100%" height="100" viewBox="0 0 360 100" preserveAspectRatio="none" style={{ display: "block" }}>
+                <defs>
+                  <linearGradient id="histGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={AMBER} stopOpacity="0.3" />
+                    <stop offset="100%" stopColor={AMBER} stopOpacity="0.02" />
+                  </linearGradient>
+                  <linearGradient id="fcastGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={BLUE} stopOpacity="0.25" />
+                    <stop offset="100%" stopColor={BLUE} stopOpacity="0.02" />
+                  </linearGradient>
+                </defs>
+                {/* Grid lines */}
+                {[25, 50, 75].map(y => (
+                  <line key={y} x1="0" y1={y} x2="360" y2={y} stroke="#2a2a2a" strokeWidth="1" />
+                ))}
+                {/* Historical area */}
+                <path d="M0,72 L30,68 L60,65 L90,60 L120,58 L150,54 L180,50 L210,46 L240,42 L240,100 L0,100 Z" fill="url(#histGrad)" />
+                <path d="M0,72 L30,68 L60,65 L90,60 L120,58 L150,54 L180,50 L210,46 L240,42" fill="none" stroke={AMBER} strokeWidth="2" />
+                {/* Forecast area */}
+                <path d="M240,42 L270,38 L300,33 L330,29 L360,24 L360,100 L240,100 Z" fill="url(#fcastGrad)" />
+                <path d="M240,42 L270,38 L300,33 L330,29 L360,24" fill="none" stroke={BLUE} strokeWidth="2" strokeDasharray="5 3" />
+                {/* TODAY marker */}
+                <line x1="240" y1="0" x2="240" y2="100" stroke={AMBER} strokeWidth="1" strokeDasharray="3 2" opacity="0.6" />
+                <text x="244" y="12" fill={AMBER} fontSize="8" fontFamily="monospace">TODAY</text>
+              </svg>
+              <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ width: 16, height: 2, background: AMBER }} />
+                  <span style={{ fontFamily: MONO, fontSize: 9, color: T4 }}>Historical</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ width: 16, height: 2, background: BLUE, borderTop: "2px dashed " + BLUE }} />
+                  <span style={{ fontFamily: MONO, fontSize: 9, color: T4 }}>AI Forecast (80% CI)</span>
                 </div>
               </div>
             </div>
-            {/* Panel 2: State heat map placeholder */}
+            {/* Panel 2: State activity with signal badges */}
             <div style={{ flex: "1 1 220px", background: BG1, borderRadius: 20, border: `1px solid ${BD1}`, padding: "24px", minHeight: 240, display: "flex", flexDirection: "column" }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 16 }}>STATE ACTIVITY</div>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 16 }}>50-STATE ACTIVITY</div>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
                 {[
-                  { state: "TX", label: "HOT",     pct: 92, col: RED },
-                  { state: "FL", label: "HOT",     pct: 89, col: RED },
-                  { state: "AZ", label: "GROWING", pct: 74, col: AMBER },
-                  { state: "NC", label: "GROWING", pct: 71, col: AMBER },
-                  { state: "OH", label: "COOLING", pct: 48, col: BLUE },
-                ].map(({ state, label, pct, col }) => (
+                  { state: "TX", yoy: "+14.2%", col: "#1a7f37", label: "HOT" },
+                  { state: "FL", yoy: "+11.8%", col: "#1a7f37", label: "HOT" },
+                  { state: "AZ", yoy: "+6.4%",  col: GREEN,     label: "GROWING" },
+                  { state: "NC", yoy: "+4.1%",  col: GREEN,     label: "GROWING" },
+                  { state: "OH", yoy: "-1.2%",  col: AMBER,     label: "NEUTRAL" },
+                ].map(({ state, yoy, col, label }) => (
                   <div key={state} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ fontFamily: MONO, fontSize: 12, color: T3, width: 24 }}>{state}</div>
-                    <div style={{ flex: 1, height: 6, background: BG3, borderRadius: 3, overflow: "hidden" }}>
-                      <div style={{ width: `${pct}%`, height: "100%", background: col, borderRadius: 3 }} />
+                    <div style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: T1, width: 28 }}>{state}</div>
+                    <div style={{ flex: 1, height: 5, background: BG3, borderRadius: 3, overflow: "hidden" }}>
+                      <div style={{ width: label === "HOT" ? "90%" : label === "GROWING" ? "65%" : "40%", height: "100%", background: col, borderRadius: 3 }} />
                     </div>
-                    <div style={{ fontFamily: MONO, fontSize: 10, color: col, width: 52, textAlign: "right" }}>{label}</div>
+                    <div style={{ fontFamily: MONO, fontSize: 10, color: yoy.startsWith("+") ? GREEN : AMBER }}>{yoy}</div>
+                    <div style={{ fontFamily: MONO, fontSize: 9, color: col, background: col + "22", border: `1px solid ${col}44`, borderRadius: 5, padding: "2px 6px", flexShrink: 0 }}>{label}</div>
                   </div>
                 ))}
               </div>
@@ -357,30 +377,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* SOCIAL PROOF */}
-        <div style={{ marginBottom: 64 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 8, textAlign: "center" }}>WHAT PROFESSIONALS SAY</div>
-          <div style={{ fontFamily: SYS, fontSize: 28, fontWeight: 700, color: T1, textAlign: "center", marginBottom: 32 }}>
-            Trusted by the people who build America
-          </div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <TestimonialCard
-              quote="Finally — a platform that speaks construction, not Wall Street jargon. The 12-month forecast saved us from a bad market entry last quarter."
-              name="Senior VP, Regional Bank"
-              title="Construction Lending Division"
-            />
-            <TestimonialCard
-              quote="We use ConstructAIQ to time our equity positions in building materials. The materials signal dashboard alone is worth the subscription."
-              name="Portfolio Manager"
-              title="Mid-Cap Growth Fund"
-            />
-            <TestimonialCard
-              quote="As a federal economist, I've never had this level of real-time state-by-state visibility into construction activity. This is a game-changer."
-              name="Economic Analyst"
-              title="U.S. Federal Agency"
-            />
-          </div>
-        </div>
 
         {/* DATA SOURCES */}
         <div style={{ marginBottom: 64, background: BG1, borderRadius: 20, padding: "32px 24px", border: `1px solid ${BD1}` }}>
@@ -420,7 +416,7 @@ export default function HomePage() {
             Every Monday: the top 3 signals, a 30-day forecast snapshot, and the one data point every construction professional needs to know.
           </div>
           <EmailCaptureForm source="weekly-brief" label="Subscribe Free" />
-          <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 14 }}>No spam. Unsubscribe anytime. Read by 2,000+ construction professionals.</div>
+          <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 14 }}>No spam. Unsubscribe anytime. Join economists, developers, and capital allocators.</div>
         </div>
       </div>
 
