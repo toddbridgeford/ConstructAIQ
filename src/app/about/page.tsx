@@ -254,14 +254,14 @@ export default function AboutPage() {
               flexShrink: 0, display: "flex", alignItems: "center",
               justifyContent: "center",
             }}>
-              <span style={{ fontFamily: SYS, fontSize: 28, color: T4, userSelect: "none" }}>TB</span>
+              <span style={{ fontFamily: SYS, fontSize: 28, color: T4, userSelect: "none" }}>C</span>
             </div>
 
             {/* Bio */}
             <div style={{ flex: 1, minWidth: 240 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
                 <div style={{ fontFamily: SYS, fontSize: 20, fontWeight: 700, color: T1 }}>
-                  Todd Bridgeford
+                  ConstructAIQ Team
                 </div>
                 <div style={{
                   fontFamily: MONO, fontSize: 11, color: AMBER,

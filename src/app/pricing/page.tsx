@@ -82,7 +82,7 @@ const PLANS: Plan[] = [
       "Unlimited user seats",
       "Dedicated account manager",
       "99.9% uptime SLA with documentation for procurement",
-      "Custom integrations — Bloomberg, Salesforce, or any BI platform",
+      "Custom integrations — Salesforce, Power BI, or any BI platform",
       "Executive briefings and on-site presentations",
       "Co-branded research deliverables",
     ],
@@ -266,10 +266,10 @@ export default function PricingPage() {
           <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 28, textAlign: "center" }}>COMMON QUESTIONS</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 720, margin: "0 auto" }}>
             {[
-              { q: "Do I need a technical background to use this?", a: "No. The dashboard requires no technical knowledge — it reads like a Bloomberg screen, not a developer tool. If you can read a market briefing, you can use ConstructAIQ." },
+              { q: "Do I need a technical background to use this?", a: "No. The dashboard requires no technical knowledge — it reads like a market briefing, not a developer tool. If you can read a research report, you can use ConstructAIQ." },
               { q: "Is there a free trial?", a: "Yes — the full live dashboard is accessible without any account or payment. See real signals and forecasts before you commit to a plan." },
               { q: "How quickly can we get access?", a: "Contact us and we typically activate accounts within one business day. Enterprise and government contracts can be structured for procurement within 2–5 business days." },
-              { q: "How is this different from Bloomberg or FactSet?", a: "Bloomberg covers construction as a footnote. We cover it as the whole story — 16 government data sources, AI forecasting, and 50-state granularity that no terminal provides." },
+              { q: "How is this different from general financial data platforms?", a: "General platforms cover construction as a footnote. We cover it as the whole story — 16 government data sources, AI forecasting, and 50-state granularity that no other platform provides." },
             ].map(({ q, a }) => (
               <div key={q}>
                 <div style={{ fontFamily: SYS, fontSize: 16, color: T1, fontWeight: 600, marginBottom: 8 }}>{q}</div>

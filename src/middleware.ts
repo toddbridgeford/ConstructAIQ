@@ -6,8 +6,40 @@ import { checkRateLimit, incrementUsage } from '@/lib/ratelimit'
 
 const PUBLIC_PATHS = new Set(['/api/status', '/api/subscribe', '/api/keys/issue'])
 
+// ── Pre-launch site lockdown ──────────────────────────────────────────────────
+// Set SITE_LOCKED=true in Vercel env vars to password-protect all pages.
+// Remove or set to false to go public.
+const SITE_LOCKED = process.env.SITE_LOCKED === 'true'
+const SITE_USER   = process.env.SITE_USER ?? 'admin'
+const SITE_PASS   = process.env.SITE_PASS ?? ''
+
+function isAuthorized(req: NextRequest): boolean {
+  const header = req.headers.get('authorization') ?? ''
+  if (!header.startsWith('Basic ')) return false
+  try {
+    const decoded = atob(header.slice(6))
+    const colon   = decoded.indexOf(':')
+    if (colon === -1) return false
+    const user = decoded.slice(0, colon)
+    const pass = decoded.slice(colon + 1)
+    return user === SITE_USER && pass === SITE_PASS && SITE_PASS !== ''
+  } catch {
+    return false
+  }
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
+
+  // Enforce basic auth on all page routes when site is locked
+  if (SITE_LOCKED && !pathname.startsWith('/api/')) {
+    if (!isAuthorized(req)) {
+      return new NextResponse('Authentication required', {
+        status: 401,
+        headers: { 'WWW-Authenticate': 'Basic realm="ConstructAIQ — Coming Soon"' },
+      })
+    }
+  }
 
   if (!pathname.startsWith('/api/') || PUBLIC_PATHS.has(pathname)) {
     return NextResponse.next()
