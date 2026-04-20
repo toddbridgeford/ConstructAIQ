@@ -442,15 +442,18 @@ export default function GlobeClient() {
       {/* Lens tint overlay */}
       <div style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:6,background:LENS_TINT[lens]||"transparent",transition:"background 0.6s ease"}}/>
 
-      {/* Globe mount */}
-      <div ref={ref} style={{width:"100%",height:"100%",position:"absolute",inset:0}}>
-        {!ok&&(
-          <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#000",zIndex:10}}>
-            <div style={{fontFamily:MONO,fontSize:13,color:AMBER,marginBottom:16,animation:"pulse 1.5s infinite"}}>◉ INITIALIZING GEOINTEL</div>
-            <div style={{fontFamily:MONO,fontSize:11,color:"#444"}}>CONSTRUCTAIQ PHASE 5 · GLOBE.GL LOADING</div>
-          </div>
-        )}
-      </div>
+      {/* Globe mount — must stay empty: globe.gl owns this DOM node directly.
+          Never put React children here; React reconciliation fighting globe.gl's
+          direct DOM writes causes NotFoundError on removeChild. */}
+      <div ref={ref} style={{width:"100%",height:"100%",position:"absolute",inset:0}} />
+
+      {/* Loading overlay — sibling of globe mount, fully React-managed */}
+      {!ok&&(
+        <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#000",zIndex:10,pointerEvents:"none"}}>
+          <div style={{fontFamily:MONO,fontSize:13,color:AMBER,marginBottom:16,animation:"pulse 1.5s infinite"}}>◉ INITIALIZING GEOINTEL</div>
+          <div style={{fontFamily:MONO,fontSize:11,color:"#444"}}>CONSTRUCTAIQ PHASE 5 · GLOBE.GL LOADING</div>
+        </div>
+      )}
 
       {/* Scanline */}
       <div style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:5,background:"repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px)"}}/>
