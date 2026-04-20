@@ -185,18 +185,18 @@ export default function GlobeClient() {
             var c=(Math.random()-0.4)*12
             return{lat:CAP[k][0],lng:CAP[k][1],color:ac(c),maxR:2+Math.abs(c)*0.2,speed:1,code:k,name:SN[k]||k,change:c,permits:Math.random()*15000+1000,signal:"STABLE"}
           })
-      try{
+      if(layers.rings){try{
         g.ringsData(rd)
          .ringLat(function(d){return d.lat}).ringLng(function(d){return d.lng})
          .ringColor(function(d){return function(t){return d.color.replace("1)",t.toFixed(2)+")")}})
          .ringMaxRadius(function(d){return d.maxR}).ringPropagationSpeed(function(d){return d.speed})
          .ringRepeatPeriod(1200).onRingClick(function(d){setSel({type:"state",data:d})})
-      }catch(e){}
-      try{
+      }catch(e){}}
+      if(layers.labels){try{
         g.labelsData(rd).labelLat(function(d){return d.lat}).labelLng(function(d){return d.lng})
          .labelText(function(d){return d.code}).labelSize(0.5)
          .labelColor(function(d){return d.color}).labelResolution(2).labelAltitude(0.01)
-      }catch(e){}
+      }catch(e){}}
 
     }else if(l==="FEDERAL"){
       try{g.atmosphereColor("#f97316")}catch(e){}
@@ -205,15 +205,25 @@ export default function GlobeClient() {
         var c=ctrs.find(function(x){return(x.state||"")===k})
         var amt=c?(c.total_obligated_amount||c.amount||0):(Math.random()*500+50)*1e6
         return{lat:CAP[k][0]+(Math.random()-0.5)*1.5,lng:CAP[k][1]+(Math.random()-0.5)*1.5,
-               size:0.3+Math.min(amt/800e6,1)*2,color:i%3===0?"#ff6b35":i%3===1?"#f97316":"#fbbf24",
-               label:AG[i%10]+" $"+(amt/1e6).toFixed(0)+"M",state:k}
+               size:0.3+Math.min(amt/800e6,1)*2.5,color:i%3===0?"#ff6b35":i%3===1?"#f97316":"#fbbf24",
+               label:AG[i%10]+" $"+(amt/1e6).toFixed(0)+"M",state:k,amt}
       })
-      try{
+      if(layers.contracts){try{
         g.pointsData(pts).pointLat(function(d){return d.lat}).pointLng(function(d){return d.lng})
          .pointColor(function(d){return d.color}).pointAltitude(function(d){return d.size*0.04})
          .pointRadius(function(d){return d.size*0.3}).pointLabel(function(d){return d.label})
          .onPointClick(function(d){setSel({type:"contract",data:d})})
-      }catch(e){}
+      }catch(e){}}
+      // Orbit rings on the top 15 contracts by size
+      if(layers.rings){
+        var topPts=pts.slice().sort(function(a,b){return b.size-a.size}).slice(0,15)
+        try{
+          g.ringsData(topPts).ringLat(function(d){return d.lat}).ringLng(function(d){return d.lng})
+           .ringColor(function(){return function(t){return"rgba(249,115,22,"+(1-t).toFixed(2)+")"}})
+           .ringMaxRadius(function(d){return d.size*1.2}).ringPropagationSpeed(0.5)
+           .ringRepeatPeriod(2200)
+        }catch(e){}
+      }
 
     }else if(l==="GROUND_TRUTH"){
       try{g.atmosphereColor(CYAN)}catch(e){}
@@ -222,15 +232,15 @@ export default function GlobeClient() {
       bs.forEach(function(s){
         var b=CAP[s.code];if(!b)return
         var iv=Math.max(0.1,Math.min(1,(s.permits||5000)/20000))
-        for(var j=0;j<Math.floor(iv*80);j++){
+        for(var j=0;j<Math.floor(iv*120);j++){
           hp.push({lat:b[0]+(Math.random()-0.5)*8,lng:b[1]+(Math.random()-0.5)*10,weight:iv*(0.5+Math.random()*0.5)})
         }
       })
       try{
         g.hexBinPointsData(hp).hexBinPointLat(function(d){return d.lat}).hexBinPointLng(function(d){return d.lng})
-         .hexBinPointWeight(function(d){return d.weight}).hexAltitude(function(d){return d.sumWeight/4*0.06})
-         .hexBinResolution(3).hexTopColor(function(d){return bc(Math.min(1,d.sumWeight/8))})
-         .hexSideColor(function(d){return bc(Math.min(1,d.sumWeight/8),0.5)})
+         .hexBinPointWeight(function(d){return d.weight}).hexAltitude(function(d){return d.sumWeight/4*0.07})
+         .hexBinResolution(4).hexTopColor(function(d){return bc(Math.min(1,d.sumWeight/10))})
+         .hexSideColor(function(d){return bc(Math.min(1,d.sumWeight/10),0.5)})
       }catch(e){}
 
     }else if(l==="DISTRESS"){
@@ -275,20 +285,18 @@ export default function GlobeClient() {
       var qd=seis.length>0?seis:[[37.7,-122.4],[34.1,-118.2],[47.6,-122.3],[44.1,-114.5],[35.2,-92.4],[29.7,-95.4]].map(function(z,i){
         return{lat:z[0]+(Math.random()-0.5)*3,lng:z[1]+(Math.random()-0.5)*3,magnitude:2.5+Math.random()*3.5,place:"Seismic Zone "+(i+1)}
       })
-      try{
+      if(layers.seismic){try{
         g.ringsData(qd).ringLat(function(d){return d.lat}).ringLng(function(d){return d.lng})
          .ringColor(function(d){return function(t){return"rgba(255,69,58,"+(1-t).toFixed(2)+")"}})
          .ringMaxRadius(function(d){return(d.magnitude||3)*1.5}).ringPropagationSpeed(0.6)
          .ringRepeatPeriod(1800).onRingClick(function(d){setSel({type:"quake",data:d})})
-      }catch(e){}
-      if(wx.length>0){
-        try{
-          g.pointsData(wx).pointLat(function(d){return d.lat}).pointLng(function(d){return d.lng})
-           .pointColor(function(){return"#ff9500"}).pointAltitude(0.02).pointRadius(0.8)
-           .pointLabel(function(d){return d.event+": "+d.area})
-           .onPointClick(function(d){setSel({type:"weather",data:d})})
-        }catch(e){}
-      }
+      }catch(e){}}
+      if(layers.weather&&wx.length>0){try{
+        g.pointsData(wx).pointLat(function(d){return d.lat}).pointLng(function(d){return d.lng})
+         .pointColor(function(){return"#ff9500"}).pointAltitude(0.02).pointRadius(0.8)
+         .pointLabel(function(d){return d.event+": "+d.area})
+         .onPointClick(function(d){setSel({type:"weather",data:d})})
+      }catch(e){}}
 
     }else if(l==="LABOR"){
       try{g.atmosphereColor(BLUE)}catch(e){}
