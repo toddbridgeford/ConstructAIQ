@@ -308,6 +308,54 @@ export default function AboutPage() {
           </div>
         </div>
 
+        {/* SECTION 5 — PLATFORM TRANSPARENCY */}
+        <div style={{ marginBottom: 56 }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.12em", marginBottom: 8 }}>
+            PLATFORM TRANSPARENCY
+          </div>
+          <h2 style={{ fontFamily: SYS, fontSize: 28, fontWeight: 700, color: T1, marginBottom: 28, letterSpacing: "-0.01em" }}>
+            What Procurement Teams Need to Know
+          </h2>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+            {[
+              { label: "Data Refresh", value: "Every 4 hours", note: "Core series updated at 06:00, 10:00, 14:00, 18:00 ET daily" },
+              { label: "Historical Depth", value: "Back to 2000", note: "Full 25-year archive available on Institutional and Enterprise plans" },
+              { label: "Data Sources", value: "10 official sources", note: "All U.S. government and recognized industry publishers — no scraped or unverified data" },
+              { label: "Forecast Model", value: "3-model ensemble", note: "Holt-Winters + SARIMA + XGBoost, accuracy-weighted, 12-month horizon" },
+              { label: "Uptime SLA", value: "99.9% — Enterprise", note: "SLA documentation available for procurement review upon request" },
+              { label: "Data Privacy", value: "No resale", note: "User data and usage patterns are never shared with or sold to third parties" },
+            ].map(({ label, value, note }) => (
+              <div key={label} style={{
+                flex: "1 1 calc(33% - 12px)", minWidth: 240,
+                background: BG1, border: `1px solid ${BD1}`,
+                borderRadius: 12, padding: "20px 22px",
+              }}>
+                <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.08em", marginBottom: 6 }}>{label.toUpperCase()}</div>
+                <div style={{ fontFamily: SYS, fontSize: 18, fontWeight: 700, color: T1, marginBottom: 6 }}>{value}</div>
+                <div style={{ fontFamily: SYS, fontSize: 13, color: T3, lineHeight: 1.55 }}>{note}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{
+            marginTop: 20, background: BG2, border: `1px solid ${BD1}`,
+            borderRadius: 12, padding: "16px 22px",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            flexWrap: "wrap", gap: 12,
+          }}>
+            <div style={{ fontFamily: SYS, fontSize: 15, color: T2 }}>
+              Federal agencies and enterprise teams: procurement documentation, security questionnaires, and contract structures available on request.
+            </div>
+            <a href="mailto:procurement@constructaiq.trade" style={{
+              fontFamily: MONO, fontSize: 13, color: AMBER,
+              background: "#3d280022", border: `1px solid ${AMBER}44`,
+              borderRadius: 10, padding: "10px 18px", whiteSpace: "nowrap",
+              fontWeight: 700, letterSpacing: "0.04em",
+            }}>
+              procurement@constructaiq.trade →
+            </a>
+          </div>
+        </div>
+
         {/* CTA SECTION */}
         <div style={{
           textAlign: "center", padding: "56px 40px",
