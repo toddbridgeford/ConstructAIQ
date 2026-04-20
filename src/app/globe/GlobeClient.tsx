@@ -344,7 +344,7 @@ export default function GlobeClient() {
   var tickerParts=["TTLCONS $2.19T  ▲2.1%","PERMITS 1,386K ann.","PPI MATERIALS +8.4%","EMPLOYMENT 8.1M"]
   if(distressD&&distressD.watchlist){
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    distressD.watchlist.slice(0,3).forEach(function(m:any){tickerParts.push("CDI: "+m.market+" "+m.cdi.toFixed(1)+" ("+m.classification+")")})
+    distressD.watchlist.slice(0,3).forEach(function(m:any){if(m&&m.market)tickerParts.push("CDI: "+m.market+" "+Number(m.cdi||0).toFixed(1)+" ("+m.classification+")")})
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   seis.slice(0,2).forEach(function(s:any){if(s.magnitude)tickerParts.push("SEISMIC: M"+s.magnitude+" "+(s.place||"").slice(0,28))})
