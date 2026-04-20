@@ -245,6 +245,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
+          <Link href="/globe" style={{ fontFamily:MONO, fontSize:11, color:AMBER, border:`1px solid ${AMBER}44`, padding:"4px 10px", borderRadius:7 }}>◉ GLOBE</Link>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
             <div style={{ width:7, height:7, borderRadius:"50%", background:GREEN, boxShadow:`0 0 6px ${GREEN}`, animation:"pulse 2s infinite" }} />
             <span style={{ fontFamily:MONO, fontSize:11, color:GREEN }}>LIVE</span>
