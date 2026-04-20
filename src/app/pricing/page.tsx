@@ -1,4 +1,5 @@
 "use client"
+import Link from "next/link"
 import { font, color } from "@/lib/theme"
 
 const SYS  = font.sys
@@ -232,19 +233,19 @@ export default function PricingPage() {
         paddingTop: "env(safe-area-inset-top,0px)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <a href="/">
+          <Link href="/">
             <img
               src="https://raw.githubusercontent.com/toddbridgeford/ConstructAIQ/Predictive-Model/ConstructAIQWhiteLogo.svg"
               style={{ height: 24 }} alt="ConstructAIQ"
             />
-          </a>
+          </Link>
           <div style={{ width: 1, height: 24, background: BD1 }} />
           <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>PRICING</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <a href="/dashboard">
+          <Link href="/dashboard">
             <button style={{ background: "transparent", color: T3, fontFamily: MONO, fontSize: 13, padding: "8px 16px", borderRadius: 10, border: `1px solid ${BD1}`, minHeight: 44 }}>DASHBOARD</button>
-          </a>
+          </Link>
           <a href="/api/keys/issue">
             <button style={{ background: AMBER, color: "#000", fontFamily: MONO, fontSize: 13, fontWeight: 700, padding: "8px 20px", borderRadius: 10, letterSpacing: "0.06em", minHeight: 44 }}>GET API KEY →</button>
           </a>
@@ -327,13 +328,13 @@ export default function PricingPage() {
 
         {/* Back to dashboard link */}
         <div style={{ textAlign: "center" }}>
-          <a href="/dashboard" style={{ fontFamily: SYS, fontSize: 15, color: T4, textDecoration: "underline" }}>
+          <Link href="/dashboard" style={{ fontFamily: SYS, fontSize: 15, color: T4, textDecoration: "underline" }}>
             ← Back to Dashboard
-          </a>
+          </Link>
           <span style={{ fontFamily: SYS, fontSize: 15, color: T4, margin: "0 16px" }}>·</span>
-          <a href="/" style={{ fontFamily: SYS, fontSize: 15, color: T4, textDecoration: "underline" }}>
+          <Link href="/" style={{ fontFamily: SYS, fontSize: 15, color: T4, textDecoration: "underline" }}>
             Back to Home
-          </a>
+          </Link>
         </div>
       </div>
 
