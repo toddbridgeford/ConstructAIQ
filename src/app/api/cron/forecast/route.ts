@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { runEnsemble } from '@/lib/models/ensemble'
+import { runEnsemble, type EnsembleResult } from '@/lib/models/ensemble'
 import { supabase, supabaseAdmin, upsertForecasts, insertSignal, type ForecastRow } from '@/lib/supabase'
 
 const CRON_SECRET = process.env.CRON_SECRET || ''
@@ -178,7 +178,7 @@ export async function GET(request: Request) {
 async function detectAndSaveSignals(
   seriesId: string,
   vals:     number[],
-  result:   any,
+  result:   EnsembleResult,
 ) {
   try {
     const n     = vals.length

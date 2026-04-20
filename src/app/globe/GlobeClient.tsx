@@ -1,4 +1,5 @@
 "use client"
+import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 
@@ -119,10 +120,12 @@ export default function GlobeClient() {
   },[])
 
   // Apply lens when data or lens changes
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(function(){
     if(!gRef.current||!ok)return
     apply(lens)
   },[lens,ok,mapD,ctrs,seis,wx])
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   function clear(){
     var g=gRef.current;if(!g)return
@@ -267,7 +270,7 @@ export default function GlobeClient() {
       {/* TOP BAR — dateStr/timeStr from state, never from new Date() in render */}
       <div style={{position:"absolute",top:0,left:0,right:0,zIndex:20,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",borderBottom:"1px solid "+BD1,padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:60,paddingTop:"calc(env(safe-area-inset-top,0px) + 10px)"}}>
         <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <Link href="/"><img src="https://raw.githubusercontent.com/toddbridgeford/ConstructAIQ/Predictive-Model/ConstructAIQWhiteLogo.svg" style={{height:22}} alt="ConstructAIQ"/></Link>
+          <Link href="/"><Image src="/ConstructAIQWhiteLogo.svg" width={110} height={22} alt="ConstructAIQ" style={{height:22,width:"auto"}} /></Link>
           <div style={{width:1,height:20,background:BD1}}/>
           <div>
             <div style={{fontFamily:MONO,fontSize:11,color:al.color,letterSpacing:"0.12em",fontWeight:700}}>◉ GEOINTEL · {al.id}</div>

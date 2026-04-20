@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
+import { Bebas_Neue, DM_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+
+const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: "400", variable: "--font-bebas" });
+const dmSans    = DM_Sans({ subsets: ["latin"], weight: ["300","400","500","600"], variable: "--font-dm-sans" });
+const ibmMono   = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400","500"], variable: "--font-ibm-mono" });
 
 export const metadata: Metadata = {
   title: "ConstructAIQ — Construction Market Intelligence",
@@ -20,15 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" className={`${bebasNeue.variable} ${dmSans.variable} ${ibmMono.variable}`}>
       <body>{children}</body>
     </html>
   );

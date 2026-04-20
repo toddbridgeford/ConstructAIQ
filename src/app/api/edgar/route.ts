@@ -112,9 +112,9 @@ export async function GET() {
     })
   )
 
-  const companies = results
-    .filter(r => r.status === 'fulfilled')
-    .map(r => (r as PromiseFulfilledResult<any>).value)
+  type CompanyData = { ticker: string; name: string; segment: string; revenue: number | null; revenuePrev: number | null; revenueChange: number | null; backlog: number | null; signal: string }
+  const companies = (results.filter(r => r.status === 'fulfilled') as PromiseFulfilledResult<CompanyData>[])
+    .map(r => r.value)
     .filter(c => c.revenue !== null || c.revenueChange !== null)
 
   // Add the remaining companies with synthetic data if EDGAR calls failed

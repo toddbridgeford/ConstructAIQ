@@ -1,4 +1,5 @@
 "use client"
+import Image from "next/image"
 import Link from "next/link"
 import { font, color } from "@/lib/theme"
 
@@ -234,10 +235,7 @@ export default function PricingPage() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <Link href="/">
-            <img
-              src="https://raw.githubusercontent.com/toddbridgeford/ConstructAIQ/Predictive-Model/ConstructAIQWhiteLogo.svg"
-              style={{ height: 24 }} alt="ConstructAIQ"
-            />
+            <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ" style={{ height: 24, width: "auto" }} />
           </Link>
           <div style={{ width: 1, height: 24, background: BD1 }} />
           <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>PRICING</div>
@@ -339,10 +337,7 @@ export default function PricingPage() {
       </div>
 
       <footer style={{ borderTop: `1px solid ${BD1}`, padding: "32px", textAlign: "center" }}>
-        <img
-          src="https://raw.githubusercontent.com/toddbridgeford/ConstructAIQ/Predictive-Model/ConstructAIQWhiteLogo.svg"
-          style={{ height: 20, marginBottom: 12 }} alt="ConstructAIQ"
-        />
+        <Image src="/ConstructAIQWhiteLogo.svg" width={100} height={20} alt="ConstructAIQ" style={{ height: 20, width: "auto", marginBottom: 12 }} />
         <div style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>Construction Intelligence Platform · constructaiq.trade</div>
         <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 6 }}>Data: Census Bureau · BLS · FRED · BEA · EIA · USASpending.gov</div>
       </footer>

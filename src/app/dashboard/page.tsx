@@ -1,4 +1,5 @@
 "use client"
+import Image from "next/image"
 import { useState, useEffect, useRef } from "react"
 import { font, color, sentColor, fmtB, fmtN, fmtK, fmtPct } from "@/lib/theme"
 import type { ForecastData, Signal, NewsItem, Commodity, StateData, Tab } from "./types"
@@ -132,8 +133,7 @@ export default function Dashboard() {
         paddingTop: "calc(env(safe-area-inset-top,0px) + 12px)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <img src="https://raw.githubusercontent.com/toddbridgeford/ConstructAIQ/Predictive-Model/ConstructAIQWhiteLogo.svg"
-            style={{ height: 24 }} alt="ConstructAIQ" />
+          <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ" style={{ height: 24, width: "auto" }} />
           <div style={{ width: 1, height: 24, background: BD2 }} />
           <div>
             <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.08em" }}>MARKET TERMINAL v7</div>
