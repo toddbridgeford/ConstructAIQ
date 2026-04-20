@@ -39,15 +39,15 @@ const PLANS: Plan[] = [
     priceSub: "per month",
     highlight: false,
     outcomes: [
-      "12-month AI-powered construction forecasts",
-      "Real-time market signals across 12 data series",
-      "50-state activity map (HOT / GROWING / COOLING)",
-      "Materials buy/sell/hold signals",
-      "Full dashboard access",
-      "CSV data export for your own analysis",
-      "All 14 live data endpoints",
+      "12-month AI construction sector forecast — model-grade accuracy",
+      "Daily signals across permits, spending, employment, and materials",
+      "50-state construction activity map — HOT / GROWING / COOLING",
+      "Materials BUY/SELL/HOLD signals: lumber, steel, concrete, copper, WTI, diesel",
+      "Weekly Market Intelligence Brief — every Monday",
+      "Full dashboard access — no technical setup required",
+      "CSV export for internal reporting and analysis",
     ],
-    forWho:   "Ideal for individual analysts, project developers, and small teams.",
+    forWho:   "For individual analysts, project developers, and portfolio managers who need a daily edge.",
     ctaLabel: "Get Started",
     ctaHref:  "/contact",
   },
@@ -60,14 +60,14 @@ const PLANS: Plan[] = [
     badge:     "MOST POPULAR",
     outcomes: [
       "Everything in Intelligence, plus:",
-      "5x higher data throughput for team workflows",
-      "Priority email support (24-hour response)",
-      "Quarterly market outlook report (PDF)",
-      "Historical data back to 2000",
-      "Bulk CSV export & scheduled data pulls",
-      "Suitable for embedding in internal dashboards",
+      "Quarterly construction sector outlook — full PDF report",
+      "Historical data archive back to 2000",
+      "Up to 5 named user seats for your team",
+      "Priority analyst support — response within 4 business hours",
+      "Scheduled data delivery for internal BI tools",
+      "Suitable for embedding in proprietary dashboards",
     ],
-    forWho:   "Built for banks, government agencies, investment firms, and developer groups.",
+    forWho:   "For banks, investment firms, government agencies, and developer groups that run on data.",
     ctaLabel: "Get Institutional Access",
     ctaHref:  "/contact",
   },
@@ -79,14 +79,14 @@ const PLANS: Plan[] = [
     highlight: false,
     outcomes: [
       "Everything in Institutional, plus:",
-      "Unlimited data throughput",
+      "Unlimited user seats",
       "Dedicated account manager",
-      "99.9% uptime SLA",
-      "Custom integrations (Bloomberg, Salesforce, BI tools)",
-      "On-site briefings and executive reports",
+      "99.9% uptime SLA with documentation for procurement",
+      "Custom integrations — Salesforce, Power BI, or any BI platform",
+      "Executive briefings and on-site presentations",
       "Co-branded research deliverables",
     ],
-    forWho:   "For large banks, federal agencies, REITs, and enterprise construction groups.",
+    forWho:   "For federal agencies, large banks, REITs, and enterprise construction groups.",
     ctaLabel: "Talk to Sales",
     ctaHref:  "/contact",
   },
@@ -245,12 +245,12 @@ export default function PricingPage() {
           <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 24, textAlign: "center" }}>EVERY PLAN DELIVERS</div>
           <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "center" }}>
             {[
-              { icon: "📡", label: "Real-time signals",        desc: "Know before the market moves" },
-              { icon: "🤖", label: "AI 12-month forecasts",    desc: "Ensemble of 3 proven models" },
-              { icon: "🗺",  label: "All 50 states",           desc: "HOT / GROWING / COOLING map" },
-              { icon: "💹", label: "Materials intelligence",   desc: "BUY / SELL / HOLD signals" },
-              { icon: "📊", label: "Full dashboard",           desc: "No login required for demo" },
-              { icon: "📥", label: "Export your data",         desc: "CSV, JSON, or direct API" },
+              { icon: "📊", label: "Daily Sector Signals",  desc: "Know before the market moves" },
+              { icon: "🤖", label: "AI 12-Month Forecasts", desc: "Ensemble of 3 proven models" },
+              { icon: "🗺",  label: "All 50 States",        desc: "HOT / GROWING / COOLING map" },
+              { icon: "💹", label: "Materials Intelligence", desc: "BUY / SELL / HOLD signals" },
+              { icon: "📄", label: "Research Reports",       desc: "Monthly + quarterly outlooks" },
+              { icon: "📥", label: "Export Your Data",       desc: "CSV for your own analysis" },
             ].map(({ icon, label, desc }) => (
               <div key={label} style={{ textAlign: "center", minWidth: 140, flex: "1 1 140px" }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>{icon}</div>
@@ -266,10 +266,10 @@ export default function PricingPage() {
           <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 28, textAlign: "center" }}>COMMON QUESTIONS</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 720, margin: "0 auto" }}>
             {[
-              { q: "Do I need technical expertise to use this?", a: "No. The dashboard requires zero technical knowledge. The API is available for teams that want to embed data into their own tools." },
-              { q: "Can I try it before subscribing?", a: "Yes — the live dashboard is accessible without any account. See the data and signals before you commit to a plan." },
-              { q: "How quickly can I get access?", a: "Contact us and we typically have accounts active within one business day. Enterprise contracts take 2–5 days for procurement." },
-              { q: "Is my data private?", a: "All plans include private API keys. We never share your usage data or contact information with third parties." },
+              { q: "Do I need a technical background to use this?", a: "No. The dashboard requires no technical knowledge — it reads like a market briefing, not a developer tool. If you can read a research report, you can use ConstructAIQ." },
+              { q: "Is there a free trial?", a: "Yes — the full live dashboard is accessible without any account or payment. See real signals and forecasts before you commit to a plan." },
+              { q: "How quickly can we get access?", a: "Contact us and we typically activate accounts within one business day. Enterprise and government contracts can be structured for procurement within 2–5 business days." },
+              { q: "How is this different from general financial data platforms?", a: "General platforms cover construction as a footnote. We cover it as the whole story — 16 government data sources, AI forecasting, and 50-state granularity that no other platform provides." },
             ].map(({ q, a }) => (
               <div key={q}>
                 <div style={{ fontFamily: SYS, fontSize: 16, color: T1, fontWeight: 600, marginBottom: 8 }}>{q}</div>

@@ -1,0 +1,211 @@
+"use client"
+import { useState } from "react"
+import { font, color } from "@/lib/theme"
+
+const MONO = font.mono
+const SYS = font.sys
+
+interface MonthCell {
+  month: string
+  value: number
+  pctChange: number
+}
+
+interface CommodityRow {
+  commodity: string
+  months: MonthCell[]
+}
+
+interface MaterialsHeatmapProps {
+  data?: CommodityRow[]
+}
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+function cellColor(pct: number): string {
+  if (pct > 5) return "#7f1d1d"
+  if (pct > 2) return "#dc2626"
+  if (pct >= -2) return "#3a3a3a"
+  if (pct >= -5) return "#166534"
+  return "#14532d"
+}
+
+function cellTextColor(pct: number): string {
+  if (pct > 5) return "#fca5a5"
+  if (pct > 2) return "#fecaca"
+  if (pct >= -2) return color.t3
+  if (pct >= -5) return "#86efac"
+  return "#bbf7d0"
+}
+
+function generateSyntheticData(): CommodityRow[] {
+  const commodities = [
+    { name: "Lumber", base: 420, seasonality: [0, 2, 5, 8, 6, 3, 1, -1, -2, -1, -3, -4] },
+    { name: "Steel", base: 850, seasonality: [1, 2, 4, 3, 2, 1, 0, -1, 1, 2, 1, 0] },
+    { name: "Concrete", base: 130, seasonality: [-1, 0, 2, 3, 4, 3, 2, 1, 0, -1, -2, -3] },
+    { name: "Copper", base: 4.2, seasonality: [0, 1, 2, 1, 0, -1, -2, -1, 1, 2, 1, 0] },
+    { name: "WTI", base: 78, seasonality: [-1, -2, 0, 2, 4, 6, 5, 4, 2, 1, -1, -2] },
+    { name: "Diesel", base: 3.8, seasonality: [1, 0, 1, 2, 4, 6, 7, 6, 3, 1, 0, -1] },
+  ]
+
+  return commodities.map(c => {
+    let val = c.base
+    const months: MonthCell[] = MONTH_LABELS.map((month, i) => {
+      const noise = (Math.random() - 0.5) * 2
+      const pctChange = parseFloat((c.seasonality[i] + noise).toFixed(1))
+      val = val * (1 + pctChange / 100)
+      return { month, value: parseFloat(val.toFixed(2)), pctChange }
+    })
+    return { commodity: c.name, months }
+  })
+}
+
+interface TooltipInfo {
+  x: number
+  y: number
+  commodity: string
+  month: string
+  value: number
+  pctChange: number
+}
+
+export function MaterialsHeatmap({ data }: MaterialsHeatmapProps) {
+  const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
+  const rows = (data && data.length > 0) ? data : generateSyntheticData()
+
+  const CELL_W = 44
+  const CELL_H = 32
+  const LABEL_W = 76
+
+  return (
+    <div style={{
+      background: color.bg2,
+      border: `1px solid ${color.bd1}`,
+      borderRadius: 16,
+      padding: 20,
+      position: "relative",
+    }}>
+      <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, letterSpacing: "0.08em", marginBottom: 16 }}>
+        MATERIALS COST HEATMAP — 12-MONTH VIEW
+      </div>
+
+      <div style={{ overflowX: "auto" }}>
+        <div style={{ minWidth: LABEL_W + CELL_W * 12 }}>
+          {/* Column headers */}
+          <div style={{ display: "flex", marginLeft: LABEL_W, marginBottom: 4 }}>
+            {MONTH_LABELS.map(m => (
+              <div key={m} style={{
+                width: CELL_W,
+                textAlign: "center",
+                fontFamily: MONO,
+                fontSize: 9,
+                color: color.t4,
+                flexShrink: 0,
+              }}>{m}</div>
+            ))}
+          </div>
+
+          {/* Rows */}
+          {rows.map(row => (
+            <div key={row.commodity} style={{ display: "flex", alignItems: "center", marginBottom: 3 }}>
+              {/* Row label */}
+              <div style={{
+                width: LABEL_W,
+                fontFamily: MONO,
+                fontSize: 10,
+                color: color.t3,
+                flexShrink: 0,
+                paddingRight: 8,
+                textAlign: "right",
+              }}>
+                {row.commodity}
+              </div>
+              {/* Cells */}
+              {row.months.map((cell, i) => {
+                const bg = cellColor(cell.pctChange)
+                const tc = cellTextColor(cell.pctChange)
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      width: CELL_W,
+                      height: CELL_H,
+                      background: bg,
+                      borderRadius: 4,
+                      marginRight: 2,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "default",
+                      flexShrink: 0,
+                      border: `1px solid ${color.bd1}`,
+                    }}
+                    onMouseEnter={e => setTooltip({
+                      x: e.clientX,
+                      y: e.clientY,
+                      commodity: row.commodity,
+                      month: cell.month,
+                      value: cell.value,
+                      pctChange: cell.pctChange,
+                    })}
+                    onMouseLeave={() => setTooltip(null)}
+                  >
+                    <span style={{ fontFamily: MONO, fontSize: 9, color: tc }}>
+                      {cell.pctChange > 0 ? "+" : ""}{cell.pctChange.toFixed(1)}%
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tooltip */}
+      {tooltip && (
+        <div style={{
+          position: "fixed",
+          left: tooltip.x + 14,
+          top: tooltip.y - 12,
+          background: color.bg3,
+          border: `1px solid ${color.bd2}`,
+          borderRadius: 10,
+          padding: "10px 14px",
+          zIndex: 9999,
+          pointerEvents: "none",
+          minWidth: 150,
+        }}>
+          <div style={{ fontFamily: SYS, fontSize: 12, fontWeight: 700, color: color.t1, marginBottom: 4 }}>
+            {tooltip.commodity} — {tooltip.month}
+          </div>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: color.t3 }}>
+            Value: <span style={{ color: color.t1 }}>{tooltip.value.toFixed(2)}</span>
+          </div>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: color.t3 }}>
+            Change:{" "}
+            <span style={{ color: tooltip.pctChange > 0 ? color.red : color.green }}>
+              {tooltip.pctChange > 0 ? "+" : ""}{tooltip.pctChange.toFixed(1)}%
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Legend */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14, alignItems: "center" }}>
+        <span style={{ fontFamily: MONO, fontSize: 9, color: color.t4 }}>COST PRESSURE:</span>
+        {[
+          { label: "Very High (>5%)", bg: "#7f1d1d", tc: "#fca5a5" },
+          { label: "High (2–5%)", bg: "#dc2626", tc: "#fecaca" },
+          { label: "Stable (±2%)", bg: "#3a3a3a", tc: color.t3 },
+          { label: "Low (−2–−5%)", bg: "#166534", tc: "#86efac" },
+          { label: "Very Low (<−5%)", bg: "#14532d", tc: "#bbf7d0" },
+        ].map(l => (
+          <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{ width: 12, height: 12, borderRadius: 3, background: l.bg }} />
+            <span style={{ fontFamily: MONO, fontSize: 9, color: color.t4 }}>{l.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}

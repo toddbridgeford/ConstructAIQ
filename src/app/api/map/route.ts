@@ -82,7 +82,10 @@ async function fetchBEAStateGDP(): Promise<Record<string, { gdpCurr: number; gdp
     url.searchParams.set('TableName', 'SAGDP2N')
     url.searchParams.set('LineCode', '11')
     url.searchParams.set('GeoFips', 'STATE')
-    url.searchParams.set('Year', '2023,2022')
+    // Use the two most recently completed annual periods (BEA lags ~1 year)
+    const currYear = new Date().getFullYear() - 1
+    const prevYear = currYear - 1
+    url.searchParams.set('Year', `${currYear},${prevYear}`)
     url.searchParams.set('ResultFormat', 'JSON')
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(8000) })
     if (!res.ok) return null
@@ -98,8 +101,8 @@ async function fetchBEAStateGDP(): Promise<Record<string, { gdpCurr: number; gdp
     }
     const result: Record<string, { gdpCurr: number; gdpPrev: number }> = {}
     for (const [code, years] of Object.entries(byCode)) {
-      if (years['2023'] && years['2022']) {
-        result[code] = { gdpCurr: years['2023'], gdpPrev: years['2022'] }
+      if (years[String(currYear)] && years[String(prevYear)]) {
+        result[code] = { gdpCurr: years[String(currYear)], gdpPrev: years[String(prevYear)] }
       }
     }
     return Object.keys(result).length > 0 ? result : null

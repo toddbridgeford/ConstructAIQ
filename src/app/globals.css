@@ -22,22 +22,9 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
 
-/* CIQ */
-@font-face {
-font-family: 'Aeonik Pro';
-src: url('https://db.onlinewebfonts.com/t/12ff62164c9778917bddb93c6379cf47.woff2') format('woff2');
-font-weight: 400; font-display: swap;
-}
-@font-face {
-font-family: 'Aeonik Pro';
-src: url('https://db.onlinewebfonts.com/t/81c9cfcec66a1bb46e90e184f4d04641.woff2') format('woff2');
-font-weight: 500; font-display: swap;
-}
-@font-face {
-font-family: 'Aeonik Pro';
-src: url('https://db.onlinewebfonts.com/t/362636484f8ad521fec5a297fdc0ab12.woff2') format('woff2');
-font-weight: 700; font-display: swap;
-}
+/* Aeonik Pro is the design-system typeface. Self-host woff2 files in /public/fonts/
+   and add @font-face declarations here when available.
+   Until then the fallback chain renders cleanly on all platforms. */
   .fa {
     font-family: 'Aeonik Pro', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
   }

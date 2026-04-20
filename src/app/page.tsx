@@ -18,12 +18,13 @@ function SignalPill({ type, text }: { type: string; text: string }) {
   const bg   = sentBg(type)
   const icon = type === "BULLISH" ? "▲" : type === "BEARISH" ? "▼" : "⚠"
   return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: bg, borderRadius: 20, padding: "6px 14px", margin: "4px" }}>
-      <span style={{ fontFamily: MONO, fontSize: 11, color: col }}>{icon}</span>
-      <span style={{ fontSize: 13, color: col, fontWeight: 500 }}>{text}</span>
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: bg, border: `1px solid ${col}44`, borderRadius: 20, padding: "6px 14px", margin: "4px" }}>
+      <span style={{ fontFamily: MONO, fontSize: 12, color: col }}>{icon}</span>
+      <span style={{ fontFamily: SYS, fontSize: 14, color: col, fontWeight: 500 }}>{text}</span>
     </div>
   )
 }
+
 
 function EmailCaptureForm({ source, label }: { source: string; label: string }) {
   const [email, setEmail]           = useState("")
@@ -141,10 +142,12 @@ function ForecastPreview({ currentValue, liveHist, liveFcast, forecastPct }: {
 }
 
 const NAV_LINKS = [
-  { label: "Intelligence", href: "/dashboard" },
-  { label: "Research",     href: "/research"  },
-  { label: "Pricing",      href: "/pricing"   },
-  { label: "About",        href: "/about"     },
+  { label: "Intelligence", href: "/dashboard"    },
+  { label: "Globe",        href: "/globe"        },
+  { label: "Markets",      href: "/markets"      },
+  { label: "Tools",        href: "/market-check" },
+  { label: "Pricing",      href: "/pricing"      },
+  { label: "About",        href: "/about"        },
 ]
 
 const SOURCES = ["Census Bureau", "BLS", "FRED / Fed Reserve", "BEA", "EIA", "USASpending.gov"]
@@ -239,13 +242,12 @@ export default function HomePage() {
             <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ"
                    style={{ height: 22, width: "auto" }} />
           </Link>
-          <div className="hp-links">
+          <div style={{ width: 1, height: 24, background: BD1 }} />
+          <div className="hp-links" style={{ display: "flex", alignItems: "center", gap: 4 }}>
             {NAV_LINKS.map(({ label, href }) => (
-              <Link key={label} href={href}
-                style={{ fontSize: 14, fontWeight: 500, color: T4, padding: "8px 12px",
-                         borderRadius: 8, transition: "color 0.15s" }}
+              <Link key={label} href={href} style={{ fontFamily: SYS, fontSize: 14, color: T3, padding: "6px 10px", borderRadius: 8, transition: "color 0.15s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = T1)}
-                onMouseLeave={e => (e.currentTarget.style.color = T4)}>
+                onMouseLeave={e => (e.currentTarget.style.color = T3)}>
                 {label}
               </Link>
             ))}
