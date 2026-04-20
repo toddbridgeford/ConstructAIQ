@@ -128,10 +128,11 @@ const SOURCES = ["Census Bureau", "BLS", "FRED / Fed Reserve", "BEA", "EIA", "US
 
 export default function HomePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [spend,   setSpend]   = useState<any>(null)
+  const [spend,    setSpend]    = useState<any>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [employ,  setEmploy]  = useState<any>(null)
-  const [signals, setSignals] = useState<Signal[]>([])
+  const [employ,   setEmploy]   = useState<any>(null)
+  const [signals,  setSignals]  = useState<Signal[]>([])
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     async function safeFetch(url: string) {
@@ -156,6 +157,37 @@ export default function HomePage() {
   return (
     <div style={{ minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS,
                   paddingBottom: "env(safe-area-inset-bottom,20px)" }}>
+      <style>{`
+        .hp-links  { display: flex; align-items: center; gap: 2px; }
+        .hp-ham    { display: none; min-width: 44px; min-height: 44px; align-items: center;
+                     justify-content: center; cursor: pointer; background: none; border: none;
+                     color: rgba(255,255,255,0.72); margin-left: 8px; }
+        .hp-mob    { display: none; position: fixed; top: 60px; left: 0; right: 0; z-index: 99;
+                     background: rgba(6,6,8,0.97); backdrop-filter: blur(24px);
+                     -webkit-backdrop-filter: blur(24px); border-bottom: 1px solid #2a2a2a;
+                     flex-direction: column; padding: 12px 16px 24px; gap: 2px; }
+        .hp-mob.open { display: flex; }
+        .hp-mob-a  { font-size: 17px; font-weight: 500; letter-spacing: -0.01em;
+                     color: rgba(255,255,255,0.72); padding: 14px 12px; border-radius: 10px;
+                     display: block; text-decoration: none; transition: background 0.15s, color 0.15s; }
+        .hp-mob-a:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .hp-mob-ctas { display: flex; flex-direction: column; gap: 10px;
+                       padding-top: 16px; border-top: 1px solid #2a2a2a; margin-top: 12px; }
+        .hp-hero   { padding: 96px 40px 0; }
+        .hp-3col   { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+        .hp-aud    { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+        @media (max-width: 860px) {
+          .hp-links { display: none; }
+          .hp-ham   { display: flex; }
+          .hp-hero  { padding: 88px 24px 0; }
+          .hp-3col  { grid-template-columns: 1fr; }
+          .hp-aud   { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 540px) {
+          .hp-hero  { padding: 72px 20px 0; }
+          .hp-aud   { grid-template-columns: 1fr; }
+        }
+      `}</style>
 
       {/* ── NAV ── */}
       <nav style={{
@@ -171,7 +203,7 @@ export default function HomePage() {
             <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ"
                    style={{ height: 22, width: "auto" }} />
           </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <div className="hp-links">
             {NAV_LINKS.map(({ label, href }) => (
               <Link key={label} href={href}
                 style={{ fontSize: 14, fontWeight: 500, color: T4, padding: "8px 12px",
@@ -196,11 +228,36 @@ export default function HomePage() {
                      letterSpacing: "-0.01em", textDecoration: "none" }}>
             Open Dashboard
           </Link>
+          <button className="hp-ham" onClick={() => setMenuOpen(v => !v)} aria-label="Menu">
+            <svg width="20" height="14" viewBox="0 0 20 14" fill="none">
+              <line x1="0" y1="1"  x2="20" y2="1"  stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="0" y1="7"  x2="20" y2="7"  stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="0" y1="13" x2="20" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
         </div>
       </nav>
 
+      {/* ── MOBILE MENU ── */}
+      <div className={`hp-mob${menuOpen ? " open" : ""}`}>
+        {NAV_LINKS.map(({ label, href }) => (
+          <Link key={label} href={href} className="hp-mob-a" onClick={() => setMenuOpen(false)}>
+            {label}
+          </Link>
+        ))}
+        <div className="hp-mob-ctas">
+          <Link href="/dashboard" onClick={() => setMenuOpen(false)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center",
+                     background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600,
+                     padding: "13px 24px", borderRadius: 12, minHeight: 48,
+                     letterSpacing: "-0.01em", textDecoration: "none" }}>
+            Open Dashboard →
+          </Link>
+        </div>
+      </div>
+
       {/* ── HERO ── */}
-      <section style={{ padding: "96px 40px 0", maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
+      <section className="hp-hero" style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: BG2,
                       border: `1px solid ${BD2}`, borderRadius: 99, padding: "6px 16px", marginBottom: 32 }}>
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: AMBER,
@@ -321,7 +378,7 @@ export default function HomePage() {
           <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, color: T1,
                        letterSpacing: "-0.03em", lineHeight: 1.1 }}>One system. Every signal.</h2>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+        <div className="hp-3col">
           {[
             { n: "01", title: "See risk 12 months ahead",
               desc: "A 3-model AI ensemble — Holt-Winters, SARIMA, XGBoost — produces forecasts with 80% and 95% confidence intervals updated every 4 hours.",
@@ -432,8 +489,8 @@ export default function HomePage() {
                             letterSpacing: "0.04em", textTransform: "uppercase" }}>Live Market Data</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
                 {[
-                  { lbl: "TOTAL CONSTRUCTION SPEND", val: `$${(spendVal / 1000).toFixed(1)}B`, mom: spendMom, col: AMBER },
-                  { lbl: "CONSTRUCTION EMPLOYMENT",  val: empVal >= 1000 ? `${(empVal / 1000).toFixed(1)}M` : `${empVal}K`, mom: empMom, col: GREEN },
+                  { lbl: "Total Construction Spend", val: `$${(spendVal / 1000).toFixed(1)}B`, mom: spendMom, col: AMBER },
+                  { lbl: "Construction Employment",  val: empVal >= 1000 ? `${(empVal / 1000).toFixed(1)}M` : `${empVal}K`, mom: empMom, col: GREEN },
                 ].map(({ lbl, val, mom, col }, idx) => (
                   <div key={idx} style={{ paddingBottom: 14, borderBottom: `1px solid ${BD1}` }}>
                     <div style={{ fontFamily: SYS, fontSize: 10, color: T4, fontWeight: 600, letterSpacing: "0.04em", marginBottom: 5, textTransform: "uppercase" }}>{lbl}</div>
@@ -516,7 +573,7 @@ export default function HomePage() {
               Built for professionals who move capital
             </h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+          <div className="hp-aud">
             {[
               { title: "Federal Government", desc: "Infrastructure spend oversight, economic forecasting, and policy impact analysis across all 50 states." },
               { title: "Bankers & Lenders",  desc: "Construction loan risk, market timing signals, and portfolio exposure by region and segment." },
