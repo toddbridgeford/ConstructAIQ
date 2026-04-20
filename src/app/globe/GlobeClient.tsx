@@ -148,15 +148,19 @@ export default function GlobeClient() {
         try{g.controls().autoRotate=false;g.controls().enableZoom=true}catch(e){}
         gRef.current=g
         setOk(true)
-        var ro=new ResizeObserver(function(){
-          if(ref.current&&gRef.current){gRef.current.width(ref.current.offsetWidth).height(ref.current.offsetHeight)}
-        })
-        ro.observe(ref.current)
       }catch(e){
         var msg=e instanceof Error?e.message:"Globe initialization failed"
         console.error("[Globe]",e)
         setGlobeError(msg)
+        return
       }
+      // ResizeObserver is non-fatal — globe is already live if we reach here
+      try{
+        var ro=new ResizeObserver(function(){
+          if(ref.current&&gRef.current){gRef.current.width(ref.current.offsetWidth).height(ref.current.offsetHeight)}
+        })
+        ro.observe(ref.current)
+      }catch(e){console.error("[Globe] ResizeObserver unavailable",e)}
     }
     if(window.Globe){init();return}
     var s=document.createElement("script")
