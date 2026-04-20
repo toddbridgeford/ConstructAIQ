@@ -69,16 +69,17 @@ export async function GET() {
       })
     }
 
+    type NwsFeature = { id: string; properties: Record<string, string>; geometry: { coordinates: number[] } | null }
     const data = await res.json()
-    const features: any[] = data?.features || []
+    const features: NwsFeature[] = data?.features || []
 
     const alerts: WeatherAlert[] = features
-      .filter((f: any) => {
+      .filter(f => {
         const event = f.properties?.event || ''
         return CONSTRUCTION_EVENTS.some(e => event.includes(e.split(' ')[0]))
       })
       .slice(0, 80)
-      .map((f: any) => {
+      .map(f => {
         const props   = f.properties || {}
         const areaDesc = props.areaDesc || ''
         const state   = extractStateFromArea(areaDesc)
@@ -99,7 +100,7 @@ export async function GET() {
           expires: props.expires || '',
         }
       })
-      .filter((a: WeatherAlert) => !isNaN(a.lat) && !isNaN(a.lng))
+      .filter(a => !isNaN(a.lat) && !isNaN(a.lng))
 
     // Compute construction impact summary
     const extremeCount  = alerts.filter(a => a.severity === 'Extreme').length

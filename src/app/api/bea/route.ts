@@ -26,7 +26,8 @@ export async function GET() {
     const data = await res.json()
     const rows = data?.BEAAPI?.Results?.Data || []
 
-    const byState: Record<string, any> = {}
+    type StateEntry = { state: string; fips: string; years: Record<string, number> }
+    const byState: Record<string, StateEntry> = {}
     for (const r of rows) {
       const key = r.GeoName
       if (!byState[key]) byState[key] = { state: key, fips: r.GeoFips, years: {} }
@@ -34,8 +35,8 @@ export async function GET() {
     }
 
     const states = Object.values(byState)
-      .filter((s: any) => s.years['2023'] > 0)
-      .sort((a: any, b: any) => b.years['2023'] - a.years['2023'])
+      .filter(s => s.years['2023'] > 0)
+      .sort((a, b) => b.years['2023'] - a.years['2023'])
       .slice(0, 20)
 
     return NextResponse.json({

@@ -1,4 +1,6 @@
 "use client"
+import Image from "next/image"
+import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 
 var SYS  = "-apple-system,BlinkMacSystemFont,'SF Pro Display',Arial,sans-serif"
@@ -40,8 +42,8 @@ var LENSES = [
   {id:"LABOR",    label:"LABOR",   icon:"L", key:"5", color:BLUE,    desc:"Employment + safety"},
 ]
 
-function ac(c,a){a=a||1;if(c>3)return"rgba(48,209,88,"+a+")";if(c>0)return"rgba(245,166,35,"+a+")";if(c>-3)return"rgba(255,159,10,"+a+")";return"rgba(255,69,58,"+a+")"}
-function bc(v,a){a=a||1;if(v>0.8)return"rgba(255,69,58,"+a+")";if(v>0.6)return"rgba(255,214,10,"+a+")";if(v>0.4)return"rgba(48,209,88,"+a+")";if(v>0.2)return"rgba(100,210,255,"+a+")";return"rgba(10,132,255,"+a+")"}
+function ac(c,a=1){if(c>3)return"rgba(48,209,88,"+a+")";if(c>0)return"rgba(245,166,35,"+a+")";if(c>-3)return"rgba(255,159,10,"+a+")";return"rgba(255,69,58,"+a+")"}
+function bc(v,a=1){if(v>0.8)return"rgba(255,69,58,"+a+")";if(v>0.6)return"rgba(255,214,10,"+a+")";if(v>0.4)return"rgba(48,209,88,"+a+")";if(v>0.2)return"rgba(100,210,255,"+a+")";return"rgba(10,132,255,"+a+")"}
 function fB(v){return v>=1000?"$"+(v/1000).toFixed(1)+"B":"$"+Number(v).toFixed(0)+"M"}
 function fP(v){return(v>0?"+":"")+Number(v).toFixed(1)+"%"}
 
@@ -118,10 +120,12 @@ export default function GlobeClient() {
   },[])
 
   // Apply lens when data or lens changes
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(function(){
     if(!gRef.current||!ok)return
     apply(lens)
   },[lens,ok,mapD,ctrs,seis,wx])
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   function clear(){
     var g=gRef.current;if(!g)return
@@ -266,7 +270,7 @@ export default function GlobeClient() {
       {/* TOP BAR — dateStr/timeStr from state, never from new Date() in render */}
       <div style={{position:"absolute",top:0,left:0,right:0,zIndex:20,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",borderBottom:"1px solid "+BD1,padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:60,paddingTop:"calc(env(safe-area-inset-top,0px) + 10px)"}}>
         <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <a href="/"><img src="https://raw.githubusercontent.com/toddbridgeford/ConstructAIQ/Predictive-Model/ConstructAIQWhiteLogo.svg" style={{height:22}} alt="ConstructAIQ"/></a>
+          <Link href="/"><Image src="/ConstructAIQWhiteLogo.svg" width={110} height={22} alt="ConstructAIQ" style={{height:22,width:"auto"}} /></Link>
           <div style={{width:1,height:20,background:BD1}}/>
           <div>
             <div style={{fontFamily:MONO,fontSize:11,color:al.color,letterSpacing:"0.12em",fontWeight:700}}>◉ GEOINTEL · {al.id}</div>

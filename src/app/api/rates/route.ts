@@ -15,10 +15,11 @@ async function fetchSeries(seriesId: string, limit = 24) {
   const url = `${BASE}?series_id=${seriesId}&api_key=${FRED_KEY}&file_type=json&sort_order=desc&limit=${limit}&observation_start=2024-01-01`
   const res  = await fetch(url, { next: { revalidate: 3600 } }) // 1hr cache for rates
   if (!res.ok) return null
+  type FredObs = { date: string; value: string }
   const data = await res.json()
   return data?.observations
-    ?.filter((o: any) => o.value !== '.')
-    ?.map((o: any) => ({ date: o.date, value: parseFloat(o.value) }))
+    ?.filter((o: FredObs) => o.value !== '.')
+    ?.map((o: FredObs) => ({ date: o.date, value: parseFloat(o.value) }))
     ?.reverse() || null
 }
 
@@ -31,7 +32,8 @@ export async function GET() {
       RATE_SERIES.map(s => fetchSeries(s.id))
     )
 
-    const series: Record<string, any> = {}
+    type SeriesData = { name: string; unit: string; observations: { date: string; value: number }[] }
+    const series: Record<string, SeriesData> = {}
     let anyLive = false
 
     RATE_SERIES.forEach((s, i) => {

@@ -14,14 +14,17 @@ function slope(arr: number[]) {
   return den>0?num/den:0
 }
 
+type Obs = { series_id: string; obs_date: string; value: number }
+type Signal = { type: string; series_id: string; title: string; description: string; confidence: number; method: string; value_at_signal: number; threshold: number; is_active: boolean }
+
 async function loadSeries(id: string) {
   const {data} = await supabase.from('observations').select('series_id,obs_date,value')
     .eq('series_id',id).order('obs_date',{ascending:true}).limit(36)
-  return (data||[]) as {series_id:string;obs_date:string;value:number}[]
+  return (data||[]) as Obs[]
 }
 
-function detectAnomalies(obs: any[]) {
-  const signals: any[]=[], vals=obs.map((o:any)=>o.value), W=12
+function detectAnomalies(obs: Obs[]) {
+  const signals: Signal[]=[], vals=obs.map(o=>o.value), W=12
   if(vals.length<W+2) return signals
   for(let i=W;i<vals.length;i++) {
     const sl=vals.slice(i-W,i), m=mean(sl), s=std(sl)
@@ -39,9 +42,9 @@ function detectAnomalies(obs: any[]) {
   return signals.slice(-1)
 }
 
-function detectTrendReversals(obs: any[]) {
+function detectTrendReversals(obs: Obs[]) {
   if(obs.length<16) return []
-  const vals=obs.map((o:any)=>o.value), n=vals.length
+  const vals=obs.map(o=>o.value), n=vals.length
   const s3=slope(vals.slice(n-3)), s12=slope(vals.slice(n-13,n-1))
   if(s3*s12<0 && Math.abs(s3)>0.25) {
     const up=s3>0
@@ -53,9 +56,9 @@ function detectTrendReversals(obs: any[]) {
   return []
 }
 
-function detectDivergence(spend: any[], permits: any[]) {
+function detectDivergence(spend: Obs[], permits: Obs[]) {
   if(spend.length<4||permits.length<4) return []
-  const sv=spend.map((o:any)=>o.value), pv=permits.map((o:any)=>o.value)
+  const sv=spend.map(o=>o.value), pv=permits.map(o=>o.value)
   const st=(sv[sv.length-1]-sv[sv.length-4])/sv[sv.length-4]
   const pt=(pv[pv.length-1]-pv[pv.length-4])/pv[pv.length-4]
   if(st>0 && pt<-0.08 && Math.abs(st-pt)>0.08)
@@ -87,9 +90,9 @@ export async function GET(request: Request) {
   }
   try {
     const ids=['TTLCONS','HOUST','PERMIT','CES2000000001','MORTGAGE30US','DGS10','PPI_LUMBER','PPI_STEEL']
-    const map: Record<string,any[]>={}
+    const map: Record<string,Obs[]>={}
     await Promise.all(ids.map(async id=>{ map[id]=await loadSeries(id) }))
-    const all: any[]=[]
+    const all: Signal[]=[]
     for(const id of ids) { if(!map[id]?.length) continue; all.push(...detectAnomalies(map[id]),...detectTrendReversals(map[id])) }
     if(map['TTLCONS']&&map['PERMIT']) all.push(...detectDivergence(map['TTLCONS'],map['PERMIT']))
     const seen=new Set<string>()

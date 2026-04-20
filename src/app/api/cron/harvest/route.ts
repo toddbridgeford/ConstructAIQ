@@ -177,9 +177,10 @@ async function fetchFREDSeries(
   if (!res.ok) return []
 
   const data = await res.json()
-  return (data.observations || [])
-    .filter((o: any) => o.value !== '.')
-    .map((o: any) => ({
+  type FredObs = { date: string; value: string }
+  return (data.observations as FredObs[] || [])
+    .filter(o => o.value !== '.')
+    .map(o => ({
       obs_date:        o.date,
       value:           transform(parseFloat(o.value)),
       is_preliminary:  false,
@@ -216,12 +217,13 @@ async function fetchBLSSeries(
   const series = data?.Results?.series?.[0]
   if (!series) return []
 
-  return (series.data as any[])
-    .filter((d: any) => d.period.startsWith('M'))
-    .map((d: any) => ({
+  type BlsDataPoint = { year: string; period: string; value: string; footnotes?: { code: string }[] }
+  return (series.data as BlsDataPoint[])
+    .filter(d => d.period.startsWith('M'))
+    .map(d => ({
       obs_date:        `${d.year}-${d.period.slice(1).padStart(2,'0')}-01`,
       value:           parseFloat(d.value),
-      is_preliminary:  d.footnotes?.some((f: any) => f.code === 'P') || false,
+      is_preliminary:  d.footnotes?.some(f => f.code === 'P') || false,
     }))
     .reverse()
     .slice(-limit)

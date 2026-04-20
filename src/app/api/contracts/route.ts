@@ -120,15 +120,19 @@ export async function GET() {
     ])
 
     // ── Agency breakdown ────────────────────────────────────
+    type AgencyRow = { name?: string; agency_name?: string; aggregated_amount?: number; amount?: number }
+    type AwardRow  = { 'Award ID': string; 'Recipient Name': string; 'Award Amount': number; 'Awarding Agency': string; 'Start Date': string; 'Place of Performance State Code': string; 'Description'?: string }
+    type TrendRow  = { aggregated_amount?: number; time_period?: { fiscal_year?: string; month?: number } }
+
     const agencyData = agencyRes.status === 'fulfilled' ? agencyRes.value : null
-    const agencies   = agencyData?.results?.map((r: any) => ({
+    const agencies   = agencyData?.results?.map((r: AgencyRow) => ({
       name:   r.name || r.agency_name || 'Unknown Agency',
       amount: Math.round((r.aggregated_amount || r.amount || 0) / 1e9 * 10) / 10,
-    })).filter((a: any) => a.amount > 0) || []
+    })).filter(a => a.amount > 0) || []
 
     // ── Individual awards ───────────────────────────────────
     const awardsData = awardsRes.status === 'fulfilled' ? awardsRes.value : null
-    const awards     = awardsData?.results?.map((r: any) => ({
+    const awards     = awardsData?.results?.map((r: AwardRow) => ({
       id:       r['Award ID'],
       recipient: r['Recipient Name'],
       amount:   r['Award Amount'],
@@ -140,13 +144,13 @@ export async function GET() {
 
     // ── Monthly trend ───────────────────────────────────────
     const trendData  = trendRes.status === 'fulfilled' ? trendRes.value : null
-    const monthly    = trendData?.results?.map((r: any) => ({
+    const monthly    = trendData?.results?.map((r: TrendRow) => ({
       month:  `${r.time_period?.fiscal_year}-${String(r.time_period?.month).padStart(2,'0')}`,
       amount: Math.round((r.aggregated_amount || 0) / 1e9 * 100) / 100,
     })) || []
 
     // ── Total FY amount ─────────────────────────────────────
-    const fyTotal = agencies.reduce((s: number, a: any) => s + a.amount, 0)
+    const fyTotal = agencies.reduce((s: number, a: { amount: number }) => s + a.amount, 0)
 
     const anyLive = agencyRes.status === 'fulfilled' || awardsRes.status === 'fulfilled'
 

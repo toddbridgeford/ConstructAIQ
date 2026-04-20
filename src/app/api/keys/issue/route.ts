@@ -20,6 +20,13 @@ function generateKey(): { key: string; prefix: string; hash: string } {
 }
 
 export async function POST(request: Request) {
+  // Require CRON_SECRET (admin token) to issue keys programmatically
+  const adminToken = process.env.CRON_SECRET
+  const authHeader = request.headers.get('authorization')
+  if (!adminToken || authHeader !== `Bearer ${adminToken}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const body  = await request.json()
     const { email, plan = 'starter', name = '' } = body
