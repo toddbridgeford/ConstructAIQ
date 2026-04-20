@@ -1,5 +1,6 @@
 "use client"
 import dynamic from 'next/dynamic'
+import { ErrorBoundary } from '../dashboard/components/ErrorBoundary'
 
 const GlobeClient = dynamic(
   () => import('./GlobeClient'),
@@ -26,5 +27,9 @@ const GlobeClient = dynamic(
 )
 
 export default function GlobePage() {
-  return <GlobeClient />
+  return (
+    <ErrorBoundary>
+      <GlobeClient />
+    </ErrorBoundary>
+  )
 }
