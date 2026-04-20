@@ -84,7 +84,7 @@ export async function touchSeries(id: string, dataEnd?: string) {
 }
 
 /** Get latest N observations for a series */
-export async function getLatestObs(seriesId: string, n = 24) {
+export async function getLatestObs(seriesId: string, n = 60) {
   const { data } = await supabase
     .from('observations')
     .select('obs_date, value')
