@@ -39,7 +39,7 @@ function CustomTooltip({ active, payload, label }: any) {
   return (
     <div style={{ background: color.bg3, border: `1px solid ${color.bd2}`, borderRadius: 10, padding: "10px 14px" }}>
       <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, marginBottom: 4 }}>{fmtWeek(label)}</div>
-      <div style={{ fontFamily: MONO, fontSize: 16, color: classColor(d.classification), fontWeight: 700 }}>{d.score.toFixed(1)}</div>
+      <div style={{ fontFamily: MONO, fontSize: 16, color: classColor(d.classification), fontWeight: 700 }}>{d.score?.toFixed(1) ?? "—"}</div>
       <div style={{ fontFamily: MONO, fontSize: 10, color: classColor(d.classification), marginTop: 2 }}>{d.classification}</div>
     </div>
   )
