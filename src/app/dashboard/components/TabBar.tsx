@@ -15,22 +15,25 @@ const T1        = color.t1,       T2  = color.t2,  T3  = color.t3,  T4  = color.
 
 export function TabBar({ tabs, active, onChange }: { tabs: Tab[]; active: string; onChange: (id: string) => void }) {
   return (
-    <div style={{ display: "flex", background: BG2, borderRadius: 12, padding: 4, gap: 4, border: `1px solid ${BD1}` }}>
+    <div style={{ display: "flex", borderBottom: `1px solid ${BD1}`, gap: 0, overflowX: "auto" }}>
       {tabs.map(t => {
-        const isActive = active === t.id
+        const on = active === t.id
         return (
-          <button key={t.id} onClick={() => onChange(t.id)} style={{
-            flex: 1, minHeight: TAP, padding: "0 8px",
-            background: isActive ? BG4 : "transparent",
-            border: `1px solid ${isActive ? BD3 : "transparent"}`,
-            borderRadius: 10, cursor: "pointer",
-            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-            gap: 3, WebkitTapHighlightColor: "transparent", transition: "all 0.15s",
-          }}>
-            <span style={{ fontSize: 18 }}>{t.icon}</span>
-            <span style={{ fontFamily: SYS, fontSize: 12, color: isActive ? AMBER : T4, fontWeight: isActive ? 600 : 400 }}>{t.label}</span>
+          <button key={t.id} onClick={() => onChange(t.id)}
+            style={{
+              padding: "0 18px", minHeight: TAP, background: "transparent", border: "none",
+              borderBottom: on ? `2px solid ${BLUE}` : "2px solid transparent",
+              cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+              transition: "border-color 0.15s, color 0.15s", whiteSpace: "nowrap",
+              WebkitTapHighlightColor: "transparent",
+            }}>
+            <span style={{ fontSize: 14, fontWeight: on ? 600 : 400,
+                           color: on ? T1 : T4, letterSpacing: "-0.01em" }}>{t.label}</span>
             {t.badge != null && t.badge > 0 && (
-              <span style={{ fontFamily: MONO, fontSize: 10, color: isActive ? AMBER : T3, background: isActive ? AMBER_DIM : BG3, padding: "0 5px", borderRadius: 8 }}>{t.badge}</span>
+              <span style={{ fontFamily: MONO, fontSize: 10, color: on ? BLUE : T4,
+                             background: on ? BLUE_DIM : BG2, padding: "1px 6px", borderRadius: 8 }}>
+                {t.badge}
+              </span>
             )}
           </button>
         )

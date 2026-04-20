@@ -34,43 +34,48 @@ export function LeftPanel({
   spendVal, spendMom, empVal, empMom, rate30, rate10,
   spend, employ, rates, commodities, fore, signals, newsItems, states,
 }: LeftPanelProps) {
+  const feeds = [
+    { ok: !!spend }, { ok: !!employ }, { ok: !!rates }, { ok: commodities.length > 0 },
+    { ok: !!fore }, { ok: signals.length > 0 }, { ok: newsItems.length > 0 }, { ok: states.length > 0 },
+  ]
+  const feedsOk = feeds.filter(f => f.ok).length
+
   return (
-    <div style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto" }}>
-      <div style={{ background: BG1, borderRadius: 14, padding: 14, border: `1px solid ${BD1}` }}>
-        <div style={{ fontFamily: MONO, fontSize: 11, color: T4, marginBottom: 8, letterSpacing: "0.08em" }}>TOTAL SPEND</div>
-        <div style={{ fontFamily: MONO, fontSize: 26, color: AMBER, fontWeight: 700 }}>{fmtB(spendVal)}</div>
-        <div style={{ fontFamily: MONO, fontSize: 13, color: spendMom >= 0 ? GREEN : RED, marginTop: 4 }}>{fmtPct(spendMom)} MoM</div>
+    <div style={{ width: 200, flexShrink: 0, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto" }}>
+
+      {/* Primary KPI */}
+      <div style={{ background: BG1, borderRadius: 14, padding: "16px 14px", border: `1px solid ${BD1}` }}>
+        <div style={{ fontFamily: MONO, fontSize: 10, color: T4, marginBottom: 8, letterSpacing: "0.08em" }}>TOTAL SPEND</div>
+        <div style={{ fontFamily: MONO, fontSize: 28, color: AMBER, fontWeight: 700, lineHeight: 1 }}>{fmtB(spendVal)}</div>
+        <div style={{ fontFamily: MONO, fontSize: 12, color: spendMom >= 0 ? GREEN : RED, marginTop: 6 }}>{fmtPct(spendMom)} MoM</div>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <div style={{ flex: 1, background: BG1, borderRadius: 14, padding: 14, border: `1px solid ${BD1}` }}>
-          <div style={{ fontFamily: MONO, fontSize: 10, color: T4, marginBottom: 6 }}>EMPLOY</div>
-          <div style={{ fontFamily: MONO, fontSize: 18, color: GREEN, fontWeight: 700 }}>{fmtK(empVal)}K</div>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: empMom >= 0 ? GREEN : RED, marginTop: 3 }}>{fmtPct(empMom)}</div>
-        </div>
-        <div style={{ flex: 1, background: BG1, borderRadius: 14, padding: 14, border: `1px solid ${BD1}` }}>
-          <div style={{ fontFamily: MONO, fontSize: 10, color: T4, marginBottom: 6 }}>30YR MTG</div>
-          <div style={{ fontFamily: MONO, fontSize: 16, color: AMBER, fontWeight: 700 }}>{fmtN(rate30)}%</div>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T3, marginTop: 3 }}>{fmtN(rate10)}% 10YR</div>
-        </div>
+
+      {/* Secondary KPIs */}
+      <div style={{ background: BG1, borderRadius: 14, padding: "14px", border: `1px solid ${BD1}` }}>
+        <div style={{ fontFamily: MONO, fontSize: 10, color: T4, marginBottom: 6, letterSpacing: "0.08em" }}>EMPLOYMENT</div>
+        <div style={{ fontFamily: MONO, fontSize: 20, color: GREEN, fontWeight: 700, lineHeight: 1 }}>{fmtK(empVal)}K</div>
+        <div style={{ fontFamily: MONO, fontSize: 11, color: empMom >= 0 ? GREEN : RED, marginTop: 4 }}>{fmtPct(empMom)} MoM</div>
       </div>
-      {/* Data status */}
-      <div style={{ background: BG1, borderRadius: 14, padding: 14, border: `1px solid ${BD1}` }}>
-        <div style={{ fontFamily: MONO, fontSize: 11, color: T4, marginBottom: 10, letterSpacing: "0.08em" }}>DATA FEEDS</div>
-        {([
-          { label: "Spending",   ok: !!spend },
-          { label: "Employment", ok: !!employ },
-          { label: "Rates",      ok: !!rates },
-          { label: "PriceWatch", ok: commodities.length > 0 },
-          { label: "Forecast",   ok: !!fore },
-          { label: "Signals",    ok: signals.length > 0 },
-          { label: "News",       ok: newsItems.length > 0 },
-          { label: "State Map",  ok: states.length > 0 },
-        ] as const).map(row => (
-          <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <span style={{ fontFamily: SYS, fontSize: 13, color: row.ok ? T2 : T4 }}>{row.label}</span>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: row.ok ? GREEN : BD2, boxShadow: row.ok ? `0 0 6px ${GREEN}88` : "none" }} />
-          </div>
-        ))}
+
+      <div style={{ background: BG1, borderRadius: 14, padding: "14px", border: `1px solid ${BD1}` }}>
+        <div style={{ fontFamily: MONO, fontSize: 10, color: T4, marginBottom: 6, letterSpacing: "0.08em" }}>30YR RATE</div>
+        <div style={{ fontFamily: MONO, fontSize: 20, color: T2, fontWeight: 700, lineHeight: 1 }}>{fmtN(rate30)}%</div>
+        <div style={{ fontFamily: MONO, fontSize: 11, color: T4, marginTop: 4 }}>{fmtN(rate10)}% 10-yr</div>
+      </div>
+
+      {/* Feed status — minimal */}
+      <div style={{ marginTop: "auto", padding: "10px 14px", background: BG1, borderRadius: 14,
+                    border: `1px solid ${BD1}`, display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {feeds.map((f, i) => (
+            <div key={i} style={{ width: 6, height: 6, borderRadius: "50%",
+                                  background: f.ok ? GREEN : BD2,
+                                  boxShadow: f.ok ? `0 0 4px ${GREEN}` : "none" }} />
+          ))}
+        </div>
+        <span style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.06em" }}>
+          {feedsOk}/8
+        </span>
       </div>
     </div>
   )

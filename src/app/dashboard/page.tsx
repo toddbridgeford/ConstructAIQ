@@ -1,7 +1,7 @@
 "use client"
 import Image from "next/image"
 import { useState, useEffect, useRef } from "react"
-import { font, color, sentColor, fmtB, fmtN, fmtK, fmtPct } from "@/lib/theme"
+import { font, color, fmtB, fmtN, fmtK, fmtPct } from "@/lib/theme"
 import type { ForecastData, Signal, NewsItem, Commodity, StateData, Tab } from "./types"
 import { ForecastChart } from "./components/ForecastChart"
 import { SigCard } from "./components/SigCard"
@@ -37,18 +37,11 @@ export default function Dashboard() {
   const [sigs,   setSigs]     = useState<{ signals: Signal[] } | null>(null)
   const [newsD,  setNewsD]    = useState<{ items: NewsItem[] } | null>(null)
   const [mapD,   setMapD]     = useState<{ states: StateData[] } | null>(null)
-  const [tab,    setTab]       = useState("forecast")
-  const [now,    setNow]       = useState("")
+  const [tab,    setTab]       = useState("signals")
   const [selSig,   setSelSig]   = useState<number | null>(null)
   const [selState, setSelState] = useState<string | null>(null)
   const chartRef = useRef<HTMLDivElement>(null)
   const [chartW, setChartW]  = useState(620)
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date().toLocaleTimeString("en-US", { hour12: false })), 1000)
-    setNow(new Date().toLocaleTimeString("en-US", { hour12: false }))
-    return () => clearInterval(t)
-  }, [])
 
   useEffect(() => {
     if (!chartRef.current) return
@@ -105,165 +98,141 @@ export default function Dashboard() {
   const warnN = signals.filter(s => s.type === "WARNING").length
 
   const TABS: Tab[] = [
-    { id: "forecast", icon: "📈", label: "Forecast",  badge: null },
-    { id: "signals",  icon: "📡", label: "Signals",   badge: signals.length },
-    { id: "news",     icon: "📰", label: "Newswire",  badge: newsItems.length },
-    { id: "map",      icon: "🗺",  label: "States",    badge: states.length },
-    { id: "prices",   icon: "💹", label: "Prices",    badge: commodities.length },
-    { id: "scenario", icon: "🎛",  label: "Scenario",  badge: null },
+    { id: "signals",  icon: "", label: "Signals",  badge: signals.length },
+    { id: "news",     icon: "", label: "News",     badge: newsItems.length },
+    { id: "map",      icon: "", label: "States",   badge: states.length },
+    { id: "prices",   icon: "", label: "Prices",   badge: commodities.length },
+    { id: "scenario", icon: "", label: "Scenario", badge: null },
   ]
 
   return (
     <div style={{ minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS, paddingBottom: "env(safe-area-inset-bottom,20px)" }}>
-      <style>{`
-        *{box-sizing:border-box;margin:0;padding:0}
-        ::-webkit-scrollbar{width:3px;height:3px}
-        ::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
-        button{outline:none;border:none;font-family:inherit}
-        input[type=range]{appearance:auto}
-        @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-      `}</style>
+      <style>{`input[type=range]{appearance:auto}`}</style>
       <ErrorBoundary>
 
       {/* HEADER */}
       <div style={{
         background: BG1, borderBottom: `1px solid ${BD1}`,
-        padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between",
-        minHeight: 60, position: "sticky", top: 0, zIndex: 100,
-        paddingTop: "calc(env(safe-area-inset-top,0px) + 12px)",
+        padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between",
+        height: 56, position: "sticky", top: 0, zIndex: 100,
+        paddingTop: "env(safe-area-inset-top,0px)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ" style={{ height: 24, width: "auto" }} />
-          <div style={{ width: 1, height: 24, background: BD2 }} />
-          <div>
-            <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.08em" }}>MARKET TERMINAL v7</div>
-            <div style={{ fontFamily: MONO, fontSize: 10, color: T4 }}>HW · SARIMA · XGBOOST</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ"
+                 style={{ height: 22, width: "auto" }} />
+          <div style={{ width: 1, height: 20, background: BD1 }} />
+          <span style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.06em" }}>
+            CONSTRUCTION INTELLIGENCE
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {([
+            { label: `▲ ${bullN}`, col: GREEN, bg: GREEN_DIM },
+            { label: `▼ ${bearN}`, col: RED,   bg: RED_DIM  },
+            { label: `⚠ ${warnN}`, col: AMBER,  bg: AMBER_DIM },
+          ] as const).map(p => (
+            <div key={p.label} style={{ background: p.bg, borderRadius: 8, padding: "3px 8px" }}>
+              <span style={{ fontFamily: MONO, fontSize: 11, color: p.col }}>{p.label}</span>
+            </div>
+          ))}
+          <div style={{ width: 1, height: 16, background: BD1 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: GREEN,
+                          boxShadow: `0 0 5px ${GREEN}`, animation: "pulse 2s infinite" }} />
+            <span style={{ fontFamily: MONO, fontSize: 11, color: GREEN, letterSpacing: "0.06em" }}>LIVE</span>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontFamily: MONO, fontSize: 11, color: T4 }}>TTLCONS</div>
-            <div style={{ fontFamily: MONO, fontSize: 14, color: AMBER, fontWeight: 600 }}>{fmtB(spendVal)}</div>
-            <div style={{ fontFamily: MONO, fontSize: 11, color: spendMom >= 0 ? GREEN : RED }}>{fmtPct(spendMom)}</div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontFamily: MONO, fontSize: 11, color: T4 }}>EMPLOY</div>
-            <div style={{ fontFamily: MONO, fontSize: 14, color: GREEN, fontWeight: 600 }}>{fmtK(empVal)}K</div>
-            <div style={{ fontFamily: MONO, fontSize: 11, color: empMom >= 0 ? GREEN : RED }}>{fmtPct(empMom)}</div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontFamily: MONO, fontSize: 11, color: T4 }}>30YR</div>
-            <div style={{ fontFamily: MONO, fontSize: 14, color: spread > 2.5 ? RED : GREEN, fontWeight: 600 }}>{fmtN(rate30)}%</div>
-          </div>
-          <div style={{ fontFamily: MONO, fontSize: 12, color: T4 }}>{now}</div>
-        </div>
-      </div>
-
-      {/* TICKER */}
-      <div style={{ background: BG2, borderBottom: `1px solid ${BD1}`, height: 34, overflow: "hidden", display: "flex", alignItems: "center" }}>
-        <div style={{ fontFamily: MONO, fontSize: 11, color: AMBER, padding: "0 14px", borderRight: `1px solid ${BD2}`, whiteSpace: "nowrap", height: "100%", display: "flex", alignItems: "center", flexShrink: 0 }}>LIVE</div>
-        <div style={{ overflow: "hidden", flex: 1 }}>
-          <div style={{ display: "inline-flex", animation: "ticker 50s linear infinite", whiteSpace: "nowrap", alignItems: "center" }}>
-            {(signals.length > 0 ? [...signals, ...signals] : [
-              { type: "BULLISH", title: "Employment Cycle High — 8,330K" },
-              { type: "WARNING", title: "Spend/Permit Divergence Detected" },
-              { type: "BULLISH", title: "IIJA $890B Absorption Continues" },
-              { type: "BEARISH", title: "Permits -12% from Feb 2024 Peak" },
-            ]).map((s, i) => (
-              <span key={i} style={{ fontFamily: SYS, fontSize: 14, color: sentColor(s.type), padding: "0 24px", borderRight: `1px solid ${BD2}` }}>{s.title}</span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* SIGNAL PILLS */}
-      <div style={{ background: BG1, borderBottom: `1px solid ${BD1}`, padding: "8px 16px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.08em" }}>SIGNALS</span>
-        {([
-          { label: `▲ ${bullN} BULLISH`, col: GREEN, bg: GREEN_DIM },
-          { label: `▼ ${bearN} BEARISH`, col: RED,   bg: RED_DIM   },
-          { label: `⚠ ${warnN} WARNING`, col: AMBER,  bg: AMBER_DIM },
-        ] as const).map(p => (
-          <div key={p.label} style={{ background: p.bg, borderRadius: 20, padding: "4px 12px", border: `1px solid ${p.col}44` }}>
-            <span style={{ fontFamily: MONO, fontSize: 12, color: p.col, fontWeight: 600 }}>{p.label}</span>
-          </div>
-        ))}
-        <div style={{ flex: 1 }} />
-        {metrics.accuracy && (
-          <div style={{ background: BG3, borderRadius: 20, padding: "4px 12px", border: `1px solid ${BD2}` }}>
-            <span style={{ fontFamily: MONO, fontSize: 12, color: GREEN }}>Ensemble {metrics.accuracy}% acc · {metrics.models ?? 2} models</span>
-          </div>
-        )}
       </div>
 
       {/* MAIN */}
-      <div style={{ display: "flex", gap: 10, padding: 12, height: "calc(100vh - 174px)", overflow: "hidden" }}>
+      <div style={{ display: "flex", gap: 10, padding: "12px 16px",
+                    minHeight: "calc(100vh - 56px)" }}>
 
         {/* LEFT PANEL */}
         <LeftPanel
-          spendVal={spendVal}
-          spendMom={spendMom}
-          empVal={empVal}
-          empMom={empMom}
-          rate30={rate30}
-          rate10={rate10}
-          spend={spend}
-          employ={employ}
-          rates={rates}
-          commodities={commodities}
-          fore={fore}
-          signals={signals}
-          newsItems={newsItems}
-          states={states}
+          spendVal={spendVal} spendMom={spendMom}
+          empVal={empVal}     empMom={empMom}
+          rate30={rate30}     rate10={rate10}
+          spend={spend}       employ={employ}  rates={rates}
+          commodities={commodities} fore={fore}
+          signals={signals}   newsItems={newsItems} states={states}
         />
 
         {/* CENTER PANEL */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+
+          {/* ── FORECAST HERO (always visible) ── */}
+          <div style={{ background: BG1, borderRadius: 14, padding: 16, border: `1px solid ${BD1}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+              <div>
+                <div style={{ fontFamily: MONO, fontSize: 10, color: T4,
+                              letterSpacing: "0.1em", marginBottom: 6 }}>
+                  TOTAL CONSTRUCTION SPEND · 12-MONTH FORECAST
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 26, color: AMBER, fontWeight: 700 }}>
+                    {fmtB(spendVal)}
+                  </span>
+                  <span style={{ fontFamily: MONO, fontSize: 13,
+                                 color: spendMom >= 0 ? GREEN : RED }}>
+                    {fmtPct(spendMom)} MoM
+                  </span>
+                </div>
+              </div>
+              {fore && (
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.06em" }}>
+                    {fore.runAt?.slice(0, 10)}
+                  </div>
+                  {metrics.accuracy > 0 && (
+                    <div style={{ fontFamily: MONO, fontSize: 12, color: GREEN, marginTop: 4 }}>
+                      {metrics.accuracy}% accuracy
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div ref={chartRef} style={{ width: "100%" }}>
+              <ForecastChart foreData={fore} width={Math.max(chartW, 400)} height={360} />
+            </div>
+
+            {(fore?.models?.length ?? 0) > 0 && (
+              <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {fore!.models.map((m, i) => {
+                  const col = m.model === "holt-winters" ? GREEN : m.model === "xgboost" ? BLUE : AMBER
+                  const pct = Math.round((m.weight ?? 0) * 100)
+                  return (
+                    <div key={i} style={{ flex: "1 1 180px", background: BG2, borderRadius: 10,
+                                          padding: "10px 12px", border: `1px solid ${BD1}` }}>
+                      <div style={{ display: "flex", justifyContent: "space-between",
+                                    alignItems: "center", marginBottom: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: 2, background: col }} />
+                          <span style={{ fontFamily: MONO, fontSize: 11, color: T2,
+                                         fontWeight: 600, textTransform: "uppercase" }}>{m.model}</span>
+                        </div>
+                        <span style={{ fontFamily: MONO, fontSize: 11, color: col }}>{pct}%</span>
+                      </div>
+                      <div style={{ background: BG3, borderRadius: 3, height: 4, overflow: "hidden" }}>
+                        <div style={{ background: col, height: "100%", width: `${pct}%`,
+                                      borderRadius: 3, transition: "width 0.5s ease" }} />
+                      </div>
+                      <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, color: T4 }}>MAPE {m.mape}%</span>
+                        <span style={{ fontFamily: MONO, fontSize: 10, color: GREEN }}>Acc {m.accuracy}%</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ── SUPPORTING TABS ── */}
           <TabBar tabs={TABS} active={tab} onChange={setTab} />
 
           <div style={{ flex: 1, overflowY: "auto", borderRadius: 14 }}>
-
-            {/* FORECAST */}
-            {tab === "forecast" && (
-              <div style={{ background: BG1, borderRadius: 14, padding: 16, border: `1px solid ${BD1}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                  <div style={{ fontFamily: MONO, fontSize: 13, color: AMBER, fontWeight: 600, letterSpacing: "0.06em" }}>TOTAL CONSTRUCTION SPENDING — 12-MONTH FORECAST</div>
-                  {fore && <div style={{ fontFamily: MONO, fontSize: 12, color: T4 }}>Trained on {fore.trainedOn} obs · {fore.runAt?.slice(0, 10)}</div>}
-                </div>
-                <div ref={chartRef} style={{ width: "100%" }}>
-                  <ForecastChart foreData={fore} width={Math.max(chartW, 400)} height={240} />
-                </div>
-                {(fore?.models?.length ?? 0) > 0 && (
-                  <div style={{ marginTop: 16 }}>
-                    <div style={{ fontFamily: MONO, fontSize: 11, color: T4, marginBottom: 10, letterSpacing: "0.08em" }}>MODEL BREAKDOWN</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {fore!.models.map((m, i) => {
-                        const col      = m.model === "holt-winters" ? GREEN : m.model === "xgboost" ? BLUE : AMBER
-                        const widthPct = Math.round((m.weight ?? 0) * 100)
-                        return (
-                          <div key={i} style={{ background: BG2, borderRadius: 10, padding: "12px 14px", border: `1px solid ${BD1}` }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <div style={{ width: 10, height: 10, borderRadius: 2, background: col }} />
-                                <span style={{ fontFamily: MONO, fontSize: 13, color: T2, fontWeight: 600, textTransform: "uppercase" }}>{m.model}</span>
-                              </div>
-                              <div style={{ display: "flex", gap: 16 }}>
-                                <span style={{ fontFamily: MONO, fontSize: 12, color: T4 }}>MAPE {m.mape}%</span>
-                                <span style={{ fontFamily: MONO, fontSize: 12, color: GREEN }}>Acc {m.accuracy}%</span>
-                                <span style={{ fontFamily: MONO, fontSize: 12, color: col, fontWeight: 600 }}>Weight {widthPct}%</span>
-                              </div>
-                            </div>
-                            <div style={{ background: BG3, borderRadius: 4, height: 6, overflow: "hidden" }}>
-                              <div style={{ background: col, height: "100%", width: `${widthPct}%`, borderRadius: 4, transition: "width 0.5s ease" }} />
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* SIGNALS */}
             {tab === "signals" && (
