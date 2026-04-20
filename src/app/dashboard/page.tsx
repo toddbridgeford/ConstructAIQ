@@ -567,7 +567,7 @@ export default function Dashboard() {
           {/* AI Weekly Brief */}
           <GateLock locked={false} requiredPlan="Starter" featureName="AI Weekly Intelligence Brief">
             <Card>
-              <WeeklyBrief brief={brief} />
+              <WeeklyBrief {...(brief ?? {})} />
             </Card>
           </GateLock>
         </Section>
