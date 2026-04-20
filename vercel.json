@@ -3,5 +3,15 @@
   "buildCommand": "next build",
   "outputDirectory": ".next",
   "installCommand": "npm install",
-  "devCommand": "next dev"
+  "devCommand": "next dev",
+  "crons": [
+    {
+      "path": "/api/cron/harvest",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/forecast",
+      "schedule": "0 7 * * *"
+    }
+  ]
 }
