@@ -51,14 +51,14 @@ function SliderRow({ label, sub, val, setter, min, max, step, unit, positiveIsGo
   )
 }
 
-export function ScenarioBuilder() {
+export function ScenarioBuilder({ spendVal = 2190 }: { spendVal?: number }) {
   const [rate,     setRate]     = useState(0)
   const [iija,     setIija]     = useState(100)
   const [labor,    setLabor]    = useState(0)
   const [material, setMaterial] = useState(0)
   const [active,   setActive]   = useState(1)
 
-  const base  = 2190
+  const base  = spendVal
   const delta = (-rate * 0.018) + ((iija - 100) * 0.003) + (labor * 0.008) + (-material * 0.012)
   const proj  = base * (1 + delta / 100)
   const diff  = proj - base

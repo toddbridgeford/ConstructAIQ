@@ -2,6 +2,22 @@ import { NextResponse } from 'next/server'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+const BEA_KEY = process.env.BEA_API_KEY || ''
+const BEA_URL = 'https://apps.bea.gov/api/data'
+
+const NAME_CODE: Record<string, string> = {
+  'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+  'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+  'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA',
+  'Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD',
+  'Massachusetts':'MA','Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO',
+  'Montana':'MT','Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ',
+  'New Mexico':'NM','New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH',
+  'Oklahoma':'OK','Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+  'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
+  'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
+}
+
 function syntheticStates() {
   return [
     {code:'TX',name:'Texas',          permits:183420,yoyChange:8.2, gdpConst:98420,employment:542},
@@ -56,20 +72,77 @@ function syntheticStates() {
   ]
 }
 
+async function fetchBEAStateGDP(): Promise<Record<string, { gdpCurr: number; gdpPrev: number }> | null> {
+  if (!BEA_KEY) return null
+  try {
+    const url = new URL(BEA_URL)
+    url.searchParams.set('UserID', BEA_KEY)
+    url.searchParams.set('method', 'GetData')
+    url.searchParams.set('datasetname', 'Regional')
+    url.searchParams.set('TableName', 'SAGDP2N')
+    url.searchParams.set('LineCode', '11')
+    url.searchParams.set('GeoFips', 'STATE')
+    url.searchParams.set('Year', '2023,2022')
+    url.searchParams.set('ResultFormat', 'JSON')
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data = await res.json()
+    const rows = data?.BEAAPI?.Results?.Data || []
+    const byCode: Record<string, Record<string, number>> = {}
+    for (const r of rows) {
+      const code = NAME_CODE[r.GeoName]
+      if (!code) continue
+      if (!byCode[code]) byCode[code] = {}
+      const val = parseFloat((r.DataValue || '').replace(/,/g, ''))
+      if (!isNaN(val) && val > 0) byCode[code][r.TimePeriod] = val
+    }
+    const result: Record<string, { gdpCurr: number; gdpPrev: number }> = {}
+    for (const [code, years] of Object.entries(byCode)) {
+      if (years['2023'] && years['2022']) {
+        result[code] = { gdpCurr: years['2023'], gdpPrev: years['2022'] }
+      }
+    }
+    return Object.keys(result).length > 0 ? result : null
+  } catch {
+    return null
+  }
+}
+
 export async function GET() {
   try {
-    const states=syntheticStates().sort((a,b)=>b.permits-a.permits)
-    const vals=states.map(s=>s.permits)
-    const maxV=Math.max(...vals), minV=Math.min(...vals)
-    const total=vals.reduce((a,b)=>a+b,0)
-    const ranked=states.map((s,i)=>({...s,rank:i+1,percentile:Math.round((1-i/states.length)*100),
-      intensity:maxV>minV?(s.permits-minV)/(maxV-minV):0.5,
-      signal:s.yoyChange>10?'HOT':s.yoyChange>0?'GROWING':s.yoyChange>-10?'STABLE':'COOLING'}))
-    return NextResponse.json({source:'ConstructAIQ State Map',live:false,states:ranked,
-      totalPermits:total,nationalAvg:Math.round(total/states.length),
-      topStates:ranked.slice(0,5).map(s=>s.code),updated:new Date().toISOString()},
-      {headers:{'Cache-Control':'public, s-maxage=86400'}})
-  } catch(err) {
-    return NextResponse.json({error:'map failed'},{status:500})
+    const beaData = await fetchBEAStateGDP()
+    const live = beaData != null
+
+    const states = syntheticStates().map(s => {
+      const bea = beaData?.[s.code]
+      if (bea) {
+        const yoyChange = +((bea.gdpCurr - bea.gdpPrev) / bea.gdpPrev * 100).toFixed(1)
+        return { ...s, gdpConst: Math.round(bea.gdpCurr), yoyChange }
+      }
+      return s
+    })
+
+    states.sort((a, b) => b.permits - a.permits)
+    const vals    = states.map(s => s.permits)
+    const maxV    = Math.max(...vals), minV = Math.min(...vals)
+    const total   = vals.reduce((a, b) => a + b, 0)
+    const ranked  = states.map((s, i) => ({
+      ...s, rank: i + 1,
+      percentile: Math.round((1 - i / states.length) * 100),
+      intensity:  maxV > minV ? (s.permits - minV) / (maxV - minV) : 0.5,
+      signal:     s.yoyChange > 10 ? 'HOT' : s.yoyChange > 0 ? 'GROWING' : s.yoyChange > -10 ? 'STABLE' : 'COOLING',
+    }))
+
+    return NextResponse.json({
+      source:       live ? 'BEA Regional GDP (construction sector) + Census permits' : 'ConstructAIQ State Map',
+      live,
+      states:       ranked,
+      totalPermits: total,
+      nationalAvg:  Math.round(total / ranked.length),
+      topStates:    ranked.slice(0, 5).map(s => s.code),
+      updated:      new Date().toISOString(),
+    }, { headers: { 'Cache-Control': 'public, s-maxage=3600' } })
+  } catch (err) {
+    return NextResponse.json({ error: 'map failed' }, { status: 500 })
   }
 }

@@ -246,14 +246,16 @@ export default function Dashboard() {
             {tab === "prices" && (
               <div style={{ background: BG1, borderRadius: 14, padding: 14, border: `1px solid ${BD1}` }}>
                 <div style={{ fontFamily: SYS, fontSize: 13, color: T2, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: 12 }}>Commodity & Materials Watch</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  {(commodities.length > 0 ? commodities : ([
-                    { name: "Lumber",   value: 421.8, mom: -3.74, yoy: -15.2, unit: "PPI",  signal: "BUY",  trend: "DOWN" },
-                    { name: "Steel",    value: 318.4, mom:  2.84, yoy:   8.4, unit: "PPI",  signal: "SELL", trend: "UP"   },
-                    { name: "Concrete", value: 284.6, mom:  1.21, yoy:   4.8, unit: "PPI",  signal: "HOLD", trend: "UP"   },
-                    { name: "Copper",   value: 9842,  mom:  4.48, yoy:  12.4, unit: "$/t",  signal: "SELL", trend: "UP"   },
-                  ] as Commodity[])).map((item, i) => <PriceCard key={i} item={item} />)}
-                </div>
+                {commodities.length > 0 ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    {commodities.map((item, i) => <PriceCard key={i} item={item} />)}
+                  </div>
+                ) : (
+                  <div style={{ padding: 40, textAlign: "center" }}>
+                    <div style={{ fontFamily: SYS, fontSize: 15, color: T4 }}>Fetching commodity prices…</div>
+                    <div style={{ fontFamily: MONO, fontSize: 11, color: T4, marginTop: 6 }}>/api/pricewatch</div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -261,7 +263,7 @@ export default function Dashboard() {
             {tab === "scenario" && (
               <div style={{ background: BG1, borderRadius: 14, padding: 14, border: `1px solid ${BD1}` }}>
                 <div style={{ fontFamily: SYS, fontSize: 13, color: T2, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: 16 }}>Scenario Builder</div>
-                <ScenarioBuilder />
+                <ScenarioBuilder spendVal={spendVal} />
               </div>
             )}
 

@@ -67,10 +67,28 @@ function EmailCaptureForm({ source, label }: { source: string; label: string }) 
   )
 }
 
-function ForecastPreview({ currentValue }: { currentValue: number }) {
+function ForecastPreview({ currentValue, liveHist, liveFcast, forecastPct }: {
+  currentValue: number
+  liveHist?: number[]
+  liveFcast?: number[]
+  forecastPct?: number | null
+}) {
   const W = 640, H = 280
-  const hist  = [0.52, 0.54, 0.57, 0.55, 0.59, 0.61, 0.58, 0.63, 0.65, 0.62, 0.68, 0.70]
-  const fcast = [0.70, 0.72, 0.74, 0.71, 0.76, 0.78, 0.75, 0.80, 0.82, 0.79, 0.84, 0.87]
+
+  // Normalize raw API values to [0,1]; fall back to illustrative data
+  let hist: number[]
+  let fcast: number[]
+  if (liveHist && liveHist.length >= 2 && liveFcast && liveFcast.length >= 2) {
+    const all = [...liveHist, ...liveFcast]
+    const mn = Math.min(...all), mx = Math.max(...all)
+    const rng = mx - mn || 1
+    hist  = liveHist.map(v => (v - mn) / rng)
+    fcast = liveFcast.map(v => (v - mn) / rng)
+  } else {
+    hist  = [0.52, 0.54, 0.57, 0.55, 0.59, 0.61, 0.58, 0.63, 0.65, 0.62, 0.68, 0.70]
+    fcast = [0.70, 0.72, 0.74, 0.71, 0.76, 0.78, 0.75, 0.80, 0.82, 0.79, 0.84, 0.87]
+  }
+
   const pad   = { t: 16, r: 20, b: 32, l: 12 }
   const cw    = W - pad.l - pad.r
   const ch    = H - pad.t - pad.b
@@ -90,6 +108,9 @@ function ForecastPreview({ currentValue }: { currentValue: number }) {
 
   const months = ["Jan", "Apr", "Jul", "Oct", "Jan", "Apr", "Jul", "Oct", "Jan"]
   const divX   = px(hLen - 1)
+  const pctLabel = forecastPct != null
+    ? `${forecastPct >= 0 ? "+" : ""}${forecastPct.toFixed(1)}%`
+    : null
 
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ display: "block" }}>
@@ -111,8 +132,10 @@ function ForecastPreview({ currentValue }: { currentValue: number }) {
             fill={AMBER} fontSize={10} fontFamily={MONO} fontWeight="600">
         ${(currentValue / 1000).toFixed(1)}B
       </text>
-      <text x={px(total - 1) + 8} y={py(fcast[fcast.length - 1]) - 8} textAnchor="start"
-            fill={BLUE} fontSize={10} fontFamily={MONO} fontWeight="600" fillOpacity={0.7}>+4.2%</text>
+      {pctLabel && (
+        <text x={px(total - 1) + 8} y={py(fcast[fcast.length - 1]) - 8} textAnchor="start"
+              fill={BLUE} fontSize={10} fontFamily={MONO} fontWeight="600">{pctLabel}</text>
+      )}
     </svg>
   )
 }
@@ -131,6 +154,8 @@ export default function HomePage() {
   const [spend,    setSpend]    = useState<any>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [employ,   setEmploy]   = useState<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [foreD,    setForeD]    = useState<any>(null)
   const [signals,  setSignals]  = useState<Signal[]>([])
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -139,12 +164,14 @@ export default function HomePage() {
       try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
     }
     async function load() {
-      const [sd, ed, sigd] = await Promise.all([
-        safeFetch("/api/census"), safeFetch("/api/bls"), safeFetch("/api/signals"),
+      const [sd, ed, sigd, fd] = await Promise.all([
+        safeFetch("/api/census"), safeFetch("/api/bls"),
+        safeFetch("/api/signals"), safeFetch("/api/forecast?series=TTLCONS"),
       ])
       if (sd)   setSpend(sd)
       if (ed)   setEmploy(ed)
       if (sigd) setSignals(sigd.signals ?? [])
+      if (fd)   setForeD(fd)
     }
     load()
   }, [])
@@ -153,6 +180,15 @@ export default function HomePage() {
   const spendMom = spend?.mom    ?? spend?.latest?.mom    ?? 0.3
   const empVal   = employ?.value ?? employ?.latest?.value ?? 8330
   const empMom   = employ?.mom   ?? employ?.latest?.mom   ?? 0.31
+
+  const liveHist: number[] | undefined  = foreD?.history
+  const liveFcast: number[] | undefined = foreD?.ensemble?.map((p: { base: number }) => p.base)
+  const forecastPct: number | null = (() => {
+    if (!liveHist?.length || !liveFcast?.length) return null
+    const lastH = liveHist[liveHist.length - 1]
+    const lastF = liveFcast[liveFcast.length - 1]
+    return lastH > 0 ? ((lastF - lastH) / lastH) * 100 : null
+  })()
 
   return (
     <div style={{ minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS,
@@ -321,15 +357,21 @@ export default function HomePage() {
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-              <div>
-                <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 500, marginBottom: 4 }}>12-mo forecast</div>
-                <div style={{ fontFamily: MONO, fontSize: 20, fontWeight: 700, color: BLUE }}>+4.2%</div>
-              </div>
+              {forecastPct != null && (
+                <div>
+                  <div style={{ fontFamily: SYS, fontSize: 11, color: T4, fontWeight: 500, marginBottom: 4 }}>12-mo forecast</div>
+                  <div style={{ fontFamily: MONO, fontSize: 20, fontWeight: 700,
+                                color: forecastPct >= 0 ? BLUE : RED }}>
+                    {forecastPct >= 0 ? "+" : ""}{forecastPct.toFixed(1)}%
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           <div style={{ padding: "20px 24px 8px" }}>
-            <ForecastPreview currentValue={spendVal} />
+            <ForecastPreview currentValue={spendVal}
+              liveHist={liveHist} liveFcast={liveFcast} forecastPct={forecastPct} />
           </div>
 
           <div style={{ padding: "8px 24px 16px", display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
