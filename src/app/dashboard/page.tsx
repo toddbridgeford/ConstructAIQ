@@ -2,10 +2,11 @@
 import Image from "next/image"
 import Link  from "next/link"
 import { useState, useEffect } from "react"
-import { font, color, sentColor, fmtB, fmtK } from "@/lib/theme"
+import { font, color, fmtB } from "@/lib/theme"
 import { ErrorBoundary }    from "./components/ErrorBoundary"
-import { CommandSection }   from "./sections/CommandSection"
+import { KpiRow }           from "./sections/KpiRow"
 import { HeroForecast }     from "./sections/HeroForecast"
+import { CommandSection }   from "./sections/CommandSection"
 import { GeographicSection }from "./sections/GeographicSection"
 import { MaterialsSection } from "./sections/MaterialsSection"
 import { PipelineSection }  from "./sections/PipelineSection"
@@ -17,13 +18,13 @@ import { SignalsSection }   from "./sections/SignalsSection"
 type AnyData = any
 
 const SYS = font.sys, MONO = font.mono
-const BG0 = color.bg0, BG1 = color.bg1, BG2 = color.bg2
+const BG0 = color.bg0, BG1 = color.bg1
 const BD1 = color.bd1, BD2 = color.bd2
 const T1 = color.t1, T3 = color.t3, T4 = color.t4
-const GREEN = color.green, AMBER = color.amber, RED = color.red
+const GREEN = color.green, AMBER = color.amber
 
 const NAV_SECTIONS = [
-  {id:"command",label:"Command Center"},{id:"forecast",label:"Forecast"},
+  {id:"forecast",label:"Forecast"},{id:"command",label:"Command"},
   {id:"map",label:"Map"},{id:"materials",label:"Materials"},
   {id:"pipeline",label:"Pipeline"},{id:"federal",label:"Federal"},
   {id:"equities",label:"Equities"},{id:"signals",label:"Signals"},
@@ -44,7 +45,6 @@ function blsSpark(data: AnyData[] | undefined, n = 12, fallback = 0): number[] {
 }
 
 export default function Dashboard() {
-  const [now, setNow]   = useState("")
   const [cshi,     setCshi]     = useState<AnyData>(null)
   const [spend,    setSpend]    = useState<AnyData>(null)
   const [employ,   setEmploy]   = useState<AnyData>(null)
@@ -53,7 +53,6 @@ export default function Dashboard() {
   const [selState, setSelState] = useState<string|null>(null)
   const [mapToggle,setMapToggle]= useState<"permits"|"employment">("permits")
   const [prices,   setPrices]   = useState<AnyData>(null)
-  const [rates,    setRates]    = useState<AnyData>(null)
   const [pipeline, setPipeline] = useState<AnyData>(null)
   const [federal,  setFederal]  = useState<AnyData>(null)
   const [equities, setEquities] = useState<AnyData>(null)
@@ -63,21 +62,14 @@ export default function Dashboard() {
   const [fredD,    setFredD]    = useState<AnyData>(null)
 
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date().toLocaleTimeString("en-US",{hour12:false})), 1000)
-    setNow(new Date().toLocaleTimeString("en-US",{hour12:false}))
-    return () => clearInterval(t)
-  }, [])
-
-  useEffect(() => {
     async function load() {
       async function safe(url: string) { try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null } }
-      const [cshiD,spendD,employD,foreD,mapData,pricesD,ratesD,pipeD,fedD,eqD,sigsD,briefD,fredData] =
-        await Promise.all([safe("/api/cshi"),safe("/api/census"),safe("/api/bls"),safe("/api/forecast?series=TTLCONS"),safe("/api/map"),safe("/api/pricewatch"),safe("/api/rates"),safe("/api/pipeline"),safe("/api/federal"),safe("/api/equities"),safe("/api/signals"),safe("/api/weekly-brief"),safe("/api/fred")])
+      const [cshiD,spendD,employD,foreD,mapData,pricesD,pipeD,fedD,eqD,sigsD,briefD,fredData] =
+        await Promise.all([safe("/api/cshi"),safe("/api/census"),safe("/api/bls"),safe("/api/forecast?series=TTLCONS"),safe("/api/map"),safe("/api/pricewatch"),safe("/api/pipeline"),safe("/api/federal"),safe("/api/equities"),safe("/api/signals"),safe("/api/weekly-brief"),safe("/api/fred")])
       if (cshiD)   setCshi(cshiD);   if (spendD)  setSpend(spendD);   if (employD) setEmploy(employD)
       if (foreD)   setFore(foreD);   if (mapData) setMapD(mapData);   if (pricesD) setPrices(pricesD)
-      if (ratesD)  setRates(ratesD); if (pipeD)   setPipeline(pipeD); if (fedD)    setFederal(fedD)
-      if (eqD)     setEquities(eqD); if (sigsD)   setSignals(sigsD);  if (briefD)  setBrief(briefD)
-      if (fredData) setFredD(fredData)
+      if (pipeD)   setPipeline(pipeD); if (fedD)  setFederal(fedD);   if (eqD)     setEquities(eqD)
+      if (sigsD)   setSignals(sigsD);  if (briefD) setBrief(briefD);  if (fredData) setFredD(fredData)
     }
     load()
   }, [])
@@ -87,10 +79,9 @@ export default function Dashboard() {
   const spendMom  = spend?.mom    ?? spend?.latest?.mom    ?? 0.3
   const empVal    = employ?.value ?? employ?.latest?.value ?? 8330
   const empMom    = employ?.mom   ?? employ?.latest?.mom   ?? 0.31
-  const rate30    = rates?.mortgage30 ?? rates?.data?.MORTGAGE30US?.value ?? 6.85
-  const commodities = prices?.commodities ?? []
-  const states      = mapD?.states        ?? []
-  const sigList     = signals?.signals    ?? []
+  const commodities  = prices?.commodities ?? []
+  const states       = mapD?.states        ?? []
+  const sigList      = signals?.signals    ?? []
   const foreAccuracy = fore?.metrics?.accuracy ?? 87.3
   const foreMAPE     = fore?.metrics?.mape     ?? 4.2
   const procurementValue = commodities.length > 0
@@ -112,11 +103,14 @@ export default function Dashboard() {
     : Array.from({length:24},(_,i)=>({date:`2024-${String(i%12+1).padStart(2,"0")}-01`,value:2100+i*4}))
   const corrMaterials: {date:string;value:number}[] = Array.from({length:24},(_,i)=>({date:`2024-${String(i%12+1).padStart(2,"0")}-01`,value:280+i*2}))
 
-  const cshiScore = cshi?.score ?? 72.4
+  // Extract headline sentence from brief for excerpt card
+  const briefHeadline = typeof brief?.brief === "string"
+    ? brief.brief.split("\n\n")[0].replace(/^HEADLINE SIGNAL:\s*/i, "").trim()
+    : null
 
   return (
     <div style={{ minHeight:"100vh", background:BG0, color:T1, fontFamily:SYS }}>
-      <style>{`*{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:#333;border-radius:2px}button{cursor:pointer;font-family:inherit}a{color:inherit;text-decoration:none}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}`}</style>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:#333;border-radius:2px}button{cursor:pointer;font-family:inherit}a{color:inherit;text-decoration:none}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
       <ErrorBoundary>
 
       <nav style={{ position:"sticky",top:0,zIndex:200,background:BG1+"f0",backdropFilter:"blur(16px)",borderBottom:`1px solid ${BD1}`,padding:"0 24px",height:56,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,paddingTop:"env(safe-area-inset-top,0px)" }}>
@@ -129,34 +123,37 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
-        <div style={{ display:"flex",alignItems:"center",gap:12,flexShrink:0 }}>
-          <Link href="/globe" style={{ fontFamily:MONO,fontSize:11,color:AMBER,border:`1px solid ${AMBER}44`,padding:"4px 10px",borderRadius:7 }}>◉ GLOBE</Link>
-          <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-            <div style={{ width:7,height:7,borderRadius:"50%",background:GREEN,boxShadow:`0 0 6px ${GREEN}`,animation:"pulse 2s infinite" }} />
-            <span style={{ fontFamily:MONO,fontSize:11,color:GREEN }}>LIVE</span>
-          </div>
-          <span style={{ fontFamily:MONO,fontSize:11,color:T4 }}>{now}</span>
+        <div style={{ display:"flex",alignItems:"center",gap:10,flexShrink:0 }}>
+          <div style={{ width:7,height:7,borderRadius:"50%",background:GREEN,boxShadow:`0 0 6px ${GREEN}`,animation:"pulse 2s infinite" }} />
+          <span style={{ fontFamily:MONO,fontSize:11,color:GREEN }}>LIVE</span>
           <div style={{ fontFamily:MONO,fontSize:12,color:AMBER }}>{fmtB(spendVal)}</div>
-          <div style={{ fontFamily:MONO,fontSize:12,color:GREEN }}>{fmtK(empVal)}M</div>
-          <div style={{ fontFamily:MONO,fontSize:12,color:Number(rate30)>7?RED:T3 }}>{Number(rate30).toFixed(2)}% 30yr</div>
         </div>
       </nav>
 
-      <div style={{ background:BG2,borderBottom:`1px solid ${BD1}`,height:32,overflow:"hidden",display:"flex",alignItems:"center" }}>
-        <div style={{ fontFamily:MONO,fontSize:10,color:AMBER,padding:"0 12px",borderRight:`1px solid ${BD2}`,whiteSpace:"nowrap",height:"100%",display:"flex",alignItems:"center",flexShrink:0 }}>LIVE</div>
-        <div style={{ overflow:"hidden",flex:1 }}>
-          <div style={{ display:"inline-flex",animation:"ticker 60s linear infinite",whiteSpace:"nowrap",alignItems:"center" }}>
-            {(sigList.length>0?[...sigList,...sigList]:[{type:"BULLISH",title:"CSHI 72.4 — Sector Expanding"},{type:"WARNING",title:"Spend/Permit Divergence Detected"},{type:"BULLISH",title:"IIJA $584B Deployed — Highway Pace Accelerating"},{type:"BEARISH",title:"Copper -3.2% — Monitor Input Costs"}]).map((s: AnyData,i: number)=>(
-              <span key={i} style={{ fontFamily:SYS,fontSize:13,color:sentColor(s.type),padding:"0 20px",borderRight:`1px solid ${BD2}` }}>{s.title}</span>
-            ))}
-          </div>
-        </div>
-        <div style={{ fontFamily:MONO,fontSize:10,color:T4,padding:"0 12px",flexShrink:0 }}>CSHI <span style={{ color:cshiScore>=70?GREEN:cshiScore>=50?AMBER:RED }}>{cshiScore.toFixed(1)}</span></div>
-      </div>
-
       <div style={{ maxWidth:1400,margin:"0 auto",padding:"0 24px 80px" }}>
-        <CommandSection cshi={cshi} foreData={fore} corrSpend={corrSpend} spendVal={spendVal} spendMom={spendMom} spendSpark={spendSpark} empVal={empVal} empMom={empMom} empSpark={empSpark} permitSpark={permitSpark} houstSpark={houstSpark} sigCount={sigList.length} />
+
+        {/* 1 — KPI row */}
+        <section style={{ paddingTop:32 }}>
+          <KpiRow spendVal={spendVal} spendMom={spendMom} spendSpark={spendSpark} empVal={empVal} empMom={empMom} empSpark={empSpark} permitSpark={permitSpark} houstSpark={houstSpark} sigCount={sigList.length} loading={spend===null && employ===null} />
+        </section>
+
+        {/* 2 — Forecast hero */}
         <HeroForecast fore={fore} foreAccuracy={foreAccuracy} foreMAPE={foreMAPE} />
+
+        {/* 3 — Weekly brief excerpt */}
+        {briefHeadline && (
+          <section style={{ paddingTop:24, paddingBottom:8 }}>
+            <div style={{ background:BG1, borderRadius:20, border:`1px solid ${BD1}`, padding:"20px 28px", display:"flex", gap:16, alignItems:"flex-start" }}>
+              <div style={{ fontFamily:MONO, fontSize:10, color:AMBER, letterSpacing:"0.1em", whiteSpace:"nowrap", paddingTop:2 }}>BRIEF</div>
+              <div style={{ fontFamily:SYS, fontSize:15, color:T1, lineHeight:1.65 }}>{briefHeadline}</div>
+            </div>
+          </section>
+        )}
+
+        {/* 4 — Command / CSHI */}
+        <CommandSection cshi={cshi} foreData={fore} corrSpend={corrSpend} />
+
+        {/* 5+ — Supporting sections */}
         <GeographicSection states={states} selState={selState} onSelState={setSelState} mapToggle={mapToggle} onToggleChange={setMapToggle} loading={mapD===null} />
         <MaterialsSection commodities={commodities} procurementValue={procurementValue} heatmapData={heatmapData} corrMaterials={corrMaterials} corrSpend={corrSpend} loading={prices===null} />
         <PipelineSection pipeline={pipeline} />

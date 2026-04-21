@@ -9,7 +9,7 @@ const BLUE  = color.blue
 const BD1   = color.bd1, BD2 = color.bd2
 const T4    = color.t4
 
-export function ForecastChart({ foreData, width = 620, height = 360 }: {
+export function ForecastChart({ foreData, width = 620, height = 480 }: {
   foreData: ForecastData | null; width?: number; height?: number
 }) {
   if (!foreData) return (

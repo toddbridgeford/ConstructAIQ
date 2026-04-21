@@ -3,7 +3,6 @@ import { CSHIGauge }      from "../components/CSHIGauge"
 import { CSHIHistory }    from "../components/CSHIHistory"
 import { ForecastBanner } from "../components/ForecastBanner"
 import { SectionHeader }  from "../components/SectionHeader"
-import { KpiRow }         from "./KpiRow"
 import { color } from "@/lib/theme"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,21 +15,12 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 }
 
 interface CommandSectionProps {
-  cshi:        AnyData | null
-  foreData:    AnyData | null
-  corrSpend:   { date: string; value: number }[]
-  spendVal:    number
-  spendMom:    number
-  spendSpark:  number[]
-  empVal:      number
-  empMom:      number
-  empSpark:    number[]
-  permitSpark: number[]
-  houstSpark:  number[]
-  sigCount:    number
+  cshi:      AnyData | null
+  foreData:  AnyData | null
+  corrSpend: { date: string; value: number }[]
 }
 
-export function CommandSection({ cshi, foreData, corrSpend, spendVal, spendMom, spendSpark, empVal, empMom, empSpark, permitSpark, houstSpark, sigCount }: CommandSectionProps) {
+export function CommandSection({ cshi, foreData, corrSpend }: CommandSectionProps) {
   const score     = cshi?.score          ?? 72.4
   const change    = cshi?.weeklyChange   ?? 1.3
   const cls       = cshi?.classification ?? "EXPANDING"
@@ -40,7 +30,7 @@ export function CommandSection({ cshi, foreData, corrSpend, spendVal, spendMom, 
 
   return (
     <section id="command" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="01" title="Sector Command Center" subtitle="The pulse of the entire US construction sector" live />
+      <SectionHeader sectionId="04" title="Sector Command Center" subtitle="The pulse of the entire US construction sector" live />
 
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
         <Card style={{ flex:"0 0 auto", minWidth:300 }}>
@@ -50,13 +40,6 @@ export function CommandSection({ cshi, foreData, corrSpend, spendVal, spendMom, 
           {cshi ? <CSHIHistory data={history} /> : <div style={SKEL} />}
         </Card>
       </div>
-
-      <KpiRow
-        spendVal={spendVal} spendMom={spendMom} spendSpark={spendSpark}
-        empVal={empVal}     empMom={empMom}     empSpark={empSpark}
-        permitSpark={permitSpark} houstSpark={houstSpark}
-        sigCount={sigCount} loading={false}
-      />
 
       <Card>
         <ForecastBanner foreData={foreData} spendHistory={corrSpend.slice(0, 24)} />
