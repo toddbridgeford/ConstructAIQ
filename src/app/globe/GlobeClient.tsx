@@ -2,9 +2,10 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
+import { font } from "@/lib/theme"
 
-var SYS  = "-apple-system,BlinkMacSystemFont,'SF Pro Display',Arial,sans-serif"
-var MONO = "ui-monospace,'SF Mono','Cascadia Code',Consolas,monospace"
+var SYS  = font.sys
+var MONO = font.mono
 var AMBER="#f5a623",GREEN="#30d158",RED="#ff453a",BLUE="#0a84ff",CYAN="#64d2ff"
 var BD1="rgba(255,255,255,0.1)"
 
