@@ -28,14 +28,14 @@ export function EquitiesSection({ equities, sectorRange, onSectorRangeChange }: 
       <SectionHeader sectionId="07" title="Market Signals & Equities" badge="EQUITIES" live onExportCSV={() => {}} />
 
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
-        <Card style={{ flex:"3 1 500px" }}>
+        <Card style={{ flex:"3 1 500px", minWidth:0 }}>
           <SectorChart
             data={equities?.sectorHistory ?? []}
             timeRange={sectorRange}
             onTimeRangeChange={onSectorRangeChange}
           />
         </Card>
-        <Card style={{ flex:"1 1 260px" }}>
+        <Card style={{ flex:"1 1 260px", minWidth:0 }}>
           <ETFMonitor etfs={equities?.etfs ?? []} />
         </Card>
       </div>

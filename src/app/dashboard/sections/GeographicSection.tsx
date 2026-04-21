@@ -39,12 +39,12 @@ export function GeographicSection({ states, selState, onSelState, mapToggle, onT
         <div style={{ height:440, borderRadius:16, background:BG2, animation:"pulse 1.5s infinite", marginBottom:20 }} />
       ) : (
         <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
-          <Card style={{ flex:"2 1 480px" }}>
+          <Card style={{ flex:"2 1 480px", minWidth:0 }}>
             <div style={{ fontFamily:MONO, fontSize:11, color:T4, letterSpacing:"0.1em", marginBottom:14 }}>50-STATE CONSTRUCTION ACTIVITY</div>
             <StateMap states={states} onStateClick={onSelState} selectedState={selState} />
           </Card>
           {selState && (
-            <div style={{ flex:"0 0 360px" }}>
+            <div style={{ flex:"1 1 300px", minWidth:0, maxWidth:360 }}>
               <StateDrillDown stateCode={selState} states={states} onClose={() => onSelState(null)} />
             </div>
           )}

@@ -54,7 +54,7 @@ export function ForecastChart({ foreData, scenarioLine }: {
         return (
           <button key={s.id} onClick={() => switchSeries(s.id)}
             style={{
-              padding:"6px 18px", borderRadius:99,
+              padding:"6px 18px", borderRadius:99, minHeight:44,
               border:`1px solid ${on ? AMBER : BD1}`,
               background: on ? AMBER + "18" : "transparent",
               fontFamily:SYS, fontSize:13, letterSpacing:"-0.01em",
@@ -175,7 +175,7 @@ export function ForecastChart({ foreData, scenarioLine }: {
     <div style={{ opacity: fetching ? 0.65 : 1, transition: "opacity 0.2s" }}>
       {seriesBar}
 
-      <svg width="100%" viewBox={`0 0 ${VW} ${VH}`} style={{ overflow:"visible", display:"block" }}>
+      <svg width="100%" viewBox={`0 0 ${VW} ${VH}`} style={{ overflow:"hidden", display:"block" }}>
         <defs>
           <linearGradient id="fg-hist-grad" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%"   stopColor={AMBER} stopOpacity="0.5" />
@@ -226,11 +226,11 @@ export function ForecastChart({ foreData, scenarioLine }: {
           <circle cx={lastFcstX} cy={lastFcstBase} r={4.5} fill={BLUE} />
         )}
 
-        {/* Delta annotation */}
+        {/* Delta annotation — anchored left of endpoint to stay within viewBox */}
         {deltaVal !== null && fcstPts.length > 0 && (
-          <text x={lastFcstX + 8} y={lastFcstBase - 6}
+          <text x={lastFcstX - 8} y={lastFcstBase - 6}
                 fill={deltaVal >= 0 ? GREEN : color.red}
-                fontSize="11" fontFamily={MONO} fontWeight="600">
+                fontSize="11" fontFamily={MONO} fontWeight="600" textAnchor="end">
             {deltaVal >= 0 ? "+" : ""}{deltaVal.toFixed(1)}%
           </text>
         )}

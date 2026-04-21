@@ -44,11 +44,11 @@ export function PipelineSection({ pipeline }: PipelineSectionProps) {
       </Card>
 
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
-        <div style={{ flex:"1 1 300px", minWidth:280 }}>
+        <div style={{ flex:"1 1 300px", minWidth:0 }}>
           <CascadeAlerts alerts={pipeline?.alerts ?? DEFAULT_ALERTS} />
         </div>
         <GateLock locked={false} requiredPlan="Starter" featureName="Predictive Overlay">
-          <Card style={{ flex:"2 1 400px", height:"100%" }}>
+          <Card style={{ flex:"2 1 400px", minWidth:0, height:"100%" }}>
             <PredictiveOverlay />
           </Card>
         </GateLock>

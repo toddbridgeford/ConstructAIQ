@@ -60,7 +60,7 @@ export function MaterialsSection({ commodities, procurementValue, heatmapData, c
           <ProcurementIndex value={procurementValue} />
         </Card>
         <GateLock locked={false} requiredPlan="Starter" featureName="Materials Heatmap">
-          <Card style={{ flex:"2 1 400px" }}>
+          <Card style={{ flex:"2 1 400px", minWidth:0 }}>
             <MaterialsHeatmap data={heatmapData} />
           </Card>
         </GateLock>

@@ -26,11 +26,11 @@ export function SignalsSection({ signals, brief }: SignalsSectionProps) {
       <SectionHeader sectionId="08" title="Signal Intelligence Feed" badge="AI-POWERED" live onExportCSV={() => {}} />
 
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
-        <div style={{ flex:"1 1 320px" }}>
+        <div style={{ flex:"1 1 320px", minWidth:0 }}>
           <AnomalyFeed alerts={signals?.anomalies ?? []} />
         </div>
         <GateLock locked={false} requiredPlan="Starter" featureName="Divergence Detector">
-          <div style={{ flex:"1 1 320px" }}>
+          <div style={{ flex:"1 1 320px", minWidth:0 }}>
             <DivergenceDetector pairs={signals?.divergences ?? []} />
           </div>
         </GateLock>
