@@ -78,10 +78,29 @@ function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })
 }
 
-// Synthetic 12-pt sparklines for KPI cards
-function spark(base: number, variance: number): number[] {
-  let v = base
-  return Array.from({ length: 12 }, () => { v = v + (Math.random() - 0.5) * variance; return Math.round(v * 100) / 100 })
+// Deterministic sparklines from real observations.
+// FRED obs have {date, value} sorted asc by date after .sort(); BLS obs have {year, period, value}.
+function fredSpark(obs: AnyData[] | undefined, n = 12, fallback = 0): number[] {
+  const vals = (obs ?? [])
+    .slice()
+    .sort((a: AnyData, b: AnyData) => (a.date as string).localeCompare(b.date as string))
+    .slice(-n)
+    .map((o: AnyData) => parseFloat(o.value))
+    .filter((v: number) => !isNaN(v))
+  if (vals.length === 0) return Array(n).fill(fallback)
+  while (vals.length < n) vals.unshift(vals[0])
+  return vals
+}
+function blsSpark(data: AnyData[] | undefined, n = 12, fallback = 0): number[] {
+  const vals = (data ?? [])
+    .slice()
+    .sort((a: AnyData, b: AnyData) => `${a.year}${a.period}`.localeCompare(`${b.year}${b.period}`))
+    .slice(-n)
+    .map((o: AnyData) => parseFloat(o.value))
+    .filter((v: number) => !isNaN(v))
+  if (vals.length === 0) return Array(n).fill(fallback)
+  while (vals.length < n) vals.unshift(vals[0])
+  return vals
 }
 
 // ── CARD: section wrapper ──────────────────────────────────────────────────
@@ -127,6 +146,7 @@ export default function Dashboard() {
   // Section 8
   const [signals, setSignals]  = useState<AnyData>(null)
   const [brief,   setBrief]    = useState<AnyData>(null)
+  const [fredD,   setFredD]    = useState<AnyData>(null)
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date().toLocaleTimeString("en-US",{hour12:false})), 1000)
@@ -139,7 +159,7 @@ export default function Dashboard() {
       async function safe(url: string) {
         try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
       }
-      const [cshiD, spendD, employD, foreD, mapData, pricesD, ratesD, pipeD, fedD, eqD, sigsD, briefD] =
+      const [cshiD, spendD, employD, foreD, mapData, pricesD, ratesD, pipeD, fedD, eqD, sigsD, briefD, fredData] =
         await Promise.all([
           safe("/api/cshi"),
           safe("/api/census"),
@@ -153,6 +173,7 @@ export default function Dashboard() {
           safe("/api/equities"),
           safe("/api/signals"),
           safe("/api/weekly-brief"),
+          safe("/api/fred"),
         ])
       if (cshiD)    setCshi(cshiD)
       if (spendD)   setSpend(spendD)
@@ -166,6 +187,7 @@ export default function Dashboard() {
       if (eqD)      setEquities(eqD)
       if (sigsD)    setSignals(sigsD)
       if (briefD)   setBrief(briefD)
+      if (fredData) setFredD(fredData)
     }
     load()
   }, [])
@@ -196,19 +218,43 @@ export default function Dashboard() {
 
   const rate30 = rates?.mortgage30 ?? rates?.data?.MORTGAGE30US?.value ?? 6.85
 
-  // Heatmap data from commodities
+  // Sparklines from real observations — flat-line fallback when no data, never random
+  const spendSpark  = fredSpark(spend?.observations, 12, spendVal / 1000)
+  const permitSpark = fredSpark(fredD?.series?.PERMIT?.observations, 12, 1482)
+  const houstSpark  = fredSpark(fredD?.series?.HOUST?.observations, 12, 1394)
+  const empSpark    = blsSpark(employ?.data?.Results?.series?.[0]?.data, 12, empVal / 1000)
+
+  // Heatmap: real latest value + real MoM from pricewatch — never random
   const heatmapData = commodities.slice(0,6).map((c: AnyData) => ({
     commodity: c.name,
     months: Array.from({length:12},(_,i) => ({
       month: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i],
-      value: c.value + (Math.random()-0.5)*c.value*0.05,
-      pctChange: (Math.random()-0.48)*8,
+      value: c.value,
+      pctChange: c.mom || 0,
     })),
   }))
 
-  // Correlation data (synthetic if no real data)
-  const corrMaterials = Array.from({length:24},(_,i) => ({ date:`2024-${String(i%12+1).padStart(2,"0")}-01`, value: 280+i*2+(Math.random()-0.5)*15 }))
-  const corrSpend     = Array.from({length:24},(_,i) => ({ date:`2024-${String(i%12+1).padStart(2,"0")}-01`, value: 2100+i*4+(Math.random()-0.5)*20 }))
+  // corrSpend: real TTLCONS observations (census API, 24 months chronological)
+  const corrSpend: {date: string; value: number}[] = spend?.observations
+    ? spend.observations
+        .slice()
+        .sort((a: AnyData, b: AnyData) => (a.date as string).localeCompare(b.date as string))
+        .slice(-24)
+        .map((o: AnyData, i: number) => ({
+          date: (o.date as string) || `2024-${String(i % 12 + 1).padStart(2, "0")}-01`,
+          value: parseFloat(o.value) || 2100 + i * 4,
+        }))
+    : Array.from({length:24}, (_,i) => ({
+        date: `2024-${String(i % 12 + 1).padStart(2, "0")}-01`,
+        value: 2100 + i * 4,
+      }))
+
+  // corrMaterials: WPS081 not in current routes — deterministic static fallback
+  const corrMaterials: {date: string; value: number}[] =
+    Array.from({length:24}, (_,i) => ({
+      date: `2024-${String(i % 12 + 1).padStart(2, "0")}-01`,
+      value: 280 + i * 2,
+    }))
 
   return (
     <div style={{ minHeight:"100vh", background:BG0, color:T1, fontFamily:SYS }}>
@@ -298,12 +344,12 @@ export default function Dashboard() {
 
           {/* KPI Cards Row */}
           <div style={{ display:"flex", gap:14, flexWrap:"wrap", marginBottom:20 }}>
-            <KPICard label="Total Construction Spend" value={fmtB(spendVal)}   mom={spendMom} yoy={3.4}  sparkData={spark(spendVal/1000,40)} color={AMBER} icon="🏗️" />
-            <KPICard label="Permit Volume (units)"    value="1,482K/yr"        mom={2.8}      yoy={-4.2} sparkData={spark(1482,30)}         color={BLUE}  icon="📋" />
-            <KPICard label="Permit Value ($)"          value="$48.2B"          mom={3.1}      yoy={1.8}  sparkData={spark(48,2)}             color={BLUE}  icon="💰" />
-            <KPICard label="Construction Employment"   value={`${fmtK(empVal)}M`} mom={empMom} yoy={2.1} sparkData={spark(empVal/1000,0.05)} color={GREEN} icon="👷" />
-            <KPICard label="Materials Cost Index"      value="318.4"           mom={1.2}      yoy={6.8}  sparkData={spark(318,8)}            color={RED}   icon="💹" />
-            <KPICard label="Active AI Signals"         value={String(sigList.length || 6)} mom={0} sparkData={spark(6,1)} color={T2} icon="📡" />
+            <KPICard label="Total Construction Spend" value={fmtB(spendVal)}   mom={spendMom} yoy={3.4}  sparkData={spendSpark}  color={AMBER} icon="🏗️" />
+            <KPICard label="Permit Volume (units)"    value="1,482K/yr"        mom={2.8}      yoy={-4.2} sparkData={permitSpark} color={BLUE}  icon="📋" />
+            <KPICard label="Permit Value ($)"          value="$48.2B"          mom={3.1}      yoy={1.8}  sparkData={houstSpark}  color={BLUE}  icon="💰" />
+            <KPICard label="Construction Employment"   value={`${fmtK(empVal)}M`} mom={empMom} yoy={2.1} sparkData={empSpark}    color={GREEN} icon="👷" />
+            <KPICard label="Materials Cost Index"      value="318.4"           mom={1.2}      yoy={6.8}  sparkData={Array(12).fill(318)}                    color={RED}   icon="💹" />
+            <KPICard label="Active AI Signals"         value={String(sigList.length || 6)} mom={0} sparkData={Array(12).fill(sigList.length || 6)} color={T2} icon="📡" />
           </div>
 
           {/* Forecast Banner */}
@@ -366,18 +412,18 @@ export default function Dashboard() {
           {/* Commodity Signal Cards */}
           <div style={{ display:"flex", gap:14, flexWrap:"wrap", marginBottom:20 }}>
             {(commodities.length > 0 ? commodities : [
-              { name:"Lumber",   icon:"🌲", value:421.8, unit:"PPI", signal:"BUY",  mom7d:-1.2, mom30d:-3.7, mom90d:-8.4, sparkData:spark(421,12) },
-              { name:"Steel",    icon:"🔩", value:318.4, unit:"PPI", signal:"SELL", mom7d:2.8,  mom30d:4.1,  mom90d:8.4,  sparkData:spark(318,8)  },
-              { name:"Concrete", icon:"🧱", value:284.6, unit:"PPI", signal:"HOLD", mom7d:0.4,  mom30d:1.2,  mom90d:4.8,  sparkData:spark(284,6)  },
-              { name:"Copper",   icon:"🔶", value:9842,  unit:"$/t", signal:"SELL", mom7d:4.5,  mom30d:7.2,  mom90d:12.4, sparkData:spark(9842,200)},
-              { name:"WTI Crude",icon:"🛢️", value:74.8,  unit:"$/bbl",signal:"HOLD",mom7d:-1.8,mom30d:-3.2, mom90d:-6.4, sparkData:spark(74.8,3) },
-              { name:"Diesel",   icon:"⛽", value:3.84,  unit:"$/gal",signal:"HOLD",mom7d:-0.6,mom30d:-1.4, mom90d:2.8,  sparkData:spark(3.84,0.1)},
+              { name:"Lumber",   icon:"🌲", value:421.8, unit:"PPI", signal:"BUY",  mom7d:-1.2, mom30d:-3.7, mom90d:-8.4, sparkData:Array(12).fill(421.8) },
+              { name:"Steel",    icon:"🔩", value:318.4, unit:"PPI", signal:"SELL", mom7d:2.8,  mom30d:4.1,  mom90d:8.4,  sparkData:Array(12).fill(318.4) },
+              { name:"Concrete", icon:"🧱", value:284.6, unit:"PPI", signal:"HOLD", mom7d:0.4,  mom30d:1.2,  mom90d:4.8,  sparkData:Array(12).fill(284.6) },
+              { name:"Copper",   icon:"🔶", value:9842,  unit:"$/t", signal:"SELL", mom7d:4.5,  mom30d:7.2,  mom90d:12.4, sparkData:Array(12).fill(9842)  },
+              { name:"WTI Crude",icon:"🛢️", value:74.8,  unit:"$/bbl",signal:"HOLD",mom7d:-1.8,mom30d:-3.2, mom90d:-6.4, sparkData:Array(12).fill(74.8)  },
+              { name:"Diesel",   icon:"⛽", value:3.84,  unit:"$/gal",signal:"HOLD",mom7d:-0.6,mom30d:-1.4, mom90d:2.8,  sparkData:Array(12).fill(3.84)  },
             ]).slice(0,6).map((c: AnyData, i: number) => (
               <div key={i} style={{ flex:"1 1 160px", minWidth:150 }}>
                 <CommoditySignalCard
                   name={c.name} icon={c.icon||"📦"} value={c.value} unit={c.unit||"PPI"}
                   signal={c.signal||"HOLD"} mom7d={c.mom7d||c.mom||0} mom30d={c.mom30d||0} mom90d={c.mom90d||c.yoy||0}
-                  sparkData={c.sparkData||spark(c.value,c.value*0.02)}
+                  sparkData={c.sparkData || Array(12).fill(c.value)}
                 />
               </div>
             ))}
