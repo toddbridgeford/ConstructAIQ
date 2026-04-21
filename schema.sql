@@ -258,6 +258,23 @@ CREATE INDEX IF NOT EXISTS idx_forecast_log_run_at
     ON forecast_log (run_at DESC);
 
 
+-- ---------------------------------------------------------------------------
+-- Table: federal_cache
+-- 24-hour response cache for USASpending.gov API calls.  One row per cache key.
+-- The cron job at /api/cron/federal refreshes this daily.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS federal_cache (
+    key       TEXT        PRIMARY KEY,
+    data_json JSONB       NOT NULL,
+    cached_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE  federal_cache           IS '24-hour cache for USASpending.gov API responses, keyed by query fingerprint.';
+COMMENT ON COLUMN federal_cache.key       IS 'Unique cache key (e.g. federal_geo_fy2025).';
+COMMENT ON COLUMN federal_cache.data_json IS 'Full API result stored as JSONB (state allocation array).';
+COMMENT ON COLUMN federal_cache.cached_at IS 'Timestamp when this entry was written; used for TTL checks.';
+
+
 -- =============================================================================
 -- Row-Level Security (RLS)
 --
@@ -272,14 +289,15 @@ CREATE INDEX IF NOT EXISTS idx_forecast_log_run_at
 -- =============================================================================
 
 -- Enable RLS on every table
-ALTER TABLE series       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE observations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE forecasts    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE api_keys     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE signals      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE subscribers  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE harvest_log  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE forecast_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE series         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE observations   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forecasts      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE api_keys       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE signals        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscribers    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE harvest_log    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forecast_log   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE federal_cache  ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for market data tables (anon can read, not write)
 CREATE POLICY IF NOT EXISTS "anon_read_series"
@@ -322,3 +340,6 @@ CREATE POLICY IF NOT EXISTS "service_all_harvest_log"
 
 CREATE POLICY IF NOT EXISTS "service_all_forecast_log"
     ON forecast_log FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_federal_cache"
+    ON federal_cache FOR ALL TO service_role USING (true) WITH CHECK (true);
