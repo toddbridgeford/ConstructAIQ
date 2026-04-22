@@ -107,6 +107,12 @@ function selectDataSources(question: string): string[] {
   if (q.includes('state') || q.includes('region') || q.includes('map') || q.includes('geographic') || q.includes('msa') || q.includes('city'))
     sources.push('/api/map')
 
+  if (q.includes('permit') || q.includes('city') || q.includes('local') ||
+      q.includes('phoenix') || q.includes('dallas') || q.includes('austin') ||
+      q.includes('chicago') || q.includes('houston') || q.includes('nyc') ||
+      q.includes('new york') || q.includes('los angeles'))
+    sources.push('/api/permits')
+
   if (q.includes('satellite') || q.includes('ground') || q.includes('bsi') || q.includes('activity') || q.includes('site'))
     sources.push('/api/satellite')
 

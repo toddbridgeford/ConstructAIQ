@@ -16,6 +16,7 @@ import { FederalSection }    from "./sections/FederalSection"
 import { EquitiesSection }   from "./sections/EquitiesSection"
 import { SignalsSection }    from "./sections/SignalsSection"
 import { SatelliteSection }  from "./sections/SatelliteSection"
+import { PermitsSection }    from "./sections/PermitsSection"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -36,6 +37,7 @@ const NAV_SECTIONS = [
   { id: "forecast",  label: "Forecast"  },
   { id: "command",   label: "Command"   },
   { id: "map",       label: "Map"       },
+  { id: "permits",   label: "Permits"   },
   { id: "materials", label: "Materials" },
   { id: "pipeline",  label: "Pipeline"  },
   { id: "federal",   label: "Federal"   },
@@ -64,6 +66,7 @@ export default function Dashboard() {
   const [signals,     setSignals]     = useState<AnyData>(null)
   const [brief,       setBrief]       = useState<AnyData>(null)
   const [satellite,   setSatellite]   = useState<AnyData>(null)
+  const [permits,     setPermits]     = useState<AnyData>(null)
   const [warn,        setWarn]        = useState<AnyData>(null)
   const [obsMap,      setObsMap]      = useState<Record<string, { date: string; value: number }[]>>({})
 
@@ -80,7 +83,7 @@ export default function Dashboard() {
         cshiD, spendD, employD, foreD, mapData,
         pricesD, pipeD, fedD, eqD, sigsD, briefD, satD,
         ttl12, ces12, houst12, permit12, ttl24, wps24,
-        warnD,
+        warnD, permitsD,
       ] = await Promise.all([
         safe("/api/cshi"),
         safe("/api/census"),
@@ -101,6 +104,7 @@ export default function Dashboard() {
         safe("/api/obs?series=TTLCONS&n=24"),
         safe("/api/obs?series=WPS081&n=24"),
         safe("/api/warn"),
+        safe("/api/permits"),
       ])
 
       if (cshiD)   setCshi(cshiD)
@@ -115,7 +119,8 @@ export default function Dashboard() {
       if (sigsD)   setSignals(sigsD)
       if (briefD)  setBrief(briefD)
       if (satD)    setSatellite(satD)
-      if (warnD)   setWarn(warnD)
+      if (warnD)    setWarn(warnD)
+      if (permitsD) setPermits(permitsD)
 
       setObsMap({
         TTLCONS_12:        ttl12?.obs    ?? [],
@@ -268,7 +273,12 @@ export default function Dashboard() {
             />
           </ErrorBoundary>
 
-          {/* 6 — Materials */}
+          {/* 6 — City Permits */}
+          <ErrorBoundary fallback={<SectionFallback title="City Permits" />}>
+            <PermitsSection data={permits} />
+          </ErrorBoundary>
+
+          {/* 7 — Materials */}
           <ErrorBoundary fallback={<SectionFallback title="Materials Intelligence" />}>
             <MaterialsSection
               commodities={commodities}
