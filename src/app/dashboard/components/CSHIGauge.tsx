@@ -13,7 +13,7 @@ interface CSHIGaugeProps {
 
 function zoneColor(val: number): string {
   if (val < 30) return color.red
-  if (val < 50) return "#ff9500"
+  if (val < 50) return color.orange
   if (val < 70) return color.amber
   return color.green
 }
@@ -35,7 +35,7 @@ const START = -Math.PI, END = 0
 // Zone boundaries mapped to angles
 const ZONES = [
   { from: 0,  to: 30,  fill: color.red },
-  { from: 30, to: 50,  fill: "#ff9500" },
+  { from: 30, to: 50,  fill: color.orange },
   { from: 50, to: 70,  fill: color.amber },
   { from: 70, to: 100, fill: color.green },
 ]

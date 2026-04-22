@@ -8,6 +8,7 @@ import { RecessionGauge }  from "../components/RecessionGauge"
 import { CycleClock }      from "../components/CycleClock"
 import { SectionHeader }   from "../components/SectionHeader"
 import { BottomSheet }     from "@/app/components/BottomSheet"
+import { Skeleton }       from "@/app/components/Skeleton"
 import { color, font } from "@/lib/theme"
 import type { ForecastData } from "../types"
 
@@ -41,7 +42,6 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
     return () => mq.removeEventListener("change", handler)
   }, [])
 
-  const SKEL: React.CSSProperties = { height:200, borderRadius:16, background:BG2, animation:"pulse 1.5s infinite" }
   const lastHistVal: number = fore?.history?.[fore.history.length - 1] ?? 2190
 
   return (
@@ -96,7 +96,7 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
       {/* Supporting metrics */}
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
         <Card style={{ flex:"2 1 360px", minWidth:0 }}>
-          {fore ? <ModelAccuracy accuracy={foreAccuracy} mape={foreMAPE} /> : <div style={SKEL} />}
+          {fore ? <ModelAccuracy accuracy={foreAccuracy} mape={foreMAPE} /> : <Skeleton height={200} />}
         </Card>
         <Card style={{ flex:"1 1 200px", minWidth:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:24 }}>
           <ConfidenceRing value={91} label="Model Agreement" />

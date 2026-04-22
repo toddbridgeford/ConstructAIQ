@@ -14,9 +14,9 @@ interface TopStatesChartProps {
 
 function signalBarColor(signal: string, yoyChange: number): string {
   if (signal === "HOT" || yoyChange > 10) return color.green
-  if (signal === "GROWING" || yoyChange >= 3) return "#86efac"
+  if (signal === "GROWING" || yoyChange >= 3) return color.greenLight
   if (signal === "NEUTRAL") return color.amber
-  if (signal === "COOLING") return "#ff9500"
+  if (signal === "COOLING") return color.orange
   if (signal === "DECLINING" || yoyChange < -10) return color.red
   return color.t4
 }
@@ -112,9 +112,9 @@ export function TopStatesChart({ states, toggle, onToggleChange }: TopStatesChar
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 10 }}>
         {[
           { label: "HOT", fill: color.green },
-          { label: "GROWING", fill: "#86efac" },
+          { label: "GROWING", fill: color.greenLight },
           { label: "NEUTRAL", fill: color.amber },
-          { label: "COOLING", fill: "#ff9500" },
+          { label: "COOLING", fill: color.orange },
           { label: "DECLINING", fill: color.red },
         ].map(l => (
           <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>

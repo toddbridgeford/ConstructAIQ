@@ -15,7 +15,7 @@ const MONO = font.mono, T4 = color.t4
 
 const StateMap = dynamic(
   () => import("../components/StateMap").then(m => ({ default: m.StateMap })),
-  { ssr: false, loading: () => <div style={{ height:380, display:"flex", alignItems:"center", justifyContent:"center", color:T4, fontFamily:MONO, fontSize:12 }}>Loading map…</div> }
+  { ssr: false, loading: () => <Skeleton height={380} borderRadius={16} /> }
 )
 
 function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {

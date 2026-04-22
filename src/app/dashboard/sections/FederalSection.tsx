@@ -5,6 +5,7 @@ import { FederalLeaderboard } from "../components/FederalLeaderboard"
 import { FederalStateTable }  from "../components/FederalStateTable"
 import { GateLock }           from "../components/GateLock"
 import { SectionHeader }      from "../components/SectionHeader"
+import { Skeleton }           from "@/app/components/Skeleton"
 import { color } from "@/lib/theme"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,6 +22,12 @@ interface FederalSectionProps {
 }
 
 export function FederalSection({ federal }: FederalSectionProps) {
+  if (!federal) return (
+    <section id="federal" style={{ paddingTop:48, paddingBottom:8 }}>
+      <SectionHeader sectionId="06" title="Federal Infrastructure Tracker" badge="IIJA · IRA" live onExportCSV={() => {}} />
+      <Skeleton height={300} borderRadius={20} />
+    </section>
+  )
   return (
     <section id="federal" style={{ paddingTop:48, paddingBottom:8 }}>
       <SectionHeader sectionId="06" title="Federal Infrastructure Tracker" badge="IIJA · IRA" live onExportCSV={() => {}} />

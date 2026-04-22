@@ -4,6 +4,7 @@ import { DivergenceDetector } from "../components/DivergenceDetector"
 import { WeeklyBrief }        from "../components/WeeklyBrief"
 import { GateLock }           from "../components/GateLock"
 import { SectionHeader }      from "../components/SectionHeader"
+import { Skeleton }           from "@/app/components/Skeleton"
 import { color } from "@/lib/theme"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,6 +22,12 @@ interface SignalsSectionProps {
 }
 
 export function SignalsSection({ signals, brief }: SignalsSectionProps) {
+  if (!signals) return (
+    <section id="signals" style={{ paddingTop:48, paddingBottom:8 }}>
+      <SectionHeader sectionId="08" title="Signal Intelligence Feed" badge="AI-POWERED" live onExportCSV={() => {}} />
+      <Skeleton height={200} borderRadius={20} />
+    </section>
+  )
   return (
     <section id="signals" style={{ paddingTop:48, paddingBottom:8 }}>
       <SectionHeader sectionId="08" title="Signal Intelligence Feed" badge="AI-POWERED" live onExportCSV={() => {}} />

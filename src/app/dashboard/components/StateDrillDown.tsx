@@ -15,10 +15,10 @@ interface StateDrillDownProps {
 }
 
 function signalColorFg(signal: string): string {
-  if (signal === "HOT") return "#1a7f37"
+  if (signal === "HOT") return color.greenMuted
   if (signal === "GROWING") return color.green
   if (signal === "NEUTRAL") return color.amber
-  if (signal === "COOLING") return "#ff9500"
+  if (signal === "COOLING") return color.orange
   if (signal === "DECLINING") return color.red
   return color.t4
 }
