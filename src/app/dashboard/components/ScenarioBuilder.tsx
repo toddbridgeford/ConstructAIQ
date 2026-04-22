@@ -112,7 +112,7 @@ export function ScenarioBuilder({ spendVal = 2190, foreData, onScenarioChange }:
             return (
               <button key={p.label} onClick={() => applyPreset(p, i)}
                 style={{
-                  padding:"12px 16px", borderRadius:12,
+                  padding:"12px 16px", borderRadius:12, minHeight:44,
                   border:`1px solid ${on ? accent : BD2}`,
                   background: on ? accent + "18" : BG3,
                   fontFamily:SYS, fontSize:14, fontWeight: on ? 700 : 500,

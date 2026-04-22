@@ -70,7 +70,8 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   /* Nav */
   .nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 500;
-    height: 64px; display: flex; align-items: center; padding: 0 48px;
+    min-height: 64px; display: flex; align-items: center; padding: 0 48px;
+    padding-top: env(safe-area-inset-top, 0px);
     transition: background 0.35s, backdrop-filter 0.35s, border-color 0.35s;
   }
   .nav.on {
@@ -141,7 +142,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 
   /* Mobile menu */
   .mob-menu {
-    display: none; position: fixed; top: 64px; left: 0; right: 0; z-index: 490;
+    display: none; position: fixed; top: calc(64px + env(safe-area-inset-top, 0px)); left: 0; right: 0; z-index: 490;
     background: rgba(6,6,8,0.97); backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-bottom: 1px solid rgba(255,255,255,0.07);
@@ -327,7 +328,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   }
   @media (max-width: 480px) {
     .nav { padding: 0 20px; height: 56px; padding-top: env(safe-area-inset-top,0); }
-    .mob-menu { top: calc(56px + env(safe-area-inset-top,0)); }
+    .mob-menu { top: calc(56px + env(safe-area-inset-top, 0px)); }
     .hero { padding: 108px 20px 80px; }
     .hero-h1 { font-size: 42px; letter-spacing: -0.035em; }
     .hero-sub { font-size: 16px; max-width: 300px; }

@@ -108,7 +108,7 @@ export default function Dashboard() {
           <div style={{ width:1,height:20,background:BD2 }} />
           <div style={{ display:"flex",alignItems:"center",gap:4,flexWrap:"wrap" }}>
             {NAV_SECTIONS.map(s=>(
-              <button key={s.id} onClick={()=>scrollTo(s.id)} style={{ background:"transparent",border:"none",fontFamily:SYS,fontSize:13,color:T3,padding:"4px 8px",borderRadius:6,minHeight:44 }} onMouseEnter={e=>(e.currentTarget.style.color=T1)} onMouseLeave={e=>(e.currentTarget.style.color=T3)}>{s.label}</button>
+              <button key={s.id} onClick={()=>scrollTo(s.id)} style={{ background:"transparent",border:"none",fontFamily:SYS,fontSize:13,color:T3,padding:"4px 8px",borderRadius:6,minHeight:44,minWidth:44 }} onMouseEnter={e=>(e.currentTarget.style.color=T1)} onMouseLeave={e=>(e.currentTarget.style.color=T3)}>{s.label}</button>
             ))}
           </div>
         </div>
