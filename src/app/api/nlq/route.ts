@@ -225,13 +225,17 @@ export async function POST(request: Request) {
       : 'Unable to generate answer.'
 
     // Log query non-blocking — never fail the request
-    supabaseAdmin.from('nlq_queries').insert({
-      question:    question.slice(0, 200),
-      answer_chars: answer.length,
-      sources_used: sources,
-      asked_at:    new Date().toISOString(),
-      ip_hash:     createHash('sha256').update(ip).digest('hex').slice(0, 16),
-    }).catch(() => {})
+    void (async () => {
+      try {
+        await supabaseAdmin.from('nlq_queries').insert({
+          question:    question.slice(0, 200),
+          answer_chars: answer.length,
+          sources_used: sources,
+          asked_at:    new Date().toISOString(),
+          ip_hash:     createHash('sha256').update(ip).digest('hex').slice(0, 16),
+        })
+      } catch { /* non-fatal */ }
+    })()
 
     return NextResponse.json({
       question,
