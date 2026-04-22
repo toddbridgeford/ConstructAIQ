@@ -53,11 +53,11 @@ const SYS  = font.sys
 const MONO = font.mono
 
 const DIST_COLORS = [
-  color.red,      // level 1 — most negative
-  "#e06c3a",      // level 2
-  color.t4,       // level 3 — neutral gray
-  "#3a9e6e",      // level 4
-  color.green,    // level 5 — most positive
+  color.red,         // level 1 — most negative
+  color.gradOrange,  // level 2
+  color.t4,          // level 3 — neutral gray
+  color.gradGreen,   // level 4
+  color.green,       // level 5 — most positive
 ]
 
 const MAT_LABELS: Record<string, string> = {

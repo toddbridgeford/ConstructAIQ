@@ -1,17 +1,29 @@
 "use client"
 import Image from "next/image"
 import Link from "next/link"
+import { Radio, Brain, Map, BarChart2, Building2, TrendingUp, type LucideIcon } from 'lucide-react'
+import { font, color } from '@/lib/theme'
+import { Nav } from '@/app/components/Nav'
 
-const SYS  = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-const MONO = "ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace"
-const AMBER = "#f5a623"
-const GREEN = "#30d158"
-const BG0 = "#000", BG1 = "#0d0d0d", BG2 = "#1a1a1a"
-const BD1 = "#2a2a2a"
-const T1 = "#fff", T2 = "#ebebf0", T3 = "#a0a0ab", T4 = "#6e6e73"
+const SYS  = font.sys
+const MONO = font.mono
+const AMBER = color.amber
+const GREEN = color.green
+const RED   = color.red
+const BLUE  = color.blue
+const BG0   = color.bg0
+const BG1   = color.bg1
+const BG2   = color.bg2
+const BG3   = color.bg3
+const BD1   = color.bd1
+const BD2   = color.bd2
+const T1    = color.t1
+const T2    = color.t2
+const T3    = color.t3
+const T4    = color.t4
 
 interface CapabilityCard {
-  icon: string
+  icon: LucideIcon
   title: string
   desc: string
 }
@@ -23,24 +35,34 @@ interface DataSource {
 
 const CAPABILITIES: CapabilityCard[] = [
   {
-    icon: "📡",
+    icon: Radio,
     title: "Signal Intelligence",
-    desc: "Z-score anomaly detection, trend reversals, divergence signals across 12 government data series.",
+    desc: "Z-score anomaly detection, trend reversals, divergence signals across 38+ government data series.",
   },
   {
-    icon: "🤖",
+    icon: Brain,
     title: "3-Model AI Ensemble",
     desc: "Holt-Winters + SARIMA + XGBoost accuracy-weighted ensemble. 12-month forecasts with 80% and 95% confidence intervals.",
   },
   {
-    icon: "🗺",
+    icon: Map,
     title: "50-State Coverage",
     desc: "State-level construction activity, permit trends, and regional GDP. HOT / GROWING / COOLING classification by state.",
   },
   {
-    icon: "💹",
+    icon: TrendingUp,
     title: "Materials Intelligence",
     desc: "Real-time BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI crude, and diesel.",
+  },
+  {
+    icon: Building2,
+    title: "Proprietary GC Survey",
+    desc: "Quarterly survey of general contractors across the US. Backlog, bid volume, subcontractor capacity, and labor availability — data you can't get from any government source.",
+  },
+  {
+    icon: BarChart2,
+    title: "Sentinel-2 Satellite Intelligence",
+    desc: "Ground activity signals derived from Sentinel-2 satellite imagery. Construction site activity verification independent of self-reported data.",
   },
 ]
 
@@ -88,6 +110,7 @@ const DATA_SOURCES: DataSource[] = [
 ]
 
 function CapCard({ card }: { card: CapabilityCard }) {
+  const Icon = card.icon
   return (
     <div style={{
       background: BG2,
@@ -97,7 +120,9 @@ function CapCard({ card }: { card: CapabilityCard }) {
       flex: "1 1 calc(50% - 12px)",
       minWidth: 260,
     }}>
-      <div style={{ fontSize: 32, marginBottom: 14 }}>{card.icon}</div>
+      <div style={{ marginBottom: 14 }}>
+        <Icon size={22} color={AMBER} />
+      </div>
       <div style={{ fontFamily: SYS, fontSize: 17, fontWeight: 600, color: T1, marginBottom: 10 }}>
         {card.title}
       </div>
@@ -137,40 +162,7 @@ export default function AboutPage() {
         button{outline:none;font-family:inherit;cursor:pointer;border:none}
       `}</style>
 
-      {/* NAV */}
-      <nav style={{
-        position: "sticky", top: 0, zIndex: 100,
-        background: BG1 + "ee", backdropFilter: "blur(12px)",
-        borderBottom: `1px solid ${BD1}`,
-        padding: "0 32px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", height: 60,
-        paddingTop: "env(safe-area-inset-top,0px)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href="/">
-            <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ" style={{ height: 24, width: "auto" }} />
-          </Link>
-          <div style={{ width: 1, height: 24, background: BD1 }} />
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>ABOUT</div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/dashboard">
-            <button style={{ background: "transparent", color: T3, fontFamily: MONO, fontSize: 13, padding: "8px 16px", borderRadius: 10, border: `1px solid ${BD1}`, minHeight: 44 }}>
-              DASHBOARD
-            </button>
-          </Link>
-          <Link href="/pricing">
-            <button style={{ background: "transparent", color: T3, fontFamily: MONO, fontSize: 13, padding: "8px 16px", borderRadius: 10, border: `1px solid ${BD1}`, minHeight: 44 }}>
-              PRICING
-            </button>
-          </Link>
-          <Link href="/">
-            <button style={{ background: "transparent", color: T4, fontFamily: SYS, fontSize: 14, padding: "8px 16px", borderRadius: 10, border: "none", minHeight: 44 }}>
-              ← Home
-            </button>
-          </Link>
-        </div>
-      </nav>
+      <Nav />
 
       <div style={{ maxWidth: 1060, margin: "0 auto", padding: "72px 32px 80px" }}>
 
@@ -197,7 +189,7 @@ export default function AboutPage() {
             fontFamily: SYS, fontSize: 18, color: T3,
             lineHeight: 1.7, maxWidth: 600, margin: "0 auto",
           }}>
-            We aggregate 16 government and industry data sources, apply a 3-model AI ensemble, and translate the output into signals that help institutional investors, federal agencies, and industry leaders make faster, better decisions.
+            ConstructAIQ is the free construction intelligence platform. 38+ live data sources. 12-month AI ensemble forecast. Proprietary GC survey. Satellite ground signal intelligence. Given freely to the industry.
           </p>
         </div>
 
@@ -214,7 +206,7 @@ export default function AboutPage() {
             fontFamily: SYS, fontSize: 17, color: T2,
             lineHeight: 1.8, maxWidth: 780,
           }}>
-            ConstructAIQ was built to give the people who move capital — not concrete — the clearest possible view of where the construction sector is heading. We aggregate 16 government and industry data sources, apply a 3-model AI ensemble, and translate the output into signals that help institutional investors, federal agencies, and industry leaders make faster, better decisions.
+            ConstructAIQ is the free construction intelligence platform. 38+ live data sources. 12-month AI ensemble forecast. Proprietary GC survey. Satellite ground signal intelligence. Given freely to the industry.
           </p>
         </div>
 
@@ -224,7 +216,7 @@ export default function AboutPage() {
             THE PLATFORM
           </div>
           <h2 style={{ fontFamily: SYS, fontSize: 28, fontWeight: 700, color: T1, marginBottom: 28, letterSpacing: "-0.01em" }}>
-            Four Pillars of Construction Intelligence
+            Six Pillars of Construction Intelligence
           </h2>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
             {CAPABILITIES.map((card) => (
@@ -268,14 +260,14 @@ export default function AboutPage() {
                   background: "#3d280022", border: `1px solid ${AMBER}44`,
                   borderRadius: 6, padding: "3px 10px", letterSpacing: "0.08em",
                 }}>
-                  FOUNDER & CEO
+                  FOUNDER &amp; CEO
                 </div>
               </div>
               <p style={{
                 fontFamily: SYS, fontSize: 15, color: T3, lineHeight: 1.7,
                 maxWidth: 640,
               }}>
-                Construction industry veteran turned data entrepreneur. Built ConstructAIQ to bring institutional-grade intelligence to the sector that moves 13% of US GDP.
+                Construction industry veteran turned data entrepreneur. Built ConstructAIQ to bring institutional-grade intelligence to the sector that moves 13% of US GDP — and gave it away for free.
               </p>
             </div>
           </div>
@@ -319,8 +311,8 @@ export default function AboutPage() {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
             {[
               { label: "Data Refresh", value: "Every 4 hours", note: "Core series updated at 06:00, 10:00, 14:00, 18:00 ET daily" },
-              { label: "Historical Depth", value: "Back to 2000", note: "Full 25-year archive available on Institutional and Enterprise plans" },
-              { label: "Data Sources", value: "10 official sources", note: "All U.S. government and recognized industry publishers — no scraped or unverified data" },
+              { label: "Historical Depth", value: "Back to 2000", note: "Full 25-year archive available via the free API" },
+              { label: "Data Sources", value: "38+ official sources", note: "All U.S. government and recognized industry publishers — no scraped or unverified data" },
               { label: "Forecast Model", value: "3-model ensemble", note: "Holt-Winters + SARIMA + XGBoost, accuracy-weighted, 12-month horizon" },
               { label: "Uptime SLA", value: "99.9% — Enterprise", note: "SLA documentation available for procurement review upon request" },
               { label: "Data Privacy", value: "No resale", note: "User data and usage patterns are never shared with or sold to third parties" },
@@ -379,7 +371,7 @@ export default function AboutPage() {
           </div>
           <Link href="/dashboard">
             <button style={{
-              background: AMBER, color: "#000",
+              background: AMBER, color: BG0,
               fontFamily: MONO, fontSize: 15, fontWeight: 700,
               padding: "16px 40px", borderRadius: 14,
               letterSpacing: "0.06em", minHeight: 52,
@@ -388,9 +380,9 @@ export default function AboutPage() {
             </button>
           </Link>
           <div style={{ marginTop: 16 }}>
-            <Link href="/pricing" style={{ fontFamily: SYS, fontSize: 14, color: T4, textDecoration: "underline" }}>
-              View pricing plans
-            </Link>
+            <div style={{ fontFamily: SYS, fontSize: 14, color: T4 }}>
+              Free forever. No credit card. Open API.
+            </div>
           </div>
         </div>
       </div>

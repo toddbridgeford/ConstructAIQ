@@ -34,7 +34,7 @@ interface Program {
 function bg(dark: boolean)   { return dark ? color.bg0 : "#fff" }
 function fg(dark: boolean)   { return dark ? color.t1  : "#111" }
 function sub(dark: boolean)  { return dark ? color.t3  : "#555" }
-function bd(dark: boolean)   { return dark ? color.bd1 : "#e5e5e5" }
+function bd(dark: boolean)   { return dark ? color.bd1 : color.lightBd }
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
@@ -42,7 +42,7 @@ function Skeleton({ height, dark }: { height: number; dark: boolean }) {
   return (
     <div style={{
       width: "100%", height,
-      background: dark ? color.bg2 : "#f0f0f0",
+      background: dark ? color.bg2 : color.lightBgSkel,
       borderRadius: 8,
       animation: "pulse 1.4s ease-in-out infinite",
     }} />
@@ -169,8 +169,8 @@ function SignalsEmbed({ dark }: { dark: boolean }) {
             const bgC = isAnomaly ? color.redDim : isReversal ? color.amberDim : color.blueDim
             return (
               <div key={i} style={{
-                background: dark ? color.bg2 : "#f8f8f8",
-                border: `1px solid ${dark ? color.bd1 : "#e5e5e5"}`,
+                background: dark ? color.bg2 : color.lightBg,
+                border: `1px solid ${dark ? color.bd1 : color.lightBd}`,
                 borderRadius: 10, padding: "12px 16px",
                 display: "flex", gap: 12, alignItems: "flex-start",
               }}>
@@ -255,7 +255,7 @@ function MaterialsEmbed({ dark }: { dark: boolean }) {
       }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: dark ? color.bg3 : "#f5f5f5" }}>
+            <tr style={{ background: dark ? color.bg3 : color.lightBgSub }}>
               {["Material", "MoM", "Signal"].map(h => (
                 <th key={h} style={{
                   fontFamily: MONO, fontSize: 10, color: dark ? color.t4 : "#888",
@@ -272,7 +272,7 @@ function MaterialsEmbed({ dark }: { dark: boolean }) {
               <tr key={c.id} style={{
                 background: i % 2 === 0
                   ? (dark ? color.bg2 : "#fff")
-                  : (dark ? color.bg1 : "#fafafa"),
+                  : (dark ? color.bg1 : color.lightBgAlt),
                 borderTop: `1px solid ${bd(dark)}`,
               }}>
                 <td style={{

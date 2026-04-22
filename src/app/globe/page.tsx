@@ -1,7 +1,7 @@
 "use client"
 import dynamic from 'next/dynamic'
 import { ErrorBoundary } from '../dashboard/components/ErrorBoundary'
-import { font } from '@/lib/theme'
+import { font, color } from '@/lib/theme'
 
 const GlobeClient = dynamic(
   () => import('./GlobeClient'),
@@ -15,7 +15,7 @@ const GlobeClient = dynamic(
       }}>
         <div style={{
           fontFamily: font.mono,
-          fontSize:"13px", color:"#f5a623", marginBottom:"16px",
+          fontSize:"13px", color: color.amber, marginBottom:"16px",
         }}>
           ◉ INITIALIZING GEOINTEL SYSTEM
         </div>

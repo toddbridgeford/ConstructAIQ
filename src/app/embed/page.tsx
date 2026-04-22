@@ -30,7 +30,7 @@ type Theme   = "dark" | "light"
 function CompactPreview() {
   return (
     <div style={{
-      background: "#1a1a1a", border: "1px solid #383838", borderRadius: 8,
+      background: BG2, border: "1px solid #383838", borderRadius: 8,
       padding: "12px 16px", fontFamily: MONO, width: 280,
     }}>
       <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
@@ -40,7 +40,7 @@ function CompactPreview() {
       <div style={{ fontSize: 12, color: "#fff", marginBottom: 5 }}>
         SECTOR HEALTH: 72.4 — EXPANDING
       </div>
-      <div style={{ fontSize: 9, color: "#6e6e73" }}>
+      <div style={{ fontSize: 9, color: T4 }}>
         Updated 4hrs ago ·{" "}
         <span style={{ color: AMBER }}>constructaiq.trade →</span>
       </div>
@@ -51,7 +51,7 @@ function CompactPreview() {
 function StandardPreview() {
   return (
     <div style={{
-      background: "#1a1a1a", border: "1px solid #383838", borderRadius: 8,
+      background: BG2, border: "1px solid #383838", borderRadius: 8,
       padding: 16, fontFamily: MONO, width: 280,
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -87,7 +87,7 @@ function StandardPreview() {
 function FullPreview() {
   return (
     <div style={{
-      background: "#1a1a1a", border: "1px solid #383838", borderRadius: 8,
+      background: BG2, border: "1px solid #383838", borderRadius: 8,
       padding: 16, fontFamily: MONO, width: 280,
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -96,7 +96,7 @@ function FullPreview() {
       </div>
       {/* Top states */}
       <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 9, color: "#6e6e73", marginBottom: 4, letterSpacing: "0.08em" }}>TOP MARKETS</div>
+        <div style={{ fontSize: 9, color: T4, marginBottom: 4, letterSpacing: "0.08em" }}>TOP MARKETS</div>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
           {["TX", "FL", "AZ"].map(s => (
             <span key={s} style={{
@@ -108,7 +108,7 @@ function FullPreview() {
       </div>
       {/* CSHI */}
       <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 9, color: "#6e6e73", marginBottom: 2, letterSpacing: "0.08em" }}>SECTOR HEALTH INDEX</div>
+        <div style={{ fontSize: 9, color: T4, marginBottom: 2, letterSpacing: "0.08em" }}>SECTOR HEALTH INDEX</div>
         <span style={{ fontSize: 24, color: AMBER, fontWeight: 700 }}>72.4</span>
         <span style={{ fontSize: 12, color: GREEN, marginLeft: 6 }}>▲ EXPANDING</span>
       </div>
@@ -127,7 +127,7 @@ function FullPreview() {
       </div>
       {/* Forecast */}
       <div style={{ borderTop: "1px solid #383838", paddingTop: 8, marginBottom: 10 }}>
-        <div style={{ fontSize: 9, color: "#6e6e73", marginBottom: 2, letterSpacing: "0.08em" }}>12-MO FORECAST</div>
+        <div style={{ fontSize: 9, color: T4, marginBottom: 2, letterSpacing: "0.08em" }}>12-MO FORECAST</div>
         <div style={{ fontSize: 16, color: GREEN, fontWeight: 700 }}>+4.2% 12mo forecast</div>
       </div>
       <div style={{

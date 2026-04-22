@@ -2,6 +2,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { font, color } from "@/lib/theme"
+import { Nav } from "@/app/components/Nav"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -78,43 +79,7 @@ export default function GovernmentPage() {
         button:hover{opacity:0.85}
       `}</style>
 
-      {/* NAV */}
-      <nav style={{
-        position: "sticky", top: 0, zIndex: 100,
-        background: BG1 + "ee", backdropFilter: "blur(12px)",
-        borderBottom: `1px solid ${BD1}`,
-        padding: "0 32px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", height: 60,
-        paddingTop: "env(safe-area-inset-top,0px)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href="/">
-            <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ" style={{ height: 24, width: "auto" }} />
-          </Link>
-          <div style={{ width: 1, height: 24, background: BD1 }} />
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>GOVERNMENT</div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {[
-            { label: "Intelligence", href: "/dashboard" },
-            { label: "Research",     href: "/research" },
-            { label: "Pricing",      href: "/pricing" },
-            { label: "About",        href: "/about" },
-            { label: "Contact",      href: "/contact" },
-          ].map(({ label, href }) => (
-            <Link key={label} href={href}>
-              <button style={{ background: "transparent", color: T3, fontFamily: SYS, fontSize: 14, padding: "8px 12px", borderRadius: 8, border: "none", minHeight: 44 }}>
-                {label}
-              </button>
-            </Link>
-          ))}
-          <Link href="/dashboard">
-            <button style={{ background: AMBER, color: "#000", fontFamily: MONO, fontSize: 13, fontWeight: 700, padding: "8px 18px", borderRadius: 10, letterSpacing: "0.06em", minHeight: 44 }}>
-              DASHBOARD →
-            </button>
-          </Link>
-        </div>
-      </nav>
+      <Nav />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "72px 32px 80px" }}>
 
@@ -169,6 +134,44 @@ export default function GovernmentPage() {
               </button>
             </Link>
           </div>
+        </div>
+
+        {/* ── FEDERAL PIPELINE FEED ── */}
+        <div style={{
+          background: color.bg1,
+          border: `1px solid ${color.bd1}`,
+          borderLeft: `4px solid ${color.blue}`,
+          borderRadius: 16,
+          padding: "28px 32px",
+          marginBottom: 48,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 20,
+        }}>
+          <div>
+            <div style={{ fontFamily: MONO, fontSize: 11, color: color.blue, letterSpacing: "0.12em", marginBottom: 8 }}>
+              LIVE DATA
+            </div>
+            <div style={{ fontFamily: SYS, fontSize: 22, fontWeight: 700, color: T1, marginBottom: 8, letterSpacing: "-0.01em" }}>
+              Federal Pipeline Feed
+            </div>
+            <div style={{ fontFamily: SYS, fontSize: 14, color: T3, lineHeight: 1.6, maxWidth: 480 }}>
+              Track active IIJA and IRA program execution, SAM.gov construction solicitations (NAICS 236/237/238), agency spending velocity, and contractor leaderboard — all updated daily from USASpending.gov.
+            </div>
+          </div>
+          <Link href="/federal">
+            <button style={{
+              background: color.blue, color: T1,
+              fontFamily: MONO, fontSize: 13, fontWeight: 700,
+              padding: "12px 24px", borderRadius: 10,
+              letterSpacing: "0.05em", minHeight: 46,
+              border: "none", cursor: "pointer",
+            }}>
+              View Federal Pipeline Feed →
+            </button>
+          </Link>
         </div>
 
         {/* ── USE CASES ── */}

@@ -2,13 +2,25 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
+import { font, color } from '@/lib/theme'
+import { Nav } from '@/app/components/Nav'
 
-const SYS  = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-const MONO = "ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace"
-const AMBER = "#f5a623", GREEN = "#30d158", RED = "#ff453a"
-const BG0 = "#000", BG1 = "#0d0d0d", BG2 = "#1a1a1a"
-const BD1 = "#2a2a2a", BD2 = "#383838"
-const T1 = "#fff", T3 = "#a0a0ab", T4 = "#6e6e73"
+const SYS  = font.sys
+const MONO = font.mono
+const AMBER = color.amber
+const GREEN = color.green
+const RED   = color.red
+const BLUE  = color.blue
+const BG0   = color.bg0
+const BG1   = color.bg1
+const BG2   = color.bg2
+const BG3   = color.bg3
+const BD1   = color.bd1
+const BD2   = color.bd2
+const T1    = color.t1
+const T2    = color.t2
+const T3    = color.t3
+const T4    = color.t4
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -73,34 +85,7 @@ export default function ContactPage() {
         }
       `}</style>
 
-      {/* NAV */}
-      <nav style={{
-        position: "sticky", top: 0, zIndex: 100,
-        background: BG1 + "ee", backdropFilter: "blur(12px)",
-        borderBottom: `1px solid ${BD1}`,
-        padding: "0 32px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", height: 60,
-        paddingTop: "env(safe-area-inset-top,0px)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href="/">
-            <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ" style={{ height: 24, width: "auto" }} />
-          </Link>
-          <div style={{ width: 1, height: 24, background: BD1 }} />
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>CONTACT</div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/">
-            <button style={{ background: "transparent", color: T3, fontFamily: MONO, fontSize: 13, padding: "8px 16px", borderRadius: 10, border: `1px solid ${BD1}`, minHeight: 44 }}>HOME</button>
-          </Link>
-          <Link href="/dashboard">
-            <button style={{ background: "transparent", color: T3, fontFamily: MONO, fontSize: 13, padding: "8px 16px", borderRadius: 10, border: `1px solid ${BD1}`, minHeight: 44 }}>DASHBOARD</button>
-          </Link>
-          <Link href="/pricing">
-            <button style={{ background: "transparent", color: T3, fontFamily: MONO, fontSize: 13, padding: "8px 16px", borderRadius: 10, border: `1px solid ${BD1}`, minHeight: 44 }}>PRICING</button>
-          </Link>
-        </div>
-      </nav>
+      <Nav />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "72px 32px 80px" }}>
 
@@ -243,7 +228,7 @@ export default function ContactPage() {
                   style={{
                     width: "100%",
                     background: AMBER,
-                    color: "#000",
+                    color: BG0,
                     fontFamily: MONO,
                     fontSize: 14,
                     fontWeight: 700,
