@@ -80,15 +80,59 @@ function normaliseQuarter(q: string): string {
   return q
 }
 
-// ─── route ────────────────────────────────────────────────────────────────────
+// ─── shared auth helper ───────────────────────────────────────────────────────
 
-export async function POST(request: Request) {
-  // ── Auth ──────────────────────────────────────────────────────────────────
+function authorized(request: Request): boolean {
   const authHeader = request.headers.get('authorization') ?? ''
   const token = authHeader.replace(/^Bearer\s+/i, '')
   const cronSecret = process.env.CRON_SECRET ?? ''
+  return Boolean(cronSecret && token === cronSecret)
+}
 
-  if (!cronSecret || token !== cronSecret) {
+// ─── GET — Vercel cron entry point ────────────────────────────────────────────
+// Cron fires at noon on the 21st of Jan/Apr/Jul/Oct.
+// Auto-resolves the most-recently closed period that hasn't been published yet.
+
+export async function GET(request: Request) {
+  if (!authorized(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    // Find the most recently closed period that has no published results
+    const { data: period, error: pErr } = await supabaseAdmin
+      .from('survey_periods')
+      .select('quarter')
+      .is('published_at', null)
+      .order('closes_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (pErr || !period) {
+      return NextResponse.json({ message: 'No unpublished periods found — nothing to aggregate' })
+    }
+
+    // Delegate to the POST handler by synthesising a fake request
+    const synthetic = new Request(request.url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: request.headers.get('authorization') ?? '' },
+      body: JSON.stringify({ quarter: period.quarter }),
+    })
+    return POST(synthetic)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (msg.includes('supabaseUrl') || msg.includes('required')) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 503 })
+    }
+    console.error('[/api/survey/aggregate GET]', err)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+  }
+}
+
+// ─── POST — direct / manual invocation ───────────────────────────────────────
+
+export async function POST(request: Request) {
+  if (!authorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
