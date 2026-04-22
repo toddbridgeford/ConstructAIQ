@@ -20,16 +20,18 @@ function generateKey(): { key: string; prefix: string; hash: string } {
 }
 
 export async function POST(request: Request) {
-  // Require CRON_SECRET (admin token) to issue keys programmatically
   const adminToken = process.env.CRON_SECRET
   const authHeader = request.headers.get('authorization')
-  if (!adminToken || authHeader !== `Bearer ${adminToken}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const isAdmin    = !!adminToken && authHeader === `Bearer ${adminToken}`
 
   try {
     const body  = await request.json()
     const { email, plan = 'free', name = '' } = body
+
+    // Unauthenticated callers may only self-serve the free plan
+    if (!isAdmin && plan !== 'free') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     if (!email || !email.includes('@')) {
       return NextResponse.json({ error: 'Valid email required' }, { status: 400 })
@@ -83,8 +85,9 @@ export async function POST(request: Request) {
         requestsPerMinute: planConfig.rpm,
         requestsPerDay:    planConfig.rpd,
       },
+      message:    'Store this key securely. It is shown once.',
       endpoints:  'https://constructaiq.trade/api/*',
-      docs:       'https://docs.constructaiq.trade',
+      docs:       'https://constructaiq.trade/api-access',
       warning:    'Store this key securely. It will not be shown again.',
     }, { status: 201 })
 

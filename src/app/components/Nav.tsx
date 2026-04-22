@@ -8,13 +8,14 @@ const MONO  = font.mono
 const GREEN = color.green
 
 const NAV_LINKS = [
-  { label: "Intelligence",      href: "/dashboard" },
-  { label: "Federal Pipeline",  href: "/federal"   },
-  { label: "Globe",             href: "/globe"     },
-  { label: "Markets",           href: "/markets"   },
-  { label: "Tools",             href: "/market-check" },
-  { label: "Pricing",           href: "/pricing"   },
-  { label: "About",             href: "/about"     },
+  { label: "Intelligence",     href: "/dashboard"  },
+  { label: "Federal Pipeline", href: "/federal"    },
+  { label: "Globe",            href: "/globe"      },
+  { label: "Markets",          href: "/markets"    },
+  { label: "Tools",            href: "/market-check" },
+  { label: "API",              href: "/api-access" },
+  { label: "Pricing",          href: "/pricing"    },
+  { label: "About",            href: "/about"      },
 ]
 
 export function Nav() {
