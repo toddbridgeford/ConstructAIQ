@@ -198,6 +198,11 @@ export function Nav({ transparent = false, ctaLabel = "Dashboard →", ctaHref =
                 {surveyLabel}
               </Link>
             )}
+            <Link href="/survey/about" onClick={() => setMenuOpen(false)}
+              style={{ fontFamily: SYS, fontSize: 14, color: color.t4, padding: "8px 0", borderBottom: `1px solid ${color.bd1}` }}
+            >
+              About the Survey
+            </Link>
             <div style={{ paddingTop: 12 }}>
               <Link href={ctaHref} onClick={() => setMenuOpen(false)}>
                 <button style={{

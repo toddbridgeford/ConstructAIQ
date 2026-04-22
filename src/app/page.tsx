@@ -709,7 +709,7 @@ export default function HomePage() {
         <Image src="/ConstructAIQWhiteLogo.svg" width={100} height={20} alt="ConstructAIQ"
                style={{ height: 18, width: "auto" }} />
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          {[...NAV_LINKS, { label: "Contact", href: "/contact" }].map(({ label, href }) => (
+          {[...NAV_LINKS, { label: "Survey", href: "/survey/about" }, { label: "Contact", href: "/contact" }].map(({ label, href }) => (
             <Link key={label} href={href} style={{ fontSize: 13, color: T4 }}>{label}</Link>
           ))}
         </div>
