@@ -258,6 +258,71 @@ CREATE INDEX IF NOT EXISTS idx_forecast_log_run_at
     ON forecast_log (run_at DESC);
 
 
+-- ---------------------------------------------------------------------------
+-- Table: survey_periods
+-- Tracks quarterly GC survey windows.  One row per survey cycle.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS survey_periods (
+    id          BIGSERIAL   PRIMARY KEY,
+    quarter     TEXT        NOT NULL UNIQUE,  -- e.g. 'Q2 2025'
+    opens_at    TIMESTAMPTZ NOT NULL,
+    closes_at   TIMESTAMPTZ NOT NULL,
+    is_active   BOOLEAN     NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE  survey_periods             IS 'Quarterly GC survey windows — one row per survey cycle.';
+COMMENT ON COLUMN survey_periods.quarter     IS 'Human-readable quarter label, e.g. Q2 2025.';
+COMMENT ON COLUMN survey_periods.opens_at    IS 'Timestamp when submissions open.';
+COMMENT ON COLUMN survey_periods.closes_at   IS 'Timestamp when submissions close.';
+COMMENT ON COLUMN survey_periods.is_active   IS 'TRUE for the currently open survey period.';
+
+-- Seed the current period (idempotent)
+INSERT INTO survey_periods (quarter, opens_at, closes_at, is_active)
+VALUES ('Q2 2025', '2025-04-01 00:00:00+00', '2025-05-21 23:59:59+00', TRUE)
+ON CONFLICT (quarter) DO NOTHING;
+
+
+-- ---------------------------------------------------------------------------
+-- Table: survey_responses
+-- One row per respondent per period.  Email is never stored — only a
+-- SHA-256 hash is persisted to detect duplicate submissions.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS survey_responses (
+    id                   BIGSERIAL   PRIMARY KEY,
+    period_id            BIGINT      NOT NULL REFERENCES survey_periods (id) ON DELETE CASCADE,
+    email_hash           TEXT        NOT NULL,  -- SHA-256(lowercase(trimmed(email)))
+
+    -- Respondent profile
+    revenue_band         TEXT,   -- 'under_5m' | '5_25m' | '25_100m' | '100_500m' | 'over_500m'
+    work_type            TEXT,   -- 'residential' | 'commercial' | 'industrial' | 'infrastructure' | 'specialty' | 'mixed'
+    region               TEXT,   -- 'northeast' | 'southeast' | 'midwest' | 'southwest' | 'west' | 'national'
+    years_band           TEXT,   -- 'under_5' | '5_15' | '15_30' | 'over_30'
+
+    -- Q1–Q5 answers
+    backlog_outlook      INTEGER CHECK (backlog_outlook BETWEEN 1 AND 5),
+    margin_outlook       INTEGER CHECK (margin_outlook BETWEEN 1 AND 5),
+    labor_availability   INTEGER CHECK (labor_availability BETWEEN 1 AND 5),
+    material_concern     TEXT,   -- 'none' | 'lumber' | 'steel' | 'concrete' | 'copper' | 'fuel' | 'other'
+    market_outlook       INTEGER CHECK (market_outlook BETWEEN 1 AND 5),
+
+    -- Optional open-text
+    comments             TEXT,
+
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT survey_responses_period_email_unique UNIQUE (period_id, email_hash)
+);
+
+COMMENT ON TABLE  survey_responses                   IS 'GC survey responses — one row per respondent per quarter.';
+COMMENT ON COLUMN survey_responses.email_hash        IS 'SHA-256 of the lowercased, trimmed email — never the email itself.';
+COMMENT ON COLUMN survey_responses.revenue_band      IS 'Respondent annual revenue bracket.';
+COMMENT ON COLUMN survey_responses.material_concern  IS 'Primary material cost concern: none, lumber, steel, concrete, copper, fuel, or other.';
+
+CREATE INDEX IF NOT EXISTS idx_survey_responses_period
+    ON survey_responses (period_id, created_at DESC);
+
+
 -- =============================================================================
 -- Row-Level Security (RLS)
 --
@@ -272,14 +337,16 @@ CREATE INDEX IF NOT EXISTS idx_forecast_log_run_at
 -- =============================================================================
 
 -- Enable RLS on every table
-ALTER TABLE series       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE observations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE forecasts    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE api_keys     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE signals      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE subscribers  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE harvest_log  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE forecast_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE series            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE observations      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forecasts         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE api_keys          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE signals           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscribers       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE harvest_log       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forecast_log      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE survey_periods    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE survey_responses  ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for market data tables (anon can read, not write)
 CREATE POLICY IF NOT EXISTS "anon_read_series"
@@ -293,6 +360,10 @@ CREATE POLICY IF NOT EXISTS "anon_read_forecasts"
 
 CREATE POLICY IF NOT EXISTS "anon_read_signals"
     ON signals FOR SELECT TO anon USING (true);
+
+-- Survey: anon can read periods (to display quarter info) but not individual responses
+CREATE POLICY IF NOT EXISTS "anon_read_survey_periods"
+    ON survey_periods FOR SELECT TO anon USING (true);
 
 -- api_keys: no anon access — service_role only (bypasses RLS by default in Supabase)
 -- subscribers, harvest_log, forecast_log: service_role only (no anon policies = no access)
@@ -322,3 +393,9 @@ CREATE POLICY IF NOT EXISTS "service_all_harvest_log"
 
 CREATE POLICY IF NOT EXISTS "service_all_forecast_log"
     ON forecast_log FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_survey_periods"
+    ON survey_periods FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_survey_responses"
+    ON survey_responses FOR ALL TO service_role USING (true) WITH CHECK (true);
