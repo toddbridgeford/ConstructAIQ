@@ -32,12 +32,15 @@ import { FederalPrograms }    from "./components/FederalPrograms"
 import { AgencyVelocity }     from "./components/AgencyVelocity"
 import { FederalLeaderboard } from "./components/FederalLeaderboard"
 import { FederalStateTable }  from "./components/FederalStateTable"
-// ── Section 7
+import { SolicitationsTable } from "./components/SolicitationsTable"
+// ── Section 7 — Satellite
+import { SatelliteSection } from "./sections/SatelliteSection"
+// ── Section 8
 import { SectorChart }    from "./components/SectorChart"
 import { EarningsCards }  from "./components/EarningsCards"
 import { SectorRotation } from "./components/SectorRotation"
 import { ETFMonitor }     from "./components/ETFMonitor"
-// ── Section 8
+// ── Section 9
 import { AnomalyFeed }        from "./components/AnomalyFeed"
 import { DivergenceDetector } from "./components/DivergenceDetector"
 import { WeeklyBrief }        from "./components/WeeklyBrief"
@@ -70,6 +73,7 @@ const NAV_SECTIONS = [
   { id: "materials", label: "Materials" },
   { id: "pipeline",  label: "Pipeline" },
   { id: "federal",   label: "Federal" },
+  { id: "satellite", label: "Satellite" },
   { id: "equities",  label: "Equities" },
   { id: "signals",   label: "Signals" },
 ]
@@ -122,6 +126,8 @@ export default function Dashboard() {
   // Section 6
   const [federal, setFederal] = useState<AnyData>(null)
   // Section 7
+  const [satellite, setSatellite] = useState<AnyData>(null)
+  // Section 8
   const [equities, setEquities] = useState<AnyData>(null)
   const [sectorRange, setSectorRange] = useState<"3M"|"6M"|"1Y"|"3Y">("1Y")
   // Section 8
@@ -139,7 +145,7 @@ export default function Dashboard() {
       async function safe(url: string) {
         try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
       }
-      const [cshiD, spendD, employD, foreD, mapData, pricesD, ratesD, pipeD, fedD, eqD, sigsD, briefD] =
+      const [cshiD, spendD, employD, foreD, mapData, pricesD, ratesD, pipeD, fedD, satD, eqD, sigsD, briefD] =
         await Promise.all([
           safe("/api/cshi"),
           safe("/api/census"),
@@ -150,6 +156,7 @@ export default function Dashboard() {
           safe("/api/rates"),
           safe("/api/pipeline"),
           safe("/api/federal"),
+          safe("/api/satellite"),
           safe("/api/equities"),
           safe("/api/signals"),
           safe("/api/weekly-brief"),
@@ -163,6 +170,7 @@ export default function Dashboard() {
       if (ratesD)   setRates(ratesD)
       if (pipeD)    setPipeline(pipeD)
       if (fedD)     setFederal(fedD)
+      if (satD)     setSatellite(satD)
       if (eqD)      setEquities(eqD)
       if (sigsD)    setSignals(sigsD)
       if (briefD)   setBrief(briefD)
@@ -498,14 +506,24 @@ export default function Dashboard() {
               <FederalStateTable stateAllocations={federal?.stateAllocations ?? []} />
             </Card>
           </GateLock>
+
+          {/* SAM.gov active solicitations */}
+          <Card style={{ marginTop: 20 }}>
+            <SolicitationsTable solicitations={federal?.solicitations ?? []} />
+          </Card>
         </Section>
 
         {/* ══════════════════════════════════════════════════════════════
-            SECTION 7 — MARKET SIGNALS & EQUITIES
+            SECTION 7 — GROUND SIGNAL INTELLIGENCE (SATELLITE BSI)
+        ═══════════════════════════════════════════════════════════════ */}
+        <SatelliteSection data={satellite} />
+
+        {/* ══════════════════════════════════════════════════════════════
+            SECTION 8 — MARKET SIGNALS & EQUITIES
         ═══════════════════════════════════════════════════════════════ */}
         <Section id="equities">
           <SectionHeader
-            sectionId="07"
+            sectionId="08"
             title="Market Signals & Equities"
             badge="EQUITIES"
             live
@@ -542,11 +560,11 @@ export default function Dashboard() {
         </Section>
 
         {/* ══════════════════════════════════════════════════════════════
-            SECTION 8 — SIGNAL INTELLIGENCE FEED
+            SECTION 9 — SIGNAL INTELLIGENCE FEED
         ═══════════════════════════════════════════════════════════════ */}
         <Section id="signals">
           <SectionHeader
-            sectionId="08"
+            sectionId="09"
             title="Signal Intelligence Feed"
             badge="AI-POWERED"
             live

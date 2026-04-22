@@ -142,12 +142,13 @@ function ForecastPreview({ currentValue, liveHist, liveFcast, forecastPct }: {
 }
 
 const NAV_LINKS = [
-  { label: "Intelligence", href: "/dashboard"    },
-  { label: "Globe",        href: "/globe"        },
-  { label: "Markets",      href: "/markets"      },
-  { label: "Tools",        href: "/market-check" },
-  { label: "Pricing",      href: "/pricing"      },
-  { label: "About",        href: "/about"        },
+  { label: "Intelligence",  href: "/dashboard"      },
+  { label: "Ground Signal", href: "/ground-signal"  },
+  { label: "Globe",         href: "/globe"          },
+  { label: "Markets",       href: "/markets"        },
+  { label: "Tools",         href: "/market-check"   },
+  { label: "Pricing",       href: "/pricing"        },
+  { label: "About",         href: "/about"          },
 ]
 
 const SOURCES = ["Census Bureau", "BLS", "FRED / Fed Reserve", "BEA", "EIA", "USASpending.gov"]
