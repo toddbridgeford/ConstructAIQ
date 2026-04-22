@@ -104,8 +104,6 @@ export async function GET(request: Request) {
       }
     }
 
-    console.log(`[/api/survey/invite] ${period.quarter}: sent=${sent}, skipped=${alreadyResponded}, total=${allSubscribers.length}`)
-
     return NextResponse.json({
       sent,
       already_responded: alreadyResponded,
