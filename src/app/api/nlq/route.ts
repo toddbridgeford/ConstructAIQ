@@ -94,6 +94,10 @@ function selectDataSources(question: string): string[] {
   if (q.includes('material') || q.includes('lumber') || q.includes('steel') || q.includes('cost') || q.includes('price') || q.includes('concrete') || q.includes('copper'))
     sources.push('/api/pricewatch')
 
+  if (q.includes('cost') || q.includes('estimate') || q.includes('sqft') || q.includes('square foot') ||
+      q.includes('build') || q.includes('how much') || q.includes('expensive') || q.includes('budget') || q.includes('price per'))
+    sources.push('/api/cost-benchmark?type=office&sqft=100000&msa=national', '/api/pricewatch')
+
   if (q.includes('federal') || q.includes('iija') || q.includes('government') || q.includes('contract') || q.includes('award') || q.includes('infrastructure') || q.includes('ira'))
     sources.push('/api/federal')
 

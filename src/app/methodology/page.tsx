@@ -464,6 +464,74 @@ export default function MethodologyPage() {
           </div>
         </section>
 
+        {/* ── SECTION: Cost Benchmarking Methodology ── */}
+        <section style={{ marginBottom: 64 }}>
+          <SectionLabel label="COST BENCHMARKING" />
+          <h2 style={sectionH2}>Construction Cost Benchmarking Methodology</h2>
+          <p style={bodyP}>
+            Cost estimates are computed using BLS Producer Price Index readings for six input
+            categories (lumber, steel, concrete, copper wire, diesel, and labor) weighted by their
+            typical share of total project cost for each building type. The January 2020 baseline
+            was calibrated against RSMeans published cost ranges for that period. Regional adjustments
+            reflect BLS Occupational Employment and Wage Statistics (OEWS) for construction occupations
+            by Census region.
+          </p>
+          <p style={{ ...bodyP, marginTop: 14 }}>
+            These are market intelligence estimates, not project budgets. Always verify with a licensed
+            estimator before committing capital.
+          </p>
+
+          <div style={{
+            border: `1px solid ${color.bd1}`,
+            borderRadius: radius.lg,
+            overflow: "hidden",
+            marginTop: 24,
+          }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${color.bd1}` }}>
+                  {["Input", "BLS Series", "Weight Range", "Source"].map(h => (
+                    <th key={h} style={{
+                      padding: "10px 14px", fontFamily: MONO, fontSize: 9,
+                      color: color.t4, fontWeight: 600, letterSpacing: "0.1em",
+                      textAlign: "left", background: color.bg1,
+                    }}>{h.toUpperCase()}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["Lumber & Wood",      "WPU0811",  "3–20%",  "BLS PPI"],
+                  ["Steel Mill Products","WPU101",   "10–35%", "BLS PPI"],
+                  ["Ready-Mix Concrete", "WPU132",   "15–22%", "BLS PPI"],
+                  ["Copper Wire",        "WPU1021",  "5–15%",  "BLS PPI"],
+                  ["Diesel Fuel",        "WPU0561",  "5–10%",  "BLS PPI"],
+                  ["Construction Labor", "OEWS 47-0000","30–44%","BLS OEWS"],
+                ].map(([input, series, weight, src]) => (
+                  <tr key={input} style={{ borderBottom: `1px solid ${color.bd1}` }}>
+                    <td style={{ padding: "9px 14px", fontFamily: SYS, fontSize: 13, color: color.t2 }}>{input}</td>
+                    <td style={{ padding: "9px 14px", fontFamily: MONO, fontSize: 12, color: color.t3 }}>{series}</td>
+                    <td style={{ padding: "9px 14px", fontFamily: MONO, fontSize: 12, color: color.t3 }}>{weight}</td>
+                    <td style={{ padding: "9px 14px", fontFamily: MONO, fontSize: 12, color: color.t4 }}>{src}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Link href="/cost-estimate">
+              <button style={{
+                background: color.blue, color: color.t1,
+                fontFamily: SYS, fontSize: 13, fontWeight: 600,
+                padding: "9px 18px", borderRadius: radius.md, minHeight: 40, border: "none", cursor: "pointer",
+              }}>
+                Open Cost Calculator →
+              </button>
+            </Link>
+          </div>
+        </section>
+
         {/* ── SECTION: AI Query Methodology ── */}
         <section style={{ marginBottom: 64 }}>
           <SectionLabel label="AI QUERY ENGINE" />
