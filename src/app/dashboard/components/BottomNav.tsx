@@ -1,7 +1,7 @@
 "use client"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { TrendingUp, Building2, HardHat, Radio, MessageSquare } from "lucide-react"
+import { TrendingUp, Building2, HardHat, Radio, MessageSquare, type LucideIcon } from "lucide-react"
 import { color, font } from "@/lib/theme"
 
 const MONO = font.mono
@@ -16,7 +16,7 @@ interface Tab {
   label: string
   href:  string | null
   scroll: string | null
-  Icon:  React.ComponentType<{ size?: number; color?: string }>
+  Icon:  LucideIcon
 }
 
 const TABS: Tab[] = [

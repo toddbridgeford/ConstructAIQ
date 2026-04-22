@@ -1,5 +1,6 @@
 import type { NextConfig } from "next"
 import { withSentryConfig } from "@sentry/nextjs"
+import withPWA from "next-pwa"
 
 const isProd = process.env.NODE_ENV === "production";
 const ORIGIN  = isProd ? "https://constructaiq.trade" : "http://localhost:3000";
@@ -36,9 +37,6 @@ const nextConfig: NextConfig = {
       },
       {
         // Embed pages — allow iframing on any third-party domain.
-        // This rule comes after the catch-all; Next.js applies the last
-        // matching value for each header key, so these override the DENY
-        // and frame-ancestors 'none' set above for /embed/* paths.
         source: "/embed/:path*",
         headers: [
           { key: "X-Frame-Options", value: "ALLOWALL" },
@@ -79,7 +77,49 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
+const pwaConfig = withPWA({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+  disable: !isProd,
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/constructaiq\.trade\/api\/.*/i,
+      handler: "StaleWhileRevalidate",
+      options: {
+        cacheName: "api-cache",
+        expiration: { maxEntries: 64, maxAgeSeconds: 24 * 60 * 60 },
+      },
+    },
+    {
+      urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "image-cache",
+        expiration: { maxEntries: 64, maxAgeSeconds: 30 * 24 * 60 * 60 },
+      },
+    },
+    {
+      urlPattern: /\.(?:woff2?|ttf|otf)$/i,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "font-cache",
+        expiration: { maxEntries: 16, maxAgeSeconds: 365 * 24 * 60 * 60 },
+      },
+    },
+    {
+      urlPattern: /^https:\/\/constructaiq\.trade\/.*/i,
+      handler: "NetworkFirst",
+      options: {
+        cacheName: "page-cache",
+        expiration: { maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 },
+        networkTimeoutSeconds: 10,
+      },
+    },
+  ],
+})(nextConfig);
+
+export default withSentryConfig(pwaConfig, {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   silent: true,

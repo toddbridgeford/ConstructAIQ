@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#000000" rx="112"/>
+
+  <!-- Construction crane silhouette -->
+  <!-- Vertical mast -->
+  <rect x="234" y="100" width="16" height="240" fill="#F5F2EC" opacity="0.95"/>
+  <!-- Horizontal jib -->
+  <rect x="140" y="100" width="260" height="12" fill="#F5F2EC" opacity="0.95"/>
+  <!-- Counter jib -->
+  <rect x="140" y="100" width="94" height="8" fill="#F5F2EC" opacity="0.75"/>
+  <!-- Trolley cable vertical -->
+  <rect x="298" y="112" width="4" height="80" fill="#F5F2EC" opacity="0.7"/>
+  <!-- Hook block -->
+  <rect x="290" y="190" width="20" height="14" fill="#F5F2EC" opacity="0.7" rx="2"/>
+  <!-- Tower base -->
+  <rect x="226" y="340" width="32" height="32" fill="#F5F2EC" opacity="0.95"/>
+
+  <!-- "AIQ" wordmark at bottom -->
+  <text
+    x="256"
+    y="440"
+    font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+    font-weight="700"
+    font-size="72"
+    letter-spacing="4"
+    fill="#F5F2EC"
+    text-anchor="middle"
+    opacity="0.95"
+  >AIQ</text>
+</svg>

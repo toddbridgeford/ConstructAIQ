@@ -187,7 +187,7 @@ export function MobileDashboard({
           12-MONTH ENSEMBLE FORECAST
         </div>
         {fore ? (
-          <ForecastChart foreData={fore as ForecastData} height={300} />
+          <ForecastChart foreData={fore as ForecastData} />
         ) : (
           <Skeleton height={300} borderRadius={8} />
         )}
