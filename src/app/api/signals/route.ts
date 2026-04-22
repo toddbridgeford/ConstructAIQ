@@ -69,89 +69,44 @@ function detectDivergence(spend: Obs[], permits: Obs[]) {
   return []
 }
 
-async function detectSatelliteSignals(): Promise<Signal[]> {
+async function surveySignals(): Promise<Signal[]> {
   try {
-    const { data: bsiRows } = await supabase
-      .from('satellite_bsi')
-      .select('msa_code, observation_date, bsi_change_90d, confidence, false_positive_flags, msa_boundaries ( msa_name )')
-      .order('msa_code', { ascending: true })
-      .order('observation_date', { ascending: false })
-
-    if (!bsiRows || bsiRows.length === 0) return []
-
-    // Dedup to latest per MSA
-    const seenMsa = new Set<string>()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const latest = (bsiRows as any[]).filter(r => {
-      if (seenMsa.has(r.msa_code)) return false
-      seenMsa.add(r.msa_code)
-      return true
+    const { data } = await supabaseAdmin
+      .from('survey_results')
+      .select('backlog_net, margin_net, labor_net, market_net, quarter')
+      .order('published_at', { ascending: false })
+      .limit(1)
+      .single()
+    if (!data) return []
+    const { backlog_net: b, margin_net: m, labor_net: l, market_net: mk, quarter: q } = data
+    const out: Signal[] = []
+    if (b !== null && b > 40) out.push({
+      type: 'BULLISH', series_id: 'SURVEY_BOI',
+      title: `Backlog Surge — ${q} BOI at +${b}`,
+      description: `General contractor backlog outlook index reached +${b} net score, indicating broad pipeline expansion.`,
+      confidence: 88, method: 'survey', value_at_signal: b, threshold: 40, is_active: true,
     })
-
-    // Latest fusion classification per MSA
-    const { data: fusionRows } = await supabase
-      .from('signal_fusion')
-      .select('msa_code, classification')
-      .order('computed_at', { ascending: false })
-
-    const fusionMap: Record<string, string> = {}
-    const fusionSeen = new Set<string>()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const row of (fusionRows || []) as any[]) {
-      if (!fusionSeen.has(row.msa_code)) {
-        fusionMap[row.msa_code] = row.classification
-        fusionSeen.add(row.msa_code)
-      }
-    }
-
-    const signals: Signal[] = []
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const row of latest as any[]) {
-      const bsi    = row.bsi_change_90d as number | null
-      const conf   = row.confidence as string | null
-      const flags  = (row.false_positive_flags || []) as string[]
-      const cls    = fusionMap[row.msa_code] ?? null
-      const msaName: string = row.msa_boundaries?.msa_name ?? row.msa_code
-
-      if (bsi === null || conf === 'LOW') continue
-
-      // Rule 1: CONSTRUCTION_SURGE — exceptional ground disturbance
-      if (bsi > 30 && !flags.includes('RECONSTRUCTION')) {
-        signals.push({
-          type: 'BULLISH', series_id: `SAT:${row.msa_code}`,
-          title: `${msaName} Construction Surge — +${bsi.toFixed(1)}% BSI`,
-          description: `Sentinel-2 BSI change of +${bsi.toFixed(1)}% (90-day) in ${msaName} signals exceptional ground disturbance consistent with large-scale development. Confidence: ${conf}.`,
-          confidence: Math.min(95, Math.round(bsi * 1.5 + 50)),
-          method: 'satellite-bsi', value_at_signal: bsi, threshold: 30, is_active: true,
-        })
-      }
-
-      // Rule 2: ACTIVITY_DECLINE — leading indicator of permit weakness
-      if (bsi < -15) {
-        signals.push({
-          type: 'BEARISH', series_id: `SAT:${row.msa_code}`,
-          title: `${msaName} Activity Decline — ${bsi.toFixed(1)}% BSI`,
-          description: `Sentinel-2 BSI dropped ${bsi.toFixed(1)}% over 90 days in ${msaName}. Reduced earthmoving is a leading indicator of permit weakness 3–6 months ahead. Confidence: ${conf}.`,
-          confidence: Math.min(90, Math.round(Math.abs(bsi) * 1.8 + 50)),
-          method: 'satellite-bsi', value_at_signal: bsi, threshold: -15, is_active: true,
-        })
-      }
-
-      // Rule 3: HIGH_RECONSTRUCTION_SIGNAL — post-storm activity
-      if (cls === 'RECONSTRUCTION' && bsi > 20) {
-        signals.push({
-          type: 'WARNING', series_id: `SAT:${row.msa_code}`,
-          title: `${msaName} Reconstruction Signal — Post-Storm Activity`,
-          description: `Signal fusion classifies ${msaName} as RECONSTRUCTION with BSI +${bsi.toFixed(1)}% and active NOAA severe weather alerts. Consistent with debris removal and site restoration.`,
-          confidence: 82,
-          method: 'satellite-fusion', value_at_signal: bsi, threshold: 20, is_active: true,
-        })
-      }
-    }
-    return signals
-  } catch {
-    return []
-  }
+    if (m !== null && m < -20) out.push({
+      type: 'WARNING', series_id: 'SURVEY_MEI',
+      title: `Margin Squeeze — ${q} MEI at ${m}`,
+      description: `Margin outlook index at ${m} net score. GCs reporting broad margin compression despite volume growth.`,
+      confidence: 85, method: 'survey', value_at_signal: m, threshold: -20, is_active: true,
+    })
+    if (l !== null && l < -30) out.push({
+      type: 'BEARISH', series_id: 'SURVEY_LAI',
+      title: `Labor Crisis Signal — ${q} LAI at ${l}`,
+      description: `Labor availability index at ${l} net score. Severe shortage conditions flagged by survey respondents.`,
+      confidence: 90, method: 'survey', value_at_signal: l, threshold: -30, is_active: true,
+    })
+    if (b !== null && m !== null && l !== null && mk !== null &&
+        b < 0 && m < 0 && l < 0 && mk < 0) out.push({
+      type: 'BEARISH', series_id: 'SURVEY_ALL',
+      title: `Contraction Signal — All ${q} Indices Negative`,
+      description: `BOI ${b > 0 ? '+' : ''}${b}, MEI ${m > 0 ? '+' : ''}${m}, LAI ${l > 0 ? '+' : ''}${l}, MOI ${mk > 0 ? '+' : ''}${mk}. Broad-based sector contraction.`,
+      confidence: 93, method: 'survey', value_at_signal: b, threshold: 0, is_active: true,
+    })
+    return out
+  } catch { return [] }
 }
 
 function staticSignals() {
@@ -183,6 +138,7 @@ export async function GET(request: Request) {
     const all: Signal[]=[...satSignals]
     for(const id of ids) { if(!map[id]?.length) continue; all.push(...detectAnomalies(map[id]),...detectTrendReversals(map[id])) }
     if(map['TTLCONS']&&map['PERMIT']) all.push(...detectDivergence(map['TTLCONS'],map['PERMIT']))
+    all.push(...await surveySignals())
     const seen=new Set<string>()
     const deduped=all.filter(s=>{ const k=`${s.series_id}:${s.method}`; if(seen.has(k)) return false; seen.add(k); return true }).sort((a,b)=>b.confidence-a.confidence).slice(0,12)
     if(deduped.length>0) {

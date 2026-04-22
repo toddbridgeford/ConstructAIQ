@@ -1,34 +1,43 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  try {
-    const now = new Date().toISOString()
+  const FALLBACK = {
+    period_id: null,
+    quarter: 'Q2 2025',
+    opens_at: '2025-04-01T00:00:00Z',
+    closes_at: '2025-05-21T23:59:59Z',
+    response_count: 0,
+  }
 
-    const { data, error } = await supabase
+  try {
+    const { data: period, error } = await supabaseAdmin
       .from('survey_periods')
-      .select('quarter, opens_at, closes_at, status, respondent_count')
-      .eq('status', 'open')
-      .lte('opens_at', now)
-      .gte('closes_at', now)
+      .select('id, quarter, opens_at, closes_at')
+      .eq('is_active', true)
       .order('opens_at', { ascending: false })
       .limit(1)
-      .maybeSingle()
+      .single()
 
-    if (error) {
-      console.error('[/api/survey/current]', error.message)
-      return NextResponse.json({ error: 'Database query failed' }, { status: 500 })
-    }
+    if (error || !period) return NextResponse.json(FALLBACK)
 
-    return NextResponse.json(
-      { survey: data ?? null },
-      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } },
-    )
-  } catch (err) {
-    console.error('[/api/survey/current]', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const { count } = await supabaseAdmin
+      .from('survey_responses')
+      .select('id', { count: 'exact', head: true })
+      .eq('period_id', period.id)
+
+    return NextResponse.json({
+      period_id: period.id,
+      quarter: period.quarter,
+      opens_at: period.opens_at,
+      closes_at: period.closes_at,
+      response_count: count ?? 0,
+    })
+  } catch {
+    // Supabase not configured (dev) — return static fallback
+    return NextResponse.json(FALLBACK)
   }
 }

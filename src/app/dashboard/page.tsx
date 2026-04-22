@@ -16,6 +16,59 @@ import { FederalSection }   from "./sections/FederalSection"
 import { EquitiesSection }  from "./sections/EquitiesSection"
 import { SignalsSection }   from "./sections/SignalsSection"
 
+// ── Section 1 + 2
+import { CSHIGauge }       from "./components/CSHIGauge"
+import { CSHIHistory }     from "./components/CSHIHistory"
+import { KPICard }         from "./components/KPICard"
+import { ForecastBanner }  from "./components/ForecastBanner"
+import { ModelAccuracy }   from "./components/ModelAccuracy"
+import { ConfidenceRing }  from "./components/ConfidenceRing"
+import { RecessionGauge }  from "./components/RecessionGauge"
+import { CycleClock }      from "./components/CycleClock"
+// ── Section 3
+import { StateDrillDown }  from "./components/StateDrillDown"
+import { TopStatesChart }  from "./components/TopStatesChart"
+// ── Section 4
+import { CommoditySignalCard } from "./components/CommoditySignalCard"
+import { ProcurementIndex }    from "./components/ProcurementIndex"
+import { MaterialsHeatmap }    from "./components/MaterialsHeatmap"
+import { MaterialsCorrelation } from "./components/MaterialsCorrelation"
+// ── Section 5
+import { PipelineTimeline }   from "./components/PipelineTimeline"
+import { CascadeAlerts }      from "./components/CascadeAlerts"
+import { PredictiveOverlay }  from "./components/PredictiveOverlay"
+import { CycleComparison }    from "./components/CycleComparison"
+// ── Section 6
+import { FederalPrograms }    from "./components/FederalPrograms"
+import { AgencyVelocity }     from "./components/AgencyVelocity"
+import { FederalLeaderboard } from "./components/FederalLeaderboard"
+import { FederalStateTable }  from "./components/FederalStateTable"
+// ── Section 7
+import { SectorChart }    from "./components/SectorChart"
+import { EarningsCards }  from "./components/EarningsCards"
+import { SectorRotation } from "./components/SectorRotation"
+import { ETFMonitor }     from "./components/ETFMonitor"
+// ── Section 8
+import { SignalsSection } from "./sections/SignalsSection"
+// ── Shared
+import { GateLock }      from "./components/GateLock"
+import { SectionHeader } from "./components/SectionHeader"
+import { ErrorBoundary } from "./components/ErrorBoundary"
+
+// StateMap must be client-only (react-simple-maps uses browser APIs)
+const StateMap = dynamic(
+  () => import("./components/StateMap").then(m => ({ default: m.StateMap })),
+  { ssr: false, loading: () => <div style={{ height: 380, display:"flex", alignItems:"center", justifyContent:"center", color: color.t4, fontFamily: font.mono, fontSize: 12 }}>Loading map…</div> }
+)
+
+const SYS  = font.sys
+const MONO = font.mono
+const AMBER = color.amber, GREEN = color.green, RED = color.red, BLUE = color.blue
+const BG0 = color.bg0, BG1 = color.bg1, BG2 = color.bg2, BG3 = color.bg3
+const BD1 = color.bd1, BD2 = color.bd2
+const T1 = color.t1, T2 = color.t2, T3 = color.t3, T4 = color.t4
+
+// ── Types ──────────────────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyData = any
 
@@ -140,34 +193,122 @@ export default function Dashboard() {
               <div style={{ fontFamily:MONO, fontSize:10, color:AMBER, letterSpacing:"0.1em", whiteSpace:"nowrap", paddingTop:2 }}>BRIEF</div>
               <div style={{ fontFamily:SYS, fontSize:15, color:T1, lineHeight:1.65 }}>{briefHeadline}</div>
             </div>
-          </section>
-        )}
+            <GateLock locked={false} requiredPlan="Starter" featureName="Predictive Overlay">
+              <Card style={{ flex:"2 1 400px", height:"100%" }}>
+                <PredictiveOverlay />
+              </Card>
+            </GateLock>
+          </div>
 
-        {/* 4 — Command / CSHI */}
-        <ErrorBoundary fallback={<SectionFallback title="Command Center" />}>
-          <CommandSection cshi={cshi} foreData={fore} corrSpend={corrSpend} />
-        </ErrorBoundary>
+          {/* Historical cycle comparison */}
+          <GateLock locked={false} requiredPlan="Starter" featureName="Historical Cycle Comparison">
+            <Card>
+              <CycleComparison
+                current={pipeline?.cycleComparison?.current}
+                cycle2008={pipeline?.cycleComparison?.cycle2008}
+                cycle2016={pipeline?.cycleComparison?.cycle2016}
+                cycle2020={pipeline?.cycleComparison?.cycle2020}
+                currentMonth={pipeline?.cycleComparison?.currentMonth ?? 14}
+                description={pipeline?.cycleComparison?.description}
+              />
+            </Card>
+          </GateLock>
+        </Section>
 
-        {/* 5+ — Supporting sections */}
-        <ErrorBoundary fallback={<SectionFallback title="Geographic Intelligence" />}>
-          <GeographicSection states={states} selState={selState} onSelState={setSelState} mapToggle={mapToggle} onToggleChange={setMapToggle} loading={mapD===null} />
-        </ErrorBoundary>
-        <ErrorBoundary fallback={<SectionFallback title="Materials Intelligence" />}>
-          <MaterialsSection commodities={commodities} procurementValue={procurementValue} heatmapData={heatmapData} corrMaterials={corrMaterials} corrSpend={corrSpend} loading={prices===null} />
-        </ErrorBoundary>
-        <ErrorBoundary fallback={<SectionFallback title="Pipeline" />}>
-          <PipelineSection pipeline={pipeline} />
-        </ErrorBoundary>
-        <ErrorBoundary fallback={<SectionFallback title="Federal Infrastructure" />}>
-          <FederalSection federal={federal} />
-        </ErrorBoundary>
-        <ErrorBoundary fallback={<SectionFallback title="Equities" />}>
-          <EquitiesSection equities={equities} sectorRange={sectorRange} onSectorRangeChange={setSectorRange} />
-        </ErrorBoundary>
-        <ErrorBoundary fallback={<SectionFallback title="Signal Intelligence" />}>
+        {/* ══════════════════════════════════════════════════════════════
+            SECTION 6 — FEDERAL INFRASTRUCTURE TRACKER
+        ═══════════════════════════════════════════════════════════════ */}
+        <Section id="federal">
+          <SectionHeader
+            sectionId="06"
+            title="Federal Infrastructure Tracker"
+            badge="IIJA · IRA"
+            live
+            onExportCSV={() => {}}
+          />
+
+          {/* Program execution bars */}
+          <Card style={{ marginBottom:20 }}>
+            <FederalPrograms programs={federal?.programs ?? []} />
+          </Card>
+
+          {/* Agency velocity + leaderboard */}
+          <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
+            <Card style={{ flex:"1 1 340px" }}>
+              <AgencyVelocity agencies={federal?.agencies ?? []} />
+            </Card>
+            <GateLock locked={false} requiredPlan="Institutional" featureName="Contractor Leaderboard">
+              <Card style={{ flex:"2 1 440px" }}>
+                <FederalLeaderboard contractors={federal?.contractors ?? []} />
+              </Card>
+            </GateLock>
+          </div>
+
+          {/* 50-state allocation table */}
+          <GateLock locked={false} requiredPlan="Institutional" featureName="State Allocation Table">
+            <Card>
+              <FederalStateTable stateAllocations={federal?.stateAllocations ?? []} />
+            </Card>
+          </GateLock>
+        </Section>
+
+        {/* ══════════════════════════════════════════════════════════════
+            SECTION 7 — MARKET SIGNALS & EQUITIES
+        ═══════════════════════════════════════════════════════════════ */}
+        <Section id="equities">
+          <SectionHeader
+            sectionId="07"
+            title="Market Signals & Equities"
+            badge="EQUITIES"
+            live
+            onExportCSV={() => {}}
+          />
+
+          {/* Sector chart + ETF monitor */}
+          <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
+            <Card style={{ flex:"3 1 500px" }}>
+              <SectorChart
+                data={equities?.sectorHistory ?? []}
+                timeRange={sectorRange}
+                onTimeRangeChange={setSectorRange}
+              />
+            </Card>
+            <Card style={{ flex:"1 1 260px" }}>
+              <ETFMonitor etfs={equities?.etfs ?? []} />
+            </Card>
+          </div>
+
+          {/* Earnings cards */}
+          <GateLock locked={false} requiredPlan="Institutional" featureName="Earnings Signal Cards">
+            <Card style={{ marginBottom:20 }}>
+              <EarningsCards companies={equities?.companies ?? []} />
+            </Card>
+          </GateLock>
+
+          {/* Sector rotation quadrant */}
+          <GateLock locked={false} requiredPlan="Institutional" featureName="Sector Rotation Quadrant">
+            <Card>
+              <SectorRotation data={equities?.sectorRotation ?? []} />
+            </Card>
+          </GateLock>
+        </Section>
+
+        {/* ══════════════════════════════════════════════════════════════
+            SECTION 8 — SIGNAL INTELLIGENCE FEED
+        ═══════════════════════════════════════════════════════════════ */}
+        <Section id="signals">
+          <SectionHeader
+            sectionId="08"
+            title="Signal Intelligence Feed"
+            badge="AI-POWERED"
+            live
+            onExportCSV={() => {}}
+          />
+
           <SignalsSection signals={signals} brief={brief} />
-        </ErrorBoundary>
-      </div>
+        </Section>
+
+      </div>{/* /main content */}
 
       <footer style={{ borderTop:`1px solid ${BD1}`,padding:"32px 24px",display:"flex",flexWrap:"wrap",gap:24,justifyContent:"space-between",alignItems:"center" }}>
         <div>
