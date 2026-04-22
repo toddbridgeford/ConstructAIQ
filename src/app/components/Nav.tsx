@@ -9,6 +9,7 @@ const MONO = font.mono
 
 const BASE_LINKS = [
   { label: "Intelligence", href: "/dashboard"    },
+  { label: "Ask AI",       href: "/ask"          },
   { label: "Globe",        href: "/globe"        },
   { label: "Markets",      href: "/markets"      },
   { label: "Tools",        href: "/market-check" },
