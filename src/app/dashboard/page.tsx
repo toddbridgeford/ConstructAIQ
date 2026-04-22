@@ -40,15 +40,9 @@ const NAV_SECTIONS = [
 ]
 function scrollTo(id: string) { document.getElementById(id)?.scrollIntoView({behavior:"smooth"}) }
 
-function fredSpark(obs: AnyData[] | undefined, n = 12, fallback = 0): number[] {
-  const vals = (obs ?? []).slice().sort((a: AnyData, b: AnyData) => (a.date as string).localeCompare(b.date as string)).slice(-n).map((o: AnyData) => parseFloat(o.value)).filter((v: number) => !isNaN(v))
-  if (vals.length === 0) return Array(n).fill(fallback)
-  while (vals.length < n) vals.unshift(vals[0])
-  return vals
-}
-function blsSpark(data: AnyData[] | undefined, n = 12, fallback = 0): number[] {
-  const vals = (data ?? []).slice().sort((a: AnyData, b: AnyData) => `${a.year}${a.period}`.localeCompare(`${b.year}${b.period}`)).slice(-n).map((o: AnyData) => parseFloat(o.value)).filter((v: number) => !isNaN(v))
-  if (vals.length === 0) return Array(n).fill(fallback)
+function obsSpark(obs: {date:string;value:number}[] | undefined, n: number, fallback: number): number[] {
+  const vals = (obs ?? []).slice(-n).map(o => o.value).filter(v => Number.isFinite(v))
+  if (!vals.length) return Array(n).fill(fallback)
   while (vals.length < n) vals.unshift(vals[0])
   return vals
 }
@@ -68,17 +62,33 @@ export default function Dashboard() {
   const [sectorRange, setSectorRange] = useState<"3M"|"6M"|"1Y"|"3Y">("1Y")
   const [signals,  setSignals]  = useState<AnyData>(null)
   const [brief,    setBrief]    = useState<AnyData>(null)
-  const [fredD,    setFredD]    = useState<AnyData>(null)
+  const [obsMap,   setObsMap]   = useState<Record<string,{date:string;value:number}[]>>({})
 
   useEffect(() => {
     async function load() {
       async function safe(url: string) { try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null } }
-      const [cshiD,spendD,employD,foreD,mapData,pricesD,pipeD,fedD,eqD,sigsD,briefD,fredData] =
-        await Promise.all([safe("/api/cshi"),safe("/api/census"),safe("/api/bls"),safe("/api/forecast?series=TTLCONS"),safe("/api/map"),safe("/api/pricewatch"),safe("/api/pipeline"),safe("/api/federal"),safe("/api/equities"),safe("/api/signals"),safe("/api/weekly-brief"),safe("/api/fred")])
+      const [cshiD,spendD,employD,foreD,mapData,pricesD,pipeD,fedD,eqD,sigsD,briefD,
+             ttl12,ces12,houst12,permit12,ttl24,wps24] =
+        await Promise.all([
+          safe("/api/cshi"),safe("/api/census"),safe("/api/bls"),safe("/api/forecast?series=TTLCONS"),
+          safe("/api/map"),safe("/api/pricewatch"),safe("/api/pipeline"),safe("/api/federal"),
+          safe("/api/equities"),safe("/api/signals"),safe("/api/weekly-brief"),
+          safe("/api/obs?series=TTLCONS&n=12"),safe("/api/obs?series=CES2000000001&n=12"),
+          safe("/api/obs?series=HOUST&n=12"),safe("/api/obs?series=PERMIT&n=12"),
+          safe("/api/obs?series=TTLCONS&n=24"),safe("/api/obs?series=WPS081&n=24"),
+        ])
       if (cshiD)   setCshi(cshiD);   if (spendD)  setSpend(spendD);   if (employD) setEmploy(employD)
       if (foreD)   setFore(foreD);   if (mapData) setMapD(mapData);   if (pricesD) setPrices(pricesD)
       if (pipeD)   setPipeline(pipeD); if (fedD)  setFederal(fedD);   if (eqD)     setEquities(eqD)
-      if (sigsD)   setSignals(sigsD);  if (briefD) setBrief(briefD);  if (fredData) setFredD(fredData)
+      if (sigsD)   setSignals(sigsD);  if (briefD) setBrief(briefD)
+      setObsMap({
+        TTLCONS_12:       ttl12?.obs    ?? [],
+        CES2000000001_12: ces12?.obs    ?? [],
+        HOUST_12:         houst12?.obs  ?? [],
+        PERMIT_12:        permit12?.obs ?? [],
+        TTLCONS_24:       ttl24?.obs    ?? [],
+        WPS081_24:        wps24?.obs    ?? [],
+      })
     }
     load()
   }, [])
@@ -97,20 +107,25 @@ export default function Dashboard() {
     ? Math.round(commodities.reduce((sum: number, c: AnyData) => sum + (c.signal==="BUY"?72:c.signal==="SELL"?32:54), 0) / commodities.length)
     : 61
 
-  // Sparklines — deterministic, never random
-  const spendSpark  = fredSpark(spend?.observations, 12, spendVal / 1000)
-  const permitSpark = fredSpark(fredD?.series?.PERMIT?.observations, 12, 1482)
-  const houstSpark  = fredSpark(fredD?.series?.HOUST?.observations, 12, 1394)
-  const empSpark    = blsSpark(employ?.data?.Results?.series?.[0]?.data, 12, empVal / 1000)
+  // Sparklines — last 12 monthly observations from Supabase (seed fallback, never random)
+  const spendSpark  = obsSpark(obsMap['TTLCONS_12'],       12, spendVal)
+  const empSpark    = obsSpark(obsMap['CES2000000001_12'], 12, empVal)
+  const houstSpark  = obsSpark(obsMap['HOUST_12'],         12, 1394)
+  const permitSpark = obsSpark(obsMap['PERMIT_12'],        12, 1482)
 
+  // Heatmap — real MoM data, no variance
   const heatmapData = commodities.slice(0,6).map((c: AnyData) => ({
     commodity: c.name,
     months: Array.from({length:12},(_,i) => ({month:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i],value:c.value,pctChange:c.mom||0})),
   }))
-  const corrSpend: {date:string;value:number}[] = spend?.observations
-    ? spend.observations.slice().sort((a: AnyData,b: AnyData)=>(a.date as string).localeCompare(b.date as string)).slice(-24).map((o: AnyData,i: number)=>({date:(o.date as string)||`2024-${String(i%12+1).padStart(2,"0")}-01`,value:parseFloat(o.value)||2100+i*4}))
+
+  // Correlation charts — TTLCONS and WPS081 from Supabase; static seed if not yet harvested
+  const corrSpend: {date:string;value:number}[] = obsMap['TTLCONS_24']?.length
+    ? obsMap['TTLCONS_24']
     : Array.from({length:24},(_,i)=>({date:`2024-${String(i%12+1).padStart(2,"0")}-01`,value:2100+i*4}))
-  const corrMaterials: {date:string;value:number}[] = Array.from({length:24},(_,i)=>({date:`2024-${String(i%12+1).padStart(2,"0")}-01`,value:280+i*2}))
+  const corrMaterials: {date:string;value:number}[] = obsMap['WPS081_24']?.length
+    ? obsMap['WPS081_24']
+    : Array.from({length:24},(_,i)=>({date:`2024-${String(i%12+1).padStart(2,"0")}-01`,value:280+i*2}))
 
   // Extract headline sentence from brief for excerpt card
   const briefHeadline = typeof brief?.brief === "string"
