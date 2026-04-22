@@ -258,6 +258,87 @@ CREATE INDEX IF NOT EXISTS idx_forecast_log_run_at
     ON forecast_log (run_at DESC);
 
 
+-- ---------------------------------------------------------------------------
+-- Satellite BSI Pipeline Tables
+-- ---------------------------------------------------------------------------
+
+-- MSA reference table — the 50 MSAs we process
+CREATE TABLE IF NOT EXISTS msa_boundaries (
+  msa_code      TEXT        PRIMARY KEY,
+  msa_name      TEXT        NOT NULL,
+  state_codes   TEXT[]      NOT NULL,
+  bbox_west     NUMERIC     NOT NULL,
+  bbox_south    NUMERIC     NOT NULL,
+  bbox_east     NUMERIC     NOT NULL,
+  bbox_north    NUMERIC     NOT NULL,
+  land_area_km2 NUMERIC
+);
+
+COMMENT ON TABLE  msa_boundaries              IS 'Metropolitan Statistical Area reference table with bounding boxes for satellite processing.';
+COMMENT ON COLUMN msa_boundaries.msa_code     IS 'Short MSA identifier (e.g. NYC, DFW).';
+COMMENT ON COLUMN msa_boundaries.bbox_west    IS 'Western longitude bound (WGS84).';
+COMMENT ON COLUMN msa_boundaries.bbox_south   IS 'Southern latitude bound (WGS84).';
+COMMENT ON COLUMN msa_boundaries.bbox_east    IS 'Eastern longitude bound (WGS84).';
+COMMENT ON COLUMN msa_boundaries.bbox_north   IS 'Northern latitude bound (WGS84).';
+
+-- BSI observations per MSA per processing run
+CREATE TABLE IF NOT EXISTS satellite_bsi (
+  id                   BIGSERIAL   PRIMARY KEY,
+  msa_code             TEXT        REFERENCES msa_boundaries(msa_code),
+  observation_date     DATE        NOT NULL,
+  processed_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  bsi_mean             NUMERIC,
+  bsi_change_90d       NUMERIC,
+  bsi_change_yoy       NUMERIC,
+  cloud_cover_pct      NUMERIC,
+  valid_pixels         INTEGER,
+  total_pixels         INTEGER,
+  confidence           TEXT        CHECK (confidence IN ('HIGH','MEDIUM','LOW')),
+  false_positive_flags TEXT[],
+  scene_ids            TEXT[],
+  UNIQUE (msa_code, observation_date)
+);
+
+COMMENT ON TABLE  satellite_bsi                    IS 'Sentinel-2 Bare Soil Index observations per MSA per processing run.';
+COMMENT ON COLUMN satellite_bsi.bsi_mean           IS 'Mean BSI value across valid pixels in the MSA bounding box.';
+COMMENT ON COLUMN satellite_bsi.bsi_change_90d     IS 'BSI change vs 90-day prior observation (positive = more bare soil).';
+COMMENT ON COLUMN satellite_bsi.bsi_change_yoy     IS 'BSI change vs same period prior year.';
+COMMENT ON COLUMN satellite_bsi.cloud_cover_pct    IS 'Percentage of pixels rejected due to cloud/shadow masking.';
+COMMENT ON COLUMN satellite_bsi.valid_pixels       IS 'Count of cloud-free pixels used in the computation.';
+COMMENT ON COLUMN satellite_bsi.confidence         IS 'Derived confidence level based on valid_pixels / total_pixels ratio.';
+COMMENT ON COLUMN satellite_bsi.false_positive_flags IS 'Array of detected false-positive sources (e.g. desert, beach, dry_lake).';
+COMMENT ON COLUMN satellite_bsi.scene_ids          IS 'Sentinel-2 scene/granule IDs used in this composite.';
+
+CREATE INDEX IF NOT EXISTS idx_satellite_bsi_msa_date
+  ON satellite_bsi (msa_code, observation_date DESC);
+
+-- Signal fusion results
+CREATE TABLE IF NOT EXISTS signal_fusion (
+  id                  BIGSERIAL   PRIMARY KEY,
+  msa_code            TEXT        REFERENCES msa_boundaries(msa_code),
+  computed_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  bsi_change_90d      NUMERIC,
+  federal_awards_90d  NUMERIC,
+  storm_events_90d    INTEGER,
+  classification      TEXT        CHECK (classification IN (
+    'DEMAND_DRIVEN','RECONSTRUCTION','FEDERAL_INVESTMENT',
+    'ORGANIC_GROWTH','LOW_ACTIVITY','INSUFFICIENT_DATA'
+  )),
+  confidence          TEXT        CHECK (confidence IN ('HIGH','MEDIUM','LOW')),
+  interpretation      TEXT,
+  UNIQUE (msa_code, (computed_at::DATE))
+);
+
+COMMENT ON TABLE  signal_fusion                      IS 'Multi-signal fusion results combining BSI, federal awards, and weather data.';
+COMMENT ON COLUMN signal_fusion.classification       IS 'Activity classification: DEMAND_DRIVEN, RECONSTRUCTION, FEDERAL_INVESTMENT, ORGANIC_GROWTH, LOW_ACTIVITY, or INSUFFICIENT_DATA.';
+COMMENT ON COLUMN signal_fusion.federal_awards_90d   IS 'Total federal construction award value in the MSA over the past 90 days ($M).';
+COMMENT ON COLUMN signal_fusion.storm_events_90d     IS 'Count of NOAA storm events in the MSA over the past 90 days.';
+COMMENT ON COLUMN signal_fusion.interpretation       IS 'Human-readable narrative summary of the fusion result.';
+
+CREATE INDEX IF NOT EXISTS idx_signal_fusion_msa
+  ON signal_fusion (msa_code, computed_at DESC);
+
+
 -- =============================================================================
 -- Row-Level Security (RLS)
 --
@@ -276,10 +357,13 @@ ALTER TABLE series       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE observations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forecasts    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE api_keys     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE signals      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE subscribers  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE harvest_log  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE forecast_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE signals        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscribers    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE harvest_log    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forecast_log   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE msa_boundaries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE satellite_bsi  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE signal_fusion  ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for market data tables (anon can read, not write)
 CREATE POLICY IF NOT EXISTS "anon_read_series"
@@ -322,3 +406,21 @@ CREATE POLICY IF NOT EXISTS "service_all_harvest_log"
 
 CREATE POLICY IF NOT EXISTS "service_all_forecast_log"
     ON forecast_log FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "anon_read_msa_boundaries"
+    ON msa_boundaries FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "anon_read_satellite_bsi"
+    ON satellite_bsi FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "anon_read_signal_fusion"
+    ON signal_fusion FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_msa_boundaries"
+    ON msa_boundaries FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_satellite_bsi"
+    ON satellite_bsi FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_signal_fusion"
+    ON signal_fusion FOR ALL TO service_role USING (true) WITH CHECK (true);
