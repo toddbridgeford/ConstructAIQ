@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { seeded } from '@/lib/seeded'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -79,15 +80,15 @@ export async function GET() {
         return CONSTRUCTION_EVENTS.some(e => event.includes(e.split(' ')[0]))
       })
       .slice(0, 80)
-      .map(f => {
+      .map((f, fi) => {
         const props   = f.properties || {}
         const areaDesc = props.areaDesc || ''
         const state   = extractStateFromArea(areaDesc)
         const centroid = STATE_CENTROIDS[state] || [39, -98]
 
-        // Add jitter so overlapping state alerts spread out
-        const lat = centroid[0] + (Math.random() - 0.5) * 3
-        const lng = centroid[1] + (Math.random() - 0.5) * 4
+        // Add deterministic jitter so overlapping state alerts spread out
+        const lat = centroid[0] + (seeded(fi * 2) - 0.5) * 3
+        const lng = centroid[1] + (seeded(fi * 2 + 1) - 0.5) * 4
 
         return {
           id:          f.id || '',
@@ -141,7 +142,7 @@ function getFallbackAlerts() {
   ]
   const alerts = SAMPLE_EVENTS.map((e, i) => {
     const c = STATE_CENTROIDS[e.state] || [39, -98]
-    return { id: `fallback-${i}`, ...e, description: `${e.event} in effect. Construction activities may be impacted.`, lat: c[0]+(Math.random()-.5)*2, lng: c[1]+(Math.random()-.5)*3, onset: new Date().toISOString(), expires: new Date(Date.now()+86400000).toISOString() }
+    return { id: `fallback-${i}`, ...e, description: `${e.event} in effect. Construction activities may be impacted.`, lat: c[0]+(seeded(i*2+200)-.5)*2, lng: c[1]+(seeded(i*2+201)-.5)*3, onset: new Date().toISOString(), expires: new Date(Date.now()+86400000).toISOString() }
   })
   return { source: 'NWS fallback', count: alerts.length, alerts, summary: { extreme: 2, severe: 3, impactLevel: 'MODERATE', description: 'Sample weather alerts — live data from NWS when available.' }, updated: new Date().toISOString() }
 }

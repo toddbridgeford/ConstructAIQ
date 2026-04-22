@@ -14,13 +14,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const start = Date.now()
-  console.log('[BriefCron] Generating weekly brief at', new Date().toISOString())
-
-  const result = await generateBrief()
+  const start    = Date.now()
+  const result   = await generateBrief()
   const duration = Date.now() - start
-
-  console.log(`[BriefCron] ${result.source} brief in ${duration}ms`)
 
   return NextResponse.json({
     status:     result.source === 'ai' ? 'ok' : 'fallback',

@@ -23,6 +23,15 @@ const BD1 = color.bd1, BD2 = color.bd2
 const T1 = color.t1, T3 = color.t3, T4 = color.t4
 const GREEN = color.green, AMBER = color.amber
 
+function SectionFallback({ title }: { title: string }) {
+  return (
+    <div style={{ padding:"28px",borderRadius:16,border:`1px solid ${color.bd1}`,background:color.bg1,margin:"48px 0 8px",display:"flex",gap:12,alignItems:"center" }}>
+      <span style={{ fontFamily:font.mono,fontSize:10,color:color.amber,letterSpacing:"0.1em" }}>SECTION ERROR</span>
+      <span style={{ fontFamily:font.sys,fontSize:13,color:color.t3 }}>{title} failed to load. Reload to retry.</span>
+    </div>
+  )
+}
+
 const NAV_SECTIONS = [
   {id:"forecast",label:"Forecast"},{id:"command",label:"Command"},
   {id:"map",label:"Map"},{id:"materials",label:"Materials"},
@@ -133,12 +142,16 @@ export default function Dashboard() {
       <div style={{ maxWidth:1400,margin:"0 auto",padding:"0 24px 80px" }}>
 
         {/* 1 — KPI row */}
-        <section style={{ paddingTop:32 }}>
-          <KpiRow spendVal={spendVal} spendMom={spendMom} spendSpark={spendSpark} empVal={empVal} empMom={empMom} empSpark={empSpark} permitSpark={permitSpark} houstSpark={houstSpark} sigCount={sigList.length} loading={spend===null && employ===null} />
-        </section>
+        <ErrorBoundary fallback={<SectionFallback title="KPI Row" />}>
+          <section style={{ paddingTop:32 }}>
+            <KpiRow spendVal={spendVal} spendMom={spendMom} spendSpark={spendSpark} empVal={empVal} empMom={empMom} empSpark={empSpark} permitSpark={permitSpark} houstSpark={houstSpark} sigCount={sigList.length} loading={spend===null && employ===null} />
+          </section>
+        </ErrorBoundary>
 
         {/* 2 — Forecast hero */}
-        <HeroForecast fore={fore} foreAccuracy={foreAccuracy} foreMAPE={foreMAPE} />
+        <ErrorBoundary fallback={<SectionFallback title="Forecast" />}>
+          <HeroForecast fore={fore} foreAccuracy={foreAccuracy} foreMAPE={foreMAPE} />
+        </ErrorBoundary>
 
         {/* 3 — Weekly brief excerpt */}
         {briefHeadline && (
@@ -151,15 +164,29 @@ export default function Dashboard() {
         )}
 
         {/* 4 — Command / CSHI */}
-        <CommandSection cshi={cshi} foreData={fore} corrSpend={corrSpend} />
+        <ErrorBoundary fallback={<SectionFallback title="Command Center" />}>
+          <CommandSection cshi={cshi} foreData={fore} corrSpend={corrSpend} />
+        </ErrorBoundary>
 
         {/* 5+ — Supporting sections */}
-        <GeographicSection states={states} selState={selState} onSelState={setSelState} mapToggle={mapToggle} onToggleChange={setMapToggle} loading={mapD===null} />
-        <MaterialsSection commodities={commodities} procurementValue={procurementValue} heatmapData={heatmapData} corrMaterials={corrMaterials} corrSpend={corrSpend} loading={prices===null} />
-        <PipelineSection pipeline={pipeline} />
-        <FederalSection federal={federal} />
-        <EquitiesSection equities={equities} sectorRange={sectorRange} onSectorRangeChange={setSectorRange} />
-        <SignalsSection signals={signals} brief={brief} />
+        <ErrorBoundary fallback={<SectionFallback title="Geographic Intelligence" />}>
+          <GeographicSection states={states} selState={selState} onSelState={setSelState} mapToggle={mapToggle} onToggleChange={setMapToggle} loading={mapD===null} />
+        </ErrorBoundary>
+        <ErrorBoundary fallback={<SectionFallback title="Materials Intelligence" />}>
+          <MaterialsSection commodities={commodities} procurementValue={procurementValue} heatmapData={heatmapData} corrMaterials={corrMaterials} corrSpend={corrSpend} loading={prices===null} />
+        </ErrorBoundary>
+        <ErrorBoundary fallback={<SectionFallback title="Pipeline" />}>
+          <PipelineSection pipeline={pipeline} />
+        </ErrorBoundary>
+        <ErrorBoundary fallback={<SectionFallback title="Federal Infrastructure" />}>
+          <FederalSection federal={federal} />
+        </ErrorBoundary>
+        <ErrorBoundary fallback={<SectionFallback title="Equities" />}>
+          <EquitiesSection equities={equities} sectorRange={sectorRange} onSectorRangeChange={setSectorRange} />
+        </ErrorBoundary>
+        <ErrorBoundary fallback={<SectionFallback title="Signal Intelligence" />}>
+          <SignalsSection signals={signals} brief={brief} />
+        </ErrorBoundary>
       </div>
 
       <footer style={{ borderTop:`1px solid ${BD1}`,padding:"32px 24px",display:"flex",flexWrap:"wrap",gap:24,justifyContent:"space-between",alignItems:"center" }}>

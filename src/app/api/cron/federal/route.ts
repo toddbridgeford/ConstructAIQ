@@ -15,15 +15,11 @@ export async function GET(request: Request) {
   }
 
   const start = Date.now()
-  console.log('[FederalCron] Starting federal data refresh at', new Date().toISOString())
-
   const { data, fromCache, fetchedAt, error } =
     await getStateAllocations({ forceRefresh: true })
 
   const duration = Date.now() - start
   const status   = error ? 'error' : 'ok'
-
-  console.log(`[FederalCron] ${status} — ${data.length} states, ${duration}ms`)
 
   return NextResponse.json({
     status,

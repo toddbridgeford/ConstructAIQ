@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { font, color } from "@/lib/theme"
+import { Skeleton } from "@/app/components/Skeleton"
 import type { ForecastData } from "../types"
 
 const MONO  = font.mono
@@ -75,11 +76,7 @@ export function ForecastChart({ foreData, scenarioLine }: {
   if (!localData) return (
     <div>
       {seriesBar}
-      <div style={{ height:VH, display:"flex", alignItems:"center", justifyContent:"center" }}>
-        <span style={{ fontFamily:MONO, fontSize:12, color:T4, letterSpacing:"0.08em" }}>
-          LOADING FORECAST…
-        </span>
-      </div>
+      <Skeleton height={VH} borderRadius={8} />
     </div>
   )
 

@@ -1,9 +1,10 @@
 "use client"
 import { KPICard } from "../components/KPICard"
+import { Skeleton } from "@/app/components/Skeleton"
 import { color, fmtB, fmtK } from "@/lib/theme"
 
 const AMBER = color.amber, GREEN = color.green, RED = color.red, BLUE = color.blue
-const BG2 = color.bg2, T2 = color.t2
+const T2 = color.t2
 
 interface KpiRowProps {
   spendVal:   number
@@ -22,7 +23,7 @@ export function KpiRow({ spendVal, spendMom, spendSpark, empVal, empMom, empSpar
   if (loading) return (
     <div style={{ display:"flex", gap:14, flexWrap:"wrap", marginBottom:20 }}>
       {Array.from({length:6}).map((_,i) => (
-        <div key={i} style={{ flex:"1 1 160px", height:96, borderRadius:14, background:BG2, animation:"pulse 1.5s infinite" }} />
+        <Skeleton key={i} height={96} style={{ flex:"1 1 160px" }} borderRadius={14} />
       ))}
     </div>
   )

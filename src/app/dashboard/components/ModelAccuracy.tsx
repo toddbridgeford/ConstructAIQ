@@ -4,6 +4,7 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { font, color } from "@/lib/theme"
+import { seeded } from "@/lib/seeded"
 
 const MONO = font.mono
 
@@ -15,8 +16,8 @@ interface ModelAccuracyProps {
 function buildSyntheticData() {
   const base = 2160
   return Array.from({ length: 12 }, (_, i) => {
-    const actual   = Math.round(base + (Math.random() - 0.5) * 120 + i * 4)
-    const offset   = (Math.random() - 0.5) * 0.08
+    const actual   = Math.round(base + (seeded(i) - 0.5) * 120 + i * 4)
+    const offset   = (seeded(i + 12) - 0.5) * 0.08
     const forecast = Math.round(actual * (1 + offset))
     return { period: `P${i + 1}`, actual, forecast }
   })

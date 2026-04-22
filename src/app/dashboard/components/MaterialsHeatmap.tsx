@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
 import { font, color } from "@/lib/theme"
+import { seeded } from "@/lib/seeded"
 
 const MONO = font.mono
 const SYS = font.sys
@@ -48,10 +49,10 @@ function generateSyntheticData(): CommodityRow[] {
     { name: "Diesel", base: 3.8, seasonality: [1, 0, 1, 2, 4, 6, 7, 6, 3, 1, 0, -1] },
   ]
 
-  return commodities.map(c => {
+  return commodities.map((c, ci) => {
     let val = c.base
     const months: MonthCell[] = MONTH_LABELS.map((month, i) => {
-      const noise = (Math.random() - 0.5) * 2
+      const noise = (seeded(ci * 12 + i) - 0.5) * 2
       const pctChange = parseFloat((c.seasonality[i] + noise).toFixed(1))
       val = val * (1 + pctChange / 100)
       return { month, value: parseFloat(val.toFixed(2)), pctChange }

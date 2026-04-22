@@ -2,6 +2,7 @@
 import { useMemo } from "react"
 import { LineChart, Line, ResponsiveContainer, XAxis, Tooltip } from "recharts"
 import { font, color } from "@/lib/theme"
+import { seeded } from "@/lib/seeded"
 import type { StateData } from "./StateMap"
 
 const MONO = font.mono
@@ -41,7 +42,7 @@ function syntheticHistory(basePermits: number) {
   const now = new Date()
   for (let i = 23; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    val = val * (1 + (Math.random() * 0.10 - 0.05))
+    val = val * (1 + (seeded(23 - i) * 0.10 - 0.05))
     months.push({
       month: d.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
       value: Math.round(val),

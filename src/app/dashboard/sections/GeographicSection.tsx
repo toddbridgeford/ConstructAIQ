@@ -4,6 +4,7 @@ import { StateDrillDown } from "../components/StateDrillDown"
 import { TopStatesChart } from "../components/TopStatesChart"
 import { GateLock }       from "../components/GateLock"
 import { SectionHeader }  from "../components/SectionHeader"
+import { Skeleton }       from "@/app/components/Skeleton"
 import { color, font } from "@/lib/theme"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,7 +37,7 @@ export function GeographicSection({ states, selState, onSelState, mapToggle, onT
       <SectionHeader sectionId="03" title="Geographic Intelligence" subtitle="50-state construction activity, capital flows, and regional momentum" />
 
       {loading ? (
-        <div style={{ height:440, borderRadius:16, background:BG2, animation:"pulse 1.5s infinite", marginBottom:20 }} />
+        <Skeleton height={440} borderRadius={16} style={{ marginBottom:20 }} />
       ) : (
         <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
           <Card style={{ flex:"2 1 480px", minWidth:0 }}>

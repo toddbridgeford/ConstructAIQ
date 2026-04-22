@@ -39,7 +39,6 @@ export async function GET(request: Request) {
   const errors:    string[] = []
   let forecastsWritten = 0
 
-  console.log('[ForecastEngine] Starting forecast run at', new Date().toISOString())
 
   // Collect latest observations for all series
   const obsMap: Record<string, number[]> = {}
@@ -163,7 +162,6 @@ export async function GET(request: Request) {
     })
   } catch {}
 
-  console.log(`[ForecastEngine] Done. ${processed.length} series, ${forecastsWritten} forecasts, ${duration}ms`)
 
   return NextResponse.json({
     status:           'ok',
