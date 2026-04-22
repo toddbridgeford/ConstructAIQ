@@ -424,3 +424,148 @@ CREATE POLICY IF NOT EXISTS "service_all_satellite_bsi"
 
 CREATE POLICY IF NOT EXISTS "service_all_signal_fusion"
     ON signal_fusion FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- GC Survey Tables
+-- Proprietary quarterly survey of construction industry professionals.
+-- No PII is stored — email is hashed client-side before persistence.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS survey_periods (
+  id               BIGSERIAL   PRIMARY KEY,
+  quarter          TEXT        NOT NULL UNIQUE,  -- e.g. '2025-Q2'
+  opens_at         TIMESTAMPTZ NOT NULL,
+  closes_at        TIMESTAMPTZ NOT NULL,
+  status           TEXT        NOT NULL DEFAULT 'draft'
+                   CHECK (status IN ('draft','open','closed','published')),
+  respondent_count INTEGER     DEFAULT 0,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE  survey_periods                  IS 'Survey cycle definitions — one row per quarter.';
+COMMENT ON COLUMN survey_periods.quarter          IS 'Quarter identifier in YYYY-QN format (e.g. 2025-Q2).';
+COMMENT ON COLUMN survey_periods.respondent_count IS 'Running count incremented on each accepted response.';
+
+CREATE TABLE IF NOT EXISTS survey_responses (
+  id                  BIGSERIAL   PRIMARY KEY,
+  survey_period_id    BIGINT      REFERENCES survey_periods(id),
+  respondent_hash     TEXT        NOT NULL,
+  submitted_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Respondent profile (no PII)
+  company_size        TEXT        CHECK (company_size IN (
+                        'under_5m','5m_25m','25m_100m','100m_500m','over_500m')),
+  primary_work_type   TEXT        CHECK (primary_work_type IN (
+                        'residential','commercial','industrial',
+                        'infrastructure','specialty','mixed')),
+  primary_region      TEXT        CHECK (primary_region IN (
+                        'northeast','southeast','midwest',
+                        'southwest','west','national')),
+  years_in_business   TEXT        CHECK (years_in_business IN (
+                        'under_5','5_15','15_30','over_30')),
+
+  -- Q1: Backlog outlook vs 6 months ago (1=Much lower … 5=Much higher)
+  backlog_outlook     INTEGER     CHECK (backlog_outlook BETWEEN 1 AND 5),
+  -- Q2: Margin expectations next 6 months (1=Decrease significantly … 5=Increase significantly)
+  margin_outlook      INTEGER     CHECK (margin_outlook BETWEEN 1 AND 5),
+  -- Q3: Labor availability in your market (1=Very difficult … 5=Very easy)
+  labor_availability  INTEGER     CHECK (labor_availability BETWEEN 1 AND 5),
+  -- Q4: Primary material cost concern (categorical)
+  material_concern    TEXT        CHECK (material_concern IN (
+                        'none','lumber','steel','concrete',
+                        'copper','labor','fuel','other')),
+  -- Q5: Overall market outlook next 6 months (1=Much worse … 5=Much better)
+  market_outlook      INTEGER     CHECK (market_outlook BETWEEN 1 AND 5),
+
+  -- Optional open text — PII-stripped before storage, max 500 chars
+  comments            TEXT,
+
+  CONSTRAINT survey_responses_period_hash_unique UNIQUE (survey_period_id, respondent_hash)
+);
+
+COMMENT ON TABLE  survey_responses                    IS 'Individual survey responses — no PII stored.';
+COMMENT ON COLUMN survey_responses.respondent_hash    IS 'SHA-256(email.toLowerCase() + quarter) — anonymous dedup key.';
+COMMENT ON COLUMN survey_responses.backlog_outlook    IS '1=Much lower, 2=Lower, 3=Same, 4=Higher, 5=Much higher.';
+COMMENT ON COLUMN survey_responses.margin_outlook     IS '1=Decrease significantly, 2=Decrease, 3=Flat, 4=Increase, 5=Increase significantly.';
+COMMENT ON COLUMN survey_responses.labor_availability IS '1=Very difficult, 2=Difficult, 3=Neutral, 4=Easy, 5=Very easy.';
+COMMENT ON COLUMN survey_responses.market_outlook     IS '1=Much worse, 2=Worse, 3=Same, 4=Better, 5=Much better.';
+
+CREATE TABLE IF NOT EXISTS survey_results (
+  id                  BIGSERIAL   PRIMARY KEY,
+  survey_period_id    BIGINT      REFERENCES survey_periods(id) UNIQUE,
+  quarter             TEXT        NOT NULL,
+  published_at        TIMESTAMPTZ,
+  respondent_count    INTEGER     NOT NULL DEFAULT 0,
+
+  -- Net scores: (% positive − % negative) × 100
+  -- Positive = 4 or 5, Negative = 1 or 2, Neutral = 3
+  backlog_net_score   NUMERIC,   -- Backlog Outlook Index (BOI)
+  margin_net_score    NUMERIC,   -- Margin Expectation Index (MEI)
+  labor_net_score     NUMERIC,   -- Labor Availability Index (LAI)
+  market_net_score    NUMERIC,   -- Market Outlook Index (MOI)
+
+  -- Distribution breakdowns {1: pct, 2: pct, 3: pct, 4: pct, 5: pct}
+  backlog_dist        JSONB,
+  margin_dist         JSONB,
+  labor_dist          JSONB,
+  market_dist         JSONB,
+  material_dist       JSONB,    -- {lumber: pct, steel: pct, ...}
+
+  -- Cross-tabulations by segment
+  by_company_size     JSONB,
+  by_work_type        JSONB,
+  by_region           JSONB,
+
+  -- Quarter-over-quarter net score changes
+  backlog_change_qoq  NUMERIC,
+  margin_change_qoq   NUMERIC,
+  labor_change_qoq    NUMERIC,
+  market_change_qoq   NUMERIC
+);
+
+COMMENT ON TABLE  survey_results                    IS 'Aggregated published survey results — one row per quarter.';
+COMMENT ON COLUMN survey_results.backlog_net_score  IS 'Backlog Outlook Index: (pct positive − pct negative) × 100.';
+COMMENT ON COLUMN survey_results.margin_net_score   IS 'Margin Expectation Index: (pct positive − pct negative) × 100.';
+COMMENT ON COLUMN survey_results.labor_net_score    IS 'Labor Availability Index: (pct positive − pct negative) × 100.';
+COMMENT ON COLUMN survey_results.market_net_score   IS 'Market Outlook Index: (pct positive − pct negative) × 100.';
+
+CREATE INDEX IF NOT EXISTS idx_survey_responses_period
+  ON survey_responses (survey_period_id, submitted_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_survey_responses_hash
+  ON survey_responses (respondent_hash);
+
+CREATE INDEX IF NOT EXISTS idx_survey_results_quarter
+  ON survey_results (quarter DESC);
+
+-- Atomic respondent count increment (avoids read-modify-write race)
+CREATE OR REPLACE FUNCTION increment_survey_respondents(period_id BIGINT)
+RETURNS void LANGUAGE sql SECURITY DEFINER AS $$
+  UPDATE survey_periods SET respondent_count = respondent_count + 1 WHERE id = period_id;
+$$;
+
+-- RLS
+ALTER TABLE survey_periods   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE survey_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE survey_results   ENABLE ROW LEVEL SECURITY;
+
+-- survey_periods: anon can read (needed to show survey open/closed state publicly)
+CREATE POLICY IF NOT EXISTS "anon_read_survey_periods"
+  ON survey_periods FOR SELECT TO anon USING (true);
+
+-- survey_responses: no anon access — individual response data is private
+-- (service_role bypasses RLS; anon has no policy = no access)
+
+-- survey_results: anon can read published aggregate results
+CREATE POLICY IF NOT EXISTS "anon_read_survey_results"
+  ON survey_results FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_survey_periods"
+  ON survey_periods FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_survey_responses"
+  ON survey_responses FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_survey_results"
+  ON survey_results FOR ALL TO service_role USING (true) WITH CHECK (true);
