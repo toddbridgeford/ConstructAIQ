@@ -4,8 +4,9 @@ import { ForecastChart }   from "../components/ForecastChart"
 import { ScenarioBuilder } from "../components/ScenarioBuilder"
 import { ModelAccuracy }   from "../components/ModelAccuracy"
 import { ConfidenceRing }  from "../components/ConfidenceRing"
-import { RecessionGauge }  from "../components/RecessionGauge"
-import { CycleClock }      from "../components/CycleClock"
+import { RecessionGauge }        from "../components/RecessionGauge"
+import { LeadingIndicatorCard }   from "../components/LeadingIndicatorCard"
+import { CycleClock }             from "../components/CycleClock"
 import { SectionHeader }   from "../components/SectionHeader"
 import { BottomSheet }     from "@/app/components/BottomSheet"
 import { Skeleton }       from "@/app/components/Skeleton"
@@ -100,10 +101,13 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
         </Card>
         <Card style={{ flex:"1 1 200px", minWidth:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:24 }}>
           <ConfidenceRing value={91} label="Model Agreement" />
-          <RecessionGauge probability={18} />
+          <RecessionGauge />
         </Card>
         <Card style={{ flex:"1 1 220px", minWidth:0 }}>
           <CycleClock position={45} history={[30,34,38,42,43,45]} />
+        </Card>
+        <Card style={{ flex:"1 1 240px", minWidth:0 }}>
+          <LeadingIndicatorCard />
         </Card>
       </div>
     </section>

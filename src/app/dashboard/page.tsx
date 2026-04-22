@@ -64,6 +64,7 @@ export default function Dashboard() {
   const [signals,     setSignals]     = useState<AnyData>(null)
   const [brief,       setBrief]       = useState<AnyData>(null)
   const [satellite,   setSatellite]   = useState<AnyData>(null)
+  const [warn,        setWarn]        = useState<AnyData>(null)
   const [obsMap,      setObsMap]      = useState<Record<string, { date: string; value: number }[]>>({})
 
   useEffect(() => {
@@ -79,6 +80,7 @@ export default function Dashboard() {
         cshiD, spendD, employD, foreD, mapData,
         pricesD, pipeD, fedD, eqD, sigsD, briefD, satD,
         ttl12, ces12, houst12, permit12, ttl24, wps24,
+        warnD,
       ] = await Promise.all([
         safe("/api/cshi"),
         safe("/api/census"),
@@ -98,6 +100,7 @@ export default function Dashboard() {
         safe("/api/obs?series=PERMIT&n=12"),
         safe("/api/obs?series=TTLCONS&n=24"),
         safe("/api/obs?series=WPS081&n=24"),
+        safe("/api/warn"),
       ])
 
       if (cshiD)   setCshi(cshiD)
@@ -112,6 +115,7 @@ export default function Dashboard() {
       if (sigsD)   setSignals(sigsD)
       if (briefD)  setBrief(briefD)
       if (satD)    setSatellite(satD)
+      if (warnD)   setWarn(warnD)
 
       setObsMap({
         TTLCONS_12:        ttl12?.obs    ?? [],
@@ -303,7 +307,7 @@ export default function Dashboard() {
           {/* 11 — Signals */}
           <ErrorBoundary fallback={<SectionFallback title="Signals" />}>
             <section id="signals" style={{ paddingTop: 48, paddingBottom: 8 }}>
-              <SignalsSection signals={signals} brief={brief} />
+              <SignalsSection signals={signals} brief={brief} warn={warn} />
             </section>
           </ErrorBoundary>
 
