@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { randomBytes, createHash } from 'crypto'
+import { sendApiKeyWelcome } from '@/lib/email'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const PLANS = {
-  starter:      { rpm: 60,   rpd: 1000,  price: 490  },
-  professional: { rpm: 300,  rpd: 10000, price: 1490 },
-  enterprise:   { rpm: 1000, rpd: 100000, price: 0   },
+  free:       { rpm: 60, rpd: 1000  },
+  researcher: { rpm: 60, rpd: 10000 },
+  enterprise: { rpm: 60, rpd: 100000 },
 }
 
 function generateKey(): { key: string; prefix: string; hash: string } {
@@ -20,16 +21,18 @@ function generateKey(): { key: string; prefix: string; hash: string } {
 }
 
 export async function POST(request: Request) {
-  // Require CRON_SECRET (admin token) to issue keys programmatically
   const adminToken = process.env.CRON_SECRET
   const authHeader = request.headers.get('authorization')
-  if (!adminToken || authHeader !== `Bearer ${adminToken}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const isAdmin    = !!adminToken && authHeader === `Bearer ${adminToken}`
 
   try {
     const body  = await request.json()
-    const { email, plan = 'starter', name = '' } = body
+    const { email, plan = 'free', name = '' } = body
+
+    // Unauthenticated callers may only self-serve the free plan
+    if (!isAdmin && plan !== 'free') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     if (!email || !email.includes('@')) {
       return NextResponse.json({ error: 'Valid email required' }, { status: 400 })
@@ -73,6 +76,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Key generation failed' }, { status: 500 })
     }
 
+    // Check if the survey is currently open (best-effort, non-blocking)
+    let surveyOpen = false
+    let surveyQuarter = 'Q2 2025'
+    try {
+      const surveyRes = await supabaseAdmin
+        .from('survey_periods')
+        .select('quarter')
+        .eq('is_active', true)
+        .limit(1)
+        .single()
+      if (surveyRes.data) {
+        surveyOpen    = true
+        surveyQuarter = surveyRes.data.quarter
+      }
+    } catch {/* ignore — survey state is non-critical */}
+
+    // Send welcome email with API key (fire-and-forget)
+    sendApiKeyWelcome({
+      to: email,
+      key,
+      prefix,
+      plan,
+      surveyOpen,
+      surveyQuarter,
+    }).catch(err => console.warn('[/api/keys/issue] welcome email failed:', err))
+
     // Return the key once — it is never stored in plaintext
     return NextResponse.json({
       success:    true,
@@ -83,8 +112,9 @@ export async function POST(request: Request) {
         requestsPerMinute: planConfig.rpm,
         requestsPerDay:    planConfig.rpd,
       },
+      message:    'Store this key securely. It is shown once.',
       endpoints:  'https://constructaiq.trade/api/*',
-      docs:       'https://docs.constructaiq.trade',
+      docs:       'https://constructaiq.trade/api-access',
       warning:    'Store this key securely. It will not be shown again.',
     }, { status: 201 })
 

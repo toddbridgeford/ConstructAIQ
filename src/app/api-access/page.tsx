@@ -1,409 +1,449 @@
 "use client"
-import Image from "next/image"
-import Link from "next/link"
 import { useState } from "react"
-import { font, color } from "@/lib/theme"
+import Link from "next/link"
+import { Nav } from "@/app/components/Nav"
+import { color, font } from "@/lib/theme"
 
-const SYS  = font.sys
-const MONO = font.mono
+// ── Tokens ────────────────────────────────────────────────────────────────
 
-const BASE = "https://constructaiq.trade"
+const { bg0:BG0, bg1:BG1, bg2:BG2, bd1:BD1, bd2:BD2,
+        t1:T1, t2:T2, t3:T3, t4:T4,
+        green:GREEN, amber:AMBER, blue:BLUE, red:RED,
+        blueDim:BLUE_DIM } = color
+const MONO = font.mono, SYS = font.sys
 
-type ChartKey = "forecast" | "federal-pipeline" | "signals" | "materials"
+// ── Code snippets ─────────────────────────────────────────────────────────
 
-const CHARTS: { key: ChartKey; label: string; desc: string; height: number }[] = [
-  {
-    key:    "forecast",
-    label:  "Forecast Chart",
-    desc:   "12-month ensemble AI forecast with confidence bands",
-    height: 420,
-  },
-  {
-    key:    "federal-pipeline",
-    label:  "Federal Pipeline",
-    desc:   "IIJA & IRA program execution by agency",
-    height: 380,
-  },
-  {
-    key:    "signals",
-    label:  "Market Signals",
-    desc:   "Live anomaly and trend-reversal detection",
-    height: 300,
-  },
-  {
-    key:    "materials",
-    label:  "Materials Prices",
-    desc:   "BUY/SELL/HOLD signals for construction commodities",
-    height: 360,
-  },
-]
+const SNIPPETS = {
+  curl: `# Get your free API key
+curl -X POST https://constructaiq.trade/api/keys/issue \\
+  -H "Content-Type: application/json" \\
+  -d '{"email":"you@example.com","plan":"free"}'
 
-function embedTag(chart: ChartKey) {
-  return `<script src="${BASE}/embed.js"\n  data-chart="${chart}"\n  data-geo="national"\n  data-theme="dark"\n  data-period="12M">\n</script>`
+# Use your key
+curl https://constructaiq.trade/api/forecast?series=TTLCONS \\
+  -H "X-Api-Key: caiq_your_key_here"`,
+
+  python: `import requests
+
+r = requests.get(
+    "https://constructaiq.trade/api/forecast",
+    params={"series": "TTLCONS"},
+    headers={"X-Api-Key": "caiq_your_key_here"}
+)
+data = r.json()`,
+
+  js: `const res = await fetch(
+  "https://constructaiq.trade/api/forecast?series=TTLCONS",
+  { headers: { "X-Api-Key": "caiq_your_key_here" } }
+)
+const data = await res.json()`,
 }
 
-export default function ApiAccessPage() {
-  const [selectedChart, setSelectedChart] = useState<ChartKey>("forecast")
+// ── Endpoint table ────────────────────────────────────────────────────────
+
+const ENDPOINTS = [
+  { path:"GET /api/forecast?series=TTLCONS", desc:"12-month ensemble forecast",    auth:"Key",  rate:"1K/day"    },
+  { path:"GET /api/census",                  desc:"Construction spending (Census)", auth:"Key",  rate:"1K/day"    },
+  { path:"GET /api/bls",                     desc:"Employment data (BLS)",          auth:"Key",  rate:"1K/day"    },
+  { path:"GET /api/signals",                 desc:"Anomaly detection signals",      auth:"Key",  rate:"1K/day"    },
+  { path:"GET /api/federal",                 desc:"Federal pipeline by state",      auth:"None", rate:"1K/day"    },
+  { path:"GET /api/pricewatch",              desc:"Commodity prices",               auth:"Key",  rate:"1K/day"    },
+  { path:"GET /api/map",                     desc:"State-level permit data",        auth:"None", rate:"1K/day"    },
+  { path:"GET /api/export?series=TTLCONS",   desc:"Download CSV",                   auth:"None", rate:"100/day"   },
+  { path:"POST /api/keys/issue",             desc:"Issue API key",                  auth:"None", rate:"10/day"    },
+  { path:"GET /api/status",                  desc:"Health check",                   auth:"None", rate:"Unlimited" },
+]
+
+// ── Rate limit tiers ──────────────────────────────────────────────────────
+
+const TIERS = [
+  { plan:"Free",              limits:"1,000 req/day · 60 req/min",  note:""                                        },
+  { plan:"Researcher (.edu)", limits:"10,000 req/day · 60 req/min", note:"Email research@constructaiq.trade"       },
+  { plan:"Enterprise",        limits:"Unlimited · Custom SLA",      note:"Contact us"                              },
+]
+
+const USE_CASES = [
+  "Research", "Construction lending", "General contracting",
+  "Investment analysis", "Software development", "Other",
+]
+
+type Tab = "curl" | "python" | "js"
+
+// ── Small shared components ────────────────────────────────────────────────
+
+function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={{ background:BG1, borderRadius:20, border:`1px solid ${BD1}`,
+                  padding:"32px 36px", ...style }}>
+      {children}
+    </div>
+  )
+}
+
+function SectionTitle({ label, title }: { label:string; title:string }) {
+  return (
+    <div style={{ marginBottom:28 }}>
+      <div style={{ fontFamily:MONO, fontSize:10, color:T4, letterSpacing:"0.12em",
+                    textTransform:"uppercase", marginBottom:10 }}>{label}</div>
+      <h2 style={{ fontFamily:SYS, fontSize:26, fontWeight:700, color:T1,
+                   letterSpacing:"-0.025em", margin:0 }}>{title}</h2>
+    </div>
+  )
+}
+
+// ── Code block with tabs ───────────────────────────────────────────────────
+
+function CodeTabs() {
+  const [tab, setTab] = useState<Tab>("curl")
+  const tabs: { key: Tab; label: string }[] = [
+    { key:"curl",   label:"curl"       },
+    { key:"python", label:"Python"     },
+    { key:"js",     label:"JavaScript" },
+  ]
+  return (
+    <div>
+      <div style={{ display:"flex", gap:0, borderBottom:`1px solid ${BD1}`, marginBottom:0 }}>
+        {tabs.map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            style={{
+              background:      tab === t.key ? BG2 : "transparent",
+              border:          "none",
+              borderBottom:    tab === t.key ? `2px solid ${BLUE}` : "2px solid transparent",
+              color:           tab === t.key ? T1 : T4,
+              fontFamily:      MONO, fontSize:12, fontWeight:600,
+              padding:         "10px 20px", cursor:"pointer",
+              letterSpacing:   "0.04em", minHeight:44,
+              transition:      "color 0.1s",
+            }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <pre style={{
+        background:BG2, border:`1px solid ${BD1}`,
+        borderTop:"none", borderRadius:"0 0 12px 12px",
+        padding:"24px 24px", fontFamily:MONO, fontSize:13,
+        color:GREEN, lineHeight:1.7, overflowX:"auto", margin:0,
+        whiteSpace:"pre",
+      }}>
+        {SNIPPETS[tab]}
+      </pre>
+    </div>
+  )
+}
+
+// ── Key registration form ─────────────────────────────────────────────────
+
+function KeyRegistrationForm() {
+  const [email,  setEmail]  = useState("")
+  const [use,    setUse]    = useState(USE_CASES[0])
+  const [busy,   setBusy]   = useState(false)
+  const [key,    setKey]    = useState<string | null>(null)
+  const [err,    setErr]    = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const previewHeight = CHARTS.find(c => c.key === selectedChart)?.height ?? 420
-  const previewSrc    = `/embed/${selectedChart}?geo=national&theme=dark&period=12M`
-  const code          = embedTag(selectedChart)
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email || busy) return
+    setBusy(true)
+    setErr(null)
+    try {
+      const res = await fetch("/api/keys/issue", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email: email.trim(), plan: "free", name: use }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setErr(data.error ?? "Key generation failed. Please try again.")
+      } else {
+        setKey(data.key)
+      }
+    } catch {
+      setErr("Network error. Please try again.")
+    } finally {
+      setBusy(false)
+    }
+  }
 
-  function handleCopy() {
-    navigator.clipboard.writeText(code)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  function copyKey() {
+    if (!key) return
+    navigator.clipboard.writeText(key).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  if (key) {
+    return (
+      <div>
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16 }}>
+          <span style={{ width:8, height:8, borderRadius:"50%", background:GREEN,
+                         display:"inline-block" }} />
+          <span style={{ fontFamily:MONO, fontSize:12, color:GREEN, fontWeight:600 }}>
+            Your API key is ready
+          </span>
+        </div>
+
+        <div style={{ background:BG2, border:`1px solid ${GREEN}44`, borderRadius:12,
+                      padding:"16px 20px", marginBottom:16,
+                      display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+          <code style={{ fontFamily:MONO, fontSize:13, color:GREEN,
+                         flex:"1 1 200px", wordBreak:"break-all" }}>
+            {key}
+          </code>
+          <button
+            onClick={copyKey}
+            style={{
+              flexShrink:0, background: copied ? GREEN+"22" : "transparent",
+              border:`1px solid ${copied ? GREEN : BD2}`,
+              color: copied ? GREEN : T3,
+              borderRadius:8, padding:"8px 16px",
+              fontFamily:MONO, fontSize:12, fontWeight:700,
+              cursor:"pointer", minHeight:44, letterSpacing:"0.04em",
+              transition:"all 0.15s",
+            }}>
+            {copied ? "✓ Copied" : "Copy"}
+          </button>
+        </div>
+
+        <div style={{ background:AMBER+"14", border:`1px solid ${AMBER}44`,
+                      borderRadius:10, padding:"12px 16px",
+                      fontFamily:SYS, fontSize:13, color:AMBER, lineHeight:1.6 }}>
+          Store this key securely. It is shown once and never stored in plaintext.
+        </div>
+
+        <div style={{ marginTop:20, fontFamily:SYS, fontSize:13, color:T4 }}>
+          Pass your key as an{" "}
+          <code style={{ fontFamily:MONO, fontSize:12, color:T3 }}>X-Api-Key</code>
+          {" "}header on every request. See the{" "}
+          <span style={{ color:BLUE }}>endpoint reference</span> below for available routes.
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: color.bg0,
-      color: color.t1,
-      fontFamily: SYS,
-      paddingBottom: "env(safe-area-inset-bottom, 20px)",
-    }}>
-      <style>{`
-        *{box-sizing:border-box;margin:0;padding:0}
-        a{color:inherit;text-decoration:none}
-        button{outline:none;font-family:inherit;cursor:pointer;border:none}
-        button:hover{opacity:.85}
-      `}</style>
+    <form onSubmit={submit}>
+      <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+        <div>
+          <label style={{ fontFamily:MONO, fontSize:10, color:T4,
+                          letterSpacing:"0.08em", display:"block", marginBottom:6 }}>
+            EMAIL ADDRESS
+          </label>
+          <input
+            type="email" required placeholder="you@example.com"
+            value={email} onChange={e => setEmail(e.target.value)}
+            style={{
+              width:"100%", background:BG2, border:`1px solid ${BD2}`,
+              borderRadius:10, padding:"12px 14px",
+              fontFamily:SYS, fontSize:14, color:T1,
+              outline:"none", minHeight:44,
+            }}
+          />
+        </div>
 
-      {/* ── NAV ── */}
-      <nav style={{
-        position: "sticky", top: 0, zIndex: 100,
-        background: color.bg1 + "ee",
-        backdropFilter: "blur(12px)",
-        borderBottom: `1px solid ${color.bd1}`,
-        padding: "0 32px",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        height: 60,
-        paddingTop: "env(safe-area-inset-top, 0px)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href="/">
-            <Image
-              src="/ConstructAIQWhiteLogo.svg"
-              width={120} height={24} alt="ConstructAIQ"
-              style={{ height: 24, width: "auto" }}
-            />
-          </Link>
-          <div style={{ width: 1, height: 24, background: color.bd1 }} />
-          <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, letterSpacing: "0.1em" }}>
-            API ACCESS
+        <div>
+          <label style={{ fontFamily:MONO, fontSize:10, color:T4,
+                          letterSpacing:"0.08em", display:"block", marginBottom:6 }}>
+            INTENDED USE
+          </label>
+          <select
+            value={use} onChange={e => setUse(e.target.value)}
+            style={{
+              width:"100%", background:BG2, border:`1px solid ${BD2}`,
+              borderRadius:10, padding:"12px 14px",
+              fontFamily:SYS, fontSize:14, color:T2,
+              outline:"none", cursor:"pointer", minHeight:44,
+            }}>
+            {USE_CASES.map(u => <option key={u} value={u}>{u}</option>)}
+          </select>
+        </div>
+
+        {err && (
+          <div style={{ background:RED+"18", border:`1px solid ${RED}44`,
+                        borderRadius:10, padding:"10px 14px",
+                        fontFamily:SYS, fontSize:13, color:RED }}>
+            {err}
           </div>
-        </div>
-        <div style={{ display: "flex", gap: 12 }}>
-          <Link href="/dashboard">
-            <button style={{
-              background: "transparent", color: color.t3,
-              fontFamily: MONO, fontSize: 13,
-              padding: "8px 16px", borderRadius: 10,
-              border: `1px solid ${color.bd1}`, minHeight: 44,
-            }}>
-              DASHBOARD
-            </button>
-          </Link>
-          <Link href="/pricing">
-            <button style={{
-              background: color.amber, color: "#000",
-              fontFamily: MONO, fontSize: 13, fontWeight: 700,
-              padding: "8px 20px", borderRadius: 10,
-              letterSpacing: "0.06em", minHeight: 44,
-            }}>
-              GET API KEY →
-            </button>
-          </Link>
-        </div>
-      </nav>
+        )}
 
-      {/* ── HERO ── */}
-      <div style={{
-        maxWidth: 860, margin: "0 auto",
-        padding: "72px 32px 48px",
-        textAlign: "center",
-      }}>
-        <div style={{
-          display: "inline-flex", alignItems: "center", gap: 8,
-          background: color.amberDim, border: `1px solid ${color.amber}44`,
-          borderRadius: 20, padding: "6px 16px", marginBottom: 24,
-        }}>
-          <span style={{ fontFamily: MONO, fontSize: 11, color: color.amber, letterSpacing: "0.08em" }}>
-            REST API · EMBEDS · WEBHOOKS
-          </span>
-        </div>
-        <h1 style={{
-          fontFamily: SYS, fontSize: 40, fontWeight: 700, color: color.t1,
-          marginBottom: 16, lineHeight: 1.15, letterSpacing: "-0.02em",
-        }}>
-          Integrate ConstructAIQ
-        </h1>
-        <p style={{
-          fontFamily: SYS, fontSize: 17, color: color.t3,
-          lineHeight: 1.6, maxWidth: 500, margin: "0 auto",
-        }}>
-          REST API with tiered key access. Embeddable charts for any website.
-          Free to embed — API access from $490/mo.
+        <button
+          type="submit" disabled={busy}
+          style={{
+            background: busy ? BLUE_DIM : BLUE,
+            color: busy ? T4 : BG0, border:"none",
+            borderRadius:12, padding:"14px 24px",
+            fontFamily:MONO, fontSize:13, fontWeight:700,
+            letterSpacing:"0.06em", cursor: busy ? "default" : "pointer",
+            minHeight:44, opacity: busy ? 0.7 : 1,
+            transition:"all 0.15s",
+          }}>
+          {busy ? "Generating…" : "Get My Free API Key →"}
+        </button>
+
+        <p style={{ fontFamily:SYS, fontSize:12, color:T4, margin:0, lineHeight:1.6 }}>
+          Free forever. No credit card. Keys are issued instantly.
+          By requesting a key you agree to the{" "}
+          <Link href="/about" style={{ color:T3 }}>terms of use</Link>.
         </p>
       </div>
+    </form>
+  )
+}
 
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 32px 80px" }}>
+// ── Main page ─────────────────────────────────────────────────────────────
 
-        {/* ── API TIERS ── */}
-        <div style={{ marginBottom: 64 }}>
-          <div style={{
-            fontFamily: MONO, fontSize: 11, color: color.t4,
-            letterSpacing: "0.1em", marginBottom: 20,
-          }}>
-            API TIERS
+export default function ApiAccessPage() {
+  return (
+    <div style={{ minHeight:"100vh", background:BG0, color:T1, fontFamily:SYS,
+                  paddingBottom:"env(safe-area-inset-bottom,24px)" }}>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}a{color:inherit;text-decoration:none}button{font-family:inherit}input,select{color-scheme:dark}`}</style>
+
+      <Nav />
+
+      <div style={{ maxWidth:960, margin:"0 auto", padding:"64px 32px 80px" }}>
+
+        {/* ── Hero ────────────────────────────────────────────────────── */}
+        <div style={{ textAlign:"center", marginBottom:72 }}>
+          <div style={{ display:"inline-flex", alignItems:"center", gap:8,
+                        background:BLUE_DIM, border:`1px solid ${BLUE}44`,
+                        borderRadius:20, padding:"6px 18px", marginBottom:24 }}>
+            <span style={{ fontFamily:MONO, fontSize:11, color:BLUE, letterSpacing:"0.08em" }}>
+              REST API
+            </span>
           </div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            {[
-              {
-                name:    "Intelligence",
-                price:   "$490",
-                rpmLimit:  "60 RPM",
-                includes:  ["Forecast endpoint", "Signals", "Materials", "Historical data"],
-              },
-              {
-                name:    "Professional",
-                price:   "$1,490",
-                rpmLimit: "300 RPM",
-                includes:  ["All Intelligence", "Federal pipeline", "Scenario builder", "Webhooks"],
-                highlight: true,
-              },
-              {
-                name:    "Enterprise",
-                price:   "Custom",
-                rpmLimit: "Unlimited",
-                includes:  ["All Professional", "White-label embeds", "Dedicated SLA", "Data exports"],
-              },
-            ].map(tier => (
-              <div key={tier.name} style={{
-                flex: "1 1 220px",
-                background: tier.highlight ? color.blueDim : color.bg1,
-                border: `1px solid ${tier.highlight ? color.blue : color.bd1}`,
-                borderRadius: 16, padding: "24px 24px",
-              }}>
-                <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.08em", marginBottom: 8 }}>
-                  {tier.name.toUpperCase()}
-                </div>
-                <div style={{
-                  fontFamily: SYS, fontSize: 28, fontWeight: 700, color: color.t1,
-                  marginBottom: 4,
-                }}>
-                  {tier.price}
-                  {tier.price !== "Custom" && (
-                    <span style={{ fontSize: 14, fontWeight: 400, color: color.t4 }}>/mo</span>
-                  )}
-                </div>
-                <div style={{ fontFamily: MONO, fontSize: 11, color: color.amber, marginBottom: 16 }}>
-                  {tier.rpmLimit}
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {tier.includes.map(f => (
-                    <div key={f} style={{ fontFamily: SYS, fontSize: 13, color: color.t3, display: "flex", gap: 6 }}>
-                      <span style={{ color: color.green, flexShrink: 0 }}>✓</span>
-                      {f}
-                    </div>
+          <h1 style={{ fontFamily:SYS, fontSize:52, fontWeight:700,
+                       letterSpacing:"-0.04em", lineHeight:1.05, color:T1, marginBottom:16 }}>
+            Open API — Free
+          </h1>
+          <p style={{ fontFamily:SYS, fontSize:19, color:T3, lineHeight:1.65,
+                      maxWidth:520, margin:"0 auto" }}>
+            1,000 requests/day free. Full historical data. No credit card.
+          </p>
+        </div>
+
+        {/* ── Quick Start ──────────────────────────────────────────────── */}
+        <Card style={{ marginBottom:24 }}>
+          <SectionTitle label="Quick Start" title="Up and running in 60 seconds" />
+          <CodeTabs />
+        </Card>
+
+        {/* ── Key Registration ─────────────────────────────────────────── */}
+        <Card style={{ marginBottom:24, border:`1px solid ${BLUE}33`,
+                       boxShadow:`0 0 48px ${BLUE}0d` }}>
+          <SectionTitle label="Self-Serve Registration" title="Get your free API key" />
+          <KeyRegistrationForm />
+        </Card>
+
+        {/* ── Endpoint Reference ───────────────────────────────────────── */}
+        <Card style={{ marginBottom:24 }}>
+          <SectionTitle label="Reference" title="Endpoint Reference" />
+          <div style={{ overflowX:"auto" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse" }}>
+              <thead>
+                <tr>
+                  {["Endpoint","Description","Auth","Rate Limit"].map(h => (
+                    <th key={h} style={{
+                      fontFamily:MONO, fontSize:10, color:T4,
+                      letterSpacing:"0.08em", textTransform:"uppercase",
+                      padding:"10px 14px", textAlign:"left",
+                      background:BG2, fontWeight:600, whiteSpace:"nowrap",
+                      borderBottom:`1px solid ${BD1}`,
+                    }}>{h}</th>
                   ))}
+                </tr>
+              </thead>
+              <tbody>
+                {ENDPOINTS.map((ep, i) => (
+                  <tr key={ep.path} style={{ background: i % 2 === 0 ? BG2 : BG1 }}>
+                    <td style={{ fontFamily:MONO, fontSize:12, color:BLUE,
+                                 padding:"11px 14px", borderTop:`1px solid ${BD1}`,
+                                 whiteSpace:"nowrap" }}>
+                      {ep.path}
+                    </td>
+                    <td style={{ fontFamily:SYS, fontSize:13, color:T2,
+                                 padding:"11px 14px", borderTop:`1px solid ${BD1}` }}>
+                      {ep.desc}
+                    </td>
+                    <td style={{ fontFamily:MONO, fontSize:11, padding:"11px 14px",
+                                 borderTop:`1px solid ${BD1}`, whiteSpace:"nowrap" }}>
+                      <span style={{
+                        color:      ep.auth === "Key" ? AMBER : T4,
+                        background: ep.auth === "Key" ? AMBER+"18" : "transparent",
+                        borderRadius:4, padding: ep.auth === "Key" ? "2px 8px" : "0",
+                      }}>
+                        {ep.auth}
+                      </span>
+                    </td>
+                    <td style={{ fontFamily:MONO, fontSize:11, color:T3,
+                                 padding:"11px 14px", borderTop:`1px solid ${BD1}`,
+                                 whiteSpace:"nowrap" }}>
+                      {ep.rate}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop:16, fontFamily:SYS, fontSize:13, color:T4, lineHeight:1.6 }}>
+            Pass your key as the{" "}
+            <code style={{ fontFamily:MONO, fontSize:12, color:T3 }}>X-Api-Key</code>
+            {" "}header. All endpoints return JSON.
+          </div>
+        </Card>
+
+        {/* ── Rate Limits ──────────────────────────────────────────────── */}
+        <Card style={{ marginBottom:48 }}>
+          <SectionTitle label="Plans" title="Rate Limits" />
+          <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+            {TIERS.map((tier, i) => (
+              <div key={tier.plan} style={{
+                display:"flex", alignItems:"center", gap:24, flexWrap:"wrap",
+                padding:"16px 0",
+                borderTop: i > 0 ? `1px solid ${BD1}` : "none",
+              }}>
+                <div style={{ flex:"0 0 180px" }}>
+                  <div style={{ fontFamily:SYS, fontSize:14, fontWeight:600, color:T1 }}>
+                    {tier.plan}
+                  </div>
                 </div>
+                <div style={{ fontFamily:MONO, fontSize:13, color:GREEN, flex:"1 1 200px" }}>
+                  {tier.limits}
+                </div>
+                {tier.note && (
+                  <div style={{ fontFamily:SYS, fontSize:13, color:T4 }}>
+                    {tier.plan === "Enterprise"
+                      ? <Link href="/contact" style={{ color:AMBER }}>{tier.note} →</Link>
+                      : <a href="mailto:research@constructaiq.trade"
+                           style={{ color:T3 }}>{tier.note}</a>
+                    }
+                  </div>
+                )}
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 20, textAlign: "center" }}>
-            <Link href="/pricing" style={{ fontFamily: SYS, fontSize: 14, color: color.amber }}>
-              Full pricing details →
-            </Link>
-          </div>
+        </Card>
+
+        {/* ── Back links ───────────────────────────────────────────────── */}
+        <div style={{ display:"flex", gap:24, justifyContent:"center", flexWrap:"wrap" }}>
+          <Link href="/dashboard" style={{ fontFamily:SYS, fontSize:14, color:T4,
+                                           textDecoration:"underline" }}>
+            ← Open Dashboard
+          </Link>
+          <Link href="/federal" style={{ fontFamily:SYS, fontSize:14, color:T4,
+                                         textDecoration:"underline" }}>
+            Federal Pipeline
+          </Link>
+          <Link href="/pricing" style={{ fontFamily:SYS, fontSize:14, color:T4,
+                                         textDecoration:"underline" }}>
+            Pricing
+          </Link>
         </div>
-
-        {/* ── EMBED ON YOUR SITE ── */}
-        <div id="embed">
-          <div style={{
-            fontFamily: MONO, fontSize: 11, color: color.t4,
-            letterSpacing: "0.1em", marginBottom: 20,
-          }}>
-            EMBED ON YOUR SITE
-          </div>
-          <h2 style={{
-            fontFamily: SYS, fontSize: 26, fontWeight: 700, color: color.t1,
-            marginBottom: 8, letterSpacing: "-0.01em",
-          }}>
-            Live Charts — One Line of Code
-          </h2>
-          <p style={{
-            fontFamily: SYS, fontSize: 15, color: color.t3,
-            lineHeight: 1.6, marginBottom: 32,
-          }}>
-            Add any ConstructAIQ chart to your website for free. No account needed.
-            Charts update automatically from live data.
-          </p>
-
-          {/* Chart option cards */}
-          <div style={{
-            fontFamily: MONO, fontSize: 10, color: color.t4,
-            letterSpacing: "0.08em", textTransform: "uppercase",
-            marginBottom: 12,
-          }}>
-            Select a chart
-          </div>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 28 }}>
-            {CHARTS.map(c => {
-              const active = selectedChart === c.key
-              return (
-                <button
-                  key={c.key}
-                  onClick={() => setSelectedChart(c.key)}
-                  style={{
-                    flex: "1 1 160px",
-                    background: active ? color.amberDim : color.bg1,
-                    border: `1px solid ${active ? color.amber : color.bd1}`,
-                    borderRadius: 12,
-                    padding: "16px 18px",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    transition: "border 0.15s, background 0.15s",
-                    boxShadow: active ? `0 0 20px ${color.amber}1a` : "none",
-                  }}
-                >
-                  <div style={{
-                    fontFamily: SYS, fontSize: 14, fontWeight: 600,
-                    color: active ? color.amber : color.t1,
-                    marginBottom: 4,
-                  }}>
-                    {c.label}
-                  </div>
-                  <div style={{ fontFamily: SYS, fontSize: 12, color: color.t4, lineHeight: 1.4 }}>
-                    {c.desc}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Live preview */}
-          <div style={{
-            fontFamily: MONO, fontSize: 10, color: color.t4,
-            letterSpacing: "0.08em", textTransform: "uppercase",
-            marginBottom: 10,
-          }}>
-            Live preview
-          </div>
-          <div style={{
-            background: color.bg1,
-            border: `1px solid ${color.bd1}`,
-            borderRadius: 16,
-            overflow: "hidden",
-            marginBottom: 24,
-          }}>
-            <iframe
-              key={selectedChart}
-              src={previewSrc}
-              width="100%"
-              height={previewHeight}
-              style={{ display: "block", border: "none" }}
-              title={`ConstructAIQ ${selectedChart} preview`}
-            />
-          </div>
-
-          {/* Embed code */}
-          <div style={{
-            fontFamily: MONO, fontSize: 10, color: color.t4,
-            letterSpacing: "0.08em", textTransform: "uppercase",
-            marginBottom: 10,
-          }}>
-            Embed code
-          </div>
-          <div style={{
-            background: color.bg0,
-            border: `1px solid ${color.bd1}`,
-            borderRadius: 12,
-            padding: "20px 20px",
-            position: "relative",
-          }}>
-            <pre style={{
-              fontFamily: MONO, fontSize: 12, color: color.amber,
-              whiteSpace: "pre", overflowX: "auto", margin: 0,
-              lineHeight: 1.7, paddingRight: 80,
-            }}>
-              {code}
-            </pre>
-            <button
-              onClick={handleCopy}
-              style={{
-                position: "absolute", top: 12, right: 12,
-                background: color.bg2,
-                border: `1px solid ${color.bd2}`,
-                fontFamily: MONO, fontSize: 11,
-                padding: "6px 14px", borderRadius: 6,
-                color: copied ? color.green : color.t3,
-                cursor: "pointer",
-                minWidth: 64,
-              }}
-            >
-              {copied ? "✓ Copied" : "Copy"}
-            </button>
-          </div>
-
-          {/* Supported attributes */}
-          <div style={{
-            marginTop: 20,
-            background: color.bg1,
-            border: `1px solid ${color.bd1}`,
-            borderRadius: 12, padding: "16px 20px",
-          }}>
-            <div style={{
-              fontFamily: MONO, fontSize: 10, color: color.t4,
-              letterSpacing: "0.08em", marginBottom: 12,
-            }}>
-              SUPPORTED ATTRIBUTES
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[
-                { attr: "data-chart",  vals: "forecast · federal-pipeline · signals · materials" },
-                { attr: "data-geo",    vals: "national · TX · CA · FL · NY · … (two-letter state code)" },
-                { attr: "data-theme",  vals: "dark · light" },
-                { attr: "data-period", vals: "6M · 12M · 24M" },
-              ].map(row => (
-                <div key={row.attr} style={{
-                  display: "flex", gap: 16, flexWrap: "wrap",
-                  borderTop: `1px solid ${color.bd1}`, paddingTop: 8,
-                }}>
-                  <code style={{
-                    fontFamily: MONO, fontSize: 12, color: color.blue,
-                    flexShrink: 0, minWidth: 140,
-                  }}>
-                    {row.attr}
-                  </code>
-                  <span style={{ fontFamily: SYS, fontSize: 13, color: color.t3 }}>
-                    {row.vals}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
       </div>
-
-      {/* ── FOOTER ── */}
-      <footer style={{
-        borderTop: `1px solid ${color.bd1}`,
-        padding: "32px",
-        textAlign: "center",
-      }}>
-        <Image
-          src="/ConstructAIQWhiteLogo.svg"
-          width={100} height={20} alt="ConstructAIQ"
-          style={{ height: 20, width: "auto", marginBottom: 12 }}
-        />
-        <div style={{ fontFamily: SYS, fontSize: 13, color: color.t4 }}>
-          Construction Intelligence Platform · constructaiq.trade
-        </div>
-      </footer>
     </div>
   )
 }

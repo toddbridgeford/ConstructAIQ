@@ -4,14 +4,31 @@ export const font = {
 }
 
 export const color = {
-  amber:    '#f5a623',
-  amberDim: '#3d2800',
-  green:    '#30d158',
-  greenDim: '#0a2e14',
-  red:      '#ff453a',
-  redDim:   '#2e0a0a',
-  blue:     '#0a84ff',
-  blueDim:  '#001a3d',
+  amber:      '#f5a623',
+  amberDim:   '#3d2800',
+  orange:     '#ff9500',
+  green:      '#30d158',
+  greenDim:   '#0a2e14',
+  greenMuted: '#1a7f37',
+  greenLight: '#86efac',
+  red:        '#ff453a',
+  redDim:     '#2e0a0a',
+  blue:       '#0a84ff',
+  blueDim:    '#001a3d',
+  purple:     '#5e5ce6',
+  cyan:       '#64d2ff',
+  yellow:     '#ffd60a',
+  redLight:   '#ffaaaa',
+  federalOrange: '#f97316',
+  federalAmber:  '#ff6b35',
+  federalGold:   '#fbbf24',
+  gradOrange:    '#e06c3a',
+  gradGreen:     '#3a9e6e',
+  lightBg:       '#f8f8f8',
+  lightBgAlt:    '#fafafa',
+  lightBgSub:    '#f5f5f5',
+  lightBgSkel:   '#f0f0f0',
+  lightBd:       '#e5e5e5',
   bg0: '#000',
   bg1: '#0d0d0d',
   bg2: '#1a1a1a',
@@ -24,6 +41,19 @@ export const color = {
   t2:  '#ebebf0',
   t3:  '#a0a0ab',
   t4:  '#6e6e73',
+}
+
+// Price-change heatmap palette — 5-tier red-to-green scale
+export const heatmap = {
+  veryHighBg:  '#7f1d1d',
+  veryHighTc:  '#fca5a5',
+  highBg:      '#dc2626',
+  highTc:      '#fecaca',
+  neutralBg:   '#3a3a3a',
+  lowBg:       '#166534',
+  lowTc:       '#86efac',
+  veryLowBg:   '#14532d',
+  veryLowTc:   '#bbf7d0',
 }
 
 export const TAP = 44

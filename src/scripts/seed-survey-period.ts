@@ -6,10 +6,10 @@ async function main() {
     .from('survey_periods')
     .upsert(
       {
-        quarter:   '2025-Q2',
-        opens_at:  '2025-04-21T00:00:00Z',
+        quarter:   'Q2 2025',
+        opens_at:  '2025-04-01T00:00:00Z',
         closes_at: '2025-05-21T23:59:59Z',
-        status:    'open',
+        is_active: true,
       },
       { onConflict: 'quarter' },
     )
@@ -18,7 +18,7 @@ async function main() {
     console.error('Seed failed:', error.message)
     process.exit(1)
   }
-  console.log('Done — survey period 2025-Q2 seeded.')
+  console.log('Done — survey period Q2 2025 seeded.')
 }
 
 main()

@@ -26,7 +26,6 @@ export async function GET(request: Request) {
   const errors:    string[] = []
   let   totalRows = 0
 
-  console.log('[DataHarvest] Starting harvest run at', new Date().toISOString())
 
   // ── 1. Census TTLCONS (via FRED) ──────────────────────────
   try {
@@ -154,7 +153,6 @@ export async function GET(request: Request) {
     console.warn('[DataHarvest] Log write failed:', logErr)
   }
 
-  console.log(`[DataHarvest] Done. ${harvested.length} series, ${totalRows} rows, ${duration}ms`)
 
   return NextResponse.json({
     status:           'ok',

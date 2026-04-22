@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
     id         BIGSERIAL   PRIMARY KEY,
     email      TEXT        NOT NULL UNIQUE,
     name       TEXT,
-    plan       TEXT        NOT NULL DEFAULT 'starter',  -- 'starter' | 'professional' | 'enterprise'
+    plan       TEXT        NOT NULL DEFAULT 'free',      -- 'free' | 'researcher' | 'enterprise'
     key_prefix TEXT        NOT NULL,                    -- 'caiq_' + 8 hex chars (shown to users)
     key_hash   TEXT        NOT NULL UNIQUE,             -- SHA-256 of the full key (never store plaintext)
     rpm_limit  INTEGER     NOT NULL DEFAULT 60,
@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
 
 COMMENT ON TABLE  api_keys            IS 'API key registry for external ConstructAIQ API consumers.';
 COMMENT ON COLUMN api_keys.email      IS 'Contact email; unique — one active key per email.';
-COMMENT ON COLUMN api_keys.plan       IS 'Subscription tier: starter, professional, or enterprise.';
+COMMENT ON COLUMN api_keys.plan       IS 'Access tier: free (1k/day), researcher (10k/day, .edu verified), or enterprise.';
 COMMENT ON COLUMN api_keys.key_prefix IS 'Human-readable key prefix (e.g. caiq_1a2b3c4d) shown in dashboards.';
 COMMENT ON COLUMN api_keys.key_hash   IS 'SHA-256 hash of the full API key used for authentication lookup.';
 COMMENT ON COLUMN api_keys.rpm_limit  IS 'Maximum requests per minute allowed for this key.';
@@ -259,84 +259,119 @@ CREATE INDEX IF NOT EXISTS idx_forecast_log_run_at
 
 
 -- ---------------------------------------------------------------------------
--- Satellite BSI Pipeline Tables
+-- Table: survey_periods
+-- Tracks quarterly GC survey windows.  One row per survey cycle.
 -- ---------------------------------------------------------------------------
-
--- MSA reference table — the 50 MSAs we process
-CREATE TABLE IF NOT EXISTS msa_boundaries (
-  msa_code      TEXT        PRIMARY KEY,
-  msa_name      TEXT        NOT NULL,
-  state_codes   TEXT[]      NOT NULL,
-  bbox_west     NUMERIC     NOT NULL,
-  bbox_south    NUMERIC     NOT NULL,
-  bbox_east     NUMERIC     NOT NULL,
-  bbox_north    NUMERIC     NOT NULL,
-  land_area_km2 NUMERIC
+CREATE TABLE IF NOT EXISTS survey_periods (
+    id          BIGSERIAL   PRIMARY KEY,
+    quarter     TEXT        NOT NULL UNIQUE,  -- e.g. 'Q2 2025'
+    opens_at    TIMESTAMPTZ NOT NULL,
+    closes_at   TIMESTAMPTZ NOT NULL,
+    is_active   BOOLEAN     NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-COMMENT ON TABLE  msa_boundaries              IS 'Metropolitan Statistical Area reference table with bounding boxes for satellite processing.';
-COMMENT ON COLUMN msa_boundaries.msa_code     IS 'Short MSA identifier (e.g. NYC, DFW).';
-COMMENT ON COLUMN msa_boundaries.bbox_west    IS 'Western longitude bound (WGS84).';
-COMMENT ON COLUMN msa_boundaries.bbox_south   IS 'Southern latitude bound (WGS84).';
-COMMENT ON COLUMN msa_boundaries.bbox_east    IS 'Eastern longitude bound (WGS84).';
-COMMENT ON COLUMN msa_boundaries.bbox_north   IS 'Northern latitude bound (WGS84).';
+COMMENT ON TABLE  survey_periods             IS 'Quarterly GC survey windows — one row per survey cycle.';
+COMMENT ON COLUMN survey_periods.quarter     IS 'Human-readable quarter label, e.g. Q2 2025.';
+COMMENT ON COLUMN survey_periods.opens_at    IS 'Timestamp when submissions open.';
+COMMENT ON COLUMN survey_periods.closes_at   IS 'Timestamp when submissions close.';
+COMMENT ON COLUMN survey_periods.is_active   IS 'TRUE for the currently open survey period.';
 
--- BSI observations per MSA per processing run
-CREATE TABLE IF NOT EXISTS satellite_bsi (
-  id                   BIGSERIAL   PRIMARY KEY,
-  msa_code             TEXT        REFERENCES msa_boundaries(msa_code),
-  observation_date     DATE        NOT NULL,
-  processed_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  bsi_mean             NUMERIC,
-  bsi_change_90d       NUMERIC,
-  bsi_change_yoy       NUMERIC,
-  cloud_cover_pct      NUMERIC,
-  valid_pixels         INTEGER,
-  total_pixels         INTEGER,
-  confidence           TEXT        CHECK (confidence IN ('HIGH','MEDIUM','LOW')),
-  false_positive_flags TEXT[],
-  scene_ids            TEXT[],
-  UNIQUE (msa_code, observation_date)
+-- Add published_at to track when results were published (idempotent)
+ALTER TABLE survey_periods ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ;
+
+-- Seed the current period (idempotent)
+INSERT INTO survey_periods (quarter, opens_at, closes_at, is_active)
+VALUES ('Q2 2025', '2025-04-01 00:00:00+00', '2025-05-21 23:59:59+00', TRUE)
+ON CONFLICT (quarter) DO NOTHING;
+
+
+-- ---------------------------------------------------------------------------
+-- Table: survey_responses
+-- One row per respondent per period.  Email is never stored — only a
+-- SHA-256 hash is persisted to detect duplicate submissions.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS survey_responses (
+    id                   BIGSERIAL   PRIMARY KEY,
+    period_id            BIGINT      NOT NULL REFERENCES survey_periods (id) ON DELETE CASCADE,
+    email_hash           TEXT        NOT NULL,  -- SHA-256(lowercase(trimmed(email)))
+
+    -- Respondent profile
+    revenue_band         TEXT,   -- 'under_5m' | '5_25m' | '25_100m' | '100_500m' | 'over_500m'
+    work_type            TEXT,   -- 'residential' | 'commercial' | 'industrial' | 'infrastructure' | 'specialty' | 'mixed'
+    region               TEXT,   -- 'northeast' | 'southeast' | 'midwest' | 'southwest' | 'west' | 'national'
+    years_band           TEXT,   -- 'under_5' | '5_15' | '15_30' | 'over_30'
+
+    -- Q1–Q5 answers
+    backlog_outlook      INTEGER CHECK (backlog_outlook BETWEEN 1 AND 5),
+    margin_outlook       INTEGER CHECK (margin_outlook BETWEEN 1 AND 5),
+    labor_availability   INTEGER CHECK (labor_availability BETWEEN 1 AND 5),
+    material_concern     TEXT,   -- 'none' | 'lumber' | 'steel' | 'concrete' | 'copper' | 'fuel' | 'other'
+    market_outlook       INTEGER CHECK (market_outlook BETWEEN 1 AND 5),
+
+    -- Optional open-text
+    comments             TEXT,
+
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT survey_responses_period_email_unique UNIQUE (period_id, email_hash)
 );
 
-COMMENT ON TABLE  satellite_bsi                    IS 'Sentinel-2 Bare Soil Index observations per MSA per processing run.';
-COMMENT ON COLUMN satellite_bsi.bsi_mean           IS 'Mean BSI value across valid pixels in the MSA bounding box.';
-COMMENT ON COLUMN satellite_bsi.bsi_change_90d     IS 'BSI change vs 90-day prior observation (positive = more bare soil).';
-COMMENT ON COLUMN satellite_bsi.bsi_change_yoy     IS 'BSI change vs same period prior year.';
-COMMENT ON COLUMN satellite_bsi.cloud_cover_pct    IS 'Percentage of pixels rejected due to cloud/shadow masking.';
-COMMENT ON COLUMN satellite_bsi.valid_pixels       IS 'Count of cloud-free pixels used in the computation.';
-COMMENT ON COLUMN satellite_bsi.confidence         IS 'Derived confidence level based on valid_pixels / total_pixels ratio.';
-COMMENT ON COLUMN satellite_bsi.false_positive_flags IS 'Array of detected false-positive sources (e.g. desert, beach, dry_lake).';
-COMMENT ON COLUMN satellite_bsi.scene_ids          IS 'Sentinel-2 scene/granule IDs used in this composite.';
+COMMENT ON TABLE  survey_responses                   IS 'GC survey responses — one row per respondent per quarter.';
+COMMENT ON COLUMN survey_responses.email_hash        IS 'SHA-256 of the lowercased, trimmed email — never the email itself.';
+COMMENT ON COLUMN survey_responses.revenue_band      IS 'Respondent annual revenue bracket.';
+COMMENT ON COLUMN survey_responses.material_concern  IS 'Primary material cost concern: none, lumber, steel, concrete, copper, fuel, or other.';
 
-CREATE INDEX IF NOT EXISTS idx_satellite_bsi_msa_date
-  ON satellite_bsi (msa_code, observation_date DESC);
+CREATE INDEX IF NOT EXISTS idx_survey_responses_period
+    ON survey_responses (period_id, created_at DESC);
 
--- Signal fusion results
-CREATE TABLE IF NOT EXISTS signal_fusion (
-  id                  BIGSERIAL   PRIMARY KEY,
-  msa_code            TEXT        REFERENCES msa_boundaries(msa_code),
-  computed_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  bsi_change_90d      NUMERIC,
-  federal_awards_90d  NUMERIC,
-  storm_events_90d    INTEGER,
-  classification      TEXT        CHECK (classification IN (
-    'DEMAND_DRIVEN','RECONSTRUCTION','FEDERAL_INVESTMENT',
-    'ORGANIC_GROWTH','LOW_ACTIVITY','INSUFFICIENT_DATA'
-  )),
-  confidence          TEXT        CHECK (confidence IN ('HIGH','MEDIUM','LOW')),
-  interpretation      TEXT,
-  UNIQUE (msa_code, (computed_at::DATE))
+
+-- ---------------------------------------------------------------------------
+-- Table: survey_results
+-- Aggregated, published results for one survey period.  One row per quarter.
+-- Computed by POST /api/survey/aggregate; never written by respondents.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS survey_results (
+    id                BIGSERIAL    PRIMARY KEY,
+    period_id         BIGINT       NOT NULL REFERENCES survey_periods (id) ON DELETE CASCADE UNIQUE,
+    quarter           TEXT         NOT NULL,               -- 'Q2 2025'
+    respondent_count  INTEGER      NOT NULL,
+    published_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
+    -- Net Scores: (% positive − % negative) expressed as a –100 … +100 integer
+    backlog_net       NUMERIC(5,1) NOT NULL,
+    margin_net        NUMERIC(5,1) NOT NULL,
+    labor_net         NUMERIC(5,1) NOT NULL,
+    market_net        NUMERIC(5,1) NOT NULL,
+
+    -- Quarter-over-Quarter changes (NULL for first published quarter)
+    backlog_qoq       NUMERIC(5,1),
+    margin_qoq        NUMERIC(5,1),
+    labor_qoq         NUMERIC(5,1),
+    market_qoq        NUMERIC(5,1),
+
+    -- Distributions: { "1": pct, "2": pct, "3": pct, "4": pct, "5": pct }
+    backlog_dist      JSONB NOT NULL DEFAULT '{}',
+    margin_dist       JSONB NOT NULL DEFAULT '{}',
+    labor_dist        JSONB NOT NULL DEFAULT '{}',
+    market_dist       JSONB NOT NULL DEFAULT '{}',
+
+    -- Material concern: { "lumber": pct, "steel": pct, ... }
+    material_dist     JSONB NOT NULL DEFAULT '{}',
+
+    -- Cross-tabs: { "northeast": { backlog_net: N, margin_net: N, ... }, ... }
+    by_region         JSONB NOT NULL DEFAULT '{}',
+    by_company_size   JSONB NOT NULL DEFAULT '{}',
+    by_work_type      JSONB NOT NULL DEFAULT '{}'
 );
 
-COMMENT ON TABLE  signal_fusion                      IS 'Multi-signal fusion results combining BSI, federal awards, and weather data.';
-COMMENT ON COLUMN signal_fusion.classification       IS 'Activity classification: DEMAND_DRIVEN, RECONSTRUCTION, FEDERAL_INVESTMENT, ORGANIC_GROWTH, LOW_ACTIVITY, or INSUFFICIENT_DATA.';
-COMMENT ON COLUMN signal_fusion.federal_awards_90d   IS 'Total federal construction award value in the MSA over the past 90 days ($M).';
-COMMENT ON COLUMN signal_fusion.storm_events_90d     IS 'Count of NOAA storm events in the MSA over the past 90 days.';
-COMMENT ON COLUMN signal_fusion.interpretation       IS 'Human-readable narrative summary of the fusion result.';
+COMMENT ON TABLE  survey_results                   IS 'Aggregated published results — one row per survey quarter.';
+COMMENT ON COLUMN survey_results.backlog_net       IS 'Backlog Outlook net score: (% 4-5 minus % 1-2) × 100.';
+COMMENT ON COLUMN survey_results.material_dist     IS 'Material concern distribution: percentage at each category.';
+COMMENT ON COLUMN survey_results.by_region         IS 'Regional cross-tab: net scores broken down by respondent region.';
 
-CREATE INDEX IF NOT EXISTS idx_signal_fusion_msa
-  ON signal_fusion (msa_code, computed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_survey_results_quarter
+    ON survey_results (quarter);
 
 
 -- =============================================================================
@@ -353,17 +388,17 @@ CREATE INDEX IF NOT EXISTS idx_signal_fusion_msa
 -- =============================================================================
 
 -- Enable RLS on every table
-ALTER TABLE series       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE observations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE forecasts    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE api_keys     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE signals        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE subscribers    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE harvest_log    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE forecast_log   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE msa_boundaries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE satellite_bsi  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE signal_fusion  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE series            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE observations      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forecasts         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE api_keys          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE signals           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscribers       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE harvest_log       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forecast_log      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE survey_periods    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE survey_responses  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE survey_results    ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for market data tables (anon can read, not write)
 CREATE POLICY IF NOT EXISTS "anon_read_series"
@@ -377,6 +412,10 @@ CREATE POLICY IF NOT EXISTS "anon_read_forecasts"
 
 CREATE POLICY IF NOT EXISTS "anon_read_signals"
     ON signals FOR SELECT TO anon USING (true);
+
+-- Survey: anon can read periods (to display quarter info) but not individual responses
+CREATE POLICY IF NOT EXISTS "anon_read_survey_periods"
+    ON survey_periods FOR SELECT TO anon USING (true);
 
 -- api_keys: no anon access — service_role only (bypasses RLS by default in Supabase)
 -- subscribers, harvest_log, forecast_log: service_role only (no anon policies = no access)
@@ -407,165 +446,184 @@ CREATE POLICY IF NOT EXISTS "service_all_harvest_log"
 CREATE POLICY IF NOT EXISTS "service_all_forecast_log"
     ON forecast_log FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+CREATE POLICY IF NOT EXISTS "service_all_survey_periods"
+    ON survey_periods FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_survey_responses"
+    ON survey_responses FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- Survey results: public can read published results
+CREATE POLICY IF NOT EXISTS "anon_read_survey_results"
+    ON survey_results FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_survey_results"
+    ON survey_results FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: federal_cache
+-- 24-hour Supabase cache for USASpending.gov state allocation data.
+-- One row per cache key (effectively a single-row cache for the federal route).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS federal_cache (
+    key        TEXT        PRIMARY KEY,
+    data_json  JSONB       NOT NULL,
+    cached_at  TIMESTAMPTZ NOT NULL
+);
+
+COMMENT ON TABLE  federal_cache           IS '24-hour cache for USASpending.gov state allocation data fetched by /api/federal.';
+COMMENT ON COLUMN federal_cache.key       IS 'Cache key identifier (e.g. "state_allocations").';
+COMMENT ON COLUMN federal_cache.data_json IS 'Full JSON payload from USASpending.gov, stored as JSONB.';
+COMMENT ON COLUMN federal_cache.cached_at IS 'Timestamp of the last successful fetch from USASpending.gov.';
+
+ALTER TABLE federal_cache ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "service_all_federal_cache"
+    ON federal_cache FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: weekly_briefs
+-- Persisted AI-generated weekly intelligence briefs from Claude.
+-- One row per generation run; the most recent row within the TTL is served.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS weekly_briefs (
+    id             BIGSERIAL   PRIMARY KEY,
+    brief_text     TEXT        NOT NULL,
+    generated_at   TIMESTAMPTZ NOT NULL,
+    data_snapshot  JSONB,
+    model          TEXT,
+    source         TEXT        NOT NULL DEFAULT 'static',  -- 'ai' | 'static'
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE  weekly_briefs                IS 'AI-generated weekly intelligence briefs — one row per generation run.';
+COMMENT ON COLUMN weekly_briefs.brief_text     IS 'Full brief text as returned by Claude.';
+COMMENT ON COLUMN weekly_briefs.generated_at   IS 'Timestamp used for cache TTL comparisons.';
+COMMENT ON COLUMN weekly_briefs.data_snapshot  IS 'Market data snapshot used as context for this generation.';
+COMMENT ON COLUMN weekly_briefs.model          IS 'Claude model ID used for generation.';
+COMMENT ON COLUMN weekly_briefs.source         IS 'ai when generated by Claude; static when the fallback was used.';
+
+CREATE INDEX IF NOT EXISTS idx_weekly_briefs_generated_at
+    ON weekly_briefs (generated_at DESC);
+
+ALTER TABLE weekly_briefs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "anon_read_weekly_briefs"
+    ON weekly_briefs FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_weekly_briefs"
+    ON weekly_briefs FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: msa_boundaries
+-- Geographic metadata for US Metropolitan Statistical Areas used by the
+-- satellite BSI pipeline.  One row per MSA.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS msa_boundaries (
+    msa_code    TEXT        PRIMARY KEY,
+    msa_name    TEXT        NOT NULL,
+    state_codes TEXT[]      NOT NULL DEFAULT '{}',
+    bbox_west   NUMERIC,
+    bbox_south  NUMERIC,
+    bbox_east   NUMERIC,
+    bbox_north  NUMERIC
+);
+
+COMMENT ON TABLE  msa_boundaries             IS 'Geographic boundaries for US MSAs used by the Sentinel-2 satellite pipeline.';
+COMMENT ON COLUMN msa_boundaries.msa_code    IS 'CBSA code for the Metropolitan Statistical Area.';
+COMMENT ON COLUMN msa_boundaries.msa_name    IS 'Human-readable MSA name (e.g. "Dallas-Fort Worth-Arlington, TX").';
+COMMENT ON COLUMN msa_boundaries.state_codes IS 'Two-letter state codes contained within this MSA.';
+COMMENT ON COLUMN msa_boundaries.bbox_west   IS 'Western longitude bound of the MSA bounding box.';
+COMMENT ON COLUMN msa_boundaries.bbox_south  IS 'Southern latitude bound of the MSA bounding box.';
+COMMENT ON COLUMN msa_boundaries.bbox_east   IS 'Eastern longitude bound of the MSA bounding box.';
+COMMENT ON COLUMN msa_boundaries.bbox_north  IS 'Northern latitude bound of the MSA bounding box.';
+
+ALTER TABLE msa_boundaries ENABLE ROW LEVEL SECURITY;
+
 CREATE POLICY IF NOT EXISTS "anon_read_msa_boundaries"
     ON msa_boundaries FOR SELECT TO anon USING (true);
-
-CREATE POLICY IF NOT EXISTS "anon_read_satellite_bsi"
-    ON satellite_bsi FOR SELECT TO anon USING (true);
-
-CREATE POLICY IF NOT EXISTS "anon_read_signal_fusion"
-    ON signal_fusion FOR SELECT TO anon USING (true);
 
 CREATE POLICY IF NOT EXISTS "service_all_msa_boundaries"
     ON msa_boundaries FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+
+-- ---------------------------------------------------------------------------
+-- Table: satellite_bsi
+-- Bare Soil Index (BSI) observations computed from Sentinel-2 imagery.
+-- One row per MSA per observation date.  Written by the GitHub Actions
+-- satellite pipeline.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS satellite_bsi (
+    id                   BIGSERIAL   PRIMARY KEY,
+    msa_code             TEXT        NOT NULL REFERENCES msa_boundaries (msa_code) ON DELETE CASCADE,
+    observation_date     DATE        NOT NULL,
+    bsi_mean             NUMERIC,
+    bsi_change_90d       NUMERIC,
+    bsi_change_yoy       NUMERIC,
+    cloud_cover_pct      NUMERIC,
+    valid_pixels         INTEGER,
+    total_pixels         INTEGER,
+    confidence           TEXT,
+    false_positive_flags TEXT[],
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT satellite_bsi_msa_date_unique UNIQUE (msa_code, observation_date)
+);
+
+COMMENT ON TABLE  satellite_bsi                       IS 'Sentinel-2 Bare Soil Index observations per MSA per date.';
+COMMENT ON COLUMN satellite_bsi.msa_code              IS 'CBSA code linking to msa_boundaries.';
+COMMENT ON COLUMN satellite_bsi.observation_date      IS 'Date of the Sentinel-2 imagery pass.';
+COMMENT ON COLUMN satellite_bsi.bsi_mean              IS 'Mean BSI value across valid pixels for this MSA.';
+COMMENT ON COLUMN satellite_bsi.bsi_change_90d        IS 'BSI change vs. 90 days prior — primary activity signal.';
+COMMENT ON COLUMN satellite_bsi.bsi_change_yoy        IS 'Year-over-year BSI change for seasonal context.';
+COMMENT ON COLUMN satellite_bsi.cloud_cover_pct       IS 'Percentage of the scene obscured by cloud cover.';
+COMMENT ON COLUMN satellite_bsi.confidence            IS 'Confidence classification: high | medium | low.';
+COMMENT ON COLUMN satellite_bsi.false_positive_flags  IS 'Array of detected false-positive conditions (e.g. drought, wildfire).';
+
+CREATE INDEX IF NOT EXISTS idx_satellite_bsi_msa_date
+    ON satellite_bsi (msa_code, observation_date DESC);
+
+ALTER TABLE satellite_bsi ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "anon_read_satellite_bsi"
+    ON satellite_bsi FOR SELECT TO anon USING (true);
+
 CREATE POLICY IF NOT EXISTS "service_all_satellite_bsi"
     ON satellite_bsi FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+
+-- ---------------------------------------------------------------------------
+-- Table: signal_fusion
+-- Fused activity signal per MSA combining BSI, federal award flow, and
+-- storm event data.  One row per MSA (upserted on each /api/fusion/msa call).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS signal_fusion (
+    msa_code            TEXT        PRIMARY KEY,
+    computed_at         TIMESTAMPTZ NOT NULL,
+    bsi_change_90d      NUMERIC,
+    federal_awards_90d  NUMERIC,
+    storm_events_90d    NUMERIC,
+    classification      TEXT,
+    confidence          TEXT,
+    interpretation      TEXT
+);
+
+COMMENT ON TABLE  signal_fusion                      IS 'Fused construction activity signal per MSA — one row per MSA, upserted on each computation.';
+COMMENT ON COLUMN signal_fusion.msa_code             IS 'CBSA code — primary key, one row per MSA.';
+COMMENT ON COLUMN signal_fusion.computed_at          IS 'Timestamp of the most recent fusion computation.';
+COMMENT ON COLUMN signal_fusion.bsi_change_90d       IS 'BSI change over 90 days at time of computation.';
+COMMENT ON COLUMN signal_fusion.federal_awards_90d   IS 'Federal construction award dollars in the MSA over 90 days.';
+COMMENT ON COLUMN signal_fusion.storm_events_90d     IS 'NOAA storm events in the MSA primary state over 90 days.';
+COMMENT ON COLUMN signal_fusion.classification       IS 'Activity classification: HIGH_ACTIVITY | MODERATE | LOW | UNCERTAIN.';
+COMMENT ON COLUMN signal_fusion.confidence           IS 'Signal confidence: high | medium | low.';
+COMMENT ON COLUMN signal_fusion.interpretation       IS 'Human-readable explanation of the fused signal.';
+
+ALTER TABLE signal_fusion ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "anon_read_signal_fusion"
+    ON signal_fusion FOR SELECT TO anon USING (true);
+
 CREATE POLICY IF NOT EXISTS "service_all_signal_fusion"
     ON signal_fusion FOR ALL TO service_role USING (true) WITH CHECK (true);
-
-
--- ---------------------------------------------------------------------------
--- GC Survey Tables
--- Proprietary quarterly survey of construction industry professionals.
--- No PII is stored — email is hashed client-side before persistence.
--- ---------------------------------------------------------------------------
-
-CREATE TABLE IF NOT EXISTS survey_periods (
-  id               BIGSERIAL   PRIMARY KEY,
-  quarter          TEXT        NOT NULL UNIQUE,  -- e.g. '2025-Q2'
-  opens_at         TIMESTAMPTZ NOT NULL,
-  closes_at        TIMESTAMPTZ NOT NULL,
-  status           TEXT        NOT NULL DEFAULT 'draft'
-                   CHECK (status IN ('draft','open','closed','published')),
-  respondent_count INTEGER     DEFAULT 0,
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-COMMENT ON TABLE  survey_periods                  IS 'Survey cycle definitions — one row per quarter.';
-COMMENT ON COLUMN survey_periods.quarter          IS 'Quarter identifier in YYYY-QN format (e.g. 2025-Q2).';
-COMMENT ON COLUMN survey_periods.respondent_count IS 'Running count incremented on each accepted response.';
-
-CREATE TABLE IF NOT EXISTS survey_responses (
-  id                  BIGSERIAL   PRIMARY KEY,
-  survey_period_id    BIGINT      REFERENCES survey_periods(id),
-  respondent_hash     TEXT        NOT NULL,
-  submitted_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-  -- Respondent profile (no PII)
-  company_size        TEXT        CHECK (company_size IN (
-                        'under_5m','5m_25m','25m_100m','100m_500m','over_500m')),
-  primary_work_type   TEXT        CHECK (primary_work_type IN (
-                        'residential','commercial','industrial',
-                        'infrastructure','specialty','mixed')),
-  primary_region      TEXT        CHECK (primary_region IN (
-                        'northeast','southeast','midwest',
-                        'southwest','west','national')),
-  years_in_business   TEXT        CHECK (years_in_business IN (
-                        'under_5','5_15','15_30','over_30')),
-
-  -- Q1: Backlog outlook vs 6 months ago (1=Much lower … 5=Much higher)
-  backlog_outlook     INTEGER     CHECK (backlog_outlook BETWEEN 1 AND 5),
-  -- Q2: Margin expectations next 6 months (1=Decrease significantly … 5=Increase significantly)
-  margin_outlook      INTEGER     CHECK (margin_outlook BETWEEN 1 AND 5),
-  -- Q3: Labor availability in your market (1=Very difficult … 5=Very easy)
-  labor_availability  INTEGER     CHECK (labor_availability BETWEEN 1 AND 5),
-  -- Q4: Primary material cost concern (categorical)
-  material_concern    TEXT        CHECK (material_concern IN (
-                        'none','lumber','steel','concrete',
-                        'copper','labor','fuel','other')),
-  -- Q5: Overall market outlook next 6 months (1=Much worse … 5=Much better)
-  market_outlook      INTEGER     CHECK (market_outlook BETWEEN 1 AND 5),
-
-  -- Optional open text — PII-stripped before storage, max 500 chars
-  comments            TEXT,
-
-  CONSTRAINT survey_responses_period_hash_unique UNIQUE (survey_period_id, respondent_hash)
-);
-
-COMMENT ON TABLE  survey_responses                    IS 'Individual survey responses — no PII stored.';
-COMMENT ON COLUMN survey_responses.respondent_hash    IS 'SHA-256(email.toLowerCase() + quarter) — anonymous dedup key.';
-COMMENT ON COLUMN survey_responses.backlog_outlook    IS '1=Much lower, 2=Lower, 3=Same, 4=Higher, 5=Much higher.';
-COMMENT ON COLUMN survey_responses.margin_outlook     IS '1=Decrease significantly, 2=Decrease, 3=Flat, 4=Increase, 5=Increase significantly.';
-COMMENT ON COLUMN survey_responses.labor_availability IS '1=Very difficult, 2=Difficult, 3=Neutral, 4=Easy, 5=Very easy.';
-COMMENT ON COLUMN survey_responses.market_outlook     IS '1=Much worse, 2=Worse, 3=Same, 4=Better, 5=Much better.';
-
-CREATE TABLE IF NOT EXISTS survey_results (
-  id                  BIGSERIAL   PRIMARY KEY,
-  survey_period_id    BIGINT      REFERENCES survey_periods(id) UNIQUE,
-  quarter             TEXT        NOT NULL,
-  published_at        TIMESTAMPTZ,
-  respondent_count    INTEGER     NOT NULL DEFAULT 0,
-
-  -- Net scores: (% positive − % negative) × 100
-  -- Positive = 4 or 5, Negative = 1 or 2, Neutral = 3
-  backlog_net_score   NUMERIC,   -- Backlog Outlook Index (BOI)
-  margin_net_score    NUMERIC,   -- Margin Expectation Index (MEI)
-  labor_net_score     NUMERIC,   -- Labor Availability Index (LAI)
-  market_net_score    NUMERIC,   -- Market Outlook Index (MOI)
-
-  -- Distribution breakdowns {1: pct, 2: pct, 3: pct, 4: pct, 5: pct}
-  backlog_dist        JSONB,
-  margin_dist         JSONB,
-  labor_dist          JSONB,
-  market_dist         JSONB,
-  material_dist       JSONB,    -- {lumber: pct, steel: pct, ...}
-
-  -- Cross-tabulations by segment
-  by_company_size     JSONB,
-  by_work_type        JSONB,
-  by_region           JSONB,
-
-  -- Quarter-over-quarter net score changes
-  backlog_change_qoq  NUMERIC,
-  margin_change_qoq   NUMERIC,
-  labor_change_qoq    NUMERIC,
-  market_change_qoq   NUMERIC
-);
-
-COMMENT ON TABLE  survey_results                    IS 'Aggregated published survey results — one row per quarter.';
-COMMENT ON COLUMN survey_results.backlog_net_score  IS 'Backlog Outlook Index: (pct positive − pct negative) × 100.';
-COMMENT ON COLUMN survey_results.margin_net_score   IS 'Margin Expectation Index: (pct positive − pct negative) × 100.';
-COMMENT ON COLUMN survey_results.labor_net_score    IS 'Labor Availability Index: (pct positive − pct negative) × 100.';
-COMMENT ON COLUMN survey_results.market_net_score   IS 'Market Outlook Index: (pct positive − pct negative) × 100.';
-
-CREATE INDEX IF NOT EXISTS idx_survey_responses_period
-  ON survey_responses (survey_period_id, submitted_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_survey_responses_hash
-  ON survey_responses (respondent_hash);
-
-CREATE INDEX IF NOT EXISTS idx_survey_results_quarter
-  ON survey_results (quarter DESC);
-
--- Atomic respondent count increment (avoids read-modify-write race)
-CREATE OR REPLACE FUNCTION increment_survey_respondents(period_id BIGINT)
-RETURNS void LANGUAGE sql SECURITY DEFINER AS $$
-  UPDATE survey_periods SET respondent_count = respondent_count + 1 WHERE id = period_id;
-$$;
-
--- RLS
-ALTER TABLE survey_periods   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE survey_responses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE survey_results   ENABLE ROW LEVEL SECURITY;
-
--- survey_periods: anon can read (needed to show survey open/closed state publicly)
-CREATE POLICY IF NOT EXISTS "anon_read_survey_periods"
-  ON survey_periods FOR SELECT TO anon USING (true);
-
--- survey_responses: no anon access — individual response data is private
--- (service_role bypasses RLS; anon has no policy = no access)
-
--- survey_results: anon can read published aggregate results
-CREATE POLICY IF NOT EXISTS "anon_read_survey_results"
-  ON survey_results FOR SELECT TO anon USING (true);
-
-CREATE POLICY IF NOT EXISTS "service_all_survey_periods"
-  ON survey_periods FOR ALL TO service_role USING (true) WITH CHECK (true);
-
-CREATE POLICY IF NOT EXISTS "service_all_survey_responses"
-  ON survey_responses FOR ALL TO service_role USING (true) WITH CHECK (true);
-
-CREATE POLICY IF NOT EXISTS "service_all_survey_results"
-  ON survey_results FOR ALL TO service_role USING (true) WITH CHECK (true);

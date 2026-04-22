@@ -1,6 +1,7 @@
 "use client"
 import dynamic from 'next/dynamic'
 import { ErrorBoundary } from '../dashboard/components/ErrorBoundary'
+import { font, color } from '@/lib/theme'
 
 const GlobeClient = dynamic(
   () => import('./GlobeClient'),
@@ -13,12 +14,12 @@ const GlobeClient = dynamic(
         alignItems:"center", justifyContent:"center",
       }}>
         <div style={{
-          fontFamily:"ui-monospace,'SF Mono',Consolas,monospace",
-          fontSize:"13px", color:"#f5a623", marginBottom:"16px",
+          fontFamily: font.mono,
+          fontSize:"13px", color: color.amber, marginBottom:"16px",
         }}>
           ◉ INITIALIZING GEOINTEL SYSTEM
         </div>
-        <div style={{fontFamily:"ui-monospace,'SF Mono',Consolas,monospace",fontSize:"11px",color:"#444"}}>
+        <div style={{fontFamily: font.mono,fontSize:"11px",color:"#444"}}>
           CONSTRUCTAIQ PHASE 5 · GEOSPATIAL INTELLIGENCE
         </div>
       </div>

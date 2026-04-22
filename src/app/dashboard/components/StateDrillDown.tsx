@@ -2,6 +2,7 @@
 import { useMemo } from "react"
 import { LineChart, Line, ResponsiveContainer, XAxis, Tooltip } from "recharts"
 import { font, color } from "@/lib/theme"
+import { seeded } from "@/lib/seeded"
 import type { StateData } from "./StateMap"
 
 const MONO = font.mono
@@ -14,10 +15,10 @@ interface StateDrillDownProps {
 }
 
 function signalColorFg(signal: string): string {
-  if (signal === "HOT") return "#1a7f37"
+  if (signal === "HOT") return color.greenMuted
   if (signal === "GROWING") return color.green
   if (signal === "NEUTRAL") return color.amber
-  if (signal === "COOLING") return "#ff9500"
+  if (signal === "COOLING") return color.orange
   if (signal === "DECLINING") return color.red
   return color.t4
 }
@@ -41,7 +42,7 @@ function syntheticHistory(basePermits: number) {
   const now = new Date()
   for (let i = 23; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    val = val * (1 + (Math.random() * 0.10 - 0.05))
+    val = val * (1 + (seeded(23 - i) * 0.10 - 0.05))
     months.push({
       month: d.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
       value: Math.round(val),

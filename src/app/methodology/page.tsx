@@ -1,98 +1,75 @@
 "use client"
-import Image from "next/image"
 import Link from "next/link"
-import { font, color, radius } from "@/lib/theme"
+import Image from "next/image"
+import { color, font, radius, type as typeScale } from "@/lib/theme"
 
 const SYS  = font.sys
 const MONO = font.mono
 
-function Section({ id, label, children }: { id?: string; label: string; children: React.ReactNode }) {
-  return (
-    <section id={id} style={{ marginBottom: 56 }}>
-      <div style={{
-        fontFamily: MONO, fontSize: 10, color: color.amber,
-        letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10,
-      }}>
-        {label}
-      </div>
-      {children}
-    </section>
-  )
-}
+// ── Index definitions ────────────────────────────────────────────────────────
 
-function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      background: color.bg1, border: `1px solid ${color.bd1}`,
-      borderRadius: radius.lg, padding: "24px 28px",
-    }}>
-      {children}
-    </div>
-  )
-}
+const INDICES = [
+  {
+    abbr: "BOI",
+    name: "Backlog Outlook Index",
+    question: "Q1: Backlog vs 6 months ago",
+    desc: "Measures contractor pipeline health — a leading indicator for near-term construction volume.",
+  },
+  {
+    abbr: "MEI",
+    name: "Margin Expectation Index",
+    question: "Q2: Margin expectations next 6 months",
+    desc: "Tracks profitability pressure across the sector, often reflecting labor and material cost dynamics.",
+  },
+  {
+    abbr: "LAI",
+    name: "Labor Availability Index",
+    question: "Q3: Labor availability in respondent's market",
+    desc: "Captures skilled labor constraints — historically the tightest bottleneck in US construction.",
+  },
+  {
+    abbr: "MOI",
+    name: "Market Outlook Index",
+    question: "Q5: Overall construction activity outlook",
+    desc: "Composite sentiment on near-term construction market direction in the respondent's geography.",
+  },
+]
 
-function ModelCard({
-  name, code, weight, accuracy, desc, params,
-}: {
-  name: string; code: string; weight: string; accuracy: string; desc: string; params: string[]
-}) {
-  return (
-    <div style={{
-      flex: "1 1 260px",
-      background: color.bg2, border: `1px solid ${color.bd1}`,
-      borderRadius: radius.md, padding: "20px 22px",
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-        <div>
-          <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.08em", marginBottom: 4 }}>
-            {code}
-          </div>
-          <div style={{ fontFamily: SYS, fontSize: 16, fontWeight: 600, color: color.t1 }}>{name}</div>
-        </div>
-        <span style={{
-          fontFamily: MONO, fontSize: 11, fontWeight: 700,
-          color: color.green, background: color.greenDim,
-          borderRadius: 4, padding: "2px 8px",
-        }}>
-          {weight} weight
-        </span>
-      </div>
-      <div style={{ fontFamily: SYS, fontSize: 13, color: color.t3, lineHeight: 1.5, marginBottom: 14 }}>
-        {desc}
-      </div>
-      <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.06em", marginBottom: 6 }}>
-        KEY PARAMETERS
-      </div>
-      {params.map(p => (
-        <div key={p} style={{ fontFamily: MONO, fontSize: 11, color: color.t2, marginBottom: 3 }}>
-          · {p}
-        </div>
-      ))}
-      <div style={{
-        marginTop: 14, paddingTop: 12, borderTop: `1px solid ${color.bd1}`,
-        fontFamily: MONO, fontSize: 11, color: color.amber,
-      }}>
-        Holdout MAPE: {accuracy}
-      </div>
-    </div>
-  )
-}
+// ── Data sources table ───────────────────────────────────────────────────────
 
-function DataSource({ name, id, series, lag }: { name: string; id: string; series: string; lag: string }) {
-  return (
-    <div style={{
-      display: "flex", gap: 16, alignItems: "flex-start",
-      padding: "12px 0", borderBottom: `1px solid ${color.bd1}`,
-    }}>
-      <div style={{ fontFamily: MONO, fontSize: 11, color: color.blue, minWidth: 80 }}>{id}</div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontFamily: SYS, fontSize: 14, fontWeight: 500, color: color.t1 }}>{name}</div>
-        <div style={{ fontFamily: SYS, fontSize: 12, color: color.t4, marginTop: 2 }}>{series}</div>
-      </div>
-      <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, whiteSpace: "nowrap" }}>{lag}</div>
-    </div>
-  )
-}
+const PUBLIC_SERIES = [
+  { id: "TTLCONS",       source: "Census Bureau",  desc: "Total Construction Spending (monthly, $B)" },
+  { id: "HOUST",         source: "Census Bureau",  desc: "Housing Starts (monthly, 000s units)" },
+  { id: "PERMIT",        source: "Census Bureau",  desc: "Building Permits (monthly, 000s units)" },
+  { id: "CES2000000001", source: "BLS",            desc: "Construction Employment (monthly, 000s)" },
+  { id: "MORTGAGE30US",  source: "Freddie Mac/FRED", desc: "30-Year Fixed Mortgage Rate (%)" },
+  { id: "DGS10",         source: "Treasury/FRED",  desc: "10-Year Treasury Yield (%)" },
+  { id: "PPI_LUMBER",    source: "BLS PPI",        desc: "Lumber & Wood Products Producer Price Index" },
+  { id: "PPI_STEEL",     source: "BLS PPI",        desc: "Steel Mill Products Producer Price Index" },
+]
+
+// ── Signal detection ─────────────────────────────────────────────────────────
+
+const SIGNAL_METHODS = [
+  {
+    method: "Z-Score Anomaly",
+    formula: "z = (x − μ₁₂) / σ₁₂",
+    threshold: "|z| > 2.0",
+    desc: "Flags readings that deviate more than 2 standard deviations from the rolling 12-month mean. Triggers BULLISH or BEARISH depending on direction.",
+  },
+  {
+    method: "Trend Reversal",
+    formula: "sign(slope₃) ≠ sign(slope₁₂)",
+    threshold: "|slope₃| > 0.25/month",
+    desc: "Detects when the 3-month slope reverses the 12-month slope. Requires a minimum slope magnitude to filter noise.",
+  },
+  {
+    method: "Spend/Permit Divergence",
+    formula: "ΔSpend(3m) > 0 and ΔPermits(3m) < −8%",
+    threshold: "Gap > 8 percentage points",
+    desc: "Rising dollar spend with falling permits signals work is more expensive, not more voluminous — a margin compression precursor.",
+  },
+]
 
 export default function MethodologyPage() {
   return (
@@ -101,451 +78,443 @@ export default function MethodologyPage() {
       background: color.bg0,
       color: color.t1,
       fontFamily: SYS,
-      paddingBottom: "env(safe-area-inset-bottom, 20px)",
     }}>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
         a{color:inherit;text-decoration:none}
-        button{outline:none;font-family:inherit;cursor:pointer;border:none}
-        button:hover{opacity:.85}
+        button{font-family:inherit;cursor:pointer;border:none;outline:none}
+        @media(max-width:768px){
+          .signal-grid{grid-template-columns:1fr!important}
+          .index-grid{grid-template-columns:1fr!important}
+        }
       `}</style>
 
-      {/* NAV */}
+      {/* ── Nav ── */}
       <nav style={{
         position: "sticky", top: 0, zIndex: 100,
-        background: color.bg1 + "ee", backdropFilter: "blur(12px)",
+        background: color.bg1 + "ee",
+        backdropFilter: "blur(12px)",
         borderBottom: `1px solid ${color.bd1}`,
-        padding: "0 32px",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
         height: 60,
         paddingTop: "env(safe-area-inset-top, 0px)",
+        display: "flex", alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 24px",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <Link href="/">
             <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ"
               style={{ height: 24, width: "auto" }} />
           </Link>
-          <div style={{ width: 1, height: 24, background: color.bd1 }} />
-          <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, letterSpacing: "0.1em" }}>
+          <div style={{ width: 1, height: 20, background: color.bd1 }} />
+          <span style={{ fontFamily: MONO, fontSize: 11, color: color.t4, letterSpacing: "0.1em" }}>
             METHODOLOGY
-          </div>
+          </span>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Link href="/methodology/track-record">
-            <button style={{
-              background: "transparent", color: color.t3,
-              fontFamily: MONO, fontSize: 12,
-              padding: "8px 14px", borderRadius: 8,
-              border: `1px solid ${color.bd1}`, minHeight: 36,
-            }}>TRACK RECORD</button>
-          </Link>
+        <div style={{ display: "flex", gap: 10 }}>
           <Link href="/dashboard">
             <button style={{
-              background: color.amber, color: "#000",
-              fontFamily: MONO, fontSize: 12, fontWeight: 700,
-              padding: "8px 16px", borderRadius: 8,
-              letterSpacing: "0.06em", minHeight: 36,
-            }}>DASHBOARD →</button>
+              background: color.blue,
+              color: color.t1,
+              fontFamily: SYS, fontSize: 13, fontWeight: 600,
+              padding: "8px 18px", borderRadius: radius.sm, minHeight: 36,
+            }}>
+              Dashboard →
+            </button>
           </Link>
         </div>
       </nav>
 
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 32px 80px" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 24px 80px" }}>
 
-        {/* HERO */}
-        <div style={{ padding: "60px 0 48px" }}>
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            background: color.amberDim, border: `1px solid ${color.amber}44`,
-            borderRadius: 20, padding: "5px 14px", marginBottom: 20,
-          }}>
-            <span style={{ fontFamily: MONO, fontSize: 10, color: color.amber, letterSpacing: "0.08em" }}>
-              OPEN METHODOLOGY · FULLY DOCUMENTED
-            </span>
+        {/* ── Page header ── */}
+        <div style={{ paddingTop: 56, paddingBottom: 48 }}>
+          <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.12em", marginBottom: 12 }}>
+            PLATFORM DOCUMENTATION
           </div>
           <h1 style={{
-            fontFamily: SYS, fontSize: 38, fontWeight: 700, color: color.t1,
-            marginBottom: 16, lineHeight: 1.15, letterSpacing: "-0.02em",
+            ...typeScale.h2,
+            fontFamily: SYS,
+            color: color.t1,
+            marginBottom: 16,
           }}>
-            How ConstructAIQ Forecasts<br />the Construction Economy
+            Methodology
           </h1>
           <p style={{
-            fontFamily: SYS, fontSize: 17, color: color.t3,
-            lineHeight: 1.65, maxWidth: 620,
+            fontFamily: SYS, fontSize: 16, color: color.t3, lineHeight: 1.65, maxWidth: 640,
           }}>
-            Every forecast is produced by an ensemble of three independently-trained
-            time-series models. The methodology is fully open — inspect the source,
-            verify the inputs, challenge the outputs.
+            How ConstructAIQ collects data, detects signals, computes forecasts, and publishes
+            the industry&apos;s only contractor-sourced quarterly intelligence index.
           </p>
-          <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
-            <a href="https://github.com/toddbridgeford/constructaiq" target="_blank" rel="noopener noreferrer">
-              <button style={{
-                background: color.bg2, border: `1px solid ${color.bd2}`,
-                color: color.t2, fontFamily: MONO, fontSize: 12,
-                padding: "9px 18px", borderRadius: 8, cursor: "pointer",
+        </div>
+
+        {/* ── SECTION: Public Data Sources ── */}
+        <section style={{ marginBottom: 64 }}>
+          <SectionLabel label="PUBLIC DATA SOURCES" />
+          <h2 style={sectionH2}>Data Harvest Pipeline</h2>
+          <p style={bodyP}>
+            ConstructAIQ ingests eight government time-series daily via a serverless harvest cron.
+            All series are stored in Supabase as monthly observations and used as inputs to the
+            forecasting engine, signal detection, and dashboard visualizations.
+          </p>
+          <div style={{
+            border: `1px solid ${color.bd1}`,
+            borderRadius: radius.lg,
+            overflow: "hidden",
+            marginTop: 24,
+          }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${color.bd1}` }}>
+                  {["Series ID", "Source", "Description"].map(h => (
+                    <th key={h} style={{
+                      fontFamily: MONO, fontSize: 10, color: color.t4,
+                      letterSpacing: "0.08em", padding: "10px 16px",
+                      textAlign: "left", fontWeight: 600,
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {PUBLIC_SERIES.map((s, i) => (
+                  <tr key={s.id} style={{ borderBottom: i < PUBLIC_SERIES.length - 1 ? `1px solid ${color.bd1}` : "none" }}>
+                    <td style={{ fontFamily: MONO, fontSize: 12, color: color.amber, padding: "11px 16px" }}>{s.id}</td>
+                    <td style={{ fontFamily: SYS, fontSize: 13, color: color.t3, padding: "11px 16px" }}>{s.source}</td>
+                    <td style={{ fontFamily: SYS, fontSize: 13, color: color.t2, padding: "11px 16px" }}>{s.desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ ...bodyP, marginTop: 16, fontSize: 13, color: color.t4 }}>
+            Harvest runs at 06:00 ET daily. Forecasts recompute after each harvest.
+            Series are sourced from the FRED API (Federal Reserve Bank of St. Louis).
+          </p>
+        </section>
+
+        {/* ── SECTION: Forecasting Engine ── */}
+        <section style={{ marginBottom: 64 }}>
+          <SectionLabel label="FORECASTING ENGINE" />
+          <h2 style={sectionH2}>Ensemble Forecast Model</h2>
+          <p style={bodyP}>
+            ConstructAIQ publishes a 12-month ensemble forecast for Total Construction Spending
+            (TTLCONS) with 80% and 95% confidence intervals. Three models are combined using
+            weighted averaging calibrated on out-of-sample accuracy.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 24 }}>
+            {[
+              {
+                name: "Holt-Winters DES",
+                weight: "34%",
+                desc: "Double exponential smoothing with trend damping. Optimized α and β parameters. Excels at capturing secular construction cycles.",
+              },
+              {
+                name: "SARIMA(1,1,0)(0,1,0)[12]",
+                weight: "33%",
+                desc: "Seasonal ARIMA with monthly differencing. Captures 12-month seasonal construction patterns from permit cycles to fiscal year spend.",
+              },
+              {
+                name: "XGBoost Gradient Boosting",
+                weight: "33%",
+                desc: "Gradient boosting on 14 engineered features: lagged values, rolling statistics, mortgage rates, employment, and seasonal indicators.",
+              },
+            ].map(m => (
+              <div key={m.name} style={{
+                background: color.bg1,
+                border: `1px solid ${color.bd1}`,
+                borderRadius: radius.lg,
+                padding: "20px 22px",
+                display: "flex", gap: 20, alignItems: "flex-start",
               }}>
-                View source on GitHub →
+                <div style={{
+                  fontFamily: MONO, fontSize: 22, fontWeight: 700,
+                  color: color.blue, letterSpacing: "-0.02em",
+                  minWidth: 52, textAlign: "right", lineHeight: 1,
+                  paddingTop: 2,
+                }}>
+                  {m.weight}
+                </div>
+                <div>
+                  <div style={{ fontFamily: SYS, fontSize: 15, fontWeight: 700, color: color.t1, marginBottom: 6 }}>
+                    {m.name}
+                  </div>
+                  <p style={{ fontFamily: SYS, fontSize: 13, color: color.t3, lineHeight: 1.6 }}>
+                    {m.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{
+            background: color.blueDim,
+            border: `1px solid ${color.blue}33`,
+            borderRadius: radius.lg,
+            padding: "16px 20px",
+            marginTop: 16,
+            fontFamily: SYS, fontSize: 13, color: color.t3, lineHeight: 1.65,
+          }}>
+            Confidence intervals are computed via bootstrapped residuals over 1,000 resampled
+            forecast paths. The 80% CI represents 1.28σ; the 95% CI represents 1.96σ.
+            Model accuracy (MAPE) is recalculated each week against the latest Census release.
+          </div>
+        </section>
+
+        {/* ── SECTION: Signal Detection ── */}
+        <section style={{ marginBottom: 64 }}>
+          <SectionLabel label="SIGNAL DETECTION" />
+          <h2 style={sectionH2}>SignalDetect Engine</h2>
+          <p style={bodyP}>
+            Three rule-based algorithms run over the stored observation series to generate
+            BULLISH, BEARISH, and WARNING signals. Signals are ranked by confidence score
+            and stored in Supabase with a 1-hour cache.
+          </p>
+          <div
+            className="signal-grid"
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 24 }}
+          >
+            {SIGNAL_METHODS.map(m => (
+              <div key={m.method} style={{
+                background: color.bg1,
+                border: `1px solid ${color.bd1}`,
+                borderRadius: radius.lg,
+                padding: "20px 20px",
+              }}>
+                <div style={{ fontFamily: MONO, fontSize: 10, color: color.amber, letterSpacing: "0.1em", marginBottom: 10 }}>
+                  {m.method.toUpperCase()}
+                </div>
+                <div style={{
+                  fontFamily: MONO, fontSize: 13, color: color.green,
+                  background: color.greenDim,
+                  border: `1px solid ${color.green}33`,
+                  borderRadius: radius.sm,
+                  padding: "6px 12px",
+                  marginBottom: 10,
+                  letterSpacing: "0.02em",
+                }}>
+                  {m.formula}
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, marginBottom: 10 }}>
+                  Threshold: {m.threshold}
+                </div>
+                <p style={{ fontFamily: SYS, fontSize: 13, color: color.t3, lineHeight: 1.6 }}>
+                  {m.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── SECTION: Proprietary GC Survey ── */}
+        <section style={{ marginBottom: 64 }}>
+          <SectionLabel label="PROPRIETARY SURVEY" />
+          <h2 style={sectionH2}>Proprietary GC Survey Methodology</h2>
+          <p style={bodyP}>
+            The ConstructAIQ Quarterly Survey produces four net score indices sourced directly
+            from general contractors, subcontractors, and specialty contractors.
+            These indices are not available from any public API.
+          </p>
+
+          {/* Net Score Formula */}
+          <div style={{
+            background: color.bg1,
+            border: `1px solid ${color.bd1}`,
+            borderRadius: radius.xl,
+            padding: "28px 28px",
+            marginTop: 28,
+            marginBottom: 28,
+          }}>
+            <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.1em", marginBottom: 16 }}>
+              NET SCORE COMPUTATION
+            </div>
+            <div style={{
+              fontFamily: MONO, fontSize: 18, color: color.green,
+              background: color.greenDim,
+              border: `1px solid ${color.green}33`,
+              borderRadius: radius.md,
+              padding: "14px 20px",
+              marginBottom: 16,
+              letterSpacing: "0.02em",
+            }}>
+              Net Score = (% of 4+5 responses − % of 1+2 responses) × 100
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <p style={{ fontFamily: SYS, fontSize: 14, color: color.t3, lineHeight: 1.6 }}>
+                <strong style={{ color: color.t2 }}>Scale:</strong>{" "}
+                −100 (unanimous negative) to +100 (unanimous positive)
+              </p>
+              <p style={{ fontFamily: SYS, fontSize: 14, color: color.t3, lineHeight: 1.6 }}>
+                <strong style={{ color: color.t2 }}>Neutral responses (3)</strong>{" "}
+                are excluded from the net calculation. They contribute to the distribution chart
+                but do not affect the index score.
+              </p>
+            </div>
+          </div>
+
+          {/* Index definitions table */}
+          <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.1em", marginBottom: 16 }}>
+            INDEX DEFINITIONS
+          </div>
+          <div
+            className="index-grid"
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}
+          >
+            {INDICES.map(idx => (
+              <div key={idx.abbr} style={{
+                background: color.bg1,
+                border: `1px solid ${color.bd1}`,
+                borderRadius: radius.lg,
+                padding: "18px 20px",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <span style={{
+                    fontFamily: MONO, fontSize: 13, fontWeight: 700,
+                    color: color.amber,
+                  }}>
+                    {idx.abbr}
+                  </span>
+                  <span style={{ fontFamily: SYS, fontSize: 13, fontWeight: 600, color: color.t1 }}>
+                    {idx.name}
+                  </span>
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, marginBottom: 8 }}>
+                  {idx.question}
+                </div>
+                <p style={{ fontFamily: SYS, fontSize: 13, color: color.t3, lineHeight: 1.55 }}>
+                  {idx.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Weighting */}
+          <div style={{
+            background: color.bg1,
+            border: `1px solid ${color.bd1}`,
+            borderRadius: radius.lg,
+            padding: "22px 24px",
+            marginBottom: 16,
+          }}>
+            <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.1em", marginBottom: 12 }}>
+              WEIGHTING
+            </div>
+            <p style={{ fontFamily: SYS, fontSize: 14, color: color.t2, lineHeight: 1.65 }}>
+              Responses are weighted by company size and primary work type to correct for
+              over-representation of any single segment. Minimum 30 responses required for publication.
+            </p>
+          </div>
+
+          {/* Timing */}
+          <div style={{
+            background: color.bg1,
+            border: `1px solid ${color.bd1}`,
+            borderRadius: radius.lg,
+            padding: "22px 24px",
+            marginBottom: 16,
+          }}>
+            <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.1em", marginBottom: 12 }}>
+              TIMING
+            </div>
+            <p style={{ fontFamily: SYS, fontSize: 14, color: color.t2, lineHeight: 1.65 }}>
+              Survey opens on the 1st of the first month of each quarter
+              (January, April, July, October) and closes after 21 days.
+              Results publish within 24 hours of the survey closing.
+            </p>
+          </div>
+
+          {/* Panel composition */}
+          <div style={{
+            background: color.bg1,
+            border: `1px solid ${color.bd1}`,
+            borderRadius: radius.lg,
+            padding: "22px 24px",
+          }}>
+            <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.1em", marginBottom: 12 }}>
+              PANEL COMPOSITION
+            </div>
+            <p style={{ fontFamily: SYS, fontSize: 14, color: color.t2, lineHeight: 1.65 }}>
+              The respondent panel is recruited through contractor association partnerships,
+              including AGC, ABC, NRCA, NECA, and SMACNA chapter newsletters. Panel composition
+              by work type and region is reported with each quarter&apos;s results.
+            </p>
+          </div>
+
+          <div style={{ marginTop: 20, display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <Link href="/survey/about">
+              <button style={{
+                background: "transparent",
+                border: `1px solid ${color.bd1}`,
+                color: color.t3,
+                fontFamily: SYS, fontSize: 13,
+                padding: "10px 20px", borderRadius: radius.md, minHeight: 40,
+              }}>
+                About the Survey →
               </button>
-            </a>
-            <Link href="/methodology/track-record">
+            </Link>
+            <Link href="/survey">
               <button style={{
-                background: "transparent", border: `1px solid ${color.bd2}`,
-                color: color.amber, fontFamily: MONO, fontSize: 12,
-                padding: "9px 18px", borderRadius: 8, cursor: "pointer",
+                background: color.amber + "22",
+                border: `1px solid ${color.amber}44`,
+                color: color.amber,
+                fontFamily: SYS, fontSize: 13, fontWeight: 600,
+                padding: "10px 20px", borderRadius: radius.md, minHeight: 40,
               }}>
-                See forecast track record →
+                Take the Survey →
               </button>
             </Link>
           </div>
-        </div>
-
-        {/* ENSEMBLE APPROACH */}
-        <Section id="ensemble" label="01 — Ensemble Architecture">
-          <h2 style={{
-            fontFamily: SYS, fontSize: 22, fontWeight: 600, color: color.t1,
-            marginBottom: 12, letterSpacing: "-0.01em",
-          }}>
-            Three models. One weighted consensus.
-          </h2>
-          <p style={{
-            fontFamily: SYS, fontSize: 15, color: color.t3, lineHeight: 1.65, marginBottom: 28,
-          }}>
-            No single model dominates construction data. Spending is seasonal (SARIMA),
-            has momentum (Holt-Winters), and responds to non-linear economic shocks (XGBoost).
-            Weighting is determined by each model&apos;s recent holdout accuracy — models that
-            forecast better contribute more to the consensus.
-          </p>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <ModelCard
-              name="Holt-Winters"
-              code="HW-DES"
-              weight="adaptive"
-              accuracy="1.8–3.2%"
-              desc="Double-exponential smoothing captures level and trend in construction spending. Responds quickly to direction changes. Assigned higher weight during momentum periods."
-              params={["α = 0.35 (level smoothing)", "β = 0.12 (trend smoothing)", "Additive trend component", "12-period initialization"]}
-            />
-            <ModelCard
-              name="SARIMA"
-              code="(1,1,0)(0,1,0)[12]"
-              weight="adaptive"
-              accuracy="2.1–4.0%"
-              desc="Seasonal ARIMA captures the strong annual construction cycle. Differencing removes stochastic trend. Performs best on stable seasonal patterns."
-              params={["p=1, d=1, q=0 (non-seasonal)", "P=0, D=1, Q=0 (seasonal)", "s=12 (monthly)", "Trained on 60-month window"]}
-            />
-            <ModelCard
-              name="XGBoost"
-              code="GRADIENT BOOST"
-              weight="adaptive"
-              accuracy="1.4–2.8%"
-              desc="Gradient boosting on lagged features captures non-linear regime changes, supply shocks, and policy discontinuities that ARIMA models miss."
-              params={["Lag features: t-1 … t-12", "Rolling mean 3m, 6m, 12m", "Month-of-year encoding", "150 estimators, depth=4"]}
-            />
-          </div>
-        </Section>
-
-        {/* CONFIDENCE INTERVALS */}
-        <Section id="confidence" label="02 — Confidence Intervals">
-          <Card>
-            <h2 style={{
-              fontFamily: SYS, fontSize: 20, fontWeight: 600, color: color.t1,
-              marginBottom: 12,
-            }}>
-              80% and 95% prediction intervals
-            </h2>
-            <p style={{ fontFamily: SYS, fontSize: 14, color: color.t3, lineHeight: 1.65, marginBottom: 16 }}>
-              Confidence bands are computed empirically from each model&apos;s holdout residual
-              distribution — not from parametric assumptions. The ensemble band is the
-              weighted combination of individual model bands.
-            </p>
-            <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-              {[
-                {
-                  label: "80% Band",
-                  color: color.blue,
-                  bg: color.blueDim,
-                  desc: "4 out of 5 outcomes fall within this range. Used for operational planning — materials procurement, labor scheduling.",
-                },
-                {
-                  label: "95% Band",
-                  color: color.blue,
-                  bg: color.bg3,
-                  desc: "Wider, conservative band for risk management, scenario stress-testing, and financial modeling with tail-risk requirements.",
-                },
-              ].map(b => (
-                <div key={b.label} style={{
-                  flex: "1 1 260px",
-                  background: b.bg, borderRadius: 10, padding: "16px 18px",
-                }}>
-                  <div style={{
-                    fontFamily: MONO, fontSize: 11, fontWeight: 700,
-                    color: b.color, marginBottom: 8,
-                  }}>{b.label}</div>
-                  <div style={{ fontFamily: SYS, fontSize: 13, color: color.t3, lineHeight: 1.5 }}>
-                    {b.desc}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </Section>
-
-        {/* ANOMALY DETECTION */}
-        <Section id="signals" label="03 — Anomaly Detection">
-          <Card>
-            <h2 style={{
-              fontFamily: SYS, fontSize: 20, fontWeight: 600, color: color.t1,
-              marginBottom: 12,
-            }}>
-              Z-score alerts and trend reversals
-            </h2>
-            <p style={{ fontFamily: SYS, fontSize: 14, color: color.t3, lineHeight: 1.65, marginBottom: 20 }}>
-              Signals are generated using two methods applied to the 24-month rolling
-              observation window for each tracked series.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-              {[
-                {
-                  method: "Z-Score Anomaly",
-                  threshold: "|z| > 2.0",
-                  desc: "A reading more than 2 standard deviations from the trailing mean triggers an anomaly alert. Confidence scales with distance from threshold.",
-                },
-                {
-                  method: "Trend Reversal",
-                  threshold: "slope sign change",
-                  desc: "Linear regression slope computed over 3-month and 12-month windows. When short-term slope diverges from long-term slope beyond a threshold, a reversal signal fires.",
-                },
-                {
-                  method: "Divergence",
-                  threshold: "cross-series correlation",
-                  desc: "When historically correlated series (e.g. permits vs. spending) diverge beyond 1.5σ, a divergence signal is issued with both series identified.",
-                },
-              ].map((s, i) => (
-                <div key={s.method} style={{
-                  padding: "14px 0",
-                  borderTop: i > 0 ? `1px solid ${color.bd1}` : "none",
-                  display: "flex", gap: 20, flexWrap: "wrap",
-                }}>
-                  <div style={{ minWidth: 160 }}>
-                    <div style={{ fontFamily: SYS, fontSize: 14, fontWeight: 600, color: color.t1 }}>{s.method}</div>
-                    <div style={{
-                      fontFamily: MONO, fontSize: 10, color: color.amber,
-                      marginTop: 3,
-                    }}>{s.threshold}</div>
-                  </div>
-                  <div style={{ fontFamily: SYS, fontSize: 13, color: color.t3, lineHeight: 1.5, flex: 1 }}>
-                    {s.desc}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </Section>
-
-        {/* DATA SOURCES */}
-        <Section id="data" label="04 — Data Sources">
-          <p style={{
-            fontFamily: SYS, fontSize: 14, color: color.t3,
-            lineHeight: 1.65, marginBottom: 20,
-          }}>
-            All inputs are public, free, and machine-readable. The data harvest cron
-            runs daily at 06:00 UTC and stores observations in the{" "}
-            <code style={{ fontFamily: MONO, fontSize: 12, color: color.blue }}>observations</code> table.
-          </p>
-          <Card>
-            <DataSource
-              name="Total Construction Spending"
-              id="FRED"
-              series="TTLCONS · Monthly SAAR · Census Bureau"
-              lag="~4 weeks"
-            />
-            <DataSource
-              name="Housing Starts"
-              id="FRED"
-              series="HOUST · Monthly SAAR · Census Bureau"
-              lag="~3 weeks"
-            />
-            <DataSource
-              name="Building Permits"
-              id="FRED"
-              series="PERMIT · Monthly SAAR · Census Bureau"
-              lag="~3 weeks"
-            />
-            <DataSource
-              name="Construction Employment"
-              id="BLS"
-              series="CES2000000001 · Monthly · Bureau of Labor Statistics"
-              lag="~2 weeks"
-            />
-            <DataSource
-              name="Producer Price Index — Construction Materials"
-              id="BLS"
-              series="WPU0811, WPU101, WPU132, WPU1021 · Monthly"
-              lag="~3 weeks"
-            />
-            <DataSource
-              name="Mortgage Rate (30yr Fixed)"
-              id="FRED"
-              series="MORTGAGE30US · Weekly"
-              lag="1 week"
-            />
-            <DataSource
-              name="WTI Crude Oil"
-              id="FRED"
-              series="DCOILWTICO · Daily"
-              lag="1 day"
-            />
-            <DataSource
-              name="Federal Contract Awards"
-              id="SAM.gov"
-              series="Active solicitations — NAICS 236/237/238"
-              lag="Real-time"
-            />
-          </Card>
-        </Section>
-
-        {/* SATELLITE INTELLIGENCE */}
-        <Section id="satellite" label="05 — Satellite Intelligence — Sentinel-2 BSI">
-          <h2 style={{
-            fontFamily: SYS, fontSize: 22, fontWeight: 600, color: color.t1,
-            marginBottom: 12, letterSpacing: "-0.01em",
-          }}>
-            Ground truth from orbit.
-          </h2>
-          <p style={{
-            fontFamily: SYS, fontSize: 15, color: color.t3, lineHeight: 1.65, marginBottom: 16,
-          }}>
-            ConstructAIQ processes weekly Sentinel-2 L2A imagery across 20 US metropolitan
-            statistical areas using ESA&apos;s Copernicus Data Space. The Bare Soil Index (BSI)
-            detects active earthmoving and site preparation at 20-meter resolution — capturing
-            ground disturbance 3–6 months before Census permit data reflects it.
-          </p>
-          <p style={{
-            fontFamily: SYS, fontSize: 15, color: color.t3, lineHeight: 1.65, marginBottom: 16,
-          }}>
-            BSI is derived from four Sentinel-2 bands using the formula{" "}
-            <code style={{ fontFamily: MONO, fontSize: 12, color: color.blue }}>
-              BSI = ((SWIR + Red) − (NIR + Blue)) / ((SWIR + Red) + (NIR + Blue))
-            </code>
-            . Cloudy pixels are excluded using the Scene Classification Layer (SCL) — classes
-            3 (cloud shadow) and 8–11 (cloud medium, cloud high, cirrus) are masked before
-            any computation. Scenes with fewer than 10,000 valid pixels are rejected entirely.
-          </p>
-          <p style={{
-            fontFamily: SYS, fontSize: 15, color: color.t3, lineHeight: 1.65, marginBottom: 24,
-          }}>
-            Signal Fusion combines BSI with federal award flow and NOAA active severe weather
-            alerts to classify each MSA as DEMAND_DRIVEN, FEDERAL_INVESTMENT, RECONSTRUCTION,
-            ORGANIC_GROWTH, or LOW_ACTIVITY. Confidence is reported as HIGH (&lt;15% cloud
-            cover, &gt;200k valid pixels), MEDIUM, or LOW and accompanies every signal in the
-            API response.
-          </p>
-          <Card>
-            <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.1em", marginBottom: 16 }}>
-              TECHNICAL SPECIFICATIONS
-            </div>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>
-                    {["Parameter", "Value"].map(h => (
-                      <th key={h} style={{
-                        fontFamily: MONO, fontSize: 10, color: color.t4,
-                        letterSpacing: "0.08em", textTransform: "uppercase",
-                        padding: "8px 12px", textAlign: "left", fontWeight: 600,
-                        borderBottom: `1px solid ${color.bd1}`,
-                      }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["Data source",           "ESA Copernicus Data Space — Sentinel-2 L2A"],
-                    ["Spatial resolution",    "20 m/pixel (SWIR/Red/NIR/Blue bands)"],
-                    ["Temporal frequency",    "Weekly (every Sunday 02:00 UTC)"],
-                    ["Coverage",              "20 US MSAs — ~2.1M km² total"],
-                    ["Cloud masking",         "SCL classes 3, 8–11 excluded"],
-                    ["Minimum valid pixels",  "10,000 per scene (below threshold → rejected)"],
-                    ["90-day change baseline","Median BSI from prior 90-day window"],
-                    ["Year-on-year baseline", "Same calendar week, prior year"],
-                    ["Update latency",        "~6–8 hours after scene availability"],
-                    ["Archive depth",         "Rolling 52-week history per MSA"],
-                  ].map(([param, value], i) => (
-                    <tr key={param} style={{ background: i % 2 === 0 ? "transparent" : color.bg3 }}>
-                      <td style={{
-                        padding: "10px 12px", fontFamily: SYS, fontSize: 13, color: color.t3,
-                        borderTop: `1px solid ${color.bd1}`,
-                      }}>
-                        {param}
-                      </td>
-                      <td style={{
-                        padding: "10px 12px", fontFamily: MONO, fontSize: 12, color: color.t2,
-                        borderTop: `1px solid ${color.bd1}`,
-                      }}>
-                        {value}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </Section>
-
-        {/* LIMITATIONS */}
-        <Section id="limitations" label="06 — Limitations and Caveats">
-          <Card>
-            <p style={{ fontFamily: SYS, fontSize: 14, color: color.t3, lineHeight: 1.65, marginBottom: 16 }}>
-              <strong style={{ color: color.t2 }}>This is not financial advice.</strong>{" "}
-              Forecasts are statistical models trained on historical data.
-              They do not account for unpredictable discontinuities — policy reversals,
-              supply shocks, natural disasters, or financial crises.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[
-                "MAPE of 1.4–4.0% means errors of $30–85B on a $2.1T market — always use confidence bands",
-                "The 12-month horizon is more uncertain than the 3-month — bands widen accordingly",
-                "Regional forecasts are less reliable than national due to smaller sample sizes",
-                "Material price signals lag actual procurement decisions by 4–8 weeks",
-                "Federal pipeline data reflects obligated amounts, not actual construction activity",
-              ].map(point => (
-                <div key={point} style={{
-                  display: "flex", gap: 10, alignItems: "flex-start",
-                  fontFamily: SYS, fontSize: 13, color: color.t3, lineHeight: 1.5,
-                }}>
-                  <span style={{ color: color.amber, flexShrink: 0, marginTop: 2 }}>→</span>
-                  {point}
-                </div>
-              ))}
-            </div>
-          </Card>
-        </Section>
-
-        {/* LINKS */}
-        <div style={{ textAlign: "center" }}>
-          <Link href="/methodology/track-record" style={{
-            fontFamily: MONO, fontSize: 13, color: color.amber,
-          }}>
-            View Forecast Track Record →
-          </Link>
-        </div>
+        </section>
 
       </div>
 
-      {/* FOOTER */}
+      {/* ── Footer ── */}
       <footer style={{
         borderTop: `1px solid ${color.bd1}`,
-        padding: "28px 32px",
+        padding: "24px 40px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        flexWrap: "wrap", gap: 16,
+        flexWrap: "wrap", gap: 12,
       }}>
         <Image src="/ConstructAIQWhiteLogo.svg" width={100} height={20} alt="ConstructAIQ"
           style={{ height: 18, width: "auto" }} />
-        <div style={{ fontFamily: SYS, fontSize: 13, color: color.t4 }}>
-          Open methodology · Free platform · constructaiq.trade
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+          {[
+            { label: "Dashboard",    href: "/dashboard"     },
+            { label: "Survey",       href: "/survey/about"  },
+            { label: "Results",      href: "/survey/results"},
+            { label: "Pricing",      href: "/pricing"       },
+            { label: "About",        href: "/about"         },
+          ].map(({ label, href }) => (
+            <Link key={label} href={href} style={{ fontFamily: SYS, fontSize: 13, color: color.t4 }}>
+              {label}
+            </Link>
+          ))}
         </div>
+        <div style={{ fontFamily: SYS, fontSize: 12, color: color.t4 }}>© 2026 ConstructAIQ</div>
       </footer>
     </div>
   )
+}
+
+// ── shared micro-components ──────────────────────────────────────────────────
+
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <div style={{
+      fontFamily: MONO, fontSize: 10, color: color.t4,
+      letterSpacing: "0.12em", marginBottom: 12,
+    }}>
+      {label}
+    </div>
+  )
+}
+
+const sectionH2: React.CSSProperties = {
+  fontFamily: font.sys,
+  fontSize: 22, fontWeight: 700,
+  color: color.t1, marginBottom: 14,
+  letterSpacing: "-0.025em",
+}
+
+const bodyP: React.CSSProperties = {
+  fontFamily: font.sys,
+  fontSize: 14, color: color.t3, lineHeight: 1.68,
 }

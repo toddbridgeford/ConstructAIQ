@@ -37,19 +37,19 @@ interface StateMapProps {
 }
 
 function signalColor(signal: string, yoyChange: number): string {
-  if (signal === "HOT" || yoyChange > 10) return "#1a7f37"
+  if (signal === "HOT" || yoyChange > 10) return color.greenMuted
   if (signal === "GROWING" || yoyChange >= 3) return color.green
   if (signal === "NEUTRAL" || (yoyChange >= -3 && yoyChange <= 3)) return color.amber
-  if (signal === "COOLING" || yoyChange <= -3) return "#ff9500"
+  if (signal === "COOLING" || yoyChange <= -3) return color.orange
   if (signal === "DECLINING" || yoyChange < -10) return color.red
   return color.bd2
 }
 
 const LEGEND = [
-  { label: "HOT (>10%)", fill: "#1a7f37" },
+  { label: "HOT (>10%)", fill: color.greenMuted },
   { label: "GROWING (3–10%)", fill: color.green },
   { label: "NEUTRAL (±3%)", fill: color.amber },
-  { label: "COOLING (−3–−10%)", fill: "#ff9500" },
+  { label: "COOLING (−3–−10%)", fill: color.orange },
   { label: "DECLINING (<−10%)", fill: color.red },
 ]
 

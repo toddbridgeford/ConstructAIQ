@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
+import { seeded } from "@/lib/seeded"
 
-function buildHistory(base: number, months: number, trend: number, vol: number) {
+function buildHistory(base: number, months: number, trend: number, vol: number, seedOffset = 0) {
   const now = new Date(2026, 3, 1)
   const pts = []
   let val = base
@@ -8,7 +9,7 @@ function buildHistory(base: number, months: number, trend: number, vol: number) 
     const d = new Date(now)
     d.setMonth(d.getMonth() - i)
     const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
-    val = Math.max(0, val + trend + (Math.random() - 0.5) * vol)
+    val = Math.max(0, val + trend + (seeded(seedOffset + (months - 1 - i)) - 0.5) * vol)
     pts.push({ period, value: parseFloat(val.toFixed(1)) })
   }
   return pts
@@ -31,7 +32,7 @@ const SECTORS = [
     etf_ytd: 11.2,
     risk_score: 28,
     top_markets: ["Austin", "Phoenix", "Tampa"],
-    history: buildHistory(65, 24, 0.35, 3.5),
+    history: buildHistory(65, 24, 0.35, 3.5, 0),
   },
   {
     id: "commercial",
@@ -49,7 +50,7 @@ const SECTORS = [
     etf_ytd: 3.4,
     risk_score: 44,
     top_markets: ["Dallas", "Atlanta", "Denver"],
-    history: buildHistory(56, 24, 0.12, 2.8),
+    history: buildHistory(56, 24, 0.12, 2.8, 24),
   },
   {
     id: "industrial",
@@ -67,7 +68,7 @@ const SECTORS = [
     etf_ytd: 18.7,
     risk_score: 18,
     top_markets: ["Columbus", "Indianapolis", "Memphis"],
-    history: buildHistory(60, 24, 0.9, 4.2),
+    history: buildHistory(60, 24, 0.9, 4.2, 48),
   },
   {
     id: "infrastructure",
@@ -85,7 +86,7 @@ const SECTORS = [
     etf_ytd: 18.7,
     risk_score: 22,
     top_markets: ["Houston", "Chicago", "Los Angeles"],
-    history: buildHistory(63, 24, 0.55, 2.2),
+    history: buildHistory(63, 24, 0.55, 2.2, 72),
   },
   {
     id: "healthcare",
@@ -103,7 +104,7 @@ const SECTORS = [
     etf_ytd: 6.1,
     risk_score: 35,
     top_markets: ["Nashville", "Raleigh", "Salt Lake City"],
-    history: buildHistory(60, 24, 0.2, 2.0),
+    history: buildHistory(60, 24, 0.2, 2.0, 96),
   },
   {
     id: "education",
@@ -121,7 +122,7 @@ const SECTORS = [
     etf_ytd: null,
     risk_score: 38,
     top_markets: ["Boston", "Ann Arbor", "Seattle"],
-    history: buildHistory(58, 24, 0.15, 1.8),
+    history: buildHistory(58, 24, 0.15, 1.8, 120),
   },
   {
     id: "energy",
@@ -139,7 +140,7 @@ const SECTORS = [
     etf_ytd: 14.3,
     risk_score: 25,
     top_markets: ["Houston", "Midland", "Pittsburgh"],
-    history: buildHistory(58, 24, 0.6, 5.1),
+    history: buildHistory(58, 24, 0.6, 5.1, 144),
   },
   {
     id: "multifamily",
@@ -157,7 +158,7 @@ const SECTORS = [
     etf_ytd: -2.8,
     risk_score: 58,
     top_markets: ["Nashville", "Austin", "Charlotte"],
-    history: buildHistory(72, 24, -0.7, 4.8),
+    history: buildHistory(72, 24, -0.7, 4.8, 168),
   },
   {
     id: "data_centers",
@@ -175,7 +176,7 @@ const SECTORS = [
     etf_ytd: 28.4,
     risk_score: 12,
     top_markets: ["Northern Virginia", "Phoenix", "Dallas"],
-    history: buildHistory(50, 24, 1.8, 6.2),
+    history: buildHistory(50, 24, 1.8, 6.2, 192),
   },
 ]
 

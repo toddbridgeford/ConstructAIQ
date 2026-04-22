@@ -1,496 +1,345 @@
 "use client"
-import Image from "next/image"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useEffect, useState } from "react"
-import { font, color, radius } from "@/lib/theme"
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip,
+  CartesianGrid, ResponsiveContainer, Legend,
+} from "recharts"
+import { Nav }     from "@/app/components/Nav"
+import { Skeleton } from "@/app/components/Skeleton"
+import { color, font } from "@/lib/theme"
 
-const SYS  = font.sys
-const MONO = font.mono
+// ── Tokens ─────────────────────────────────────────────────────────────────
 
-// Static back-test results derived from training data (TTLCONS 2021–2025)
-// These reflect actual model performance on held-out data
-const BACK_TESTS = [
-  {
-    window:    "Apr 2025 → Apr 2026",
-    horizon:   "12-month",
-    actual:    2197.6,
-    forecast:  2183.4,
-    error:     -14.2,
-    mape:      0.65,
-    withinBand: "80%",
-    models: { hw: 0.72, sarima: 0.84, xgb: 0.61 },
-  },
-  {
-    window:    "Apr 2024 → Apr 2025",
-    horizon:   "12-month",
-    actual:    2181.2,
-    forecast:  2164.8,
-    error:     -16.4,
-    mape:      0.75,
-    withinBand: "80%",
-    models: { hw: 0.88, sarima: 0.95, xgb: 0.71 },
-  },
-  {
-    window:    "Apr 2023 → Apr 2024",
-    horizon:   "12-month",
-    actual:    2184.6,
-    forecast:  2149.2,
-    error:     -35.4,
-    mape:      1.62,
-    withinBand: "95%",
-    models: { hw: 1.74, sarima: 1.93, xgb: 1.48 },
-  },
-  {
-    window:    "Apr 2022 → Apr 2023",
-    horizon:   "12-month",
-    actual:    2133.0,
-    forecast:  2088.6,
-    error:     -44.4,
-    mape:      2.08,
-    withinBand: "95%",
-    models: { hw: 2.24, sarima: 2.61, xgb: 1.91 },
-  },
-  {
-    window:    "Oct 2024 → Apr 2025",
-    horizon:   "6-month",
-    actual:    2181.2,
-    forecast:  2171.6,
-    error:     -9.6,
-    mape:      0.44,
-    withinBand: "80%",
-    models: { hw: 0.52, sarima: 0.61, xgb: 0.38 },
-  },
-  {
-    window:    "Oct 2023 → Apr 2024",
-    horizon:   "6-month",
-    actual:    2184.6,
-    forecast:  2161.8,
-    error:     -22.8,
-    mape:      1.04,
-    withinBand: "80%",
-    models: { hw: 1.18, sarima: 1.34, xgb: 0.97 },
-  },
-]
+const { bg0:BG0, bg1:BG1, bg2:BG2, bd1:BD1, bd2:BD2,
+        t1:T1, t2:T2, t3:T3, t4:T4,
+        green:GREEN, amber:AMBER, blue:BLUE, red:RED } = color
+const MONO = font.mono, SYS = font.sys
 
-const AGGREGATE = {
-  count: BACK_TESTS.length,
-  meanMape: (BACK_TESTS.reduce((s, t) => s + t.mape, 0) / BACK_TESTS.length).toFixed(2),
-  within80: BACK_TESTS.filter(t => t.withinBand === "80%").length,
-  within95: BACK_TESTS.length,
-  hwMape: (BACK_TESTS.reduce((s, t) => s + t.models.hw, 0) / BACK_TESTS.length).toFixed(2),
-  sarimaMape: (BACK_TESTS.reduce((s, t) => s + t.models.sarima, 0) / BACK_TESTS.length).toFixed(2),
-  xgbMape: (BACK_TESTS.reduce((s, t) => s + t.models.xgb, 0) / BACK_TESTS.length).toFixed(2),
+// ── Types ──────────────────────────────────────────────────────────────────
+
+interface TrackRecord {
+  month:    string
+  forecast: number
+  actual:   number
+  error:    number
+  pctError: number
+}
+interface TrackData {
+  records:      TrackRecord[]
+  avgMape:      number | null
+  directionAcc: number | null
+  n:            number
+}
+interface ForecastMeta {
+  metrics:   { mape: number; accuracy: number; n: number }
+  bestModel: string
+  trainedOn: number
 }
 
-function mapeColor(v: number) {
-  if (v < 1.0) return color.green
-  if (v < 2.0) return color.amber
-  return color.red
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function fmtMonth(iso: string): string {
+  try { return new Date(iso + "-01").toLocaleDateString("en-US", { month:"short", year:"numeric" }) }
+  catch { return iso }
 }
 
-function mapeBg(v: number) {
-  if (v < 1.0) return color.greenDim
-  if (v < 2.0) return color.amberDim
+function errColor(pct: number): string {
+  if (pct < 2) return GREEN
+  if (pct < 5) return AMBER
+  return RED
+}
+function errBg(pct: number): string {
+  if (pct < 2) return color.greenDim
+  if (pct < 5) return color.amberDim
   return color.redDim
 }
 
-function KPI({ label, value, sub }: { label: string; value: string; sub?: string }) {
+// ── Shared components ──────────────────────────────────────────────────────
+
+function KpiCard({ label, value, sub }: { label:string; value:string; sub?:string }) {
   return (
-    <div style={{
-      flex: "1 1 160px",
-      background: color.bg1, border: `1px solid ${color.bd1}`,
-      borderRadius: radius.md, padding: "18px 20px",
-    }}>
-      <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.1em", marginBottom: 6 }}>
-        {label}
-      </div>
-      <div style={{ fontFamily: SYS, fontSize: 26, fontWeight: 700, color: color.t1, lineHeight: 1 }}>
-        {value}
-      </div>
-      {sub && <div style={{ fontFamily: SYS, fontSize: 12, color: color.t4, marginTop: 4 }}>{sub}</div>}
+    <div style={{ flex:"1 1 180px", background:BG1, borderRadius:16,
+                  border:`1px solid ${BD1}`, padding:"20px 24px" }}>
+      <div style={{ fontFamily:MONO, fontSize:10, color:T4, letterSpacing:"0.1em",
+                    textTransform:"uppercase", marginBottom:8 }}>{label}</div>
+      <div style={{ fontFamily:MONO, fontSize:26, fontWeight:700, color:T1,
+                    letterSpacing:"-0.02em", lineHeight:1.1 }}>{value}</div>
+      {sub && <div style={{ fontFamily:SYS, fontSize:12, color:T3, marginTop:5 }}>{sub}</div>}
     </div>
   )
 }
 
-export default function TrackRecordPage() {
-  const [liveMetrics, setLiveMetrics] = useState<{
-    accuracy: number; mape: number
-  } | null>(null)
+function Card({ children, style }: { children:React.ReactNode; style?:React.CSSProperties }) {
+  return (
+    <div style={{ background:BG1, borderRadius:20, border:`1px solid ${BD1}`,
+                  padding:"28px 32px", ...style }}>
+      {children}
+    </div>
+  )
+}
 
-  const [satStats, setSatStats] = useState<Array<{
-    msa_code: string
-    obs_count: number
-    avg_cloud: number | null
-    pct_high: number
-  }> | null>(null)
+function SLabel({ children }: { children:React.ReactNode }) {
+  return (
+    <div style={{ fontFamily:MONO, fontSize:10, color:T4, letterSpacing:"0.12em",
+                  textTransform:"uppercase", marginBottom:14 }}>{children}</div>
+  )
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{ background:BG2, border:`1px solid ${BD2}`, borderRadius:10,
+                  padding:"10px 14px", fontFamily:MONO, fontSize:12 }}>
+      <div style={{ color:T4, marginBottom:6 }}>{fmtMonth(label)}</div>
+      {payload.map((p: { name:string; value:number; color:string }) => (
+        <div key={p.name} style={{ color:p.color, marginBottom:2 }}>
+          {p.name}: ${p.value.toFixed(1)}B
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────
+
+export default function TrackRecordPage() {
+  const [track,    setTrack]    = useState<TrackData | null>(null)
+  const [meta,     setMeta]     = useState<ForecastMeta | null>(null)
+  const [loading,  setLoading]  = useState(true)
 
   useEffect(() => {
-    fetch("/api/forecast?seriesId=TTLCONS&periods=12")
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (d.metrics) setLiveMetrics(d.metrics) })
-      .catch(() => {})
-    fetch("/api/satellite/stats")
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.stats) setSatStats(d.stats) })
-      .catch(() => {})
+    async function load() {
+      async function safe(url: string) {
+        try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
+      }
+      const [trackD, foreD] = await Promise.all([
+        safe("/api/forecast/track-record"),
+        safe("/api/forecast?series=TTLCONS"),
+      ])
+      if (trackD) setTrack(trackD)
+      if (foreD)  setMeta(foreD)
+      setLoading(false)
+    }
+    load()
   }, [])
 
+  // Chart data: merge forecast + actual by month
+  const chartData = (track?.records ?? []).map(r => ({
+    month:    r.month,
+    Forecast: r.forecast,
+    Actual:   r.actual,
+  }))
+
+  const mape         = track?.avgMape ?? meta?.metrics?.mape ?? null
+  const dirAcc       = track?.directionAcc
+  const bestModel    = meta?.bestModel ?? "—"
+  const nObs         = track?.n ?? meta?.trainedOn ?? null
+
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: color.bg0,
-      color: color.t1,
-      fontFamily: SYS,
-      paddingBottom: "env(safe-area-inset-bottom, 20px)",
-    }}>
-      <style>{`
-        *{box-sizing:border-box;margin:0;padding:0}
-        a{color:inherit;text-decoration:none}
-        button{outline:none;font-family:inherit;cursor:pointer;border:none}
-        button:hover{opacity:.85}
-      `}</style>
+    <div style={{ minHeight:"100vh", background:BG0, color:T1, fontFamily:SYS,
+                  paddingBottom:"env(safe-area-inset-bottom,24px)" }}>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}a{color:inherit;text-decoration:none}button{font-family:inherit}`}</style>
 
-      {/* NAV */}
-      <nav style={{
-        position: "sticky", top: 0, zIndex: 100,
-        background: color.bg1 + "ee", backdropFilter: "blur(12px)",
-        borderBottom: `1px solid ${color.bd1}`,
-        padding: "0 32px",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        height: 60,
-        paddingTop: "env(safe-area-inset-top, 0px)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href="/">
-            <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ"
-              style={{ height: 24, width: "auto" }} />
-          </Link>
-          <div style={{ width: 1, height: 24, background: color.bd1 }} />
-          <Link href="/methodology" style={{ fontFamily: MONO, fontSize: 11, color: color.t4, letterSpacing: "0.1em" }}>
-            METHODOLOGY
-          </Link>
-          <span style={{ fontFamily: MONO, fontSize: 11, color: color.bd2 }}>/</span>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: color.t3, letterSpacing: "0.1em" }}>
-            TRACK RECORD
+      <Nav />
+
+      <div style={{ maxWidth:1040, margin:"0 auto", padding:"64px 32px 80px" }}>
+
+        {/* ── Hero ─────────────────────────────────────────────────── */}
+        <div style={{ marginBottom:56 }}>
+          <div style={{ fontFamily:MONO, fontSize:11, color:T4,
+                        letterSpacing:"0.06em", marginBottom:12 }}>
+            <Link href="/methodology" style={{ color:T4 }}>Methodology</Link>
+            {" / Track Record"}
           </div>
-        </div>
-        <Link href="/dashboard">
-          <button style={{
-            background: color.amber, color: "#000",
-            fontFamily: MONO, fontSize: 12, fontWeight: 700,
-            padding: "8px 16px", borderRadius: 8,
-            letterSpacing: "0.06em", minHeight: 36,
-          }}>DASHBOARD →</button>
-        </Link>
-      </nav>
-
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 32px 80px" }}>
-
-        {/* HERO */}
-        <div style={{ padding: "56px 0 44px" }}>
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            background: color.greenDim, border: `1px solid ${color.green}44`,
-            borderRadius: 20, padding: "5px 14px", marginBottom: 20,
-          }}>
-            <span style={{ fontFamily: MONO, fontSize: 10, color: color.green, letterSpacing: "0.08em" }}>
-              BACK-TESTED · OPEN RESULTS
-            </span>
-          </div>
-          <h1 style={{
-            fontFamily: SYS, fontSize: 36, fontWeight: 700, color: color.t1,
-            marginBottom: 14, lineHeight: 1.2, letterSpacing: "-0.02em",
-          }}>
+          <h1 style={{ fontFamily:SYS, fontSize:44, fontWeight:700,
+                       letterSpacing:"-0.035em", lineHeight:1.06, color:T1, marginBottom:14 }}>
             Forecast Track Record
           </h1>
-          <p style={{
-            fontFamily: SYS, fontSize: 16, color: color.t3,
-            lineHeight: 1.65, maxWidth: 600, marginBottom: 0,
-          }}>
-            Back-test results on TTLCONS (Total Construction Spending, Census Bureau).
-            All results use actual released data — no lookahead bias, no cherry-picking.
-            The ensemble is retrained on each new month of data as it becomes available.
+          <p style={{ fontFamily:SYS, fontSize:17, color:T3, lineHeight:1.65, maxWidth:580 }}>
+            Every forecast we published vs. what actually happened.
+            No competitor publishes this. We do.
           </p>
         </div>
 
-        {/* AGGREGATE KPIs */}
-        <div style={{ marginBottom: 40 }}>
-          <div style={{
-            fontFamily: MONO, fontSize: 10, color: color.t4,
-            letterSpacing: "0.1em", marginBottom: 14,
-          }}>
-            AGGREGATE PERFORMANCE · {AGGREGATE.count} BACK-TESTS
-          </div>
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
-            <KPI
-              label="ENSEMBLE MAPE"
-              value={`${AGGREGATE.meanMape}%`}
-              sub="Mean absolute percentage error"
-            />
-            <KPI
-              label="WITHIN 80% BAND"
-              value={`${AGGREGATE.within80}/${AGGREGATE.count}`}
-              sub="Back-tests where actual fell inside 80% CI"
-            />
-            <KPI
-              label="WITHIN 95% BAND"
-              value={`${AGGREGATE.within95}/${AGGREGATE.count}`}
-              sub="All back-tests inside 95% CI"
-            />
-            <KPI
-              label="LIVE ACCURACY"
-              value={liveMetrics ? `${liveMetrics.accuracy.toFixed(1)}%` : "—"}
-              sub="Current model accuracy (live)"
-            />
-          </div>
-        </div>
-
-        {/* MODEL COMPARISON */}
-        <div style={{ marginBottom: 40 }}>
-          <div style={{
-            fontFamily: MONO, fontSize: 10, color: color.t4,
-            letterSpacing: "0.1em", marginBottom: 14,
-          }}>
-            MODEL COMPARISON · MEAN MAPE ACROSS ALL WINDOWS
-          </div>
-          <div style={{
-            background: color.bg1, border: `1px solid ${color.bd1}`,
-            borderRadius: radius.md, overflow: "hidden",
-          }}>
-            {[
-              { name: "XGBoost",      code: "xgb",    mape: parseFloat(AGGREGATE.xgbMape) },
-              { name: "Holt-Winters", code: "hw",     mape: parseFloat(AGGREGATE.hwMape) },
-              { name: "SARIMA",       code: "sarima", mape: parseFloat(AGGREGATE.sarimaMape) },
-            ].map((m, i) => (
-              <div key={m.code} style={{
-                padding: "16px 20px",
-                borderTop: i > 0 ? `1px solid ${color.bd1}` : "none",
-                display: "flex", gap: 16, alignItems: "center",
-              }}>
-                <div style={{ minWidth: 120 }}>
-                  <div style={{ fontFamily: SYS, fontSize: 14, fontWeight: 500, color: color.t1 }}>
-                    {m.name}
-                  </div>
-                  <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, marginTop: 2 }}>
-                    {m.code.toUpperCase()}
-                  </div>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    height: 6, borderRadius: 3,
-                    background: color.bg3, overflow: "hidden",
-                  }}>
-                    <div style={{
-                      height: "100%",
-                      width: `${Math.min(100, (m.mape / 3) * 100)}%`,
-                      background: mapeColor(m.mape),
-                      borderRadius: 3,
-                      transition: "width 0.6s ease",
-                    }} />
-                  </div>
-                </div>
-                <span style={{
-                  fontFamily: MONO, fontSize: 13, fontWeight: 700,
-                  color: mapeColor(m.mape), background: mapeBg(m.mape),
-                  borderRadius: 4, padding: "3px 10px",
-                  minWidth: 64, textAlign: "center",
-                }}>
-                  {m.mape.toFixed(2)}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* BACK-TEST TABLE */}
-        <div style={{ marginBottom: 48 }}>
-          <div style={{
-            fontFamily: MONO, fontSize: 10, color: color.t4,
-            letterSpacing: "0.1em", marginBottom: 14,
-          }}>
-            INDIVIDUAL BACK-TESTS · TTLCONS ($B SAAR)
-          </div>
-          <div style={{
-            background: color.bg1, border: `1px solid ${color.bd1}`,
-            borderRadius: radius.md, overflow: "hidden",
-          }}>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: color.bg3 }}>
-                    {["Forecast Window", "Horizon", "Actual", "Forecast", "Error", "MAPE", "CI"].map(h => (
-                      <th key={h} style={{
-                        fontFamily: MONO, fontSize: 10, color: color.t4,
-                        letterSpacing: "0.08em", textTransform: "uppercase",
-                        padding: "10px 14px", textAlign: "left", fontWeight: 600,
-                        whiteSpace: "nowrap",
-                      }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {BACK_TESTS.map((t, i) => (
-                    <tr key={t.window} style={{
-                      background: i % 2 === 0 ? color.bg1 : color.bg2,
-                      borderTop: `1px solid ${color.bd1}`,
-                    }}>
-                      <td style={{ padding: "11px 14px", fontFamily: SYS, fontSize: 13, color: color.t2 }}>
-                        {t.window}
-                      </td>
-                      <td style={{ padding: "11px 14px", fontFamily: MONO, fontSize: 12, color: color.t4 }}>
-                        {t.horizon}
-                      </td>
-                      <td style={{ padding: "11px 14px", fontFamily: MONO, fontSize: 12, color: color.t2 }}>
-                        ${t.actual.toFixed(1)}B
-                      </td>
-                      <td style={{ padding: "11px 14px", fontFamily: MONO, fontSize: 12, color: color.t3 }}>
-                        ${t.forecast.toFixed(1)}B
-                      </td>
-                      <td style={{
-                        padding: "11px 14px", fontFamily: MONO, fontSize: 12,
-                        color: t.error < 0 ? color.red : color.green,
-                      }}>
-                        {t.error > 0 ? "+" : ""}{t.error.toFixed(1)}B
-                      </td>
-                      <td style={{ padding: "11px 14px" }}>
-                        <span style={{
-                          fontFamily: MONO, fontSize: 11, fontWeight: 700,
-                          color: mapeColor(t.mape), background: mapeBg(t.mape),
-                          borderRadius: 4, padding: "2px 8px",
-                        }}>
-                          {t.mape.toFixed(2)}%
-                        </span>
-                      </td>
-                      <td style={{ padding: "11px 14px" }}>
-                        <span style={{
-                          fontFamily: MONO, fontSize: 10, fontWeight: 600,
-                          color: t.withinBand === "80%" ? color.green : color.amber,
-                          background: t.withinBand === "80%" ? color.greenDim : color.amberDim,
-                          borderRadius: 4, padding: "2px 8px",
-                        }}>
-                          {t.withinBand}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* SATELLITE DATA QUALITY */}
-        <div style={{ marginBottom: 48 }}>
-          <div style={{
-            fontFamily: MONO, fontSize: 10, color: color.t4,
-            letterSpacing: "0.1em", marginBottom: 14,
-          }}>
-            SATELLITE DATA QUALITY · SENTINEL-2 BSI PER MSA
-          </div>
-          {satStats === null ? (
-            <div style={{
-              background: color.bg1, border: `1px solid ${color.bd1}`,
-              borderRadius: radius.md, padding: "20px",
-              fontFamily: MONO, fontSize: 12, color: color.t4, textAlign: "center",
-            }}>
-              Loading satellite stats…
-            </div>
-          ) : satStats.length === 0 ? (
-            <div style={{
-              background: color.bg1, border: `1px solid ${color.bd1}`,
-              borderRadius: radius.md, padding: "20px",
-              fontFamily: MONO, fontSize: 12, color: color.t4, textAlign: "center",
-            }}>
-              No satellite observations yet — pipeline runs weekly (Sunday 02:00 UTC).
-            </div>
+        {/* ── KPI row ──────────────────────────────────────────────── */}
+        <div style={{ display:"flex", gap:16, flexWrap:"wrap", marginBottom:32 }}>
+          {loading ? (
+            [0,1,2,3].map(i => <Skeleton key={i} height={96} borderRadius={16}
+                                          style={{ flex:"1 1 180px" }} />)
           ) : (
             <>
-              <div style={{
-                background: color.bg1, border: `1px solid ${color.bd1}`,
-                borderRadius: radius.md, overflow: "hidden",
-              }}>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ background: color.bg3 }}>
-                        {["MSA", "Observations", "Avg Cloud Cover", "% HIGH Confidence"].map(h => (
-                          <th key={h} style={{
-                            fontFamily: MONO, fontSize: 10, color: color.t4,
-                            letterSpacing: "0.08em", textTransform: "uppercase",
-                            padding: "10px 14px", textAlign: "left", fontWeight: 600,
-                            whiteSpace: "nowrap",
-                          }}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {satStats.map((s, i) => (
-                        <tr key={s.msa_code} style={{
-                          background: i % 2 === 0 ? color.bg1 : color.bg2,
-                          borderTop: `1px solid ${color.bd1}`,
-                        }}>
-                          <td style={{ padding: "11px 14px", fontFamily: MONO, fontSize: 12, color: color.blue }}>
-                            {s.msa_code}
-                          </td>
-                          <td style={{ padding: "11px 14px", fontFamily: MONO, fontSize: 12, color: color.t2 }}>
-                            {s.obs_count}
-                          </td>
-                          <td style={{ padding: "11px 14px", fontFamily: MONO, fontSize: 12, color: color.t3 }}>
-                            {s.avg_cloud !== null ? `${s.avg_cloud.toFixed(1)}%` : "—"}
-                          </td>
-                          <td style={{ padding: "11px 14px" }}>
-                            <span style={{
-                              fontFamily: MONO, fontSize: 11, fontWeight: 700,
-                              color: s.pct_high >= 70 ? color.green : s.pct_high >= 40 ? color.amber : color.red,
-                              background: s.pct_high >= 70 ? color.greenDim : s.pct_high >= 40 ? color.amberDim : color.redDim,
-                              borderRadius: 4, padding: "2px 8px",
-                            }}>
-                              {s.pct_high.toFixed(0)}%
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div style={{
-                marginTop: 10, fontFamily: SYS, fontSize: 12, color: color.t4, lineHeight: 1.65,
-              }}>
-                Pacific Northwest and Great Lakes MSAs average 35–55% cloud cover in winter
-                months, reducing HIGH-confidence observations. Southwest markets (Phoenix, Las
-                Vegas, Denver) consistently achieve &gt;70% HIGH-confidence scenes year-round.
-                Confidence reflects cloud cover and valid pixel count — not forecast accuracy.
-              </div>
+              <KpiCard
+                label="12-Month MAPE"
+                value={mape != null ? `${mape.toFixed(1)}%` : "—"}
+                sub="Mean absolute percentage error"
+              />
+              <KpiCard
+                label="Best Model (last 12mo)"
+                value={bestModel.replace("holt-winters","Holt-Winters").replace("sarima","SARIMA").replace("xgboost","XGBoost")}
+                sub="Lowest recent MAPE"
+              />
+              <KpiCard
+                label="Direction Accuracy"
+                value={dirAcc != null ? `${dirAcc}%` : "—"}
+                sub="Monthly direction calls correct"
+              />
+              <KpiCard
+                label="Observations"
+                value={nObs != null ? `${nObs}mo` : "—"}
+                sub="Training data depth"
+              />
             </>
           )}
         </div>
 
-        {/* METHODOLOGY LINK */}
-        <div style={{ textAlign: "center" }}>
-          <Link href="/methodology" style={{ fontFamily: MONO, fontSize: 13, color: color.amber }}>
-            ← Back to Methodology
+        {/* ── Forecast vs Actual Chart ──────────────────────────────── */}
+        <Card style={{ marginBottom:24 }}>
+          <SLabel>Forecast vs Actual · TTLCONS · 12-Month-Ahead Predictions</SLabel>
+          <h2 style={{ fontFamily:SYS, fontSize:20, fontWeight:700, color:T1,
+                       letterSpacing:"-0.02em", marginBottom:24 }}>
+            What We Forecast vs. What Happened
+          </h2>
+          {loading ? (
+            <Skeleton height={280} borderRadius={12} />
+          ) : chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={chartData} margin={{ top:8, right:24, bottom:0, left:0 }}>
+                <CartesianGrid stroke={BD1} strokeDasharray="3,3" />
+                <XAxis
+                  dataKey="month" tick={{ fontFamily:MONO, fontSize:10, fill:T4 }}
+                  tickFormatter={fmtMonth} axisLine={false} tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontFamily:MONO, fontSize:10, fill:T4 }}
+                  tickFormatter={v => `$${(v/1000).toFixed(1)}T`}
+                  axisLine={false} tickLine={false} width={56}
+                />
+                <Tooltip content={<ChartTooltip />} />
+                <Legend
+                  wrapperStyle={{ fontFamily:MONO, fontSize:11, color:T4, paddingTop:12 }}
+                />
+                <Line dataKey="Forecast" stroke={AMBER} strokeWidth={2}
+                      dot={{ fill:AMBER, r:3 }} activeDot={{ r:5 }} />
+                <Line dataKey="Actual"   stroke={T1}   strokeWidth={2.5}
+                      dot={{ fill:T1, r:3 }} activeDot={{ r:5 }} strokeDasharray="none" />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ padding:"48px 0", textAlign:"center",
+                          fontFamily:SYS, fontSize:14, color:T4 }}>
+              Track record data unavailable
+            </div>
+          )}
+          <div style={{ marginTop:16, fontFamily:SYS, fontSize:12, color:T4, lineHeight:1.6 }}>
+            Amber line: what the model forecast 12 months prior.
+            White line: Census C30 actuals. Dollar values in $B SAAR.
+          </div>
+        </Card>
+
+        {/* ── Monthly accuracy table ────────────────────────────────── */}
+        <Card style={{ marginBottom:24, padding:0, overflow:"hidden" }}>
+          <div style={{ padding:"24px 28px 0" }}>
+            <SLabel>Monthly Breakdown · Last 12 Months</SLabel>
+            <h2 style={{ fontFamily:SYS, fontSize:20, fontWeight:700, color:T1,
+                         letterSpacing:"-0.02em", marginBottom:20 }}>
+              Forecast vs Actual — Month by Month
+            </h2>
+          </div>
+          {loading ? (
+            <div style={{ padding:"0 28px 28px" }}>
+              <Skeleton height={280} borderRadius={12} />
+            </div>
+          ) : (
+            <div style={{ overflowX:"auto" }}>
+              <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                <thead>
+                  <tr>
+                    {["Month","Forecast ($B)","Actual ($B)","Error ($B)","% Error"].map(h => (
+                      <th key={h} style={{
+                        fontFamily:MONO, fontSize:10, color:T4,
+                        letterSpacing:"0.08em", textTransform:"uppercase",
+                        padding:"10px 20px", textAlign:"left",
+                        background:BG2, fontWeight:600, whiteSpace:"nowrap",
+                        borderBottom:`1px solid ${BD1}`,
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(track?.records ?? []).map((r, i) => (
+                    <tr key={r.month} style={{ background: i % 2 === 0 ? BG2 : BG1 }}>
+                      <td style={{ fontFamily:MONO, fontSize:12, color:T2,
+                                   padding:"11px 20px", borderTop:`1px solid ${BD1}`,
+                                   whiteSpace:"nowrap" }}>
+                        {fmtMonth(r.month)}
+                      </td>
+                      <td style={{ fontFamily:MONO, fontSize:12, color:AMBER,
+                                   padding:"11px 20px", borderTop:`1px solid ${BD1}` }}>
+                        {r.forecast.toFixed(1)}
+                      </td>
+                      <td style={{ fontFamily:MONO, fontSize:12, color:T1, fontWeight:600,
+                                   padding:"11px 20px", borderTop:`1px solid ${BD1}` }}>
+                        {r.actual.toFixed(1)}
+                      </td>
+                      <td style={{ fontFamily:MONO, fontSize:12,
+                                   color: r.error >= 0 ? GREEN : RED,
+                                   padding:"11px 20px", borderTop:`1px solid ${BD1}` }}>
+                        {r.error >= 0 ? "+" : ""}{r.error.toFixed(1)}
+                      </td>
+                      <td style={{ padding:"11px 20px", borderTop:`1px solid ${BD1}` }}>
+                        <span style={{
+                          fontFamily:MONO, fontSize:11, fontWeight:700,
+                          color:errColor(r.pctError),
+                          background:errBg(r.pctError),
+                          borderRadius:6, padding:"2px 8px",
+                        }}>
+                          {r.pctError.toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {(track?.records ?? []).length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ padding:"32px", textAlign:"center",
+                                               fontFamily:SYS, fontSize:14, color:T4 }}>
+                        No track record data available
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        {/* ── Honest Assessment ────────────────────────────────────── */}
+        <Card style={{ marginBottom:48, border:`1px solid ${BD2}` }}>
+          <SLabel>Honest Assessment</SLabel>
+          <p style={{ fontFamily:SYS, fontSize:15, color:T3, lineHeight:1.8, margin:0 }}>
+            Construction forecasting is hard. Input revisions, policy shocks, and structural
+            breaks create irreducible uncertainty. We publish this record because accountability
+            builds trust. If our model underperforms, we say so and explain why.
+          </p>
+        </Card>
+
+        {/* ── Back links ───────────────────────────────────────────── */}
+        <div style={{ display:"flex", gap:24, justifyContent:"center", flexWrap:"wrap" }}>
+          <Link href="/methodology" style={{ fontFamily:SYS, fontSize:14, color:T4,
+                                             textDecoration:"underline" }}>
+            ← Methodology
+          </Link>
+          <Link href="/dashboard" style={{ fontFamily:SYS, fontSize:14, color:T4,
+                                           textDecoration:"underline" }}>
+            Open Dashboard
+          </Link>
+          <Link href="/api-access" style={{ fontFamily:SYS, fontSize:14, color:T4,
+                                            textDecoration:"underline" }}>
+            API Access
           </Link>
         </div>
       </div>
-
-      {/* FOOTER */}
-      <footer style={{
-        borderTop: `1px solid ${color.bd1}`,
-        padding: "28px 32px",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        flexWrap: "wrap", gap: 16,
-      }}>
-        <Image src="/ConstructAIQWhiteLogo.svg" width={100} height={20} alt="ConstructAIQ"
-          style={{ height: 18, width: "auto" }} />
-        <div style={{ fontFamily: SYS, fontSize: 13, color: color.t4 }}>
-          Open methodology · Free platform · constructaiq.trade
-        </div>
-      </footer>
     </div>
   )
 }

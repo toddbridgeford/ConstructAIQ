@@ -125,7 +125,7 @@ export function CSHIHistory({ data }: CSHIHistoryProps) {
         {[
           { label: "EXPANDING", col: color.green },
           { label: "NEUTRAL",   col: color.amber },
-          { label: "SLOWING",   col: "#ff9500" },
+          { label: "SLOWING",   col: color.orange },
           { label: "CONTRACTING", col: color.red },
         ].map(z => (
           <div key={z.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>

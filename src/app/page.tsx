@@ -1,157 +1,139 @@
 "use client"
-import Image from "next/image"
-import Link from "next/link"
 import { useState, useEffect } from "react"
-import { font, color, sentColor, sentBg } from "@/lib/theme"
+import Image from "next/image"
+import Link  from "next/link"
+import { Nav }              from "./components/Nav"
+import { HeroSection }      from "./components/HeroSection"
+import { TrustStrip }       from "./components/TrustStrip"
+import { OutcomeCards }     from "./components/OutcomeCards"
+import { FreeModel }        from "./components/FreeModel"
+import { PlatformShowcase } from "./components/PlatformShowcase"
+import { ForecastDeepDive } from "./components/ForecastDeepDive"
+import { UseCases }         from "./components/UseCases"
+import { CtaSection }       from "./components/CtaSection"
+import { color, font }      from "@/lib/theme"
 
+const { bg0:BG0, bg1:BG1, bg2:BG2, bg3:BG3, bd1:BD1, bd2:BD2,
+        t1:T1, t2:T2, t3:T3, t4:T4,
+        amber:AMBER, green:GREEN, red:RED, blue:BLUE } = color
 const SYS  = font.sys
 const MONO = font.mono
-const { amber: AMBER, green: GREEN, red: RED, blue: BLUE,
-        bg0: BG0, bg1: BG1, bg2: BG2, bg3: BG3,
-        bd1: BD1, bd2: BD2,
-        t1: T1, t2: T2, t3: T3, t4: T4 } = color
 
-interface Signal { type: string; title: string }
+type Signal = { type: string; title: string; description?: string; confidence?: number }
 
-function SignalPill({ type, text }: { type: string; text: string }) {
-  const col  = sentColor(type)
-  const bg   = sentBg(type)
-  const icon = type === "BULLISH" ? "▲" : type === "BEARISH" ? "▼" : "⚠"
-  return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: bg, border: `1px solid ${col}44`, borderRadius: 20, padding: "6px 14px", margin: "4px" }}>
-      <span style={{ fontFamily: MONO, fontSize: 12, color: col }}>{icon}</span>
-      <span style={{ fontFamily: SYS, fontSize: 14, color: col, fontWeight: 500 }}>{text}</span>
-    </div>
-  )
+const SOURCES = [
+  "Census Bureau", "BLS", "FRED", "BEA", "EIA",
+  "USASpending.gov", "SAM.gov", "NOAA", "Copernicus",
+]
+
+function sentBg(signal: string): string {
+  if (signal === "BUY")  return `${GREEN}18`
+  if (signal === "SELL") return `${RED}18`
+  return `${AMBER}18`
 }
 
-
-function EmailCaptureForm({ source, label }: { source: string; label: string }) {
-  const [email, setEmail]           = useState("")
-  const [status, setStatus]         = useState("")
-  const [submitting, setSubmitting] = useState(false)
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!email || submitting) return
-    setSubmitting(true)
-    try {
-      const r = await fetch("/api/subscribe", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, source }),
-      })
-      setStatus(r.ok ? "success" : "error")
-      if (r.ok) setEmail("")
-    } catch { setStatus("error") }
-    finally  { setSubmitting(false) }
-  }
-
-  return (
-    <div>
-      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 10, maxWidth: 440, margin: "0 auto" }}>
-        <input
-          type="email" placeholder="your@email.com" value={email}
-          onChange={e => setEmail(e.target.value)}
-          style={{ flex: 1, background: BG2, border: `1px solid ${BD2}`, borderRadius: 10,
-                   padding: "13px 18px", color: T1, fontSize: 15, minHeight: 48, fontFamily: SYS }}
-        />
-        <button type="submit" disabled={submitting}
-          style={{ background: BLUE, color: "#fff", fontWeight: 600, fontSize: 15, padding: "0 22px",
-                   borderRadius: 10, minHeight: 48, opacity: submitting ? 0.7 : 1, cursor: "pointer",
-                   border: "none", fontFamily: SYS, whiteSpace: "nowrap" }}>
-          {submitting ? "…" : label}
-        </button>
-      </form>
-      {status === "success" && <div style={{ fontSize: 14, color: GREEN, marginTop: 12, textAlign: "center" }}>✓ You&apos;re on the list.</div>}
-      {status === "error"   && <div style={{ fontSize: 14, color: RED,   marginTop: 12, textAlign: "center" }}>Something went wrong. Try again.</div>}
-    </div>
-  )
-}
-
-function ForecastPreview({ currentValue, liveHist, liveFcast, forecastPct }: {
+function ForecastPreview({ liveHist, liveFcast }: {
   currentValue: number
   liveHist?: number[]
   liveFcast?: number[]
-  forecastPct?: number | null
+  forecastPct: number | null
 }) {
-  const W = 640, H = 280
-
-  // Normalize raw API values to [0,1]; fall back to illustrative data
-  let hist: number[]
-  let fcast: number[]
-  if (liveHist && liveHist.length >= 2 && liveFcast && liveFcast.length >= 2) {
-    const all = [...liveHist, ...liveFcast]
-    const mn = Math.min(...all), mx = Math.max(...all)
-    const rng = mx - mn || 1
-    hist  = liveHist.map(v => (v - mn) / rng)
-    fcast = liveFcast.map(v => (v - mn) / rng)
-  } else {
-    hist  = [0.52, 0.54, 0.57, 0.55, 0.59, 0.61, 0.58, 0.63, 0.65, 0.62, 0.68, 0.70]
-    fcast = [0.70, 0.72, 0.74, 0.71, 0.76, 0.78, 0.75, 0.80, 0.82, 0.79, 0.84, 0.87]
-  }
-
-  const pad   = { t: 16, r: 20, b: 32, l: 12 }
-  const cw    = W - pad.l - pad.r
-  const ch    = H - pad.t - pad.b
-  const hLen  = hist.length
-  const total = hLen + fcast.length - 1
-
-  const px = (i: number) => +(pad.l + (i / (total - 1)) * cw).toFixed(1)
-  const py = (v: number) => +(pad.t + (1 - v) * ch).toFixed(1)
-
-  const histPath  = hist.map((v, i) => `${i === 0 ? "M" : "L"}${px(i)},${py(v)}`).join(" ")
-  const fcastPath = fcast.map((v, i) => `${i === 0 ? "M" : "L"}${px(hLen - 1 + i)},${py(v)}`).join(" ")
-
-  const topPts = fcast.map((v, i) => `${px(hLen - 1 + i)},${py(Math.min(v + 0.07, 1))}`)
-  const botPts = [...fcast].reverse().map((v, i) =>
-    `${px(hLen - 1 + fcast.length - 1 - i)},${py(Math.max(v - 0.05, 0))}`)
-  const bandPath = `M${topPts[0]} ${topPts.slice(1).map(p => `L${p}`).join(" ")} ${botPts.map(p => `L${p}`).join(" ")} Z`
-
-  const months = ["Jan", "Apr", "Jul", "Oct", "Jan", "Apr", "Jul", "Oct", "Jan"]
-  const divX   = px(hLen - 1)
-  const pctLabel = forecastPct != null
-    ? `${forecastPct >= 0 ? "+" : ""}${forecastPct.toFixed(1)}%`
-    : null
-
+  const hist  = liveHist  ?? []
+  const fcast = liveFcast ?? []
+  const all   = [...hist, ...fcast]
+  if (all.length === 0) return <div style={{ height: 140, background: BG2, borderRadius: 8 }} />
+  const min = Math.min(...all), max = Math.max(...all)
+  const range = max - min || 1
+  const W = 560, H = 140, PAD = 8
+  const toX = (i: number, len: number) => PAD + (i / (len - 1)) * (W - PAD * 2)
+  const toY = (v: number) => H - PAD - ((v - min) / range) * (H - PAD * 2)
+  const pts = (arr: number[], offset = 0) =>
+    arr.map((v, i) => `${toX(i + offset, all.length)},${toY(v)}`).join(" ")
+  const histPts  = pts(hist)
+  const fcastPts = pts(fcast, hist.length)
+  const splitX   = hist.length > 0 ? toX(hist.length - 1, all.length) : 0
   return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ display: "block" }}>
-      <path d={bandPath} fill={BLUE} fillOpacity={0.12} />
-      <line x1={divX} y1={pad.t} x2={divX} y2={H - pad.b}
-            stroke={T4} strokeWidth={1} strokeDasharray="3,3" strokeOpacity={0.4} />
-      <text x={+divX + 6} y={pad.t + 10} fill={T4} fontSize={9}
-            fontFamily={MONO} letterSpacing="0.08em" fillOpacity={0.5}>FORECAST</text>
-      <path d={histPath}  fill="none" stroke={AMBER} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-      <path d={fcastPath} fill="none" stroke={BLUE}  strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={px(hLen - 1)}  cy={py(hist[hLen - 1])}        r={4} fill={AMBER} />
-      <circle cx={px(total - 1)} cy={py(fcast[fcast.length - 1])} r={4} fill={BLUE} />
-      {months.map((m, i) => {
-        const idx = Math.round(i * (total - 1) / (months.length - 1))
-        return <text key={i} x={px(idx)} y={H - 6} textAnchor="middle"
-                     fill={T4} fontSize={9} fontFamily={MONO} fillOpacity={0.45}>{m}</text>
-      })}
-      <text x={+divX - 8} y={py(hist[hLen - 1]) - 8} textAnchor="end"
-            fill={AMBER} fontSize={10} fontFamily={MONO} fontWeight="600">
-        ${(currentValue / 1000).toFixed(1)}B
-      </text>
-      {pctLabel && (
-        <text x={px(total - 1) + 8} y={py(fcast[fcast.length - 1]) - 8} textAnchor="start"
-              fill={BLUE} fontSize={10} fontFamily={MONO} fontWeight="600">{pctLabel}</text>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: H }} preserveAspectRatio="none">
+      {fcast.length > 0 && (
+        <rect x={splitX} y={0} width={W - splitX} height={H}
+              fill={`${BLUE}0c`} />
+      )}
+      {hist.length > 1 && (
+        <polyline points={histPts} fill="none" stroke={AMBER} strokeWidth={1.8} strokeLinejoin="round" />
+      )}
+      {fcast.length > 1 && (
+        <polyline points={fcastPts} fill="none" stroke={BLUE} strokeWidth={1.8}
+                  strokeDasharray="5 3" strokeLinejoin="round" />
       )}
     </svg>
   )
 }
 
-const NAV_LINKS = [
-  { label: "Intelligence",  href: "/dashboard"      },
-  { label: "Ground Signal", href: "/ground-signal"  },
-  { label: "Globe",         href: "/globe"          },
-  { label: "Markets",       href: "/markets"        },
-  { label: "Tools",         href: "/market-check"   },
-  { label: "Pricing",       href: "/pricing"        },
-  { label: "About",         href: "/about"          },
-]
+function SignalPill({ type, text }: { type: string; text: string }) {
+  const col = type === "BULLISH" ? GREEN : type === "BEARISH" ? RED : AMBER
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5,
+      background: `${col}18`, border: `1px solid ${col}44`,
+      borderRadius: 99, padding: "4px 10px", margin: "0 4px 6px 0",
+      fontFamily: MONO, fontSize: 11, color: col, letterSpacing: "0.04em",
+      whiteSpace: "nowrap",
+    }}>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: col, flexShrink: 0 }} />
+      {text}
+    </span>
+  )
+}
 
-const SOURCES = ["Census Bureau", "BLS", "FRED / Fed Reserve", "BEA", "EIA", "USASpending.gov"]
+function EmailCaptureForm({ source, label }: { source: string; label: string }) {
+  const [email,     setEmail]     = useState("")
+  const [status,    setStatus]    = useState<"idle"|"loading"|"done"|"error">("idle")
+  const [errMsg,    setErrMsg]    = useState("")
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email.includes("@")) { setErrMsg("Enter a valid email."); setStatus("error"); return }
+    setStatus("loading")
+    try {
+      const r = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), source }),
+      })
+      setStatus(r.ok ? "done" : "error")
+      if (!r.ok) setErrMsg("Subscription failed. Please try again.")
+    } catch {
+      setStatus("error"); setErrMsg("Network error. Please try again.")
+    }
+  }
+
+  if (status === "done") {
+    return <p style={{ fontFamily: SYS, fontSize: 14, color: GREEN }}>You&apos;re subscribed. See you Monday.</p>
+  }
+  return (
+    <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+      <input type="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)}
+        style={{ flex: "1 1 220px", maxWidth: 320, background: BG2, border: `1px solid ${BD2}`,
+                 borderRadius: 10, padding: "12px 16px", color: T1, fontFamily: SYS, fontSize: 14, outline: "none" }} />
+      <button type="submit" disabled={status === "loading"}
+        style={{ background: BLUE, color: "#fff", fontFamily: SYS, fontSize: 14, fontWeight: 600,
+                 padding: "12px 22px", borderRadius: 10, border: "none", cursor: "pointer",
+                 minWidth: 140, opacity: status === "loading" ? 0.7 : 1 }}>
+        {status === "loading" ? "Subscribing…" : label}
+      </button>
+      {status === "error" && <p style={{ width: "100%", textAlign: "center", fontFamily: SYS, fontSize: 13, color: RED, margin: 0 }}>{errMsg}</p>}
+    </form>
+  )
+}
+
+const NAV_LINKS = [
+  { label:"Intelligence", href:"/dashboard"    },
+  { label:"Globe",        href:"/globe"        },
+  { label:"Markets",      href:"/markets"      },
+  { label:"Tools",        href:"/market-check" },
+  { label:"Pricing",      href:"/pricing"      },
+  { label:"About",        href:"/about"        },
+]
 
 export default function HomePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -162,20 +144,27 @@ export default function HomePage() {
   const [foreD,    setForeD]    = useState<any>(null)
   const [signals,  setSignals]  = useState<Signal[]>([])
   const [menuOpen, setMenuOpen] = useState(false)
+  const [surveyOpen, setSurveyOpen]       = useState(true)
+  const [surveyQuarter, setSurveyQuarter] = useState("Q2 2025")
 
   useEffect(() => {
     async function safeFetch(url: string) {
       try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
     }
     async function load() {
-      const [sd, ed, sigd, fd] = await Promise.all([
+      const [sd, ed, sigd, fd, surveyD] = await Promise.all([
         safeFetch("/api/census"), safeFetch("/api/bls"),
         safeFetch("/api/signals"), safeFetch("/api/forecast?series=TTLCONS"),
+        safeFetch("/api/survey/results"),
       ])
-      if (sd)   setSpend(sd)
-      if (ed)   setEmploy(ed)
-      if (sigd) setSignals(sigd.signals ?? [])
-      if (fd)   setForeD(fd)
+      if (sd)      setSpend(sd)
+      if (ed)      setEmploy(ed)
+      if (sigd)    setSignals(sigd.signals ?? [])
+      if (fd)      setForeD(fd)
+      if (surveyD) {
+        setSurveyQuarter(surveyD.quarter ?? "Q2 2025")
+        setSurveyOpen(surveyD.collecting !== false)
+      }
     }
     load()
   }, [])
@@ -252,6 +241,15 @@ export default function HomePage() {
                 {label}
               </Link>
             ))}
+            <Link
+              href={surveyOpen ? "/survey" : "/survey/results"}
+              style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: SYS, fontSize: 14, color: surveyOpen ? AMBER : T3, padding: "6px 10px", borderRadius: 8, transition: "color 0.15s" }}
+            >
+              {surveyOpen && (
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: AMBER, boxShadow: `0 0 5px ${AMBER}`, flexShrink: 0 }} />
+              )}
+              {surveyOpen ? `Take ${surveyQuarter} Survey` : "Survey Results"}
+            </Link>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -284,6 +282,15 @@ export default function HomePage() {
             {label}
           </Link>
         ))}
+        <Link
+          href={surveyOpen ? "/survey" : "/survey/results"}
+          className="hp-mob-a"
+          onClick={() => setMenuOpen(false)}
+          style={{ display: "flex", alignItems: "center", gap: 8, color: surveyOpen ? AMBER : T3 }}
+        >
+          {surveyOpen && <span style={{ width: 6, height: 6, borderRadius: "50%", background: AMBER, flexShrink: 0 }} />}
+          {surveyOpen ? `Take ${surveyQuarter} Survey` : "Survey Results"}
+        </Link>
         <div className="hp-mob-ctas">
           <Link href="/dashboard" onClick={() => setMenuOpen(false)}
             style={{ display: "flex", alignItems: "center", justifyContent: "center",
@@ -685,15 +692,12 @@ export default function HomePage() {
         <Image src="/ConstructAIQWhiteLogo.svg" width={100} height={20} alt="ConstructAIQ"
                style={{ height: 18, width: "auto" }} />
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          {[...NAV_LINKS, { label: "Contact", href: "/contact" }].map(({ label, href }) => (
+          {[...NAV_LINKS, { label: "Survey", href: "/survey/about" }, { label: "Contact", href: "/contact" }].map(({ label, href }) => (
             <Link key={label} href={href} style={{ fontSize: 13, color: T4 }}>{label}</Link>
           ))}
         </div>
-        <div style={{ fontFamily: SYS, fontSize: 12, color: T4 }}>
-          © 2026 ConstructAIQ
-        </div>
+        <div style={{ fontFamily:SYS, fontSize:12, color:T4 }}>© 2026 ConstructAIQ</div>
       </footer>
-
     </div>
   )
 }

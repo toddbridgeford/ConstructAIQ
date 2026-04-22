@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { font, color } from "@/lib/theme"
+import { Nav } from "@/app/components/Nav"
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts"
@@ -84,7 +85,7 @@ function classColorDim(c: string) {
   if (c === "HIGH")     return RED_DIM
   if (c === "ELEVATED") return AMBER_DIM
   if (c === "LOW")      return GREEN_DIM
-  return "#1a1a1a"
+  return BG2
 }
 
 function ComponentBar({ label, score }: { label: string; score: number }) {
@@ -126,36 +127,7 @@ export default function DistressPage() {
         button:hover{opacity:0.85}
       `}</style>
 
-      {/* NAV */}
-      <nav style={{
-        position: "sticky", top: 0, zIndex: 100,
-        background: BG1 + "ee", backdropFilter: "blur(12px)",
-        borderBottom: `1px solid ${BD1}`,
-        padding: "0 32px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", height: 60,
-        paddingTop: "env(safe-area-inset-top,0px)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href="/">
-            <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ" style={{ height: 24, width: "auto" }} />
-          </Link>
-          <div style={{ width: 1, height: 24, background: BD1 }} />
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>DISTRESS INDEX</div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-          {[
-            { label: "Markets",   href: "/markets"   },
-            { label: "Research",  href: "/research"  },
-            { label: "Calendar",  href: "/calendar"  },
-            { label: "Pricing",   href: "/pricing"   },
-          ].map(({ label, href }) => (
-            <Link key={href} href={href} style={{ fontFamily: MONO, fontSize: 12, color: T4, letterSpacing: "0.06em" }}>{label}</Link>
-          ))}
-          <Link href="/dashboard">
-            <button style={{ background: "transparent", color: T3, fontFamily: MONO, fontSize: 12, padding: "8px 16px", borderRadius: 10, border: `1px solid ${BD1}`, minHeight: 44 }}>DASHBOARD</button>
-          </Link>
-        </div>
-      </nav>
+      <Nav />
 
       {/* HERO */}
       <div style={{ textAlign: "center", padding: "64px 32px 40px" }}>
@@ -182,7 +154,7 @@ export default function DistressPage() {
           display: "flex", alignItems: "flex-start", gap: 12,
         }}>
           <span style={{ color: RED, fontFamily: MONO, fontSize: 14, flexShrink: 0 }}>⚠</span>
-          <span style={{ fontFamily: SYS, fontSize: 14, color: "#ffaaaa", lineHeight: 1.6 }}>
+          <span style={{ fontFamily: SYS, fontSize: 14, color: color.redLight, lineHeight: 1.6 }}>
             CDI scores above 70 have historically preceded construction loan delinquency increases with a 6–9 month lag.
           </span>
         </div>
@@ -433,7 +405,17 @@ export default function DistressPage() {
       <footer style={{ borderTop: `1px solid ${BD1}`, padding: "32px", textAlign: "center" }}>
         <Image src="/ConstructAIQWhiteLogo.svg" width={100} height={20} alt="ConstructAIQ" style={{ height: 20, width: "auto", marginBottom: 12 }} />
         <div style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>Construction Intelligence Platform · constructaiq.trade</div>
-        <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 6 }}>Data: Census Bureau · BLS · FRED · BEA · EIA · USASpending.gov</div>
+        <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 6 }}>
+          Data: Census Bureau · BLS · FRED · BEA · EIA · USASpending.gov
+        </div>
+        <div style={{ fontFamily: MONO, fontSize: 11, color: T4, marginTop: 6 }}>
+          Satellite: Sentinel-2 BSI (Copernicus Data Space) · Updated weekly for 20 US MSAs
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <Link href="/ground-signal" style={{ fontFamily: MONO, fontSize: 11, color: AMBER, textDecoration: "none", letterSpacing: "0.04em" }}>
+            View satellite ground signal intelligence →
+          </Link>
+        </div>
       </footer>
     </div>
   )

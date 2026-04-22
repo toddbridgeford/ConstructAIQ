@@ -1,31 +1,30 @@
 "use client"
 import { useEffect, useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts"
 import { font, color } from "@/lib/theme"
+import { Nav } from "@/app/components/Nav"
 
 const SYS = font.sys
 const MONO = font.mono
 
 const ALL_SECTORS = [
-  { id: "residential",   label: "Residential" },
-  { id: "commercial",    label: "Commercial" },
-  { id: "industrial",    label: "Industrial" },
-  { id: "infrastructure",label: "Infrastructure" },
-  { id: "healthcare",    label: "Healthcare" },
-  { id: "education",     label: "Education" },
-  { id: "energy",        label: "Energy / Utilities" },
-  { id: "multifamily",   label: "Multifamily" },
-  { id: "data_centers",  label: "Data Centers" },
+  { id: "residential",    label: "Residential" },
+  { id: "commercial",     label: "Commercial" },
+  { id: "industrial",     label: "Industrial" },
+  { id: "infrastructure", label: "Infrastructure" },
+  { id: "healthcare",     label: "Healthcare" },
+  { id: "education",      label: "Education" },
+  { id: "energy",         label: "Energy / Utilities" },
+  { id: "multifamily",    label: "Multifamily" },
+  { id: "data_centers",   label: "Data Centers" },
 ]
 
 const SECTOR_COLORS = [
-  color.green, color.blue, color.amber, "#5e5ce6", color.red,
-  "#64d2ff", "#ffd60a", "#ff9f0a", "#30d158",
+  color.green, color.blue, color.amber, color.purple, color.red,
+  color.cyan, color.yellow, color.orange, color.green,
 ]
 
 function classColor(c: string) {
@@ -46,7 +45,6 @@ function RadarCard({ sectors }: { sectors: any[] }) {
     employment_mom: "Employment",
   }
 
-  // Normalize all metrics 0-100
   const maxes: Record<string, number> = {
     cshi: 100, mom_change: 8, yoy_change: 25, backlog_months: 20, employment_mom: 4,
   }
@@ -79,14 +77,13 @@ function RadarCard({ sectors }: { sectors: any[] }) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function TrendCard({ sectors }: { sectors: any[] }) {
-  // Build combined history data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const allPeriods: string[] = sectors[0]?.history?.map((h: any) => h.period) ?? []
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chartData = allPeriods.map(p => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const row: Record<string, any> = { period: p.slice(5) } // "MM"
+    const row: Record<string, any> = { period: p.slice(5) }
     for (const s of sectors) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const point = s.history?.find((h: any) => h.period === p)
@@ -95,7 +92,6 @@ function TrendCard({ sectors }: { sectors: any[] }) {
     return row
   })
 
-  // Show only last 12 months
   const recent = chartData.slice(-12)
 
   return (
@@ -120,12 +116,21 @@ function TrendCard({ sectors }: { sectors: any[] }) {
 export default function ComparePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [data, setData] = useState<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [satData, setSatData] = useState<any>(null)
   const [selected, setSelected] = useState<string[]>(["residential", "industrial", "multifamily"])
 
   useEffect(() => {
     fetch("/api/compare")
       .then(r => r.json())
       .then(setData)
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    fetch("/api/satellite")
+      .then(r => r.json())
+      .then(setSatData)
       .catch(() => {})
   }, [])
 
@@ -143,26 +148,7 @@ export default function ComparePage() {
 
   return (
     <div style={{ background: color.bg0, minHeight: "100vh", color: color.t1 }}>
-      {/* Nav */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: color.bg0 + "ee", borderBottom: `1px solid ${color.bd1}`, backdropFilter: "blur(20px)" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-            <Image src="/logo.png" alt="ConstructAIQ" width={28} height={28} style={{ borderRadius: 6 }} />
-            <span style={{ fontFamily: MONO, fontSize: 14, color: color.amber, fontWeight: 700, letterSpacing: "0.05em" }}>ConstructAIQ</span>
-          </Link>
-          <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-            {[
-              { label: "Dashboard", href: "/dashboard" },
-              { label: "Markets", href: "/markets" },
-              { label: "CCCI", href: "/ccci" },
-              { label: "Compare", href: "/compare" },
-            ].map(l => (
-              <Link key={l.href} href={l.href} style={{ fontFamily: SYS, fontSize: 14, color: l.href === "/compare" ? color.amber : color.t3, textDecoration: "none" }}>{l.label}</Link>
-            ))}
-            <Link href="/dashboard" style={{ fontFamily: MONO, fontSize: 12, color: color.bg0, background: color.amber, borderRadius: 8, padding: "7px 16px", textDecoration: "none", fontWeight: 700 }}>DASHBOARD</Link>
-          </div>
-        </div>
-      </nav>
+      <Nav />
 
       {/* Hero */}
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 24px 32px", textAlign: "center" }}>
@@ -209,38 +195,67 @@ export default function ComparePage() {
           <>
             {/* Metric cards row */}
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${activeSectors.length}, 1fr)`, gap: 16, marginBottom: 28 }}>
-              {activeSectors.map((s, i) => (
-                <div key={s.id} style={{ background: color.bg2, borderRadius: 16, padding: 20, border: `1px solid ${SECTOR_COLORS[i]}44` }}>
-                  <div style={{ fontFamily: MONO, fontSize: 10, color: SECTOR_COLORS[i], letterSpacing: "0.08em", marginBottom: 8 }}>{s.label.toUpperCase()}</div>
-                  <div style={{ fontFamily: MONO, fontSize: 28, color: color.t1, fontWeight: 700 }}>{s.cshi?.toFixed(1)}</div>
-                  <div style={{ fontFamily: MONO, fontSize: 10, color: classColor(s.classification), marginBottom: 12 }}>{s.classification}</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    {[
-                      { label: "MoM", value: `${s.mom_change > 0 ? "+" : ""}${s.mom_change?.toFixed(1)}%` },
-                      { label: "YoY", value: `${s.yoy_change > 0 ? "+" : ""}${s.yoy_change?.toFixed(1)}%` },
-                      { label: "Backlog", value: `${s.backlog_months?.toFixed(1)}mo` },
-                      { label: "Risk", value: s.risk_score },
-                    ].map(m => (
-                      <div key={m.label} style={{ background: color.bg3, borderRadius: 6, padding: "6px 10px" }}>
-                        <div style={{ fontFamily: MONO, fontSize: 9, color: color.t4 }}>{m.label}</div>
-                        <div style={{ fontFamily: MONO, fontSize: 13, color: color.t2 }}>{m.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                  {s.etf && (
-                    <div style={{ marginTop: 10, background: color.bg3, borderRadius: 6, padding: "6px 10px", display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ fontFamily: MONO, fontSize: 10, color: color.t4 }}>ETF: {s.etf}</span>
-                      <span style={{ fontFamily: MONO, fontSize: 10, color: s.etf_ytd >= 0 ? color.green : color.red }}>{s.etf_ytd > 0 ? "+" : ""}{s.etf_ytd?.toFixed(1)}% YTD</span>
+              {activeSectors.map((s, i) => {
+                const sectorBsi = satData?.sectors?.[s.id]
+                return (
+                  <div key={s.id} style={{ background: color.bg2, borderRadius: 16, padding: 20, border: `1px solid ${SECTOR_COLORS[i]}44` }}>
+                    <div style={{ fontFamily: MONO, fontSize: 10, color: SECTOR_COLORS[i], letterSpacing: "0.08em", marginBottom: 8 }}>{s.label.toUpperCase()}</div>
+                    <div style={{ fontFamily: MONO, fontSize: 28, color: color.t1, fontWeight: 700 }}>{s.cshi?.toFixed(1)}</div>
+                    <div style={{ fontFamily: MONO, fontSize: 10, color: classColor(s.classification), marginBottom: 12 }}>{s.classification}</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      {[
+                        { label: "MoM", value: `${s.mom_change > 0 ? "+" : ""}${s.mom_change?.toFixed(1)}%` },
+                        { label: "YoY", value: `${s.yoy_change > 0 ? "+" : ""}${s.yoy_change?.toFixed(1)}%` },
+                        { label: "Backlog", value: `${s.backlog_months?.toFixed(1)}mo` },
+                        { label: "Risk", value: s.risk_score },
+                      ].map(m => (
+                        <div key={m.label} style={{ background: color.bg3, borderRadius: 6, padding: "6px 10px" }}>
+                          <div style={{ fontFamily: MONO, fontSize: 9, color: color.t4 }}>{m.label}</div>
+                          <div style={{ fontFamily: MONO, fontSize: 13, color: color.t2 }}>{m.value}</div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
-              ))}
+                    {/* Satellite BSI metric */}
+                    {satData && (
+                      <div style={{ marginTop: 8, background: color.bg3, borderRadius: 6, padding: "6px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <div style={{ fontFamily: MONO, fontSize: 9, color: color.t4 }}>BSI Δ</div>
+                          <div style={{ fontFamily: MONO, fontSize: 13, color: sectorBsi?.bsi_change != null ? (sectorBsi.bsi_change >= 0 ? color.green : color.red) : color.t4 }}>
+                            {sectorBsi?.bsi_change != null
+                              ? `${sectorBsi.bsi_change >= 0 ? "+" : ""}${sectorBsi.bsi_change.toFixed(2)}`
+                              : "—"}
+                          </div>
+                        </div>
+                        <div style={{ fontFamily: MONO, fontSize: 8, color: color.t4, textAlign: "right" }}>SENTINEL-2<br />WEEKLY</div>
+                      </div>
+                    )}
+                    {s.etf && (
+                      <div style={{ marginTop: 10, background: color.bg3, borderRadius: 6, padding: "6px 10px", display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, color: color.t4 }}>ETF: {s.etf}</span>
+                        <span style={{ fontFamily: MONO, fontSize: 10, color: s.etf_ytd >= 0 ? color.green : color.red }}>{s.etf_ytd > 0 ? "+" : ""}{s.etf_ytd?.toFixed(1)}% YTD</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
             {/* Charts */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 12 }}>
               <TrendCard sectors={activeSectors} />
               <RadarCard sectors={activeSectors} />
+            </div>
+
+            {/* Satellite attribution */}
+            <div style={{
+              fontFamily: MONO, fontSize: 11, color: color.t4,
+              textAlign: "center", padding: "12px 0 28px",
+              letterSpacing: "0.04em",
+            }}>
+              Satellite ground signal data: Sentinel-2 BSI · Updated weekly ·{" "}
+              <a href="/methodology" style={{ color: color.amber, textDecoration: "none" }}>
+                constructaiq.trade/methodology
+              </a>
             </div>
 
             {/* Rotation Signals */}

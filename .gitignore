@@ -7,3 +7,4 @@ npm-debug.log*
 .DS_Store
 *.node
 tsconfig.tsbuildinfo
+_dev_scripts/
