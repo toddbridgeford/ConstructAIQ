@@ -1,3 +1,5 @@
+"use client"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link  from "next/link"
 import { Nav }              from "./components/Nav"
@@ -11,8 +13,118 @@ import { UseCases }         from "./components/UseCases"
 import { CtaSection }       from "./components/CtaSection"
 import { color, font }      from "@/lib/theme"
 
-const { bg0:BG0, bd1:BD1, t1:T1, t4:T4 } = color
-const SYS = font.sys
+const { bg0:BG0, bg1:BG1, bg2:BG2, bg3:BG3, bd1:BD1, bd2:BD2,
+        t1:T1, t2:T2, t3:T3, t4:T4,
+        amber:AMBER, green:GREEN, red:RED, blue:BLUE } = color
+const SYS  = font.sys
+const MONO = font.mono
+
+type Signal = { type: string; title: string; description?: string; confidence?: number }
+
+const SOURCES = [
+  "Census Bureau", "BLS", "FRED", "BEA", "EIA",
+  "USASpending.gov", "SAM.gov", "NOAA", "Copernicus",
+]
+
+function sentBg(signal: string): string {
+  if (signal === "BUY")  return `${GREEN}18`
+  if (signal === "SELL") return `${RED}18`
+  return `${AMBER}18`
+}
+
+function ForecastPreview({ liveHist, liveFcast }: {
+  currentValue: number
+  liveHist?: number[]
+  liveFcast?: number[]
+  forecastPct: number | null
+}) {
+  const hist  = liveHist  ?? []
+  const fcast = liveFcast ?? []
+  const all   = [...hist, ...fcast]
+  if (all.length === 0) return <div style={{ height: 140, background: BG2, borderRadius: 8 }} />
+  const min = Math.min(...all), max = Math.max(...all)
+  const range = max - min || 1
+  const W = 560, H = 140, PAD = 8
+  const toX = (i: number, len: number) => PAD + (i / (len - 1)) * (W - PAD * 2)
+  const toY = (v: number) => H - PAD - ((v - min) / range) * (H - PAD * 2)
+  const pts = (arr: number[], offset = 0) =>
+    arr.map((v, i) => `${toX(i + offset, all.length)},${toY(v)}`).join(" ")
+  const histPts  = pts(hist)
+  const fcastPts = pts(fcast, hist.length)
+  const splitX   = hist.length > 0 ? toX(hist.length - 1, all.length) : 0
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: H }} preserveAspectRatio="none">
+      {fcast.length > 0 && (
+        <rect x={splitX} y={0} width={W - splitX} height={H}
+              fill={`${BLUE}0c`} />
+      )}
+      {hist.length > 1 && (
+        <polyline points={histPts} fill="none" stroke={AMBER} strokeWidth={1.8} strokeLinejoin="round" />
+      )}
+      {fcast.length > 1 && (
+        <polyline points={fcastPts} fill="none" stroke={BLUE} strokeWidth={1.8}
+                  strokeDasharray="5 3" strokeLinejoin="round" />
+      )}
+    </svg>
+  )
+}
+
+function SignalPill({ type, text }: { type: string; text: string }) {
+  const col = type === "BULLISH" ? GREEN : type === "BEARISH" ? RED : AMBER
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5,
+      background: `${col}18`, border: `1px solid ${col}44`,
+      borderRadius: 99, padding: "4px 10px", margin: "0 4px 6px 0",
+      fontFamily: MONO, fontSize: 11, color: col, letterSpacing: "0.04em",
+      whiteSpace: "nowrap",
+    }}>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: col, flexShrink: 0 }} />
+      {text}
+    </span>
+  )
+}
+
+function EmailCaptureForm({ source, label }: { source: string; label: string }) {
+  const [email,     setEmail]     = useState("")
+  const [status,    setStatus]    = useState<"idle"|"loading"|"done"|"error">("idle")
+  const [errMsg,    setErrMsg]    = useState("")
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email.includes("@")) { setErrMsg("Enter a valid email."); setStatus("error"); return }
+    setStatus("loading")
+    try {
+      const r = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), source }),
+      })
+      setStatus(r.ok ? "done" : "error")
+      if (!r.ok) setErrMsg("Subscription failed. Please try again.")
+    } catch {
+      setStatus("error"); setErrMsg("Network error. Please try again.")
+    }
+  }
+
+  if (status === "done") {
+    return <p style={{ fontFamily: SYS, fontSize: 14, color: GREEN }}>You&apos;re subscribed. See you Monday.</p>
+  }
+  return (
+    <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+      <input type="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)}
+        style={{ flex: "1 1 220px", maxWidth: 320, background: BG2, border: `1px solid ${BD2}`,
+                 borderRadius: 10, padding: "12px 16px", color: T1, fontFamily: SYS, fontSize: 14, outline: "none" }} />
+      <button type="submit" disabled={status === "loading"}
+        style={{ background: BLUE, color: "#fff", fontFamily: SYS, fontSize: 14, fontWeight: 600,
+                 padding: "12px 22px", borderRadius: 10, border: "none", cursor: "pointer",
+                 minWidth: 140, opacity: status === "loading" ? 0.7 : 1 }}>
+        {status === "loading" ? "Subscribing…" : label}
+      </button>
+      {status === "error" && <p style={{ width: "100%", textAlign: "center", fontFamily: SYS, fontSize: 13, color: RED, margin: 0 }}>{errMsg}</p>}
+    </form>
+  )
+}
 
 const NAV_LINKS = [
   { label:"Intelligence", href:"/dashboard"    },
