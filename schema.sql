@@ -147,6 +147,30 @@ COMMENT ON COLUMN api_keys.rpd_limit  IS 'Maximum requests per day allowed for t
 COMMENT ON COLUMN api_keys.usage      IS 'Running total of lifetime requests made with this key.';
 COMMENT ON COLUMN api_keys.active     IS 'FALSE when the key has been revoked or suspended.';
 
+
+-- ---------------------------------------------------------------------------
+-- Table: nlq_queries
+-- Log of Natural Language Query submissions for platform improvement.
+-- Only the truncated question text and metadata are stored — no answer text.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS nlq_queries (
+  id           BIGSERIAL   PRIMARY KEY,
+  question     TEXT        NOT NULL,
+  answer_chars INTEGER,
+  sources_used TEXT[],
+  asked_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ip_hash      TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_nlq_queries_asked_at
+  ON nlq_queries (asked_at DESC);
+
+COMMENT ON TABLE  nlq_queries              IS 'Log of NLQ submissions for popularity tracking and platform improvement.';
+COMMENT ON COLUMN nlq_queries.question     IS 'Question text, truncated to 200 chars for privacy.';
+COMMENT ON COLUMN nlq_queries.answer_chars IS 'Character count of generated answer (not stored).';
+COMMENT ON COLUMN nlq_queries.sources_used IS 'API routes queried to answer this question.';
+COMMENT ON COLUMN nlq_queries.ip_hash      IS 'First 16 hex chars of SHA-256 of requester IP — not reversible.';
+
 -- Authentication hot-path: look up a key by its hash on every request
 CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash
     ON api_keys (key_hash);

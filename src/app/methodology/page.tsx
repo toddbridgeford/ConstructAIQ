@@ -464,6 +464,64 @@ export default function MethodologyPage() {
           </div>
         </section>
 
+        {/* ── SECTION: AI Query Methodology ── */}
+        <section style={{ marginBottom: 64 }}>
+          <SectionLabel label="AI QUERY ENGINE" />
+          <h2 style={sectionH2}>AI Query Methodology</h2>
+          <p style={bodyP}>
+            Questions submitted to the NLQ interface are answered by Claude (Anthropic claude-sonnet-4-6)
+            using only data fetched from ConstructAIQ&apos;s internal API routes at query time.
+            The model is instructed to cite every statistic and to decline answering questions
+            where the data is insufficient.
+          </p>
+          <p style={{ ...bodyP, marginTop: 14 }}>
+            The system does not have memory of prior questions. Each query is independent.
+            Answers are not cached or stored — only the question text (truncated to 200 characters)
+            and the source routes used are logged for platform improvement.
+          </p>
+
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 12,
+            marginTop: 24,
+          }}>
+            {[
+              { label: "Rate limit",  value: "10 queries / hour / IP" },
+              { label: "Model",       value: "claude-sonnet-4-6" },
+              { label: "Max answer",  value: "200 words" },
+              { label: "Max sources", value: "12 API routes / query" },
+            ].map(({ label, value }) => (
+              <div key={label} style={{
+                background:   color.bg1,
+                border:       `1px solid ${color.bd1}`,
+                borderRadius: radius.md,
+                padding:      "14px 16px",
+              }}>
+                <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.1em", marginBottom: 6 }}>
+                  {label.toUpperCase()}
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 13, color: color.t1, fontWeight: 600 }}>
+                  {value}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            marginTop: 20,
+            padding: "12px 16px",
+            background: color.bg1,
+            border: `1px solid ${color.bd1}`,
+            borderRadius: radius.md,
+          }}>
+            <p style={{ fontFamily: MONO, fontSize: 11.5, color: color.t4, margin: 0, lineHeight: 1.65 }}>
+              Not financial advice. ConstructAIQ AI responses are generated from public US government
+              data and are provided for informational purposes only.
+            </p>
+          </div>
+        </section>
+
       </div>
 
       {/* ── Footer ── */}

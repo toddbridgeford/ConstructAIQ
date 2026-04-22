@@ -12,7 +12,7 @@ interface QA {
   error?:   boolean
 }
 
-const SUGGESTIONS = [
+const FALLBACK_SUGGESTIONS = [
   "What is the current state of US construction spending?",
   "Which states have the most active federal construction awards?",
   "What is the current material cost pressure trend?",
@@ -48,11 +48,23 @@ function dedupeSources(sources: string[]): string[] {
 }
 
 export function NLQInterface() {
-  const [history, setHistory]   = useState<QA[]>([])
-  const [input, setInput]       = useState("")
-  const [loading, setLoading]   = useState(false)
-  const bottomRef               = useRef<HTMLDivElement>(null)
-  const inputRef                = useRef<HTMLInputElement>(null)
+  const [history, setHistory]       = useState<QA[]>([])
+  const [input, setInput]           = useState("")
+  const [loading, setLoading]       = useState(false)
+  const [suggestions, setSuggestions] = useState<string[]>(FALLBACK_SUGGESTIONS)
+  const bottomRef                   = useRef<HTMLDivElement>(null)
+  const inputRef                    = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    fetch("/api/nlq/popular")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (Array.isArray(d?.questions) && d.questions.length > 0) {
+          setSuggestions(d.questions)
+        }
+      })
+      .catch(() => { /* keep fallback */ })
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -196,7 +208,7 @@ export function NLQInterface() {
           flexWrap:   "wrap",
           gap:        8,
         }}>
-          {SUGGESTIONS.map(s => (
+          {suggestions.map(s => (
             <button
               key={s}
               onClick={() => ask(s)}

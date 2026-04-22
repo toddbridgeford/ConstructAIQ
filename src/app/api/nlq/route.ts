@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
+import { createHash } from 'crypto'
 import Anthropic from '@anthropic-ai/sdk'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -32,6 +34,47 @@ async function fetchData(urls: string[], baseUrl: string) {
     })
   )
   return results.filter(r => r.data !== null)
+}
+
+// Trim large payloads when many sources are selected to stay within token limits
+function trimPayload(url: string, data: unknown): unknown {
+  if (typeof data !== 'object' || data === null) return data
+  const d = data as Record<string, unknown>
+
+  if (url.includes('/api/forecast')) {
+    const ensemble = Array.isArray(d.ensemble) ? d.ensemble as unknown[] : []
+    return {
+      seriesId:  d.seriesId,
+      metrics:   d.metrics,
+      history:   Array.isArray(d.history) ? (d.history as unknown[]).slice(-3) : [],
+      ensemble:  [...ensemble.slice(0, 3), ...ensemble.slice(-3)],
+      fcstMonths: Array.isArray(d.fcstMonths)
+        ? [...(d.fcstMonths as unknown[]).slice(0, 3), ...(d.fcstMonths as unknown[]).slice(-3)]
+        : [],
+    }
+  }
+
+  if (url.includes('/api/map')) {
+    const states = Array.isArray(d.states) ? d.states as unknown[] : []
+    return { ...d, states: states.slice(0, 10) }
+  }
+
+  if (url.includes('/api/satellite')) {
+    const msas = Array.isArray(d.msas) ? d.msas as unknown[] : []
+    const sorted = [...msas].sort((a, b) => {
+      const bsi = (x: unknown) =>
+        typeof x === 'object' && x !== null ? ((x as Record<string, number>).bsi_change_90d ?? 0) : 0
+      return bsi(b) - bsi(a)
+    })
+    return { ...d, msas: sorted.slice(0, 10) }
+  }
+
+  if (url.includes('/api/signals')) {
+    const signals = Array.isArray(d.signals) ? d.signals as unknown[] : []
+    return { ...d, signals: signals.slice(0, 5) }
+  }
+
+  return data
 }
 
 function selectDataSources(question: string): string[] {
@@ -66,8 +109,20 @@ function selectDataSources(question: string): string[] {
   if (q.includes('rate') || q.includes('mortgage') || q.includes('interest') || q.includes('fed') || q.includes('treasury'))
     sources.push('/api/rates')
 
-  if (q.includes('forecast') || q.includes('predict') || q.includes('outlook') || q.includes('next') || q.includes('month'))
-    sources.push('/api/forecast?series=HOUST', '/api/forecast?series=PERMIT')
+  if (q.includes('forecast') || q.includes('predict') || q.includes('outlook') || q.includes('next') || q.includes('future') || q.includes('month'))
+    sources.push('/api/forecast?series=TTLCONS', '/api/forecast?series=HOUST', '/api/forecast?series=PERMIT')
+
+  if (q.includes('riskiest') || q.includes('stress') || q.includes('pressure'))
+    sources.push('/api/signals', '/api/pricewatch', '/api/satellite')
+
+  if (q.includes('recession') || q.includes('contraction') || q.includes('slowdown') || q.includes('decline'))
+    sources.push('/api/cshi', '/api/signals', '/api/rates')
+
+  if (q.includes('compare') || q.includes('versus') || q.includes(' vs ') || q.includes('difference'))
+    sources.push('/api/map', '/api/satellite')
+
+  if (q.includes('disturbance'))
+    sources.push('/api/satellite', '/api/fusion')
 
   return [...new Set(sources)]
 }
@@ -129,7 +184,13 @@ export async function POST(request: Request) {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://constructaiq.trade'
     const sources = selectDataSources(question)
-    const dataResults = await fetchData(sources, baseUrl)
+    const raw = await fetchData(sources, baseUrl)
+
+    // Trim payloads when many sources selected to avoid token limits
+    const shouldTrim = sources.length > 5
+    const dataResults = shouldTrim
+      ? raw.map(r => ({ ...r, data: trimPayload(r.url, r.data) }))
+      : raw
 
     const dataContext = dataResults
       .map(r => `[${r.url}]:\n${JSON.stringify(r.data, null, 2)}`)
@@ -149,6 +210,15 @@ export async function POST(request: Request) {
     const answer = message.content[0].type === 'text'
       ? message.content[0].text
       : 'Unable to generate answer.'
+
+    // Log query non-blocking — never fail the request
+    supabaseAdmin.from('nlq_queries').insert({
+      question:    question.slice(0, 200),
+      answer_chars: answer.length,
+      sources_used: sources,
+      asked_at:    new Date().toISOString(),
+      ip_hash:     createHash('sha256').update(ip).digest('hex').slice(0, 16),
+    }).catch(() => {})
 
     return NextResponse.json({
       question,
