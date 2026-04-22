@@ -17,6 +17,8 @@ import { EquitiesSection }   from "./sections/EquitiesSection"
 import { SignalsSection }    from "./sections/SignalsSection"
 import { SatelliteSection }  from "./sections/SatelliteSection"
 import { PermitsSection }    from "./sections/PermitsSection"
+import { BottomNav }         from "./components/BottomNav"
+import { MobileDashboard }   from "./components/MobileDashboard"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -51,6 +53,16 @@ function scrollTo(id: string) {
 }
 
 export default function Dashboard() {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)")
+    setIsMobile(mq.matches)
+    const h = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener("change", h)
+    return () => mq.removeEventListener("change", h)
+  }, [])
+
   const [cshi,        setCshi]        = useState<AnyData>(null)
   const [spend,       setSpend]       = useState<AnyData>(null)
   const [employ,      setEmploy]      = useState<AnyData>(null)
@@ -189,6 +201,48 @@ export default function Dashboard() {
       `}</style>
 
       <ErrorBoundary fallback={<div />}>
+
+        {/* Mobile layout — briefing-first */}
+        {isMobile && (
+          <div className="dashboard-content">
+            {/* Minimal nav */}
+            <nav style={{
+              position: "sticky", top: 0, zIndex: 200,
+              background: BG1 + "f0", backdropFilter: "blur(16px)",
+              borderBottom: `1px solid ${BD1}`,
+              padding: "0 16px", height: 50,
+              display: "flex", alignItems: "center",
+              justifyContent: "space-between",
+              paddingTop: "env(safe-area-inset-top, 0px)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <img src="/ConstructAIQWhiteLogo.svg" alt="ConstructAIQ" style={{ height: 20, width: "auto" }} />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: GREEN, boxShadow: `0 0 5px ${GREEN}`, animation: "pulse 2s infinite" }} />
+                <span style={{ fontFamily: MONO, fontSize: 10, color: GREEN }}>LIVE</span>
+                <div style={{ fontFamily: MONO, fontSize: 11, color: AMBER }}>{fmtB(spendVal)}</div>
+              </div>
+            </nav>
+            <MobileDashboard
+              fore={fore}
+              brief={brief}
+              signals={signals}
+              federal={federal}
+              satellite={satellite}
+              prices={prices}
+              briefHeadline={briefHeadline}
+              spendVal={spendVal}
+              spendMom={spendMom}
+              empVal={empVal}
+              empMom={empMom}
+            />
+            <BottomNav />
+          </div>
+        )}
+
+        {/* Desktop layout */}
+        {!isMobile && (<>
 
         {/* NAV */}
         <nav style={{
@@ -338,6 +392,8 @@ export default function Dashboard() {
             </div>
           </div>
         </footer>
+
+        </>)} {/* end !isMobile */}
 
       </ErrorBoundary>
     </div>

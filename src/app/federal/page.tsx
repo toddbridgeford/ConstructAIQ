@@ -312,25 +312,29 @@ export default function FederalPage() {
           {loading ? (
             <Skeleton height={300} borderRadius={12} />
           ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={stateChartData} layout="vertical"
-                        margin={{ top:0, right:60, bottom:0, left:16 }}>
-                <XAxis type="number" hide />
-                <YAxis
-                  type="category" dataKey="state" width={36}
-                  tick={{ fontFamily:MONO, fontSize:11, fill:T4 }}
-                  axisLine={false} tickLine={false}
-                />
-                <Tooltip content={<FedTooltip />} cursor={{ fill:BG2 }} />
-                <Bar dataKey="value" radius={[0,6,6,0]} barSize={20}>
-                  {stateChartData.map((entry, i) => (
-                    <Cell key={entry.state}
-                          fill={i < 3 ? AMBER : BLUE}
-                          fillOpacity={i < 3 ? 1 : 0.75} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ overflowX: "auto" }}>
+              <div style={{ minWidth: 320 }}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={stateChartData} layout="vertical"
+                            margin={{ top:0, right:60, bottom:0, left:16 }}>
+                    <XAxis type="number" hide />
+                    <YAxis
+                      type="category" dataKey="state" width={36}
+                      tick={{ fontFamily:MONO, fontSize:11, fill:T4 }}
+                      axisLine={false} tickLine={false}
+                    />
+                    <Tooltip content={<FedTooltip />} cursor={{ fill:BG2 }} />
+                    <Bar dataKey="value" radius={[0,6,6,0]} barSize={20}>
+                      {stateChartData.map((entry, i) => (
+                        <Cell key={entry.state}
+                              fill={i < 3 ? AMBER : BLUE}
+                              fillOpacity={i < 3 ? 1 : 0.75} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           )}
           <div style={{ display:"flex", gap:20, marginTop:16 }}>
             {[{col:AMBER,label:"Top 3 States"},{col:BLUE,label:"States 4–10"}].map(({col,label}) => (

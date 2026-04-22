@@ -326,6 +326,13 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
     .ftr-grid { grid-template-columns: 1fr; gap: 36px; }
     .mob-menu { top: 64px; }
   }
+  /* BottomNav clearance for dashboard on mobile */
+  @media (max-width: 768px) {
+    .dashboard-content {
+      padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
   @media (max-width: 480px) {
     .nav { padding: 0 20px; height: 56px; padding-top: env(safe-area-inset-top,0); }
     .mob-menu { top: calc(56px + env(safe-area-inset-top, 0px)); }

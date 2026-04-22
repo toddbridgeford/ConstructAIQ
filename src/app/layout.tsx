@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { InstallPrompt } from "@/app/components/InstallPrompt";
 
 export const metadata: Metadata = {
   title: "ConstructAIQ — Construction Market Intelligence",
@@ -17,7 +18,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="fa">
-      <body className="fa">{children}</body>
+      <body className="fa">
+        {children}
+        <InstallPrompt />
+      </body>
     </html>
   );
 }
