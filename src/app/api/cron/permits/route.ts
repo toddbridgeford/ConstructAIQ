@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { fetchCityPermits } from '@/lib/permits'
+import { promotePermitsToProjects } from '@/lib/projects'
 
 function cronSecret() { return process.env.CRON_SECRET || '' }
 
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
   }
 
   const start   = Date.now()
-  const results: Record<string, { inserted: number; errors: number; skipped: number }> = {}
+  const results: Record<string, { inserted: number; errors: number; skipped: number; promoted: number }> = {}
 
   const { data: sources, error: srcErr } = await supabaseAdmin
     .from('permit_sources')
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
   }
 
   for (const source of sources) {
-    results[source.city_code] = { inserted: 0, errors: 0, skipped: 0 }
+    results[source.city_code] = { inserted: 0, errors: 0, skipped: 0, promoted: 0 }
 
     try {
       const permits = await fetchCityPermits(source, 2000, 180)
@@ -67,6 +68,9 @@ export async function GET(request: Request) {
         .eq('city_code', source.city_code)
 
       await computeMonthlyAgg(source.city_code)
+
+      const promoted = await promotePermitsToProjects(source.city_code)
+      results[source.city_code].promoted = promoted
 
     } catch (err) {
       console.error(`[permits] ${source.city_code} failed:`, err)

@@ -26,6 +26,10 @@
       "schedule": "0 12 * * 1"
     },
     {
+      "path": "/api/cron/project-summaries",
+      "schedule": "0 10 * * 0"
+    },
+    {
       "path": "/api/survey/invite",
       "schedule": "0 9 1 1,4,7,10 *"
     },
