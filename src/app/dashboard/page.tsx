@@ -3,7 +3,9 @@ import Image from "next/image"
 import Link  from "next/link"
 import { useState, useEffect } from "react"
 import { font, color, fmtB } from "@/lib/theme"
+import { obsSpark } from "@/lib/sparkline"
 import { ErrorBoundary }    from "./components/ErrorBoundary"
+import { SectionFallback }  from "./components/SectionFallback"
 import { KpiRow }           from "./sections/KpiRow"
 import { HeroForecast }     from "./sections/HeroForecast"
 import { CommandSection }   from "./sections/CommandSection"
@@ -18,34 +20,13 @@ import { SignalsSection }   from "./sections/SignalsSection"
 type AnyData = any
 
 const SYS = font.sys, MONO = font.mono
-const BG0 = color.bg0, BG1 = color.bg1
-const BD1 = color.bd1, BD2 = color.bd2
-const T1 = color.t1, T3 = color.t3, T4 = color.t4
-const GREEN = color.green, AMBER = color.amber
-
-function SectionFallback({ title }: { title: string }) {
-  return (
-    <div style={{ padding:"28px",borderRadius:16,border:`1px solid ${color.bd1}`,background:color.bg1,margin:"48px 0 8px",display:"flex",gap:12,alignItems:"center" }}>
-      <span style={{ fontFamily:font.mono,fontSize:10,color:color.amber,letterSpacing:"0.1em" }}>SECTION ERROR</span>
-      <span style={{ fontFamily:font.sys,fontSize:13,color:color.t3 }}>{title} failed to load. Reload to retry.</span>
-    </div>
-  )
-}
+const BG0=color.bg0,BG1=color.bg1,BD1=color.bd1,BD2=color.bd2,T1=color.t1,T3=color.t3,T4=color.t4,GREEN=color.green,AMBER=color.amber
 
 const NAV_SECTIONS = [
-  {id:"forecast",label:"Forecast"},{id:"command",label:"Command"},
-  {id:"map",label:"Map"},{id:"materials",label:"Materials"},
-  {id:"pipeline",label:"Pipeline"},{id:"federal",label:"Federal"},
-  {id:"equities",label:"Equities"},{id:"signals",label:"Signals"},
+  {id:"forecast",label:"Forecast"},{id:"command",label:"Command"},{id:"map",label:"Map"},{id:"materials",label:"Materials"},
+  {id:"pipeline",label:"Pipeline"},{id:"federal",label:"Federal"},{id:"equities",label:"Equities"},{id:"signals",label:"Signals"},
 ]
 function scrollTo(id: string) { document.getElementById(id)?.scrollIntoView({behavior:"smooth"}) }
-
-function obsSpark(obs: {date:string;value:number}[] | undefined, n: number, fallback: number): number[] {
-  const vals = (obs ?? []).slice(-n).map(o => o.value).filter(v => Number.isFinite(v))
-  if (!vals.length) return Array(n).fill(fallback)
-  while (vals.length < n) vals.unshift(vals[0])
-  return vals
-}
 
 export default function Dashboard() {
   const [cshi,     setCshi]     = useState<AnyData>(null)
@@ -103,34 +84,18 @@ export default function Dashboard() {
   const sigList      = signals?.signals    ?? []
   const foreAccuracy = fore?.metrics?.accuracy ?? 87.3
   const foreMAPE     = fore?.metrics?.mape     ?? 4.2
-  const procurementValue = commodities.length > 0
-    ? Math.round(commodities.reduce((sum: number, c: AnyData) => sum + (c.signal==="BUY"?72:c.signal==="SELL"?32:54), 0) / commodities.length)
-    : 61
+  const procurementValue = commodities.length > 0 ? Math.round(commodities.reduce((sum: number, c: AnyData) => sum + (c.signal==="BUY"?72:c.signal==="SELL"?32:54), 0) / commodities.length) : 61
 
-  // Sparklines — last 12 monthly observations from Supabase (seed fallback, never random)
   const spendSpark  = obsSpark(obsMap['TTLCONS_12'],       12, spendVal)
   const empSpark    = obsSpark(obsMap['CES2000000001_12'], 12, empVal)
   const houstSpark  = obsSpark(obsMap['HOUST_12'],         12, 1394)
   const permitSpark = obsSpark(obsMap['PERMIT_12'],        12, 1482)
-
-  // Heatmap — real MoM data, no variance
   const heatmapData = commodities.slice(0,6).map((c: AnyData) => ({
-    commodity: c.name,
-    months: Array.from({length:12},(_,i) => ({month:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i],value:c.value,pctChange:c.mom||0})),
+    commodity: c.name, months: Array.from({length:12},(_,i)=>({month:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i],value:c.value,pctChange:c.mom||0})),
   }))
-
-  // Correlation charts — TTLCONS and WPS081 from Supabase; static seed if not yet harvested
-  const corrSpend: {date:string;value:number}[] = obsMap['TTLCONS_24']?.length
-    ? obsMap['TTLCONS_24']
-    : Array.from({length:24},(_,i)=>({date:`2024-${String(i%12+1).padStart(2,"0")}-01`,value:2100+i*4}))
-  const corrMaterials: {date:string;value:number}[] = obsMap['WPS081_24']?.length
-    ? obsMap['WPS081_24']
-    : Array.from({length:24},(_,i)=>({date:`2024-${String(i%12+1).padStart(2,"0")}-01`,value:280+i*2}))
-
-  // Extract headline sentence from brief for excerpt card
-  const briefHeadline = typeof brief?.brief === "string"
-    ? brief.brief.split("\n\n")[0].replace(/^HEADLINE SIGNAL:\s*/i, "").trim()
-    : null
+  const corrSpend: {date:string;value:number}[] = obsMap['TTLCONS_24']?.length ? obsMap['TTLCONS_24'] : Array.from({length:24},(_,i)=>({date:`2024-${String(i%12+1).padStart(2,"0")}-01`,value:2100+i*4}))
+  const corrMaterials: {date:string;value:number}[] = obsMap['WPS081_24']?.length ? obsMap['WPS081_24'] : Array.from({length:24},(_,i)=>({date:`2024-${String(i%12+1).padStart(2,"0")}-01`,value:280+i*2}))
+  const briefHeadline = typeof brief?.brief === "string" ? brief.brief.split("\n\n")[0].replace(/^HEADLINE SIGNAL:\s*/i, "").trim() : null
 
   return (
     <div style={{ minHeight:"100vh", background:BG0, color:T1, fontFamily:SYS }}>
