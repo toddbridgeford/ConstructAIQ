@@ -27,9 +27,31 @@ const nextConfig: NextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' unpkg.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: raw.githubusercontent.com unpkg.com",
-              "connect-src 'self' https://*.supabase.co https://api.weather.gov https://earthquake.usgs.gov https://api.stlouisfed.org https://api.eia.gov https://api.bls.gov https://apps.bea.gov https://api.usaspending.gov https://data.sec.gov https://api.census.gov https://sentry.io https://*.sentry.io https://unpkg.com",
+              "connect-src 'self' https://*.supabase.co https://api.weather.gov https://earthquake.usgs.gov https://api.stlouisfed.org https://api.eia.gov https://api.bls.gov https://apps.bea.gov https://api.usaspending.gov https://api.sam.gov https://data.sec.gov https://api.census.gov https://sentry.io https://*.sentry.io https://unpkg.com",
               "font-src 'self' data:",
               "frame-ancestors 'none'",
+            ].join("; "),
+          },
+        ],
+      },
+      {
+        // Embed pages — allow iframing on any third-party domain.
+        // This rule comes after the catch-all; Next.js applies the last
+        // matching value for each header key, so these override the DENY
+        // and frame-ancestors 'none' set above for /embed/* paths.
+        source: "/embed/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "ALLOWALL" },
+          {
+            key:   "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob:",
+              "connect-src 'self' https://*.supabase.co https://api.stlouisfed.org https://api.eia.gov https://api.bls.gov https://apps.bea.gov https://api.usaspending.gov https://api.sam.gov https://api.census.gov https://sentry.io https://*.sentry.io",
+              "font-src 'self' data:",
+              "frame-ancestors *",
             ].join("; "),
           },
         ],

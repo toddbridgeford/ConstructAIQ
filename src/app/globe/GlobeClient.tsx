@@ -2,9 +2,11 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
+import { font } from "@/lib/theme"
+import { seeded } from "@/lib/seeded"
 
-var SYS  = "-apple-system,BlinkMacSystemFont,'SF Pro Display',Arial,sans-serif"
-var MONO = "ui-monospace,'SF Mono','Cascadia Code',Consolas,monospace"
+var SYS  = font.sys
+var MONO = font.mono
 var AMBER="#f5a623",GREEN="#30d158",RED="#ff453a",BLUE="#0a84ff",CYAN="#64d2ff"
 var BD1="rgba(255,255,255,0.1)"
 
@@ -78,7 +80,8 @@ function fP(v){return(v>0?"+":"")+Number(v).toFixed(1)+"%"}
 export default function GlobeClient() {
   var ref  = useRef(null)
   var gRef = useRef(null)
-  var [ok,    setOk]    = useState(false)
+  var [ok,         setOk]         = useState(false)
+  var [globeError, setGlobeError] = useState<string|null>(null)
   var [lens,  setLens]  = useState("MACRO")
   var [sel,   setSel]   = useState(null)
   var [fus,   setFus]   = useState(null)
@@ -125,6 +128,14 @@ export default function GlobeClient() {
   // Load globe.gl CDN
   useEffect(function(){
     if(typeof window==="undefined")return
+    // WebGL availability check — fail gracefully before loading CDN
+    try{
+      var tc=document.createElement("canvas")
+      var gl=tc.getContext("webgl")||tc.getContext("experimental-webgl")
+      if(!gl){setGlobeError("WebGL is not available in this browser.");return}
+    }catch(e){
+      setGlobeError("WebGL is not supported on this device.");return
+    }
     function init(){
       if(!ref.current)return
       try{
@@ -139,17 +150,25 @@ export default function GlobeClient() {
         try{g.controls().autoRotate=false;g.controls().enableZoom=true}catch(e){}
         gRef.current=g
         setOk(true)
+      }catch(e){
+        var msg=e instanceof Error?e.message:"Globe initialization failed"
+        console.error("[Globe]",e)
+        setGlobeError(msg)
+        return
+      }
+      // ResizeObserver is non-fatal — globe is already live if we reach here
+      try{
         var ro=new ResizeObserver(function(){
           if(ref.current&&gRef.current){gRef.current.width(ref.current.offsetWidth).height(ref.current.offsetHeight)}
         })
         ro.observe(ref.current)
-      }catch(e){console.error("[Globe]",e)}
+      }catch(e){console.error("[Globe] ResizeObserver unavailable",e)}
     }
     if(window.Globe){init();return}
     var s=document.createElement("script")
     s.src="https://unpkg.com/globe.gl@2.27.0/dist/globe.gl.min.js"
     s.onload=function(){init()}
-    s.onerror=function(){console.error("[Globe] CDN load failed")}
+    s.onerror=function(){setGlobeError("Failed to load globe renderer from CDN.")}
     document.head.appendChild(s)
   },[])
 
@@ -181,9 +200,9 @@ export default function GlobeClient() {
             var c=s.yoyChange||0
             return{lat:CAP[s.code][0],lng:CAP[s.code][1],color:ac(c),maxR:2+Math.abs(c)*0.3,speed:0.8+Math.abs(c)*0.05,code:s.code,name:SN[s.code]||s.code,change:c,permits:s.permits||0,signal:s.signal||"STABLE"}
           })
-        :Object.keys(CAP).map(function(k){
-            var c=(Math.random()-0.4)*12
-            return{lat:CAP[k][0],lng:CAP[k][1],color:ac(c),maxR:2+Math.abs(c)*0.2,speed:1,code:k,name:SN[k]||k,change:c,permits:Math.random()*15000+1000,signal:"STABLE"}
+        :Object.keys(CAP).map(function(k,ki){
+            var c=(seeded(ki)-0.4)*12
+            return{lat:CAP[k][0],lng:CAP[k][1],color:ac(c),maxR:2+Math.abs(c)*0.2,speed:1,code:k,name:SN[k]||k,change:c,permits:seeded(ki+100)*15000+1000,signal:"STABLE"}
           })
       if(layers.rings){try{
         g.ringsData(rd)
@@ -203,8 +222,8 @@ export default function GlobeClient() {
       var AG=["Army Corps","GSA","DOT","VA","DOD","USAF","DOE","HUD","DHS","EPA"]
       var pts=Object.keys(CAP).slice(0,42).map(function(k,i){
         var c=ctrs.find(function(x){return(x.state||"")===k})
-        var amt=c?(c.total_obligated_amount||c.amount||0):(Math.random()*500+50)*1e6
-        return{lat:CAP[k][0]+(Math.random()-0.5)*1.5,lng:CAP[k][1]+(Math.random()-0.5)*1.5,
+        var amt=c?(c.total_obligated_amount||c.amount||0):(seeded(i+200)*500+50)*1e6
+        return{lat:CAP[k][0]+(seeded(i+300)-0.5)*1.5,lng:CAP[k][1]+(seeded(i+400)-0.5)*1.5,
                size:0.3+Math.min(amt/800e6,1)*2.5,color:i%3===0?"#ff6b35":i%3===1?"#f97316":"#fbbf24",
                label:AG[i%10]+" $"+(amt/1e6).toFixed(0)+"M",state:k,amt}
       })
@@ -228,12 +247,12 @@ export default function GlobeClient() {
     }else if(l==="GROUND_TRUTH"){
       try{g.atmosphereColor(CYAN)}catch(e){}
       var hp=[]
-      var bs=states.length>0?states:Object.keys(CAP).map(function(k){return{code:k,permits:Math.random()*20000+1000}})
-      bs.forEach(function(s){
+      var bs=states.length>0?states:Object.keys(CAP).map(function(k,ki){return{code:k,permits:seeded(ki+500)*20000+1000}})
+      bs.forEach(function(s,si){
         var b=CAP[s.code];if(!b)return
         var iv=Math.max(0.1,Math.min(1,(s.permits||5000)/20000))
         for(var j=0;j<Math.floor(iv*120);j++){
-          hp.push({lat:b[0]+(Math.random()-0.5)*8,lng:b[1]+(Math.random()-0.5)*10,weight:iv*(0.5+Math.random()*0.5)})
+          hp.push({lat:b[0]+(seeded(si*120+j)-0.5)*8,lng:b[1]+(seeded(si*120+j+1)-0.5)*10,weight:iv*(0.5+seeded(si*120+j+2)*0.5)})
         }
       })
       try{
@@ -283,7 +302,7 @@ export default function GlobeClient() {
     }else if(l==="RISK"){
       try{g.atmosphereColor("#ff9500")}catch(e){}
       var qd=seis.length>0?seis:[[37.7,-122.4],[34.1,-118.2],[47.6,-122.3],[44.1,-114.5],[35.2,-92.4],[29.7,-95.4]].map(function(z,i){
-        return{lat:z[0]+(Math.random()-0.5)*3,lng:z[1]+(Math.random()-0.5)*3,magnitude:2.5+Math.random()*3.5,place:"Seismic Zone "+(i+1)}
+        return{lat:z[0]+(seeded(i*2+600)-0.5)*3,lng:z[1]+(seeded(i*2+601)-0.5)*3,magnitude:2.5+seeded(i+700)*3.5,place:"Seismic Zone "+(i+1)}
       })
       if(layers.seismic){try{
         g.ringsData(qd).ringLat(function(d){return d.lat}).ringLng(function(d){return d.lng})
@@ -300,9 +319,9 @@ export default function GlobeClient() {
 
     }else if(l==="LABOR"){
       try{g.atmosphereColor(BLUE)}catch(e){}
-      var lb=(states.length>0?states:Object.keys(CAP).map(function(k){return{code:k,permits:Math.random()*15000+500}}))
-        .filter(function(s){return CAP[s.code]}).map(function(s){
-          var tr=(Math.random()*3+1).toFixed(1),wg=(25+Math.random()*25).toFixed(0)
+      var lb=(states.length>0?states:Object.keys(CAP).map(function(k,ki){return{code:k,permits:seeded(ki+800)*15000+500}}))
+        .filter(function(s){return CAP[s.code]}).map(function(s,si){
+          var tr=(seeded(si+900)*3+1).toFixed(1),wg=(25+seeded(si+1000)*25).toFixed(0)
           return{lat:CAP[s.code][0],lng:CAP[s.code][1],size:0.3+Math.min(1,(s.permits||5000)/15000)*2,trir:tr,wage:wg,code:s.code,name:SN[s.code]||s.code}
         })
       try{
@@ -353,6 +372,75 @@ export default function GlobeClient() {
   var tickerTxt=tickerParts.join("    ◆    ")
   var tickerDur=Math.max(30,tickerTxt.length*0.11)
 
+  // Graceful fallback when WebGL or globe.gl fails — no crash, no ErrorBoundary needed
+  if(globeError){
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    var states=(mapD&&(mapD as any).states)||[]
+    return(
+      <div style={{width:"100vw",minHeight:"100vh",background:"#000",color:"#fff",fontFamily:SYS,overflowY:"auto"}}>
+        <style>{`*{box-sizing:border-box;margin:0;padding:0}a{color:inherit;text-decoration:none}button{cursor:pointer;border:none;outline:none}`}</style>
+        {/* Header */}
+        <div style={{position:"sticky",top:0,zIndex:10,background:"rgba(0,0,0,0.9)",backdropFilter:"blur(10px)",borderBottom:"1px solid rgba(255,255,255,0.1)",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{display:"flex",alignItems:"center",gap:14}}>
+            <Image src="/ConstructAIQWhiteLogo.svg" width={110} height={22} alt="ConstructAIQ" style={{height:22,width:"auto"}}/>
+            <div style={{width:1,height:18,background:"rgba(255,255,255,0.1)"}}/>
+            <span style={{fontFamily:MONO,fontSize:11,color:AMBER,letterSpacing:"0.1em"}}>◉ GEOINTEL · TABLE VIEW</span>
+          </div>
+          <a href="/dashboard"><button style={{background:"rgba(245,166,35,0.15)",border:"1px solid #f5a62366",color:AMBER,fontFamily:MONO,fontSize:11,fontWeight:700,padding:"6px 14px",borderRadius:8}}>DASHBOARD →</button></a>
+        </div>
+        {/* WebGL notice */}
+        <div style={{margin:"24px 20px 0",background:"rgba(255,69,58,0.08)",border:"1px solid rgba(255,69,58,0.2)",borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"flex-start",gap:12}}>
+          <span style={{fontFamily:MONO,fontSize:18,color:RED,flexShrink:0}}>⚠</span>
+          <div>
+            <div style={{fontFamily:MONO,fontSize:11,color:RED,letterSpacing:"0.1em",marginBottom:4}}>3D GLOBE UNAVAILABLE</div>
+            <div style={{fontSize:13,color:"#888",lineHeight:1.5}}>WebGL is required for the 3D globe view. Your browser or device may have WebGL disabled. The intelligence data below is still live and accurate.</div>
+          </div>
+        </div>
+        {/* State grid */}
+        <div style={{padding:"20px"}}>
+          <div style={{fontFamily:MONO,fontSize:11,color:"#555",letterSpacing:"0.1em",marginBottom:14}}>STATE CONSTRUCTION ACTIVITY</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:8}}>
+            {(states.length>0?states:Object.keys(CAP).map(function(k){return{code:k,yoyChange:0,permits:0,signal:"STABLE"}}))
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .map(function(s:any){
+                var ch=s.yoyChange||0
+                return(
+                  <div key={s.code} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"12px 14px"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4}}>
+                      <span style={{fontFamily:MONO,fontSize:13,color:"#fff",fontWeight:700}}>{s.code}</span>
+                      <span style={{fontFamily:MONO,fontSize:12,color:ac(ch),fontWeight:600}}>{fP(ch)}</span>
+                    </div>
+                    <div style={{fontSize:11,color:"#666"}}>{SN[s.code]||s.code}</div>
+                    {s.permits>0&&<div style={{fontFamily:MONO,fontSize:10,color:"#444",marginTop:4}}>{(s.permits/1000).toFixed(1)}K permits</div>}
+                  </div>
+                )
+            })}
+          </div>
+        </div>
+        {/* Distress summary */}
+        {distressD&&distressD.watchlist&&distressD.watchlist.length>0&&(
+          <div style={{padding:"0 20px 24px"}}>
+            <div style={{fontFamily:MONO,fontSize:11,color:"#555",letterSpacing:"0.1em",marginBottom:14}}>MARKET DISTRESS INDEX</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:8}}>
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {distressD.watchlist.map(function(m:any){
+                return(
+                  <div key={m.market} style={{background:"rgba(255,69,58,0.05)",border:"1px solid rgba(255,69,58,0.15)",borderRadius:10,padding:"12px 14px"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4}}>
+                      <span style={{fontSize:13,color:"#fff",fontWeight:600}}>{m.market}</span>
+                      <span style={{fontFamily:MONO,fontSize:13,color:dc(m.cdi||0),fontWeight:700}}>{Number(m.cdi||0).toFixed(1)}</span>
+                    </div>
+                    <div style={{fontFamily:MONO,fontSize:10,color:m.classification==="HIGH"?RED:"#ff9500"}}>{m.classification}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div style={{width:"100vw",height:"100vh",background:"#000",overflow:"hidden",position:"relative",fontFamily:SYS}}>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}a{color:inherit;text-decoration:none}button{cursor:pointer;border:none;outline:none}::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#333;border-radius:2px}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}`}</style>
@@ -360,15 +448,18 @@ export default function GlobeClient() {
       {/* Lens tint overlay */}
       <div style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:6,background:LENS_TINT[lens]||"transparent",transition:"background 0.6s ease"}}/>
 
-      {/* Globe mount */}
-      <div ref={ref} style={{width:"100%",height:"100%",position:"absolute",inset:0}}>
-        {!ok&&(
-          <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#000",zIndex:10}}>
-            <div style={{fontFamily:MONO,fontSize:13,color:AMBER,marginBottom:16,animation:"pulse 1.5s infinite"}}>◉ INITIALIZING GEOINTEL</div>
-            <div style={{fontFamily:MONO,fontSize:11,color:"#444"}}>CONSTRUCTAIQ PHASE 5 · GLOBE.GL LOADING</div>
-          </div>
-        )}
-      </div>
+      {/* Globe mount — must stay empty: globe.gl owns this DOM node directly.
+          Never put React children here; React reconciliation fighting globe.gl's
+          direct DOM writes causes NotFoundError on removeChild. */}
+      <div ref={ref} style={{width:"100%",height:"100%",position:"absolute",inset:0}} />
+
+      {/* Loading overlay — sibling of globe mount, fully React-managed */}
+      {!ok&&(
+        <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#000",zIndex:10,pointerEvents:"none"}}>
+          <div style={{fontFamily:MONO,fontSize:13,color:AMBER,marginBottom:16,animation:"pulse 1.5s infinite"}}>◉ INITIALIZING GEOINTEL</div>
+          <div style={{fontFamily:MONO,fontSize:11,color:"#444"}}>CONSTRUCTAIQ PHASE 5 · GLOBE.GL LOADING</div>
+        </div>
+      )}
 
       {/* Scanline */}
       <div style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:5,background:"repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px)"}}/>

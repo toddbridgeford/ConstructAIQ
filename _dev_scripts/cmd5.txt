@@ -1,0 +1,1 @@
+python3 -c “import base64; d=open(’/tmp/d1.b64’).read()+open(’/tmp/d2.b64’).read()+open(’/tmp/d3.b64’).read()+open(’/tmp/d4.b64’).read(); open(‘src/app/dashboard/page.tsx’,‘wb’).write(base64.b64decode(d)); print(‘written:’, len(base64.b64decode(d)), ‘bytes’)”

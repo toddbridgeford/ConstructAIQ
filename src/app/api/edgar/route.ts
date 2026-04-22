@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { seeded } from '@/lib/seeded'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -118,18 +119,18 @@ export async function GET() {
     .filter(c => c.revenue !== null || c.revenueChange !== null)
 
   // Add the remaining companies with synthetic data if EDGAR calls failed
-  const allCompanies = COMPANIES.map(company => {
+  const allCompanies = COMPANIES.map((company, ci) => {
     const found = companies.find(c => c.ticker === company.ticker)
     if (found) return found
     // Synthetic fallback for companies not retrieved
-    const change = (Math.random() - 0.3) * 20
+    const change = (seeded(ci) - 0.3) * 20
     return {
       ticker:        company.ticker,
       name:          company.name,
       segment:       company.segment,
-      revenue:       (5 + Math.random() * 15).toFixed(1),
+      revenue:       (5 + seeded(ci + 50) * 15).toFixed(1),
       revenueChange: parseFloat(change.toFixed(1)),
-      backlog:       Math.random() > 0.5 ? (2 + Math.random() * 10).toFixed(1) : null,
+      backlog:       seeded(ci + 100) > 0.5 ? (2 + seeded(ci + 150) * 10).toFixed(1) : null,
       signal:        change > 5 ? 'ACCELERATING' : change > 0 ? 'GROWING' : change > -5 ? 'DECELERATING' : 'CONTRACTING',
     }
   })

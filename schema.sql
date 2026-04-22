@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
     id         BIGSERIAL   PRIMARY KEY,
     email      TEXT        NOT NULL UNIQUE,
     name       TEXT,
-    plan       TEXT        NOT NULL DEFAULT 'starter',  -- 'starter' | 'professional' | 'enterprise'
+    plan       TEXT        NOT NULL DEFAULT 'free',      -- 'free' | 'researcher' | 'enterprise'
     key_prefix TEXT        NOT NULL,                    -- 'caiq_' + 8 hex chars (shown to users)
     key_hash   TEXT        NOT NULL UNIQUE,             -- SHA-256 of the full key (never store plaintext)
     rpm_limit  INTEGER     NOT NULL DEFAULT 60,
@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
 
 COMMENT ON TABLE  api_keys            IS 'API key registry for external ConstructAIQ API consumers.';
 COMMENT ON COLUMN api_keys.email      IS 'Contact email; unique — one active key per email.';
-COMMENT ON COLUMN api_keys.plan       IS 'Subscription tier: starter, professional, or enterprise.';
+COMMENT ON COLUMN api_keys.plan       IS 'Access tier: free (1k/day), researcher (10k/day, .edu verified), or enterprise.';
 COMMENT ON COLUMN api_keys.key_prefix IS 'Human-readable key prefix (e.g. caiq_1a2b3c4d) shown in dashboards.';
 COMMENT ON COLUMN api_keys.key_hash   IS 'SHA-256 hash of the full API key used for authentication lookup.';
 COMMENT ON COLUMN api_keys.rpm_limit  IS 'Maximum requests per minute allowed for this key.';

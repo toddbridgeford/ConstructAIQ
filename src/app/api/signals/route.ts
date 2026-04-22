@@ -131,8 +131,11 @@ export async function GET(request: Request) {
   try {
     const ids=['TTLCONS','HOUST','PERMIT','CES2000000001','MORTGAGE30US','DGS10','PPI_LUMBER','PPI_STEEL']
     const map: Record<string,Obs[]>={}
-    await Promise.all(ids.map(async id=>{ map[id]=await loadSeries(id) }))
-    const all: Signal[]=[]
+    const [satSignals] = await Promise.all([
+      detectSatelliteSignals(),
+      Promise.all(ids.map(async id=>{ map[id]=await loadSeries(id) })),
+    ])
+    const all: Signal[]=[...satSignals]
     for(const id of ids) { if(!map[id]?.length) continue; all.push(...detectAnomalies(map[id]),...detectTrendReversals(map[id])) }
     if(map['TTLCONS']&&map['PERMIT']) all.push(...detectDivergence(map['TTLCONS'],map['PERMIT']))
     all.push(...await surveySignals())

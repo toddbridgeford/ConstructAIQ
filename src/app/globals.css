@@ -22,9 +22,28 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
 
-/* Aeonik Pro is the design-system typeface. Self-host woff2 files in /public/fonts/
-   and add @font-face declarations here when available.
-   Until then the fallback chain renders cleanly on all platforms. */
+/* Aeonik Pro — self-hosted woff2 files in /public/fonts/ */
+@font-face {
+  font-family: 'Aeonik Pro';
+  src: url('/fonts/AeonikPro-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Aeonik Pro';
+  src: url('/fonts/AeonikPro-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Aeonik Pro';
+  src: url('/fonts/AeonikPro-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
   .fa {
     font-family: 'Aeonik Pro', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
   }
@@ -32,9 +51,10 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
     font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
   }
 
-  @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
   .d1 { opacity: 0; animation: fadeUp 0.7s ease 0.00s forwards; }
   .d2 { opacity: 0; animation: fadeUp 0.7s ease 0.12s forwards; }
@@ -47,17 +67,11 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   @media (max-width: 900px)  { .wrap { padding: 0 28px; } }
   @media (max-width: 480px)  { .wrap { padding: 0 20px; } }
 
-  /* Ticker */
-  .ticker { background: #0F0F13; border-bottom: 1px solid rgba(255,255,255,0.07); height: 36px; overflow: hidden; position: relative; }
-  .ticker-track { display: flex; gap: 56px; align-items: center; animation: tickerScroll 100s linear infinite; white-space: nowrap; padding-left: 56px; height: 100%; }
-  .ticker-item { display: inline-flex; align-items: center; gap: 8px; font-size: 10.5px; letter-spacing: 0.04em; }
-  .ticker-edge-l { position: absolute; left: 0; top: 0; width: 80px; height: 100%; background: linear-gradient(to right, #0F0F13, transparent); z-index: 2; pointer-events: none; }
-  .ticker-edge-r { position: absolute; right: 0; top: 0; width: 80px; height: 100%; background: linear-gradient(to left, #0F0F13, transparent); z-index: 2; pointer-events: none; }
-
   /* Nav */
   .nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 500;
-    height: 64px; display: flex; align-items: center; padding: 0 48px;
+    min-height: 64px; display: flex; align-items: center; padding: 0 48px;
+    padding-top: env(safe-area-inset-top, 0px);
     transition: background 0.35s, backdrop-filter 0.35s, border-color 0.35s;
   }
   .nav.on {
@@ -128,7 +142,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 
   /* Mobile menu */
   .mob-menu {
-    display: none; position: fixed; top: 64px; left: 0; right: 0; z-index: 490;
+    display: none; position: fixed; top: calc(64px + env(safe-area-inset-top, 0px)); left: 0; right: 0; z-index: 490;
     background: rgba(6,6,8,0.97); backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-bottom: 1px solid rgba(255,255,255,0.07);
@@ -314,7 +328,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   }
   @media (max-width: 480px) {
     .nav { padding: 0 20px; height: 56px; padding-top: env(safe-area-inset-top,0); }
-    .mob-menu { top: calc(56px + env(safe-area-inset-top,0)); }
+    .mob-menu { top: calc(56px + env(safe-area-inset-top, 0px)); }
     .hero { padding: 108px 20px 80px; }
     .hero-h1 { font-size: 42px; letter-spacing: -0.035em; }
     .hero-sub { font-size: 16px; max-width: 300px; }

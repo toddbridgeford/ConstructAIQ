@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
-import { font, color } from "@/lib/theme"
+import { font, color, heatmap } from "@/lib/theme"
+import { seeded } from "@/lib/seeded"
 
 const MONO = font.mono
 const SYS = font.sys
@@ -23,19 +24,19 @@ interface MaterialsHeatmapProps {
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 function cellColor(pct: number): string {
-  if (pct > 5) return "#7f1d1d"
-  if (pct > 2) return "#dc2626"
-  if (pct >= -2) return "#3a3a3a"
-  if (pct >= -5) return "#166534"
-  return "#14532d"
+  if (pct > 5) return heatmap.veryHighBg
+  if (pct > 2) return heatmap.highBg
+  if (pct >= -2) return heatmap.neutralBg
+  if (pct >= -5) return heatmap.lowBg
+  return heatmap.veryLowBg
 }
 
 function cellTextColor(pct: number): string {
-  if (pct > 5) return "#fca5a5"
-  if (pct > 2) return "#fecaca"
+  if (pct > 5) return heatmap.veryHighTc
+  if (pct > 2) return heatmap.highTc
   if (pct >= -2) return color.t3
-  if (pct >= -5) return "#86efac"
-  return "#bbf7d0"
+  if (pct >= -5) return heatmap.lowTc
+  return heatmap.veryLowTc
 }
 
 function generateSyntheticData(): CommodityRow[] {
@@ -48,10 +49,10 @@ function generateSyntheticData(): CommodityRow[] {
     { name: "Diesel", base: 3.8, seasonality: [1, 0, 1, 2, 4, 6, 7, 6, 3, 1, 0, -1] },
   ]
 
-  return commodities.map(c => {
+  return commodities.map((c, ci) => {
     let val = c.base
     const months: MonthCell[] = MONTH_LABELS.map((month, i) => {
-      const noise = (Math.random() - 0.5) * 2
+      const noise = (seeded(ci * 12 + i) - 0.5) * 2
       const pctChange = parseFloat((c.seasonality[i] + noise).toFixed(1))
       val = val * (1 + pctChange / 100)
       return { month, value: parseFloat(val.toFixed(2)), pctChange }
@@ -194,11 +195,11 @@ export function MaterialsHeatmap({ data }: MaterialsHeatmapProps) {
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14, alignItems: "center" }}>
         <span style={{ fontFamily: MONO, fontSize: 9, color: color.t4 }}>COST PRESSURE:</span>
         {[
-          { label: "Very High (>5%)", bg: "#7f1d1d", tc: "#fca5a5" },
-          { label: "High (2–5%)", bg: "#dc2626", tc: "#fecaca" },
-          { label: "Stable (±2%)", bg: "#3a3a3a", tc: color.t3 },
-          { label: "Low (−2–−5%)", bg: "#166534", tc: "#86efac" },
-          { label: "Very Low (<−5%)", bg: "#14532d", tc: "#bbf7d0" },
+          { label: "Very High (>5%)", bg: heatmap.veryHighBg, tc: heatmap.veryHighTc },
+          { label: "High (2–5%)",     bg: heatmap.highBg,    tc: heatmap.highTc    },
+          { label: "Stable (±2%)",    bg: heatmap.neutralBg, tc: color.t3          },
+          { label: "Low (−2–−5%)",    bg: heatmap.lowBg,     tc: heatmap.lowTc     },
+          { label: "Very Low (<−5%)", bg: heatmap.veryLowBg, tc: heatmap.veryLowTc },
         ].map(l => (
           <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <div style={{ width: 12, height: 12, borderRadius: 3, background: l.bg }} />

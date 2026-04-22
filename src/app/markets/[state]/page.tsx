@@ -3,6 +3,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useState, useEffect, use } from "react"
 import { font, color } from "@/lib/theme"
+import { seeded } from "@/lib/seeded"
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend,
@@ -205,7 +206,7 @@ function gen24Months(base: number, trend: number, volatility: number) {
   const months = ["May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr"]
   return months.map((m, i) => ({
     month: m,
-    value: Math.round(base * (1 + (trend / 100) * i / 12) + (Math.random() - 0.5) * volatility),
+    value: Math.round(base * (1 + (trend / 100) * i / 12) + (seeded(i) - 0.5) * volatility),
     ma: Math.round(base * (1 + (trend / 100) * i / 12)),
   }))
 }

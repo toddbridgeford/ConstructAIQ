@@ -1,156 +1,27 @@
-"use client"
 import Image from "next/image"
-import Link from "next/link"
-import { useState, useEffect } from "react"
-import { font, color, sentColor, sentBg } from "@/lib/theme"
+import Link  from "next/link"
+import { Nav }              from "./components/Nav"
+import { HeroSection }      from "./components/HeroSection"
+import { TrustStrip }       from "./components/TrustStrip"
+import { OutcomeCards }     from "./components/OutcomeCards"
+import { FreeModel }        from "./components/FreeModel"
+import { PlatformShowcase } from "./components/PlatformShowcase"
+import { ForecastDeepDive } from "./components/ForecastDeepDive"
+import { UseCases }         from "./components/UseCases"
+import { CtaSection }       from "./components/CtaSection"
+import { color, font }      from "@/lib/theme"
 
-const SYS  = font.sys
-const MONO = font.mono
-const { amber: AMBER, green: GREEN, red: RED, blue: BLUE,
-        bg0: BG0, bg1: BG1, bg2: BG2, bg3: BG3,
-        bd1: BD1, bd2: BD2,
-        t1: T1, t2: T2, t3: T3, t4: T4 } = color
-
-interface Signal { type: string; title: string }
-
-function SignalPill({ type, text }: { type: string; text: string }) {
-  const col  = sentColor(type)
-  const bg   = sentBg(type)
-  const icon = type === "BULLISH" ? "▲" : type === "BEARISH" ? "▼" : "⚠"
-  return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: bg, border: `1px solid ${col}44`, borderRadius: 20, padding: "6px 14px", margin: "4px" }}>
-      <span style={{ fontFamily: MONO, fontSize: 12, color: col }}>{icon}</span>
-      <span style={{ fontFamily: SYS, fontSize: 14, color: col, fontWeight: 500 }}>{text}</span>
-    </div>
-  )
-}
-
-
-function EmailCaptureForm({ source, label }: { source: string; label: string }) {
-  const [email, setEmail]           = useState("")
-  const [status, setStatus]         = useState("")
-  const [submitting, setSubmitting] = useState(false)
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!email || submitting) return
-    setSubmitting(true)
-    try {
-      const r = await fetch("/api/subscribe", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, source }),
-      })
-      setStatus(r.ok ? "success" : "error")
-      if (r.ok) setEmail("")
-    } catch { setStatus("error") }
-    finally  { setSubmitting(false) }
-  }
-
-  return (
-    <div>
-      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 10, maxWidth: 440, margin: "0 auto" }}>
-        <input
-          type="email" placeholder="your@email.com" value={email}
-          onChange={e => setEmail(e.target.value)}
-          style={{ flex: 1, background: BG2, border: `1px solid ${BD2}`, borderRadius: 10,
-                   padding: "13px 18px", color: T1, fontSize: 15, minHeight: 48, fontFamily: SYS }}
-        />
-        <button type="submit" disabled={submitting}
-          style={{ background: BLUE, color: "#fff", fontWeight: 600, fontSize: 15, padding: "0 22px",
-                   borderRadius: 10, minHeight: 48, opacity: submitting ? 0.7 : 1, cursor: "pointer",
-                   border: "none", fontFamily: SYS, whiteSpace: "nowrap" }}>
-          {submitting ? "…" : label}
-        </button>
-      </form>
-      {status === "success" && <div style={{ fontSize: 14, color: GREEN, marginTop: 12, textAlign: "center" }}>✓ You&apos;re on the list.</div>}
-      {status === "error"   && <div style={{ fontSize: 14, color: RED,   marginTop: 12, textAlign: "center" }}>Something went wrong. Try again.</div>}
-    </div>
-  )
-}
-
-function ForecastPreview({ currentValue, liveHist, liveFcast, forecastPct }: {
-  currentValue: number
-  liveHist?: number[]
-  liveFcast?: number[]
-  forecastPct?: number | null
-}) {
-  const W = 640, H = 280
-
-  // Normalize raw API values to [0,1]; fall back to illustrative data
-  let hist: number[]
-  let fcast: number[]
-  if (liveHist && liveHist.length >= 2 && liveFcast && liveFcast.length >= 2) {
-    const all = [...liveHist, ...liveFcast]
-    const mn = Math.min(...all), mx = Math.max(...all)
-    const rng = mx - mn || 1
-    hist  = liveHist.map(v => (v - mn) / rng)
-    fcast = liveFcast.map(v => (v - mn) / rng)
-  } else {
-    hist  = [0.52, 0.54, 0.57, 0.55, 0.59, 0.61, 0.58, 0.63, 0.65, 0.62, 0.68, 0.70]
-    fcast = [0.70, 0.72, 0.74, 0.71, 0.76, 0.78, 0.75, 0.80, 0.82, 0.79, 0.84, 0.87]
-  }
-
-  const pad   = { t: 16, r: 20, b: 32, l: 12 }
-  const cw    = W - pad.l - pad.r
-  const ch    = H - pad.t - pad.b
-  const hLen  = hist.length
-  const total = hLen + fcast.length - 1
-
-  const px = (i: number) => +(pad.l + (i / (total - 1)) * cw).toFixed(1)
-  const py = (v: number) => +(pad.t + (1 - v) * ch).toFixed(1)
-
-  const histPath  = hist.map((v, i) => `${i === 0 ? "M" : "L"}${px(i)},${py(v)}`).join(" ")
-  const fcastPath = fcast.map((v, i) => `${i === 0 ? "M" : "L"}${px(hLen - 1 + i)},${py(v)}`).join(" ")
-
-  const topPts = fcast.map((v, i) => `${px(hLen - 1 + i)},${py(Math.min(v + 0.07, 1))}`)
-  const botPts = [...fcast].reverse().map((v, i) =>
-    `${px(hLen - 1 + fcast.length - 1 - i)},${py(Math.max(v - 0.05, 0))}`)
-  const bandPath = `M${topPts[0]} ${topPts.slice(1).map(p => `L${p}`).join(" ")} ${botPts.map(p => `L${p}`).join(" ")} Z`
-
-  const months = ["Jan", "Apr", "Jul", "Oct", "Jan", "Apr", "Jul", "Oct", "Jan"]
-  const divX   = px(hLen - 1)
-  const pctLabel = forecastPct != null
-    ? `${forecastPct >= 0 ? "+" : ""}${forecastPct.toFixed(1)}%`
-    : null
-
-  return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ display: "block" }}>
-      <path d={bandPath} fill={BLUE} fillOpacity={0.12} />
-      <line x1={divX} y1={pad.t} x2={divX} y2={H - pad.b}
-            stroke={T4} strokeWidth={1} strokeDasharray="3,3" strokeOpacity={0.4} />
-      <text x={+divX + 6} y={pad.t + 10} fill={T4} fontSize={9}
-            fontFamily={MONO} letterSpacing="0.08em" fillOpacity={0.5}>FORECAST</text>
-      <path d={histPath}  fill="none" stroke={AMBER} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-      <path d={fcastPath} fill="none" stroke={BLUE}  strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={px(hLen - 1)}  cy={py(hist[hLen - 1])}        r={4} fill={AMBER} />
-      <circle cx={px(total - 1)} cy={py(fcast[fcast.length - 1])} r={4} fill={BLUE} />
-      {months.map((m, i) => {
-        const idx = Math.round(i * (total - 1) / (months.length - 1))
-        return <text key={i} x={px(idx)} y={H - 6} textAnchor="middle"
-                     fill={T4} fontSize={9} fontFamily={MONO} fillOpacity={0.45}>{m}</text>
-      })}
-      <text x={+divX - 8} y={py(hist[hLen - 1]) - 8} textAnchor="end"
-            fill={AMBER} fontSize={10} fontFamily={MONO} fontWeight="600">
-        ${(currentValue / 1000).toFixed(1)}B
-      </text>
-      {pctLabel && (
-        <text x={px(total - 1) + 8} y={py(fcast[fcast.length - 1]) - 8} textAnchor="start"
-              fill={BLUE} fontSize={10} fontFamily={MONO} fontWeight="600">{pctLabel}</text>
-      )}
-    </svg>
-  )
-}
+const { bg0:BG0, bd1:BD1, t1:T1, t4:T4 } = color
+const SYS = font.sys
 
 const NAV_LINKS = [
-  { label: "Intelligence", href: "/dashboard"    },
-  { label: "Globe",        href: "/globe"        },
-  { label: "Markets",      href: "/markets"      },
-  { label: "Tools",        href: "/market-check" },
-  { label: "Pricing",      href: "/pricing"      },
-  { label: "About",        href: "/about"        },
+  { label:"Intelligence", href:"/dashboard"    },
+  { label:"Globe",        href:"/globe"        },
+  { label:"Markets",      href:"/markets"      },
+  { label:"Tools",        href:"/market-check" },
+  { label:"Pricing",      href:"/pricing"      },
+  { label:"About",        href:"/about"        },
 ]
-
-const SOURCES = ["Census Bureau", "BLS", "FRED / Fed Reserve", "BEA", "EIA", "USASpending.gov"]
 
 export default function HomePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -713,11 +584,8 @@ export default function HomePage() {
             <Link key={label} href={href} style={{ fontSize: 13, color: T4 }}>{label}</Link>
           ))}
         </div>
-        <div style={{ fontFamily: SYS, fontSize: 12, color: T4 }}>
-          © 2026 ConstructAIQ
-        </div>
+        <div style={{ fontFamily:SYS, fontSize:12, color:T4 }}>© 2026 ConstructAIQ</div>
       </footer>
-
     </div>
   )
 }
