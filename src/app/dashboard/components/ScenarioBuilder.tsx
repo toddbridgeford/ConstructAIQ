@@ -51,6 +51,19 @@ function SliderRow({ label, sub, val, setter, min, max, step, unit, positiveIsGo
   )
 }
 
+interface TariffImpact {
+  vs_zero_tariff: {
+    icpi_increase_pct:              number
+    residential_starts_impact_pct:  number
+    nonresidential_starts_impact_pct: number
+  }
+  vs_current_tariffs: {
+    icpi_change_pct:          number
+    res_starts_change_pct:    number
+    nonres_starts_change_pct: number
+  }
+}
+
 interface ScenarioBuilderProps {
   spendVal?:         number
   foreData?:         ForecastData | null
@@ -58,49 +71,71 @@ interface ScenarioBuilderProps {
 }
 
 export function ScenarioBuilder({ spendVal = 2190, foreData, onScenarioChange }: ScenarioBuilderProps) {
-  const [rate,     setRate]     = useState(0)
-  const [iija,     setIija]     = useState(100)
-  const [labor,    setLabor]    = useState(0)
-  const [material, setMaterial] = useState(0)
-  const [active,   setActive]   = useState(1)  // Baseline
+  const [rate,           setRate]           = useState(0)
+  const [iija,           setIija]           = useState(100)
+  const [labor,          setLabor]          = useState(0)
+  const [material,       setMaterial]       = useState(0)
+  const [active,         setActive]         = useState(1)  // Baseline
+  const [lumberTariff,   setLumberTariff]   = useState(14.5)
+  const [steelTariff,    setSteelTariff]    = useState(25.0)
+  const [aluminumTariff, setAluminumTariff] = useState(10.0)
+  const [tariffImpact,   setTariffImpact]   = useState<TariffImpact | null>(null)
 
   function applyPreset(p: Preset, idx: number) {
     setRate(p.rate); setIija(p.iija); setLabor(p.labor); setMaterial(p.material)
     setActive(idx)
   }
 
-  const delta = (-rate * 0.018) + ((iija - 100) * 0.003) + (labor * 0.008) + (-material * 0.012)
+  // Debounced tariff fetch
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/tariff-impact?lumber=${lumberTariff}&steel=${steelTariff}&aluminum=${aluminumTariff}`)
+        if (r.ok) setTariffImpact(await r.json())
+      } catch { /* ignore */ }
+    }, 400)
+    return () => clearTimeout(t)
+  }, [lumberTariff, steelTariff, aluminumTariff])
+
+  // Tariff contribution to spend delta: weighted starts impact (residential ~35%, nonres ~30%)
+  const tariffContrib = tariffImpact
+    ? (tariffImpact.vs_current_tariffs.res_starts_change_pct    * 0.35 +
+       tariffImpact.vs_current_tariffs.nonres_starts_change_pct * 0.30)
+    : 0
+
+  const delta = (-rate * 0.018) + ((iija - 100) * 0.003) + (labor * 0.008) + (-material * 0.012) + (tariffContrib / 100 * 100)
   const base  = spendVal
   const proj  = base * (1 + delta / 100)
   const diff  = proj - base
   const pct   = (diff / base) * 100
   const up    = proj >= base
 
-  // Emit scenario line whenever sliders or foreData change
+  // Emit scenario line whenever any slider or foreData changes
   useEffect(() => {
     if (!onScenarioChange) return
-    const hasChanges = rate !== 0 || iija !== 100 || labor !== 0 || material !== 0
+    const hasChanges = rate !== 0 || iija !== 100 || labor !== 0 || material !== 0 || tariffContrib !== 0
     if (!hasChanges || !foreData?.ensemble?.length) {
       onScenarioChange(null)
       return
     }
-    const d = (-rate * 0.018) + ((iija - 100) * 0.003) + (labor * 0.008) + (-material * 0.012)
+    const d = (-rate * 0.018) + ((iija - 100) * 0.003) + (labor * 0.008) + (-material * 0.012) + (tariffContrib / 100 * 100)
     const line = foreData.ensemble.slice(0, 12).map(p => p.base * (1 + d / 100))
     onScenarioChange(line)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rate, iija, labor, material, foreData])
+  }, [rate, iija, labor, material, tariffContrib, foreData])
 
   const impacts = [
     { label: "Rate shock",     val: (-rate * 0.018) / 100 * base },
     { label: "IIJA funding",   val: ((iija - 100) * 0.003) / 100 * base },
     { label: "Labor supply",   val: (labor * 0.008) / 100 * base },
     { label: "Material costs", val: (-material * 0.012) / 100 * base },
+    { label: "Tariff impact",  val: (tariffContrib / 100) * base },
   ]
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
 
-      {/* Scenario preset pills — prominent */}
+      {/* Scenario preset pills */}
       <div>
         <div style={{ fontFamily:MONO, fontSize:10, color:T4, letterSpacing:"0.1em", marginBottom:12 }}>
           SCENARIO PRESETS
@@ -128,7 +163,7 @@ export function ScenarioBuilder({ spendVal = 2190, foreData, onScenarioChange }:
         </div>
       </div>
 
-      {/* Sliders */}
+      {/* Macro sliders */}
       <div>
         <SliderRow label="Rate Shock"     sub="basis points"
           val={rate}     setter={setRate}
@@ -142,6 +177,50 @@ export function ScenarioBuilder({ spendVal = 2190, foreData, onScenarioChange }:
         <SliderRow label="Material Costs" sub="% change"
           val={material} setter={setMaterial}
           min={-20}  max={20}  step={2}   unit="%"   positiveIsGood={false} />
+      </div>
+
+      {/* Tariff sliders */}
+      <div>
+        <div style={{ fontFamily:MONO, fontSize:10, color:T4, letterSpacing:"0.1em", marginBottom:12 }}>
+          TARIFF IMPACT
+        </div>
+        <SliderRow label="Lumber Tariff"   sub="ad valorem rate"
+          val={lumberTariff}   setter={setLumberTariff}
+          min={0} max={35}  step={0.5} unit="%" positiveIsGood={false} />
+        <SliderRow label="Steel Tariff"    sub="ad valorem rate"
+          val={steelTariff}    setter={setSteelTariff}
+          min={0} max={50}  step={1}   unit="%" positiveIsGood={false} />
+        <SliderRow label="Aluminum Tariff" sub="ad valorem rate"
+          val={aluminumTariff} setter={setAluminumTariff}
+          min={0} max={25}  step={0.5} unit="%" positiveIsGood={false} />
+
+        {/* Tariff impact summary */}
+        {tariffImpact && (
+          <div style={{
+            background: BG2, borderRadius:10, padding:"12px 14px",
+            border:`1px solid ${BD1}`, marginTop:4,
+          }}>
+            <div style={{ fontFamily:SYS, fontSize:12, color:T3, lineHeight:1.6 }}>
+              At these tariff levels, construction costs are estimated{" "}
+              <span style={{ fontFamily:MONO, color:tariffImpact.vs_zero_tariff.icpi_increase_pct > 0 ? RED : GREEN, fontWeight:600 }}>
+                {tariffImpact.vs_zero_tariff.icpi_increase_pct.toFixed(1)}% higher
+              </span>{" "}
+              vs. zero tariffs, suppressing residential starts by{" "}
+              <span style={{ fontFamily:MONO, color:RED, fontWeight:600 }}>
+                {Math.abs(tariffImpact.vs_zero_tariff.residential_starts_impact_pct).toFixed(1)}%
+              </span>.
+            </div>
+            {tariffImpact.vs_current_tariffs.icpi_change_pct !== 0 && (
+              <div style={{ fontFamily:MONO, fontSize:10, color:T4, marginTop:6 }}>
+                vs. current policy:{" "}
+                <span style={{ color: tariffImpact.vs_current_tariffs.icpi_change_pct > 0 ? RED : GREEN }}>
+                  {tariffImpact.vs_current_tariffs.icpi_change_pct > 0 ? "+" : ""}
+                  {tariffImpact.vs_current_tariffs.icpi_change_pct.toFixed(1)}% ICPI
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Result panel */}
