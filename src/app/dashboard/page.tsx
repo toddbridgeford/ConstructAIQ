@@ -38,10 +38,7 @@ import { EarningsCards }  from "./components/EarningsCards"
 import { SectorRotation } from "./components/SectorRotation"
 import { ETFMonitor }     from "./components/ETFMonitor"
 // ── Section 8
-import { AnomalyFeed }        from "./components/AnomalyFeed"
-import { DivergenceDetector } from "./components/DivergenceDetector"
-import { WeeklyBrief }        from "./components/WeeklyBrief"
-import { SurveyIndexCard }    from "./components/SurveyIndexCard"
+import { SignalsSection } from "./sections/SignalsSection"
 // ── Shared
 import { GateLock }      from "./components/GateLock"
 import { SectionHeader } from "./components/SectionHeader"
@@ -554,27 +551,7 @@ export default function Dashboard() {
             onExportCSV={() => {}}
           />
 
-          {/* Proprietary GC Survey — primary source, top of signals section */}
-          <SurveyIndexCard />
-
-          {/* Anomaly feed + divergence detector */}
-          <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
-            <div style={{ flex:"1 1 320px" }}>
-              <AnomalyFeed alerts={signals?.anomalies ?? []} />
-            </div>
-            <GateLock locked={false} requiredPlan="Starter" featureName="Divergence Detector">
-              <div style={{ flex:"1 1 320px" }}>
-                <DivergenceDetector pairs={signals?.divergences ?? []} />
-              </div>
-            </GateLock>
-          </div>
-
-          {/* AI Weekly Brief */}
-          <GateLock locked={false} requiredPlan="Starter" featureName="AI Weekly Intelligence Brief">
-            <Card>
-              <WeeklyBrief {...(brief ?? {})} />
-            </Card>
-          </GateLock>
+          <SignalsSection signals={signals} brief={brief} />
         </Section>
 
       </div>{/* /main content */}
