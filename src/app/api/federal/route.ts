@@ -270,6 +270,55 @@ function generateStateAllocations(): StateAllocation[] {
     })
 }
 
+interface Solicitation {
+  id: string
+  title: string
+  agency: string
+  naics: string
+  state: string
+  estimatedValue: number | null
+  closeDate: string | null
+  postedDate: string | null
+  url: string
+}
+
+async function fetchSolicitations(): Promise<Solicitation[]> {
+  const samKey = process.env.SAM_GOV_API_KEY
+  if (!samKey) return []
+
+  try {
+    const url =
+      `https://api.sam.gov/opportunities/v2/search?` +
+      `limit=25&api_key=${samKey}` +
+      `&naics=236,237,238` +
+      `&ptype=o` +
+      `&status=active` +
+      `&sort=-modifiedDate`
+
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+    if (!res.ok) {
+      console.error('[federal] SAM.gov returned', res.status)
+      return []
+    }
+    const data = await res.json()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data.opportunitiesData ?? []).map((opp: any): Solicitation => ({
+      id: opp.noticeId,
+      title: opp.title,
+      agency: opp.fullParentPathName ?? opp.organizationName ?? '',
+      naics: opp.naicsCode ?? '',
+      state: opp.placeOfPerformance?.state?.code ?? 'N/A',
+      estimatedValue: opp.award?.amount ?? null,
+      closeDate: opp.responseDeadLine ?? null,
+      postedDate: opp.postedDate ?? null,
+      url: `https://sam.gov/opp/${opp.noticeId}/view`,
+    }))
+  } catch (e) {
+    console.error('[federal] SAM.gov fetch failed:', e)
+    return []
+  }
+}
+
 export async function GET() {
   try {
     const programs = PROGRAMS
@@ -277,6 +326,7 @@ export async function GET() {
     const contractors = CONTRACTORS
     const monthlyAwards = generateMonthlyAwards()
     const stateAllocations = generateStateAllocations()
+    const solicitations = await fetchSolicitations()
 
     const totalAuthorized = programs.reduce((s, p) => s + p.authorized, 0)
     const totalObligated = programs.reduce((s, p) => s + p.obligated, 0)
@@ -289,10 +339,11 @@ export async function GET() {
         contractors,
         monthlyAwards,
         stateAllocations,
+        solicitations,
         totalAuthorized,
         totalObligated,
         totalSpent,
-        updatedAt: '2026-04-20T06:00:00Z',
+        updatedAt: new Date().toISOString(),
       },
       { headers: { 'Cache-Control': 'public, s-maxage=3600' } }
     )
