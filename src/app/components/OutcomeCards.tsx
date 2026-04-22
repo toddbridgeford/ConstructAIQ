@@ -1,19 +1,20 @@
+import { TrendingUp, Activity, Sliders } from "lucide-react"
 import { color } from "@/lib/theme"
 
-const { amber: AMBER, blue: BLUE, green: GREEN } = color
+const { amber:AMBER, blue:BLUE, green:GREEN, bg1:BG1, bd1:BD1 } = color
 
 const CARDS = [
   {
-    n: "01", accent: AMBER, title: "Forecast",
-    desc: "12-month ensemble AI forecast with 80% and 95% confidence intervals — three accuracy-weighted models, updated every 4 hours.",
+    Icon: TrendingUp, accent: AMBER, title: "Forecast",
+    desc: "12-month ensemble forecast with 80% and 95% confidence intervals. Three models, one answer.",
   },
   {
-    n: "02", accent: BLUE, title: "Signals",
-    desc: "Z-score anomaly detection across 12 federal data series. Trend reversals, divergence patterns, and acceleration alerts — explained.",
+    Icon: Activity, accent: BLUE, title: "Signals",
+    desc: "Anomaly detection across 10+ government data sources. Know before the market does.",
   },
   {
-    n: "03", accent: GREEN, title: "Scenario",
-    desc: "Rate shock, IIJA funding, labor supply, and material cost controls. Compute adjusted forecasts in real time before committing capital.",
+    Icon: Sliders, accent: GREEN, title: "Scenario",
+    desc: "Model rate shocks, IIJA funding changes, and labor cost shifts before committing capital.",
   },
 ]
 
@@ -26,10 +27,10 @@ export function OutcomeCards() {
           <h2 className="h2">One system. Every signal.</h2>
         </div>
         <div className="feat-grid">
-          {CARDS.map(({ n, accent, title, desc }) => (
-            <div key={n} className="feat-card">
-              <div style={{ fontFamily:"'SF Mono','Fira Code',monospace", fontSize:11,
-                            color:accent, fontWeight:700, opacity:0.5, marginBottom:20 }}>{n}</div>
+          {CARDS.map(({ Icon, accent, title, desc }) => (
+            <div key={title} className="feat-card"
+                 style={{ background:BG1, border:`1px solid ${BD1}` }}>
+              <Icon size={24} color={accent} style={{ marginBottom:20 }} />
               <h3 className="feat-title" style={{ fontSize:22 }}>{title}</h3>
               <p className="feat-desc">{desc}</p>
               <div style={{ height:2, width:32, background:accent, borderRadius:1,

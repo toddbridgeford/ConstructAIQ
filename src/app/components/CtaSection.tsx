@@ -28,7 +28,7 @@ export function CtaSection() {
     <section className="cta-sec">
       <div className="wrap">
         <p className="eyebrow-lbl">Weekly Briefing</p>
-        <h2 className="cta-h2">The construction market<br />brief, every Monday.</h2>
+        <h2 className="cta-h2">Get weekly construction<br />intelligence — free</h2>
         <p className="cta-sub">
           Top 3 signals, a 30-day forecast snapshot, and the one data<br />
           point every construction professional needs to know.

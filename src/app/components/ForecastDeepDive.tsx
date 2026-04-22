@@ -1,19 +1,24 @@
+import { color, font } from "@/lib/theme"
+
+const MONO = font.mono
+const SYS  = font.sys
+const { amber:AMBER, bg2:BG2, bd1:BD1, t1:T1, t3:T3 } = color
+
 const MODELS = [
   {
-    icon: "◎", tag: "AI ENGINE",   title: "3-Model Ensemble",
-    desc: "Holt-Winters seasonality, SARIMA time-series, and XGBoost gradient boosting — accuracy-weighted and updated every 4 hours.",
+    name:  "Holt-Winters",
+    range: "~30–40%",
+    desc:  "Exponential smoothing with trend and seasonality components captures recurring monthly patterns in construction spend.",
   },
   {
-    icon: "◈", tag: "DETECTION",   title: "Anomaly Signals",
-    desc: "Z-score detection across 12 federal data series. Trend reversals, divergence patterns, and acceleration signals — explained.",
+    name:  "SARIMA",
+    range: "~30–40%",
+    desc:  "Seasonal ARIMA handles autocorrelation and unit-root dynamics inherent in multi-year spending series.",
   },
   {
-    icon: "◉", tag: "GEOGRAPHY",   title: "50-State Intelligence",
-    desc: "BEA state-level GDP, permit trends, and regional spend classified HOT / GROWING / COOLING in real time.",
-  },
-  {
-    icon: "◇", tag: "PROCUREMENT", title: "Materials Intelligence",
-    desc: "BUY / SELL / HOLD signals for lumber, steel, concrete, copper, WTI, and diesel. Composite index updated hourly.",
+    name:  "XGBoost",
+    range: "~20–40%",
+    desc:  "Gradient boosting adds non-linear regime detection and cross-series feature signals for break-point sensitivity.",
   },
 ]
 
@@ -21,22 +26,42 @@ export function ForecastDeepDive() {
   return (
     <section className="sec sec-dk">
       <div className="wrap">
-        <div className="hd-center">
-          <p className="eyebrow-lbl">How it works</p>
-          <h2 className="h2">Built on institutional-grade models</h2>
-          <p className="sub">Transparent forecasting you can explain to a CFO.</p>
-        </div>
-        <div className="feat-grid" style={{ gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))" }}>
-          {MODELS.map(({ icon, tag, title, desc }) => (
-            <div key={title} className="feat-card">
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:18 }}>
-                <span className="feat-icon">{icon}</span>
-                <span className="feat-tag">{tag}</span>
+        <div className="data-2col">
+
+          {/* Left — explanatory text */}
+          <div>
+            <p className="eyebrow-lbl">Ensemble methodology</p>
+            <h2 className="h2">Three models,<br />one answer</h2>
+            <p className="sub" style={{ maxWidth:420 }}>
+              Holt-Winters, SARIMA, and XGBoost run independently on the same
+              input series. Model weights are determined by inverse MAPE — the
+              most accurate model leads the ensemble.
+            </p>
+            <p className="sub" style={{ maxWidth:420, marginTop:16 }}>
+              80% and 95% confidence intervals are computed at every
+              12-month horizon so you can see both the central forecast
+              and the uncertainty range.
+            </p>
+          </div>
+
+          {/* Right — model breakdown rows */}
+          <div>
+            {MODELS.map(m => (
+              <div key={m.name}
+                   style={{ background:BG2, borderRadius:14, padding:"20px 24px",
+                            marginBottom:12, border:`1px solid ${BD1}` }}>
+                <div style={{ display:"flex", justifyContent:"space-between",
+                              alignItems:"baseline", marginBottom:8 }}>
+                  <span style={{ fontFamily:SYS, fontSize:15,
+                                 fontWeight:600, color:T1 }}>{m.name}</span>
+                  <span style={{ fontFamily:MONO, fontSize:11,
+                                 color:AMBER, letterSpacing:"0.06em" }}>{m.range}</span>
+                </div>
+                <p style={{ fontSize:13, color:T3, lineHeight:1.65 }}>{m.desc}</p>
               </div>
-              <h4 className="feat-title">{title}</h4>
-              <p className="feat-desc">{desc}</p>
-            </div>
-          ))}
+            ))}
+          </div>
+
         </div>
       </div>
     </section>

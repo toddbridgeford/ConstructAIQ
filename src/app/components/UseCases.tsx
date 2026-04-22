@@ -1,15 +1,15 @@
 const USERS = [
   {
-    title: "Developers & GCs",
-    desc:  "Project timing, cost forecasting, and market entry signals to maximize returns, reduce risk, and lock materials before costs move.",
+    title: "Construction Lenders",
+    desc:  "Underwrite with forward cost and labor signals. 12-month spend forecasts by region — decision-ready before credit committee.",
   },
   {
-    title: "Bankers & Lenders",
-    desc:  "Construction loan risk, market timing signals, and 12-month spend outlook by region — decision-ready before credit committee.",
+    title: "GCs & Developers",
+    desc:  "See where federal pipeline is accelerating. Lock materials before costs move. Time market entry with AI-grade signals.",
   },
   {
-    title: "Equity Analysts",
-    desc:  "Sector rotation signals for construction and materials equities. Know when to move before consensus catches up.",
+    title: "Analysts & Investors",
+    desc:  "Track public contractor backlog in real time. Sector rotation signals for construction equities before consensus catches up.",
   },
 ]
 
