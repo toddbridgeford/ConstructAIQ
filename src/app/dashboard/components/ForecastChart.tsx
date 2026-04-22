@@ -25,9 +25,10 @@ const SERIES_OPTIONS = [
   { id: "CES2000000001", label: "Employment"      },
 ]
 
-export function ForecastChart({ foreData, scenarioLine }: {
-  foreData:     ForecastData | null
+export function ForecastChart({ foreData, scenarioLine, onSeriesChange }: {
+  foreData:      ForecastData | null
   scenarioLine?: number[] | null
+  onSeriesChange?: (id: string) => void
 }) {
   const [activeSeries, setActiveSeries] = useState("TTLCONS")
   const [localData,    setLocalData]    = useState<ForecastData | null>(foreData)
@@ -38,6 +39,7 @@ export function ForecastChart({ foreData, scenarioLine }: {
   async function switchSeries(id: string) {
     if (id === activeSeries && localData) return
     setActiveSeries(id)
+    onSeriesChange?.(id)
     setFetching(true)
     try {
       const r = await fetch(`/api/forecast?series=${id}`)

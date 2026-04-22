@@ -156,7 +156,7 @@ export function ScenarioBuilder({ spendVal = 2190, foreData, onScenarioChange }:
           <span style={{ fontFamily:MONO, fontSize:34, color: up ? GREEN : RED, fontWeight:700, lineHeight:1 }}>
             {fmtB(proj)}
           </span>
-          <span style={{ fontFamily:MONO, fontSize:14, color: up ? GREEN : RED }}>
+          <span style={{ fontFamily:MONO, fontSize:19, color: up ? GREEN : RED }}>
             {diff >= 0 ? "+" : ""}{fmtB(Math.abs(diff))} ({fmtPct(pct)})
           </span>
         </div>

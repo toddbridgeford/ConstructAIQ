@@ -28,6 +28,7 @@ interface HeroForecastProps {
 }
 
 export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps) {
+  const [activeSeries, setActiveSeries] = useState("TTLCONS")
   const [scenarioLine, setScenarioLine] = useState<number[] | null>(null)
   const [sheetOpen,    setSheetOpen]    = useState(false)
   const [isMobile,     setIsMobile]     = useState(false)
@@ -53,6 +54,7 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
           <ForecastChart
             foreData={fore as ForecastData | null}
             scenarioLine={scenarioLine}
+            onSeriesChange={setActiveSeries}
           />
           {/* Scenario trigger — mobile only */}
           {isMobile && (
