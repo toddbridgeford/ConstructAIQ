@@ -1,8 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
 import { font, color } from "@/lib/theme"
+import { Nav } from "@/app/components/Nav"
 
 const SYS = font.sys
 const MONO = font.mono
@@ -17,9 +16,9 @@ const CATEGORY_COLOR: Record<string, string> = {
   permits: color.green,
   costs: color.amber,
   labor: color.blue,
-  spending: "#5e5ce6",
+  spending: color.purple,
   credit: color.red,
-  energy: "#ffd60a",
+  energy: color.yellow,
 }
 
 function fmtDate(d: string) {
@@ -32,6 +31,14 @@ function daysUntil(d: string) {
   const now = new Date(); now.setHours(0,0,0,0)
   const target = new Date(d + "T00:00:00"); target.setHours(0,0,0,0)
   return Math.round((target.getTime() - now.getTime()) / 86400000)
+}
+
+function nextSundayLabel() {
+  const d = new Date()
+  const day = d.getDay()
+  const daysAhead = day === 0 ? 7 : 7 - day
+  d.setDate(d.getDate() + daysAhead)
+  return d.toLocaleDateString("en-US", { month: "long", day: "numeric" })
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -157,26 +164,7 @@ export default function CalendarPage() {
 
   return (
     <div style={{ background: color.bg0, minHeight: "100vh", color: color.t1 }}>
-      {/* Nav */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: color.bg0 + "ee", borderBottom: `1px solid ${color.bd1}`, backdropFilter: "blur(20px)" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-            <Image src="/logo.png" alt="ConstructAIQ" width={28} height={28} style={{ borderRadius: 6 }} />
-            <span style={{ fontFamily: MONO, fontSize: 14, color: color.amber, fontWeight: 700, letterSpacing: "0.05em" }}>ConstructAIQ</span>
-          </Link>
-          <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-            {[
-              { label: "Dashboard", href: "/dashboard" },
-              { label: "Markets", href: "/markets" },
-              { label: "CCCI", href: "/ccci" },
-              { label: "Calendar", href: "/calendar" },
-            ].map(l => (
-              <Link key={l.href} href={l.href} style={{ fontFamily: SYS, fontSize: 14, color: l.href === "/calendar" ? color.amber : color.t3, textDecoration: "none" }}>{l.label}</Link>
-            ))}
-            <Link href="/dashboard" style={{ fontFamily: MONO, fontSize: 12, color: color.bg0, background: color.amber, borderRadius: 8, padding: "7px 16px", textDecoration: "none", fontWeight: 700 }}>DASHBOARD</Link>
-          </div>
-        </div>
-      </nav>
+      <Nav />
 
       {/* Hero */}
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 24px 32px", textAlign: "center" }}>
@@ -221,8 +209,86 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Events */}
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 80px" }}>
+
+        {/* ConstructAIQ Proprietary Releases */}
+        <div style={{ marginBottom: 40 }}>
+          <div style={{
+            fontFamily: MONO, fontSize: 11, color: color.amber,
+            letterSpacing: "0.12em", marginBottom: 16, paddingLeft: 4,
+          }}>
+            ConstructAIQ Proprietary Releases
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {/* GC Survey open */}
+            <div style={{
+              background: color.bg2, border: `1px solid ${color.amber}44`,
+              borderRadius: 12, padding: "14px 20px",
+              display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
+            }}>
+              <div style={{ minWidth: 80, textAlign: "center" }}>
+                <div style={{ fontFamily: MONO, fontSize: 13, color: color.t2, fontWeight: 600 }}>Tue, Jul 1</div>
+                <div style={{ fontFamily: MONO, fontSize: 10, color: color.amber, marginTop: 2 }}>Q3 SURVEY</div>
+              </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontFamily: SYS, fontSize: 15, color: color.t1, fontWeight: 500 }}>ConstructAIQ GC Survey — Opens Q3</div>
+                <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, marginTop: 4 }}>
+                  Opens July 1 · Closes July 21 · Proprietary GC Survey
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: color.amber }} />
+                <span style={{ fontFamily: MONO, fontSize: 10, color: color.amber }}>MEDIUM</span>
+              </div>
+            </div>
+
+            {/* GC Survey results */}
+            <div style={{
+              background: color.bg2, border: `1px solid ${color.amber}44`,
+              borderRadius: 12, padding: "14px 20px",
+              display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
+            }}>
+              <div style={{ minWidth: 80, textAlign: "center" }}>
+                <div style={{ fontFamily: MONO, fontSize: 13, color: color.t2, fontWeight: 600 }}>Wed, Jul 22</div>
+                <div style={{ fontFamily: MONO, fontSize: 10, color: color.green, marginTop: 2 }}>RESULTS</div>
+              </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontFamily: SYS, fontSize: 15, color: color.t1, fontWeight: 500 }}>ConstructAIQ GC Survey — Q3 Results Published</div>
+                <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, marginTop: 4 }}>
+                  ~July 22 · Backlog, bid volume, subcontractor capacity, labor availability
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: color.green }} />
+                <span style={{ fontFamily: MONO, fontSize: 10, color: color.green }}>HIGH</span>
+              </div>
+            </div>
+
+            {/* Satellite BSI weekly */}
+            <div style={{
+              background: color.bg2, border: `1px solid ${color.blue}44`,
+              borderRadius: 12, padding: "14px 20px",
+              display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
+            }}>
+              <div style={{ minWidth: 80, textAlign: "center" }}>
+                <div style={{ fontFamily: MONO, fontSize: 13, color: color.t2, fontWeight: 600 }}>Next: {nextSundayLabel()}</div>
+                <div style={{ fontFamily: MONO, fontSize: 10, color: color.blue, marginTop: 2 }}>WEEKLY</div>
+              </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontFamily: SYS, fontSize: 15, color: color.t1, fontWeight: 500 }}>Satellite BSI Update — Sentinel-2</div>
+                <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, marginTop: 4 }}>
+                  Every Sunday · 20 US MSAs · Copernicus Data Space
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: color.blue }} />
+                <span style={{ fontFamily: MONO, fontSize: 10, color: color.blue }}>MEDIUM</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Government data releases */}
         {!data ? (
           <div style={{ textAlign: "center", padding: 48, fontFamily: MONO, fontSize: 13, color: color.t4 }}>Loading calendar…</div>
         ) : events.length === 0 ? (
