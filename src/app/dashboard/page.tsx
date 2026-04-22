@@ -41,6 +41,7 @@ import { ETFMonitor }     from "./components/ETFMonitor"
 import { AnomalyFeed }        from "./components/AnomalyFeed"
 import { DivergenceDetector } from "./components/DivergenceDetector"
 import { WeeklyBrief }        from "./components/WeeklyBrief"
+import { SurveyIndexCard }    from "./components/SurveyIndexCard"
 // ── Shared
 import { GateLock }      from "./components/GateLock"
 import { SectionHeader } from "./components/SectionHeader"
@@ -552,6 +553,9 @@ export default function Dashboard() {
             live
             onExportCSV={() => {}}
           />
+
+          {/* Proprietary GC Survey — primary source, top of signals section */}
+          <SurveyIndexCard />
 
           {/* Anomaly feed + divergence detector */}
           <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>

@@ -277,6 +277,9 @@ COMMENT ON COLUMN survey_periods.opens_at    IS 'Timestamp when submissions open
 COMMENT ON COLUMN survey_periods.closes_at   IS 'Timestamp when submissions close.';
 COMMENT ON COLUMN survey_periods.is_active   IS 'TRUE for the currently open survey period.';
 
+-- Add published_at to track when results were published (idempotent)
+ALTER TABLE survey_periods ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ;
+
 -- Seed the current period (idempotent)
 INSERT INTO survey_periods (quarter, opens_at, closes_at, is_active)
 VALUES ('Q2 2025', '2025-04-01 00:00:00+00', '2025-05-21 23:59:59+00', TRUE)
@@ -323,6 +326,54 @@ CREATE INDEX IF NOT EXISTS idx_survey_responses_period
     ON survey_responses (period_id, created_at DESC);
 
 
+-- ---------------------------------------------------------------------------
+-- Table: survey_results
+-- Aggregated, published results for one survey period.  One row per quarter.
+-- Computed by POST /api/survey/aggregate; never written by respondents.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS survey_results (
+    id                BIGSERIAL    PRIMARY KEY,
+    period_id         BIGINT       NOT NULL REFERENCES survey_periods (id) ON DELETE CASCADE UNIQUE,
+    quarter           TEXT         NOT NULL,               -- 'Q2 2025'
+    respondent_count  INTEGER      NOT NULL,
+    published_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
+    -- Net Scores: (% positive − % negative) expressed as a –100 … +100 integer
+    backlog_net       NUMERIC(5,1) NOT NULL,
+    margin_net        NUMERIC(5,1) NOT NULL,
+    labor_net         NUMERIC(5,1) NOT NULL,
+    market_net        NUMERIC(5,1) NOT NULL,
+
+    -- Quarter-over-Quarter changes (NULL for first published quarter)
+    backlog_qoq       NUMERIC(5,1),
+    margin_qoq        NUMERIC(5,1),
+    labor_qoq         NUMERIC(5,1),
+    market_qoq        NUMERIC(5,1),
+
+    -- Distributions: { "1": pct, "2": pct, "3": pct, "4": pct, "5": pct }
+    backlog_dist      JSONB NOT NULL DEFAULT '{}',
+    margin_dist       JSONB NOT NULL DEFAULT '{}',
+    labor_dist        JSONB NOT NULL DEFAULT '{}',
+    market_dist       JSONB NOT NULL DEFAULT '{}',
+
+    -- Material concern: { "lumber": pct, "steel": pct, ... }
+    material_dist     JSONB NOT NULL DEFAULT '{}',
+
+    -- Cross-tabs: { "northeast": { backlog_net: N, margin_net: N, ... }, ... }
+    by_region         JSONB NOT NULL DEFAULT '{}',
+    by_company_size   JSONB NOT NULL DEFAULT '{}',
+    by_work_type      JSONB NOT NULL DEFAULT '{}'
+);
+
+COMMENT ON TABLE  survey_results                   IS 'Aggregated published results — one row per survey quarter.';
+COMMENT ON COLUMN survey_results.backlog_net       IS 'Backlog Outlook net score: (% 4-5 minus % 1-2) × 100.';
+COMMENT ON COLUMN survey_results.material_dist     IS 'Material concern distribution: percentage at each category.';
+COMMENT ON COLUMN survey_results.by_region         IS 'Regional cross-tab: net scores broken down by respondent region.';
+
+CREATE INDEX IF NOT EXISTS idx_survey_results_quarter
+    ON survey_results (quarter);
+
+
 -- =============================================================================
 -- Row-Level Security (RLS)
 --
@@ -347,6 +398,7 @@ ALTER TABLE harvest_log       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forecast_log      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE survey_periods    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE survey_responses  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE survey_results    ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for market data tables (anon can read, not write)
 CREATE POLICY IF NOT EXISTS "anon_read_series"
@@ -399,3 +451,10 @@ CREATE POLICY IF NOT EXISTS "service_all_survey_periods"
 
 CREATE POLICY IF NOT EXISTS "service_all_survey_responses"
     ON survey_responses FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- Survey results: public can read published results
+CREATE POLICY IF NOT EXISTS "anon_read_survey_results"
+    ON survey_results FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_survey_results"
+    ON survey_results FOR ALL TO service_role USING (true) WITH CHECK (true);
