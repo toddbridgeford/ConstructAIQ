@@ -126,15 +126,17 @@ export function HeroSection() {
       </div>
 
       <h1 className="hero-h1 d2">
-        Forecast construction<br />
-        <span className="grad-text">risk earlier</span>
+        The free construction<br />
+        <span className="grad-text">intelligence platform</span>
       </h1>
 
-      <p className="hero-sub d3">12-month AI ensemble forecast — updated monthly</p>
+      <p className="hero-sub d3">
+        12-month AI forecast · 38+ live data sources · Open API · Free forever. No credit card.
+      </p>
 
       <div className="hero-ctas d4">
         <Link href="/dashboard" className="btn-fl">See Live Intelligence →</Link>
-        <Link href="/pricing"   className="btn-g">View Pricing</Link>
+        <Link href="/pricing"   className="btn-g">Get Free Access</Link>
       </div>
 
       {/* 60 / 40: chart left, signals right */}

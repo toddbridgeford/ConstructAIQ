@@ -43,7 +43,7 @@ export function Nav() {
             <span className="live-dot" />
             <span style={{ fontFamily:MONO, fontSize:11, color:GREEN, letterSpacing:"0.08em" }}>LIVE</span>
           </div>
-          <Link href="/pricing"   className="btn-t">API Access</Link>
+          <Link href="/pricing"   className="btn-t">Get Free Access</Link>
           <Link href="/dashboard" className="btn-f">View Dashboard</Link>
           <button className="ham" onClick={() => setMenuOpen(v => !v)} aria-label="Menu">
             <svg width="20" height="14" viewBox="0 0 20 14" fill="none">

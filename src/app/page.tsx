@@ -4,6 +4,7 @@ import { Nav }              from "./components/Nav"
 import { HeroSection }      from "./components/HeroSection"
 import { TrustStrip }       from "./components/TrustStrip"
 import { OutcomeCards }     from "./components/OutcomeCards"
+import { FreeModel }        from "./components/FreeModel"
 import { PlatformShowcase } from "./components/PlatformShowcase"
 import { ForecastDeepDive } from "./components/ForecastDeepDive"
 import { UseCases }         from "./components/UseCases"
@@ -30,6 +31,7 @@ export default function HomePage() {
       <HeroSection />
       <TrustStrip />
       <OutcomeCards />
+      <FreeModel />
       <PlatformShowcase />
       <ForecastDeepDive />
       <UseCases />
