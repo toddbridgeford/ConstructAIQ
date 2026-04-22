@@ -175,6 +175,9 @@ export function normalizePermit(raw: RawPermit, cityCode: string): NormalizedPer
 export async function fetchCityPermits(
   source: { city_code: string; api_url: string },
   limit = 2000,
+  // daysBack is advisory — Socrata doesn't expose a uniform date field across all
+  // city schemas, so we rely on $order=:updated_at DESC + limit to stay recent.
+  _daysBack = 180,
 ): Promise<NormalizedPermit[]> {
   const url = new URL(source.api_url)
   url.searchParams.set('$limit', String(limit))
