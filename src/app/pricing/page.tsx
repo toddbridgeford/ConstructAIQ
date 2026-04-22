@@ -235,7 +235,7 @@ export default function PricingPage() {
               <div style={{ fontFamily: MONO, fontSize: 12, color: T4, marginBottom: 8 }}>EXAMPLE</div>
               <div style={{ background: BG0, borderRadius: 10, padding: "16px 20px", border: `1px solid ${BD2}`, fontFamily: MONO, fontSize: 13, color: GREEN, letterSpacing: "0.02em", whiteSpace: "nowrap" }}>
                 curl constructaiq.trade/api/forecast<br />
-                <span style={{ color: T4 }}>  -H "X-API-Key: caiq_..."</span>
+                <span style={{ color: T4 }}>  -H &quot;X-API-Key: caiq_...&quot;</span>
               </div>
             </div>
           </div>

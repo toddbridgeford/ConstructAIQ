@@ -645,7 +645,7 @@ export default function SurveyResultsPage() {
                   borderRadius: radius.md,
                   padding: "12px 16px", textAlign: "center",
                 }}>
-                  Subscribed. We'll email you when Q3 results publish.
+                  Subscribed. We&apos;ll email you when Q3 results publish.
                 </div>
               ) : (
                 <div style={{ display: "flex", gap: 8 }}>
