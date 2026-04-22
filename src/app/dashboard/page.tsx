@@ -32,6 +32,7 @@ import { FederalPrograms }    from "./components/FederalPrograms"
 import { AgencyVelocity }     from "./components/AgencyVelocity"
 import { FederalLeaderboard } from "./components/FederalLeaderboard"
 import { FederalStateTable }  from "./components/FederalStateTable"
+import { SolicitationsTable } from "./components/SolicitationsTable"
 // ── Section 7
 import { SectorChart }    from "./components/SectorChart"
 import { EarningsCards }  from "./components/EarningsCards"
@@ -498,6 +499,11 @@ export default function Dashboard() {
               <FederalStateTable stateAllocations={federal?.stateAllocations ?? []} />
             </Card>
           </GateLock>
+
+          {/* SAM.gov active solicitations */}
+          <Card style={{ marginTop: 20 }}>
+            <SolicitationsTable solicitations={federal?.solicitations ?? []} />
+          </Card>
         </Section>
 
         {/* ══════════════════════════════════════════════════════════════
