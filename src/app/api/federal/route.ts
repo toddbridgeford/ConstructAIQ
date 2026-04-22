@@ -134,7 +134,7 @@ export async function GET() {
         contractors:      CONTRACTORS,
         monthlyAwards,
         stateAllocations,
-        solicitations,
+        solicitations:    [],
         totalAuthorized,
         totalObligated,
         totalSpent,

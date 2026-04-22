@@ -89,7 +89,7 @@ function ForecastEmbed({ dark }: { dark: boolean }) {
         TOTAL CONSTRUCTION SPENDING · 12-MONTH ENSEMBLE FORECAST
       </div>
       {data
-        ? <ForecastChart foreData={data} height={340} />
+        ? <ForecastChart foreData={data} />
         : <Skeleton height={340} dark={dark} />
       }
     </div>

@@ -112,7 +112,7 @@ export function SurveyPanel() {
           flexWrap: "wrap", gap: 10,
         }}>
           <span style={{ fontFamily: SYS, fontSize: 12, color: color.t4 }}>
-            Your firm's data shapes the index. Responses close {results?.closes_at
+            Your firm&apos;s data shapes the index. Responses close {results?.closes_at
               ? new Date(results.closes_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
               : "soon"}.
           </span>
