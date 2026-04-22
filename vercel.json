@@ -6,6 +6,10 @@
   "devCommand": "next dev",
   "crons": [
     {
+      "path": "/api/cron/permits",
+      "schedule": "0 5 * * *"
+    },
+    {
       "path": "/api/cron/harvest",
       "schedule": "0 6 * * *"
     },
