@@ -651,3 +651,120 @@ CREATE POLICY IF NOT EXISTS "anon_read_signal_fusion"
 
 CREATE POLICY IF NOT EXISTS "service_all_signal_fusion"
     ON signal_fusion FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Tables: permit_sources, city_permits, permit_monthly_agg
+-- City-level building permit data harvested from Socrata open data portals.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS permit_sources (
+    city_code     TEXT        PRIMARY KEY,
+    city_name     TEXT        NOT NULL,
+    state_code    TEXT        NOT NULL,
+    msa_code      TEXT,
+    api_url       TEXT        NOT NULL,
+    api_dataset   TEXT        NOT NULL,
+    status        TEXT        NOT NULL DEFAULT 'active'
+                  CHECK (status IN ('active','degraded','disabled')),
+    last_fetched  TIMESTAMPTZ,
+    record_count  INTEGER     DEFAULT 0
+);
+
+COMMENT ON TABLE  permit_sources             IS 'Catalog of city Socrata open-data permit endpoints harvested by ConstructAIQ.';
+COMMENT ON COLUMN permit_sources.city_code   IS 'Short identifier for the city, e.g. NYC, LAX, CHI.';
+COMMENT ON COLUMN permit_sources.msa_code    IS 'Links to msa_boundaries.msa_code for geographic context.';
+COMMENT ON COLUMN permit_sources.api_url     IS 'Full Socrata API endpoint URL for this city.';
+COMMENT ON COLUMN permit_sources.api_dataset IS 'Socrata dataset identifier (four×four code).';
+COMMENT ON COLUMN permit_sources.status      IS 'Harvest status: active, degraded (partial failures), or disabled.';
+COMMENT ON COLUMN permit_sources.last_fetched IS 'Timestamp of the most recent successful harvest.';
+COMMENT ON COLUMN permit_sources.record_count IS 'Total permit records stored for this city.';
+
+
+CREATE TABLE IF NOT EXISTS city_permits (
+    id            BIGSERIAL   PRIMARY KEY,
+    city_code     TEXT        REFERENCES permit_sources(city_code),
+    permit_number TEXT        NOT NULL,
+    permit_type   TEXT,
+    permit_class  TEXT,
+    status        TEXT,
+    valuation     NUMERIC,
+    sqft          NUMERIC,
+    units         INTEGER,
+    address       TEXT,
+    zip_code      TEXT,
+    latitude      NUMERIC,
+    longitude     NUMERIC,
+    applied_date  DATE,
+    issued_date   DATE,
+    finaled_date  DATE,
+    fetched_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    raw_json      JSONB,
+
+    UNIQUE (city_code, permit_number)
+);
+
+COMMENT ON TABLE  city_permits                IS 'Individual building permit records normalized from city Socrata portals.';
+COMMENT ON COLUMN city_permits.permit_type    IS 'Normalized type: new_construction, addition, alteration, demolition, other.';
+COMMENT ON COLUMN city_permits.permit_class   IS 'Normalized use class: residential, commercial, industrial, other.';
+COMMENT ON COLUMN city_permits.valuation      IS 'Estimated project value in USD.';
+COMMENT ON COLUMN city_permits.sqft           IS 'Square footage of the permitted work, if provided.';
+COMMENT ON COLUMN city_permits.units          IS 'Housing units, if residential permit.';
+COMMENT ON COLUMN city_permits.raw_json       IS 'Original Socrata API response record for auditing and re-normalization.';
+
+CREATE INDEX IF NOT EXISTS idx_city_permits_city_date
+    ON city_permits (city_code, issued_date DESC);
+
+CREATE INDEX IF NOT EXISTS idx_city_permits_type
+    ON city_permits (city_code, permit_type, permit_class);
+
+CREATE INDEX IF NOT EXISTS idx_city_permits_zip
+    ON city_permits (city_code, zip_code);
+
+
+CREATE TABLE IF NOT EXISTS permit_monthly_agg (
+    id              BIGSERIAL   PRIMARY KEY,
+    city_code       TEXT        REFERENCES permit_sources(city_code),
+    year_month      TEXT        NOT NULL,
+    permit_type     TEXT        NOT NULL,
+    permit_class    TEXT        NOT NULL,
+    permit_count    INTEGER     NOT NULL DEFAULT 0,
+    total_valuation NUMERIC     DEFAULT 0,
+    total_units     INTEGER     DEFAULT 0,
+    total_sqft      NUMERIC     DEFAULT 0,
+    computed_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    UNIQUE (city_code, year_month, permit_type, permit_class)
+);
+
+COMMENT ON TABLE  permit_monthly_agg              IS 'Pre-computed monthly permit aggregations per city for fast dashboard queries.';
+COMMENT ON COLUMN permit_monthly_agg.year_month   IS 'ISO year-month string, e.g. 2025-03.';
+COMMENT ON COLUMN permit_monthly_agg.permit_type  IS 'Aggregated permit type bucket or "all".';
+COMMENT ON COLUMN permit_monthly_agg.permit_class IS 'Aggregated permit class bucket or "all".';
+COMMENT ON COLUMN permit_monthly_agg.computed_at  IS 'Timestamp when this aggregation row was last recomputed.';
+
+CREATE INDEX IF NOT EXISTS idx_permit_monthly_city
+    ON permit_monthly_agg (city_code, year_month DESC);
+
+-- RLS
+ALTER TABLE permit_sources    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE city_permits      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE permit_monthly_agg ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "anon_read_permit_sources"
+    ON permit_sources FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "anon_read_city_permits"
+    ON city_permits FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "anon_read_permit_monthly_agg"
+    ON permit_monthly_agg FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_permit_sources"
+    ON permit_sources FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_city_permits"
+    ON city_permits FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_permit_monthly_agg"
+    ON permit_monthly_agg FOR ALL TO service_role USING (true) WITH CHECK (true);
