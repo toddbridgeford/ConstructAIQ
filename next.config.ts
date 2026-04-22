@@ -82,6 +82,9 @@ const pwaConfig = withPWA({
   register: true,
   skipWaiting: true,
   disable: !isProd,
+  fallbacks: {
+    document: "/offline.html",
+  },
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/constructaiq\.trade\/api\/.*/i,

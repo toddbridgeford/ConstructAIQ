@@ -1,7 +1,7 @@
 "use client"
 import Image from "next/image"
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { font, color, fmtB } from "@/lib/theme"
 import { obsSpark } from "@/lib/sparkline"
 import { ErrorBoundary }     from "./components/ErrorBoundary"
@@ -19,6 +19,7 @@ import { SatelliteSection }  from "./sections/SatelliteSection"
 import { PermitsSection }    from "./sections/PermitsSection"
 import { BottomNav }         from "./components/BottomNav"
 import { MobileDashboard }   from "./components/MobileDashboard"
+import { PullToRefresh }     from "./components/PullToRefresh"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -82,69 +83,68 @@ export default function Dashboard() {
   const [warn,        setWarn]        = useState<AnyData>(null)
   const [obsMap,      setObsMap]      = useState<Record<string, { date: string; value: number }[]>>({})
 
-  useEffect(() => {
-    async function load() {
-      async function safe(url: string) {
-        try {
-          const r = await fetch(url)
-          return r.ok ? r.json() : null
-        } catch { return null }
-      }
-
-      const [
-        cshiD, spendD, employD, foreD, mapData,
-        pricesD, pipeD, fedD, eqD, sigsD, briefD, satD,
-        ttl12, ces12, houst12, permit12, ttl24, wps24,
-        warnD, permitsD,
-      ] = await Promise.all([
-        safe("/api/cshi"),
-        safe("/api/census"),
-        safe("/api/bls"),
-        safe("/api/forecast?series=TTLCONS"),
-        safe("/api/map"),
-        safe("/api/pricewatch"),
-        safe("/api/pipeline"),
-        safe("/api/federal"),
-        safe("/api/equities"),
-        safe("/api/signals"),
-        safe("/api/weekly-brief"),
-        safe("/api/satellite"),
-        safe("/api/obs?series=TTLCONS&n=12"),
-        safe("/api/obs?series=CES2000000001&n=12"),
-        safe("/api/obs?series=HOUST&n=12"),
-        safe("/api/obs?series=PERMIT&n=12"),
-        safe("/api/obs?series=TTLCONS&n=24"),
-        safe("/api/obs?series=WPS081&n=24"),
-        safe("/api/warn"),
-        safe("/api/permits"),
-      ])
-
-      if (cshiD)   setCshi(cshiD)
-      if (spendD)  setSpend(spendD)
-      if (employD) setEmploy(employD)
-      if (foreD)   setFore(foreD)
-      if (mapData) setMapD(mapData)
-      if (pricesD) setPrices(pricesD)
-      if (pipeD)   setPipeline(pipeD)
-      if (fedD)    setFederal(fedD)
-      if (eqD)     setEquities(eqD)
-      if (sigsD)   setSignals(sigsD)
-      if (briefD)  setBrief(briefD)
-      if (satD)    setSatellite(satD)
-      if (warnD)    setWarn(warnD)
-      if (permitsD) setPermits(permitsD)
-
-      setObsMap({
-        TTLCONS_12:        ttl12?.obs    ?? [],
-        CES2000000001_12:  ces12?.obs    ?? [],
-        HOUST_12:          houst12?.obs  ?? [],
-        PERMIT_12:         permit12?.obs ?? [],
-        TTLCONS_24:        ttl24?.obs    ?? [],
-        WPS081_24:         wps24?.obs    ?? [],
-      })
+  const load = useCallback(async () => {
+    async function safe(url: string) {
+      try {
+        const r = await fetch(url)
+        return r.ok ? r.json() : null
+      } catch { return null }
     }
-    load()
+
+    const [
+      cshiD, spendD, employD, foreD, mapData,
+      pricesD, pipeD, fedD, eqD, sigsD, briefD, satD,
+      ttl12, ces12, houst12, permit12, ttl24, wps24,
+      warnD, permitsD,
+    ] = await Promise.all([
+      safe("/api/cshi"),
+      safe("/api/census"),
+      safe("/api/bls"),
+      safe("/api/forecast?series=TTLCONS"),
+      safe("/api/map"),
+      safe("/api/pricewatch"),
+      safe("/api/pipeline"),
+      safe("/api/federal"),
+      safe("/api/equities"),
+      safe("/api/signals"),
+      safe("/api/weekly-brief"),
+      safe("/api/satellite"),
+      safe("/api/obs?series=TTLCONS&n=12"),
+      safe("/api/obs?series=CES2000000001&n=12"),
+      safe("/api/obs?series=HOUST&n=12"),
+      safe("/api/obs?series=PERMIT&n=12"),
+      safe("/api/obs?series=TTLCONS&n=24"),
+      safe("/api/obs?series=WPS081&n=24"),
+      safe("/api/warn"),
+      safe("/api/permits"),
+    ])
+
+    if (cshiD)   setCshi(cshiD)
+    if (spendD)  setSpend(spendD)
+    if (employD) setEmploy(employD)
+    if (foreD)   setFore(foreD)
+    if (mapData) setMapD(mapData)
+    if (pricesD) setPrices(pricesD)
+    if (pipeD)   setPipeline(pipeD)
+    if (fedD)    setFederal(fedD)
+    if (eqD)     setEquities(eqD)
+    if (sigsD)   setSignals(sigsD)
+    if (briefD)  setBrief(briefD)
+    if (satD)    setSatellite(satD)
+    if (warnD)    setWarn(warnD)
+    if (permitsD) setPermits(permitsD)
+
+    setObsMap({
+      TTLCONS_12:        ttl12?.obs    ?? [],
+      CES2000000001_12:  ces12?.obs    ?? [],
+      HOUST_12:          houst12?.obs  ?? [],
+      PERMIT_12:         permit12?.obs ?? [],
+      TTLCONS_24:        ttl24?.obs    ?? [],
+      WPS081_24:         wps24?.obs    ?? [],
+    })
   }, [])
+
+  useEffect(() => { load() }, [load])
 
   // Derived values
   const spendVal  = spend?.value  ?? spend?.latest?.value  ?? 2190
@@ -224,19 +224,21 @@ export default function Dashboard() {
                 <div style={{ fontFamily: MONO, fontSize: 11, color: AMBER }}>{fmtB(spendVal)}</div>
               </div>
             </nav>
-            <MobileDashboard
-              fore={fore}
-              brief={brief}
-              signals={signals}
-              federal={federal}
-              satellite={satellite}
-              prices={prices}
-              briefHeadline={briefHeadline}
-              spendVal={spendVal}
-              spendMom={spendMom}
-              empVal={empVal}
-              empMom={empMom}
-            />
+            <PullToRefresh onRefresh={load}>
+              <MobileDashboard
+                fore={fore}
+                brief={brief}
+                signals={signals}
+                federal={federal}
+                satellite={satellite}
+                prices={prices}
+                briefHeadline={briefHeadline}
+                spendVal={spendVal}
+                spendMom={spendMom}
+                empVal={empVal}
+                empMom={empMom}
+              />
+            </PullToRefresh>
             <BottomNav />
           </div>
         )}
