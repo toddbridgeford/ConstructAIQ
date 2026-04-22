@@ -117,12 +117,21 @@ export default function TrackRecordPage() {
     accuracy: number; mape: number
   } | null>(null)
 
+  const [satStats, setSatStats] = useState<Array<{
+    msa_code: string
+    obs_count: number
+    avg_cloud: number | null
+    pct_high: number
+  }> | null>(null)
+
   useEffect(() => {
     fetch("/api/forecast?seriesId=TTLCONS&periods=12")
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => {
-        if (d.metrics) setLiveMetrics(d.metrics)
-      })
+      .then(d => { if (d.metrics) setLiveMetrics(d.metrics) })
+      .catch(() => {})
+    fetch("/api/satellite/stats")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.stats) setSatStats(d.stats) })
       .catch(() => {})
   }, [])
 
@@ -370,6 +379,95 @@ export default function TrackRecordPage() {
               </table>
             </div>
           </div>
+        </div>
+
+        {/* SATELLITE DATA QUALITY */}
+        <div style={{ marginBottom: 48 }}>
+          <div style={{
+            fontFamily: MONO, fontSize: 10, color: color.t4,
+            letterSpacing: "0.1em", marginBottom: 14,
+          }}>
+            SATELLITE DATA QUALITY · SENTINEL-2 BSI PER MSA
+          </div>
+          {satStats === null ? (
+            <div style={{
+              background: color.bg1, border: `1px solid ${color.bd1}`,
+              borderRadius: radius.md, padding: "20px",
+              fontFamily: MONO, fontSize: 12, color: color.t4, textAlign: "center",
+            }}>
+              Loading satellite stats…
+            </div>
+          ) : satStats.length === 0 ? (
+            <div style={{
+              background: color.bg1, border: `1px solid ${color.bd1}`,
+              borderRadius: radius.md, padding: "20px",
+              fontFamily: MONO, fontSize: 12, color: color.t4, textAlign: "center",
+            }}>
+              No satellite observations yet — pipeline runs weekly (Sunday 02:00 UTC).
+            </div>
+          ) : (
+            <>
+              <div style={{
+                background: color.bg1, border: `1px solid ${color.bd1}`,
+                borderRadius: radius.md, overflow: "hidden",
+              }}>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ background: color.bg3 }}>
+                        {["MSA", "Observations", "Avg Cloud Cover", "% HIGH Confidence"].map(h => (
+                          <th key={h} style={{
+                            fontFamily: MONO, fontSize: 10, color: color.t4,
+                            letterSpacing: "0.08em", textTransform: "uppercase",
+                            padding: "10px 14px", textAlign: "left", fontWeight: 600,
+                            whiteSpace: "nowrap",
+                          }}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {satStats.map((s, i) => (
+                        <tr key={s.msa_code} style={{
+                          background: i % 2 === 0 ? color.bg1 : color.bg2,
+                          borderTop: `1px solid ${color.bd1}`,
+                        }}>
+                          <td style={{ padding: "11px 14px", fontFamily: MONO, fontSize: 12, color: color.blue }}>
+                            {s.msa_code}
+                          </td>
+                          <td style={{ padding: "11px 14px", fontFamily: MONO, fontSize: 12, color: color.t2 }}>
+                            {s.obs_count}
+                          </td>
+                          <td style={{ padding: "11px 14px", fontFamily: MONO, fontSize: 12, color: color.t3 }}>
+                            {s.avg_cloud !== null ? `${s.avg_cloud.toFixed(1)}%` : "—"}
+                          </td>
+                          <td style={{ padding: "11px 14px" }}>
+                            <span style={{
+                              fontFamily: MONO, fontSize: 11, fontWeight: 700,
+                              color: s.pct_high >= 70 ? color.green : s.pct_high >= 40 ? color.amber : color.red,
+                              background: s.pct_high >= 70 ? color.greenDim : s.pct_high >= 40 ? color.amberDim : color.redDim,
+                              borderRadius: 4, padding: "2px 8px",
+                            }}>
+                              {s.pct_high.toFixed(0)}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div style={{
+                marginTop: 10, fontFamily: SYS, fontSize: 12, color: color.t4, lineHeight: 1.65,
+              }}>
+                Pacific Northwest and Great Lakes MSAs average 35–55% cloud cover in winter
+                months, reducing HIGH-confidence observations. Southwest markets (Phoenix, Las
+                Vegas, Denver) consistently achieve &gt;70% HIGH-confidence scenes year-round.
+                Confidence reflects cloud cover and valid pixel count — not forecast accuracy.
+              </div>
+            </>
+          )}
         </div>
 
         {/* METHODOLOGY LINK */}

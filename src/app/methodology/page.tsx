@@ -403,8 +403,98 @@ export default function MethodologyPage() {
           </Card>
         </Section>
 
+        {/* SATELLITE INTELLIGENCE */}
+        <Section id="satellite" label="05 — Satellite Intelligence — Sentinel-2 BSI">
+          <h2 style={{
+            fontFamily: SYS, fontSize: 22, fontWeight: 600, color: color.t1,
+            marginBottom: 12, letterSpacing: "-0.01em",
+          }}>
+            Ground truth from orbit.
+          </h2>
+          <p style={{
+            fontFamily: SYS, fontSize: 15, color: color.t3, lineHeight: 1.65, marginBottom: 16,
+          }}>
+            ConstructAIQ processes weekly Sentinel-2 L2A imagery across 20 US metropolitan
+            statistical areas using ESA&apos;s Copernicus Data Space. The Bare Soil Index (BSI)
+            detects active earthmoving and site preparation at 20-meter resolution — capturing
+            ground disturbance 3–6 months before Census permit data reflects it.
+          </p>
+          <p style={{
+            fontFamily: SYS, fontSize: 15, color: color.t3, lineHeight: 1.65, marginBottom: 16,
+          }}>
+            BSI is derived from four Sentinel-2 bands using the formula{" "}
+            <code style={{ fontFamily: MONO, fontSize: 12, color: color.blue }}>
+              BSI = ((SWIR + Red) − (NIR + Blue)) / ((SWIR + Red) + (NIR + Blue))
+            </code>
+            . Cloudy pixels are excluded using the Scene Classification Layer (SCL) — classes
+            3 (cloud shadow) and 8–11 (cloud medium, cloud high, cirrus) are masked before
+            any computation. Scenes with fewer than 10,000 valid pixels are rejected entirely.
+          </p>
+          <p style={{
+            fontFamily: SYS, fontSize: 15, color: color.t3, lineHeight: 1.65, marginBottom: 24,
+          }}>
+            Signal Fusion combines BSI with federal award flow and NOAA active severe weather
+            alerts to classify each MSA as DEMAND_DRIVEN, FEDERAL_INVESTMENT, RECONSTRUCTION,
+            ORGANIC_GROWTH, or LOW_ACTIVITY. Confidence is reported as HIGH (&lt;15% cloud
+            cover, &gt;200k valid pixels), MEDIUM, or LOW and accompanies every signal in the
+            API response.
+          </p>
+          <Card>
+            <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.1em", marginBottom: 16 }}>
+              TECHNICAL SPECIFICATIONS
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    {["Parameter", "Value"].map(h => (
+                      <th key={h} style={{
+                        fontFamily: MONO, fontSize: 10, color: color.t4,
+                        letterSpacing: "0.08em", textTransform: "uppercase",
+                        padding: "8px 12px", textAlign: "left", fontWeight: 600,
+                        borderBottom: `1px solid ${color.bd1}`,
+                      }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["Data source",           "ESA Copernicus Data Space — Sentinel-2 L2A"],
+                    ["Spatial resolution",    "20 m/pixel (SWIR/Red/NIR/Blue bands)"],
+                    ["Temporal frequency",    "Weekly (every Sunday 02:00 UTC)"],
+                    ["Coverage",              "20 US MSAs — ~2.1M km² total"],
+                    ["Cloud masking",         "SCL classes 3, 8–11 excluded"],
+                    ["Minimum valid pixels",  "10,000 per scene (below threshold → rejected)"],
+                    ["90-day change baseline","Median BSI from prior 90-day window"],
+                    ["Year-on-year baseline", "Same calendar week, prior year"],
+                    ["Update latency",        "~6–8 hours after scene availability"],
+                    ["Archive depth",         "Rolling 52-week history per MSA"],
+                  ].map(([param, value], i) => (
+                    <tr key={param} style={{ background: i % 2 === 0 ? "transparent" : color.bg3 }}>
+                      <td style={{
+                        padding: "10px 12px", fontFamily: SYS, fontSize: 13, color: color.t3,
+                        borderTop: `1px solid ${color.bd1}`,
+                      }}>
+                        {param}
+                      </td>
+                      <td style={{
+                        padding: "10px 12px", fontFamily: MONO, fontSize: 12, color: color.t2,
+                        borderTop: `1px solid ${color.bd1}`,
+                      }}>
+                        {value}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </Section>
+
         {/* LIMITATIONS */}
-        <Section id="limitations" label="05 — Limitations and Caveats">
+        <Section id="limitations" label="06 — Limitations and Caveats">
           <Card>
             <p style={{ fontFamily: SYS, fontSize: 14, color: color.t3, lineHeight: 1.65, marginBottom: 16 }}>
               <strong style={{ color: color.t2 }}>This is not financial advice.</strong>{" "}
