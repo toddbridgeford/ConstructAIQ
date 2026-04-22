@@ -139,7 +139,7 @@ function ReportGateForm() {
 
       {status === "success" ? (
         <div style={{
-          background: "#0d2218",
+          background: color.greenDim,
           border: `1px solid ${GREEN}44`,
           borderRadius: 10,
           padding: "16px 18px",

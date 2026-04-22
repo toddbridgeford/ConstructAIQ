@@ -12,6 +12,7 @@ import {
   Line,
 } from "recharts"
 import { font, color, fmtB, fmtPct, sentColor } from "@/lib/theme"
+import { Nav } from "@/app/components/Nav"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -38,13 +39,6 @@ function fmtK(v: number): string {
   return v >= 1000 ? `${(v / 1000).toFixed(1)}` : String(Math.round(v))
 }
 
-const NAV_LINKS = [
-  { label: "DASHBOARD",    href: "/dashboard" },
-  { label: "MARKETS",      href: "/markets" },
-  { label: "PRICING",      href: "/pricing" },
-  { label: "RESEARCH",     href: "/research" },
-]
-
 const RECENT_SEARCHES = [
   "Dallas TX",
   "Chicago IL",
@@ -67,7 +61,7 @@ function classificationStyle(cls: string): { bg: string; color: string } {
     case "HOT":      return { bg: GREEN_DIM,  color: GREEN }
     case "GROWING":  return { bg: BLUE_DIM,   color: BLUE }
     case "NEUTRAL":  return { bg: AMBER_DIM,  color: AMBER }
-    case "COOLING":  return { bg: "#2e1a00",  color: "#ff9500" }
+    case "COOLING":  return { bg: color.amberDim, color: color.orange }
     case "DECLINING":return { bg: RED_DIM,    color: RED }
     default:         return { bg: BG3,         color: T3 }
   }
@@ -75,6 +69,8 @@ function classificationStyle(cls: string): { bg: string; color: string } {
 
 export default function MarketCheckPage() {
   const [query, setQuery]                   = useState("")
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [surveyData, setSurveyData]         = useState<any>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [results, setResults]               = useState<any>(null)
   const [loading, setLoading]               = useState(false)
@@ -103,6 +99,10 @@ export default function MarketCheckPage() {
     }
     document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
+
+  useEffect(() => {
+    fetch("/api/survey/results").then(r => r.json()).then(setSurveyData).catch(() => {})
   }, [])
 
   const fetchSuggestions = useCallback((val: string) => {
@@ -192,45 +192,7 @@ export default function MarketCheckPage() {
         .comp-card:hover{border-color:${AMBER}!important}
       `}</style>
 
-      {/* NAV */}
-      <nav style={{
-        position: "sticky", top: 0, zIndex: 100,
-        background: BG1 + "ee", backdropFilter: "blur(12px)",
-        borderBottom: `1px solid ${BD1}`,
-        padding: "0 32px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", height: 60,
-        paddingTop: "env(safe-area-inset-top,0px)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href="/">
-            <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ" style={{ height: 24, width: "auto" }} />
-          </Link>
-          <div style={{ width: 1, height: 24, background: BD1 }} />
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>MARKET CHECK</div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {NAV_LINKS.map(link => (
-            <Link key={link.href} href={link.href}>
-              <button style={{
-                background: "transparent", color: T3, fontFamily: MONO,
-                fontSize: 12, padding: "8px 12px", borderRadius: 8,
-                border: `1px solid transparent`, minHeight: 44,
-              }}>
-                {link.label}
-              </button>
-            </Link>
-          ))}
-          <Link href="/dashboard">
-            <button style={{
-              background: AMBER, color: "#000", fontFamily: MONO,
-              fontSize: 13, fontWeight: 700, padding: "8px 20px",
-              borderRadius: 10, letterSpacing: "0.06em", minHeight: 44,
-            }}>
-              DASHBOARD →
-            </button>
-          </Link>
-        </div>
-      </nav>
+      <Nav />
 
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "56px 24px 80px" }}>
 
@@ -451,6 +413,37 @@ export default function MarketCheckPage() {
                 )
               })}
             </div>
+
+            {/* B2) GC Survey snapshot */}
+            {surveyData && !surveyData.collecting && surveyData.backlog_net !== null && (
+              <div style={{ background: BG1, border: `1px solid ${BD1}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                  <div style={{ fontFamily: MONO, fontSize: 10, color: AMBER, letterSpacing: "0.08em" }}>
+                    GC SURVEY — {surveyData.quarter}
+                  </div>
+                  <Link href="/survey/results" style={{ fontFamily: MONO, fontSize: 11, color: AMBER, textDecoration: "none" }}>
+                    Full results →
+                  </Link>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[
+                    { abbr: "BOI", value: surveyData.backlog_net },
+                    { abbr: "MEI", value: surveyData.margin_net },
+                    { abbr: "LAI", value: surveyData.labor_net },
+                    { abbr: "MOI", value: surveyData.market_net },
+                  ].map(({ abbr, value }) => {
+                    const col = value > 15 ? GREEN : value < -5 ? RED : AMBER
+                    const bg  = value > 15 ? color.greenDim : value < -5 ? color.redDim : color.amberDim
+                    return (
+                      <div key={abbr} style={{ background: bg, border: `1px solid ${col}44`, borderRadius: 8, padding: "6px 12px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <span style={{ fontFamily: MONO, fontSize: 9, color: col, letterSpacing: "0.08em" }}>{abbr}</span>
+                        <span style={{ fontFamily: MONO, fontSize: 16, fontWeight: 700, color: col }}>{value > 0 ? "+" : ""}{value}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* C) 24-month permit chart */}
             {results.history && results.history.length > 0 && (

@@ -2,12 +2,13 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
-import { font } from "@/lib/theme"
+import { font, color } from "@/lib/theme"
 import { seeded } from "@/lib/seeded"
 
 var SYS  = font.sys
 var MONO = font.mono
-var AMBER="#f5a623",GREEN="#30d158",RED="#ff453a",BLUE="#0a84ff",CYAN="#64d2ff"
+var AMBER=color.amber,GREEN=color.green,RED=color.red,BLUE=color.blue,CYAN=color.cyan
+var ORANGE=color.orange,FED_ORANGE=color.federalOrange,FED_AMBER=color.federalAmber,FED_GOLD=color.federalGold
 var BD1="rgba(255,255,255,0.1)"
 
 var CAP = {
@@ -64,16 +65,16 @@ var LENS_TINT:{[k:string]:string} = {
 
 var LENSES = [
   {id:"MACRO",        label:"MACRO",    icon:"M", key:"1", color:AMBER,    desc:"Construction activity"},
-  {id:"FEDERAL",      label:"FEDERAL",  icon:"F", key:"2", color:"#f97316",desc:"Federal contract awards"},
+  {id:"FEDERAL",      label:"FEDERAL",  icon:"F", key:"2", color:FED_ORANGE,desc:"Federal contract awards"},
   {id:"GROUND_TRUTH", label:"GROUND",   icon:"G", key:"3", color:CYAN,     desc:"Ground disturbance index"},
   {id:"DISTRESS",     label:"DISTRESS", icon:"D", key:"4", color:RED,      desc:"Construction distress index"},
-  {id:"RISK",         label:"RISK",     icon:"R", key:"5", color:"#ff9500",desc:"Seismic + weather risk"},
+  {id:"RISK",         label:"RISK",     icon:"R", key:"5", color:ORANGE,   desc:"Seismic + weather risk"},
   {id:"LABOR",        label:"LABOR",    icon:"L", key:"6", color:BLUE,     desc:"Employment + safety"},
 ]
 
 function ac(c:number,a=1){if(c>3)return"rgba(48,209,88,"+a+")";if(c>0)return"rgba(245,166,35,"+a+")";if(c>-3)return"rgba(255,159,10,"+a+")";return"rgba(255,69,58,"+a+")"}
 function bc(v:number,a=1){if(v>0.8)return"rgba(255,69,58,"+a+")";if(v>0.6)return"rgba(255,214,10,"+a+")";if(v>0.4)return"rgba(48,209,88,"+a+")";if(v>0.2)return"rgba(100,210,255,"+a+")";return"rgba(10,132,255,"+a+")"}
-function dc(cdi:number){return cdi>=65?RED:cdi>=45?"#ff9500":GREEN}
+function dc(cdi:number){return cdi>=65?RED:cdi>=45?ORANGE:GREEN}
 function fB(v){return v>=1000?"$"+(v/1000).toFixed(1)+"B":"$"+Number(v).toFixed(0)+"M"}
 function fP(v){return(v>0?"+":"")+Number(v).toFixed(1)+"%"}
 
@@ -218,13 +219,13 @@ export default function GlobeClient() {
       }catch(e){}}
 
     }else if(l==="FEDERAL"){
-      try{g.atmosphereColor("#f97316")}catch(e){}
+      try{g.atmosphereColor(FED_ORANGE)}catch(e){}
       var AG=["Army Corps","GSA","DOT","VA","DOD","USAF","DOE","HUD","DHS","EPA"]
       var pts=Object.keys(CAP).slice(0,42).map(function(k,i){
         var c=ctrs.find(function(x){return(x.state||"")===k})
         var amt=c?(c.total_obligated_amount||c.amount||0):(seeded(i+200)*500+50)*1e6
         return{lat:CAP[k][0]+(seeded(i+300)-0.5)*1.5,lng:CAP[k][1]+(seeded(i+400)-0.5)*1.5,
-               size:0.3+Math.min(amt/800e6,1)*2.5,color:i%3===0?"#ff6b35":i%3===1?"#f97316":"#fbbf24",
+               size:0.3+Math.min(amt/800e6,1)*2.5,color:i%3===0?FED_AMBER:i%3===1?FED_ORANGE:FED_GOLD,
                label:AG[i%10]+" $"+(amt/1e6).toFixed(0)+"M",state:k,amt}
       })
       if(layers.contracts){try{
@@ -271,7 +272,7 @@ export default function GlobeClient() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       watchlist.forEach(function(m:any){
         var coords=MKT_COORDS[m.market]||[39,-98]
-        allMkts.push({lat:coords[0],lng:coords[1],color:m.classification==="HIGH"?RED:"#ff9500",maxR:1.5+(m.cdi/22),speed:0.7+(m.cdi/120),...m,isRecovery:false})
+        allMkts.push({lat:coords[0],lng:coords[1],color:m.classification==="HIGH"?RED:ORANGE,maxR:1.5+(m.cdi/22),speed:0.7+(m.cdi/120),...m,isRecovery:false})
       })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       recovery.forEach(function(r:any){
@@ -280,7 +281,7 @@ export default function GlobeClient() {
       })
       if(allMkts.length===0){
         Object.entries(MKT_COORDS).slice(0,8).forEach(function([market,[lat,lng]],i){
-          allMkts.push({lat,lng,market,cdi:40+i*5,classification:i<2?"HIGH":"ELEVATED",color:i<2?RED:"#ff9500",maxR:2+i*0.3,speed:0.9,isRecovery:false})
+          allMkts.push({lat,lng,market,cdi:40+i*5,classification:i<2?"HIGH":"ELEVATED",color:i<2?RED:ORANGE,maxR:2+i*0.3,speed:0.9,isRecovery:false})
         })
       }
       if(layers.rings){
@@ -300,7 +301,7 @@ export default function GlobeClient() {
       }
 
     }else if(l==="RISK"){
-      try{g.atmosphereColor("#ff9500")}catch(e){}
+      try{g.atmosphereColor(ORANGE)}catch(e){}
       var qd=seis.length>0?seis:[[37.7,-122.4],[34.1,-118.2],[47.6,-122.3],[44.1,-114.5],[35.2,-92.4],[29.7,-95.4]].map(function(z,i){
         return{lat:z[0]+(seeded(i*2+600)-0.5)*3,lng:z[1]+(seeded(i*2+601)-0.5)*3,magnitude:2.5+seeded(i+700)*3.5,place:"Seismic Zone "+(i+1)}
       })
@@ -312,7 +313,7 @@ export default function GlobeClient() {
       }catch(e){}}
       if(layers.weather&&wx.length>0){try{
         g.pointsData(wx).pointLat(function(d){return d.lat}).pointLng(function(d){return d.lng})
-         .pointColor(function(){return"#ff9500"}).pointAltitude(0.02).pointRadius(0.8)
+         .pointColor(function(){return ORANGE}).pointAltitude(0.02).pointRadius(0.8)
          .pointLabel(function(d){return d.event+": "+d.area})
          .onPointClick(function(d){setSel({type:"weather",data:d})})
       }catch(e){}}
@@ -326,7 +327,7 @@ export default function GlobeClient() {
         })
       try{
         g.pointsData(lb).pointLat(function(d){return d.lat}).pointLng(function(d){return d.lng})
-         .pointColor(function(d){return parseFloat(d.trir)>3?RED:parseFloat(d.trir)>2?"#ff9500":BLUE})
+         .pointColor(function(d){return parseFloat(d.trir)>3?RED:parseFloat(d.trir)>2?ORANGE:BLUE})
          .pointAltitude(function(d){return d.size*0.025}).pointRadius(function(d){return d.size*0.35})
          .pointLabel(function(d){return d.name+": TRIR "+d.trir+" | $"+d.wage+"/hr"})
          .onPointClick(function(d){setSel({type:"labor",data:d})})
@@ -430,7 +431,7 @@ export default function GlobeClient() {
                       <span style={{fontSize:13,color:"#fff",fontWeight:600}}>{m.market}</span>
                       <span style={{fontFamily:MONO,fontSize:13,color:dc(m.cdi||0),fontWeight:700}}>{Number(m.cdi||0).toFixed(1)}</span>
                     </div>
-                    <div style={{fontFamily:MONO,fontSize:10,color:m.classification==="HIGH"?RED:"#ff9500"}}>{m.classification}</div>
+                    <div style={{fontFamily:MONO,fontSize:10,color:m.classification==="HIGH"?RED:ORANGE}}>{m.classification}</div>
                   </div>
                 )
               })}
@@ -548,7 +549,7 @@ export default function GlobeClient() {
           {sel.type==="contract"&&(
             <div>
               <div style={{fontSize:15,color:"#fff",fontWeight:700,marginBottom:6}}>{sel.data.label}</div>
-              <div style={{fontFamily:MONO,fontSize:12,color:"#f97316"}}>State: {SN[sel.data.state]||sel.data.state}</div>
+              <div style={{fontFamily:MONO,fontSize:12,color:FED_ORANGE}}>State: {SN[sel.data.state]||sel.data.state}</div>
             </div>
           )}
 
@@ -561,7 +562,7 @@ export default function GlobeClient() {
 
           {sel.type==="weather"&&(
             <div>
-              <div style={{fontSize:15,color:"#ff9500",fontWeight:700,marginBottom:4}}>{sel.data.event}</div>
+              <div style={{fontSize:15,color:ORANGE,fontWeight:700,marginBottom:4}}>{sel.data.event}</div>
               <div style={{fontSize:13,color:"#888"}}>{sel.data.area}</div>
             </div>
           )}
@@ -599,7 +600,7 @@ export default function GlobeClient() {
           <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10}}>
             <span style={{fontFamily:MONO,fontSize:22,color:dc(sel.data.cdi||0),fontWeight:700}}>{(sel.data.cdi||0).toFixed(1)}</span>
             <span style={{fontFamily:MONO,fontSize:10,color:"#555"}}>CDI</span>
-            <span style={{fontFamily:MONO,fontSize:11,color:sel.data.isRecovery?GREEN:(sel.data.classification==="HIGH"?RED:"#ff9500"),fontWeight:700,marginLeft:6}}>{sel.data.classification}</span>
+            <span style={{fontFamily:MONO,fontSize:11,color:sel.data.isRecovery?GREEN:(sel.data.classification==="HIGH"?RED:ORANGE),fontWeight:700,marginLeft:6}}>{sel.data.classification}</span>
           </div>
           {sel.data.change!=null&&<div style={{fontFamily:MONO,fontSize:12,color:sel.data.change>0?RED:GREEN,marginBottom:8}}>{sel.data.change>0?"▲ +":"▼ "}{Math.abs(sel.data.change).toFixed(1)} MoM</div>}
           {(sel.data.drivers||[]).map(function(d:string,i:number){return<div key={i} style={{display:"flex",gap:6,marginBottom:5}}><span style={{color:RED,fontSize:10,marginTop:2}}>●</span><span style={{fontSize:12,color:"#ccc"}}>{d}</span></div>})}
@@ -625,7 +626,7 @@ export default function GlobeClient() {
           {([
             {l:"Avg CDI",v:distressD.overview.national_avg_cdi?.toFixed(1)||"—",c:AMBER},
             {l:"HIGH Markets",v:String(distressD.overview.high_distress),c:RED},
-            {l:"ELEVATED",v:String(distressD.overview.elevated_risk),c:"#ff9500"},
+            {l:"ELEVATED",v:String(distressD.overview.elevated_risk),c:ORANGE},
             {l:"LOW RISK",v:String(distressD.overview.low_risk),c:GREEN},
           ] as {l:string,v:string,c:string}[]).map(function(r){return(
             <div key={r.l} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}><span style={{fontSize:11,color:"#555"}}>{r.l}</span><span style={{fontFamily:MONO,fontSize:11,color:r.c,fontWeight:600}}>{r.v}</span></div>
@@ -657,7 +658,7 @@ export default function GlobeClient() {
       {/* STATS */}
       <div style={{position:"absolute",bottom:154,left:20,zIndex:20,display:"flex",flexDirection:"column",gap:5}}>
         {(lens==="DISTRESS"&&distressD&&distressD.overview
-          ?[{l:"CDI HIGH",v:String(distressD.overview.high_distress),c:RED},{l:"ELEVATED",v:String(distressD.overview.elevated_risk),c:"#ff9500"},{l:"LOW RISK",v:String(distressD.overview.low_risk),c:GREEN}]
+          ?[{l:"CDI HIGH",v:String(distressD.overview.high_distress),c:RED},{l:"ELEVATED",v:String(distressD.overview.elevated_risk),c:ORANGE},{l:"LOW RISK",v:String(distressD.overview.low_risk),c:GREEN}]
           :[{l:"TTLCONS",v:"$2.19T",c:AMBER},{l:"PERMITS",v:"1,386K",c:AMBER},{l:"SIGNALS",v:"6 LIVE",c:GREEN}]
         ).map(function(s){
           return<div key={s.l} style={{background:"rgba(0,0,0,0.7)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,padding:"5px 10px",display:"flex",gap:10,alignItems:"center"}}><span style={{fontFamily:MONO,fontSize:10,color:"#555",letterSpacing:"0.08em"}}>{s.l}</span><span style={{fontFamily:MONO,fontSize:12,color:s.c,fontWeight:700}}>{s.v}</span></div>

@@ -26,7 +26,7 @@ const COMPONENTS = [
   { key: "materials", label: "Materials", weight: 0.45, color: AMBER,     description: "Lumber, steel, concrete, copper, other construction materials" },
   { key: "labor",     label: "Labor",     weight: 0.28, color: BLUE,      description: "Construction Employment Cost Index + Average Hourly Earnings" },
   { key: "equipment", label: "Equipment", weight: 0.12, color: GREEN,     description: "BLS PPI Industrial Machinery & Equipment" },
-  { key: "fuel",      label: "Fuel",      weight: 0.10, color: "#ff9500", description: "EIA Diesel Fuel + WTI Crude" },
+  { key: "fuel",      label: "Fuel",      weight: 0.10, color: color.orange, description: "EIA Diesel Fuel + WTI Crude" },
   { key: "overhead",  label: "Overhead",  weight: 0.05, color: T3,        description: "BLS CPI Services — proxy for overhead & insurance" },
 ]
 
