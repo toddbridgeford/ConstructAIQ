@@ -124,6 +124,9 @@ function selectDataSources(question: string): string[] {
   if (q.includes('disturbance'))
     sources.push('/api/satellite', '/api/fusion')
 
+  if (q.includes('layoff') || q.includes('warn') || q.includes('cuts') || q.includes('reduction') || q.includes('contraction'))
+    sources.push('/api/warn')
+
   return [...new Set(sources)]
 }
 

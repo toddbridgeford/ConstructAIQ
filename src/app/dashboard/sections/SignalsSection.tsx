@@ -6,6 +6,7 @@ import { DivergenceDetector } from "../components/DivergenceDetector"
 import { WeeklyBrief } from "../components/WeeklyBrief"
 import { GateLock } from "../components/GateLock"
 import { NLQInterface } from "../components/NLQInterface"
+import { WarnFeed } from "../components/WarnFeed"
 
 const MONO = font.mono
 
@@ -15,6 +16,7 @@ type AnyData = any
 interface Props {
   signals: AnyData
   brief:   AnyData
+  warn:    AnyData
 }
 
 function Divider({ label }: { label: string }) {
@@ -35,7 +37,7 @@ function Divider({ label }: { label: string }) {
   )
 }
 
-export function SignalsSection({ signals, brief }: Props) {
+export function SignalsSection({ signals, brief, warn }: Props) {
   return (
     <div>
       {/* NLQ — Ask the Data */}
@@ -61,6 +63,11 @@ export function SignalsSection({ signals, brief }: Props) {
       </div>
 
       <Divider label="LIVE SIGNAL FEED" />
+
+      {/* WARN Act — leading contraction indicator */}
+      <div style={{ marginBottom: 20 }}>
+        <WarnFeed data={warn} />
+      </div>
 
       {/* Proprietary survey panel — primary source */}
       <SurveyPanel />

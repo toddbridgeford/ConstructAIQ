@@ -109,6 +109,57 @@ async function surveySignals(): Promise<Signal[]> {
   } catch { return [] }
 }
 
+async function warnSignals(baseUrl: string): Promise<Signal[]> {
+  try {
+    const r = await fetch(`${baseUrl}/api/warn`, { signal: AbortSignal.timeout(10_000) })
+    if (!r.ok) return []
+    const data = await r.json() as {
+      notices?: { company: string; state: string; employees: number; notice_date: string }[]
+      by_state?: Record<string, { count: number; employees: number }>
+    }
+
+    const out: Signal[] = []
+    const cutoff = Date.now() - 30 * 24 * 3600 * 1000
+
+    // Large single-company filings
+    for (const n of data.notices ?? []) {
+      if (!n.notice_date || new Date(n.notice_date).getTime() < cutoff) continue
+      if (n.employees >= 500) {
+        out.push({
+          type:            'BEARISH',
+          series_id:       'WARN_ACT',
+          title:           `${n.company} (${n.state}): WARN Act — ${n.employees.toLocaleString()} workers`,
+          description:     `Federal WARN Act filing: ${n.company} in ${n.state} notified ${n.employees.toLocaleString()} construction workers of layoffs. Notice date: ${n.notice_date}.`,
+          confidence:      88,
+          method:          'warn-act',
+          value_at_signal: n.employees,
+          threshold:       500,
+          is_active:       true,
+        })
+      }
+    }
+
+    // State clusters — 5+ filings in 30 days
+    for (const [state, { count, employees }] of Object.entries(data.by_state ?? {})) {
+      if (count >= 5) {
+        out.push({
+          type:            'WARNING',
+          series_id:       'WARN_ACT',
+          title:           `${state}: ${count} WARN Act filings — elevated contraction signal`,
+          description:     `${count} construction WARN Act notices in ${state} in the last 30 days, affecting ${employees.toLocaleString()} workers. Pattern indicates elevated contraction risk.`,
+          confidence:      76,
+          method:          'warn-act-cluster',
+          value_at_signal: count,
+          threshold:       5,
+          is_active:       true,
+        })
+      }
+    }
+
+    return out.slice(0, 4)
+  } catch { return [] }
+}
+
 function staticSignals() {
   return [
     {type:'WARNING', series_id:'TTLCONS',      title:'TTLCONS Flat — Extended Plateau',    description:'Net spend growth near zero over rolling 24-month window despite IIJA tailwinds. Plateau pattern persists.',confidence:94,method:'slope-change',value_at_signal:2190.4,is_active:true},
@@ -121,7 +172,9 @@ function staticSignals() {
 }
 
 export async function GET(request: Request) {
-  const gen = new URL(request.url).searchParams.get('generate')==='1'
+  const url = new URL(request.url)
+  const gen = url.searchParams.get('generate')==='1'
+  const baseUrl = `${url.protocol}//${url.host}`
   try {
     if(!gen) {
       const {data:existing} = await supabase.from('signals').select('*').eq('is_active',true)
@@ -136,6 +189,7 @@ export async function GET(request: Request) {
     for(const id of ids) { if(!map[id]?.length) continue; all.push(...detectAnomalies(map[id]),...detectTrendReversals(map[id])) }
     if(map['TTLCONS']&&map['PERMIT']) all.push(...detectDivergence(map['TTLCONS'],map['PERMIT']))
     all.push(...await surveySignals())
+    all.push(...await warnSignals(baseUrl))
     const seen=new Set<string>()
     const deduped=all.filter(s=>{ const k=`${s.series_id}:${s.method}`; if(seen.has(k)) return false; seen.add(k); return true }).sort((a,b)=>b.confidence-a.confidence).slice(0,12)
     if(deduped.length>0) {
