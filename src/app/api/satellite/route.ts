@@ -161,6 +161,14 @@ export async function GET() {
 
     return NextResponse.json(response, { headers: CACHE_HEADERS })
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    // Supabase not configured — treat the same as no data yet
+    if (msg.includes('supabaseUrl') || msg.includes('required')) {
+      return NextResponse.json(
+        { processing_status: 'pending_first_run', msas: [], msa_count: 0, ranked_by_activity: [] },
+        { headers: CACHE_HEADERS },
+      )
+    }
     console.error('[/api/satellite]', err)
     return NextResponse.json({ error: 'Failed to fetch satellite data' }, { status: 500 })
   }

@@ -122,20 +122,17 @@ function staticSignals() {
 
 export async function GET(request: Request) {
   const gen = new URL(request.url).searchParams.get('generate')==='1'
-  if(!gen) {
-    const {data:existing} = await supabase.from('signals').select('*').eq('is_active',true)
-      .order('created_at',{ascending:false}).limit(20)
-    if(existing&&existing.length>0)
-      return NextResponse.json({source:'ConstructAIQ SignalDetect',live:true,signals:existing,count:existing.length,updated:new Date().toISOString()})
-  }
   try {
+    if(!gen) {
+      const {data:existing} = await supabase.from('signals').select('*').eq('is_active',true)
+        .order('created_at',{ascending:false}).limit(20)
+      if(existing&&existing.length>0)
+        return NextResponse.json({source:'ConstructAIQ SignalDetect',live:true,signals:existing,count:existing.length,updated:new Date().toISOString()})
+    }
     const ids=['TTLCONS','HOUST','PERMIT','CES2000000001','MORTGAGE30US','DGS10','PPI_LUMBER','PPI_STEEL']
     const map: Record<string,Obs[]>={}
-    const [satSignals] = await Promise.all([
-      detectSatelliteSignals(),
-      Promise.all(ids.map(async id=>{ map[id]=await loadSeries(id) })),
-    ])
-    const all: Signal[]=[...satSignals]
+    await Promise.all(ids.map(async id=>{ map[id]=await loadSeries(id) }))
+    const all: Signal[]=[]
     for(const id of ids) { if(!map[id]?.length) continue; all.push(...detectAnomalies(map[id]),...detectTrendReversals(map[id])) }
     if(map['TTLCONS']&&map['PERMIT']) all.push(...detectDivergence(map['TTLCONS'],map['PERMIT']))
     all.push(...await surveySignals())
@@ -147,5 +144,5 @@ export async function GET(request: Request) {
     }
     const out=deduped.length>0?deduped:staticSignals()
     return NextResponse.json({source:'ConstructAIQ SignalDetect',live:deduped.length>0,generated:deduped.length,signals:out,count:out.length,updated:new Date().toISOString()},{headers:{'Cache-Control':'public, s-maxage=3600'}})
-  } catch(err) { return NextResponse.json({source:'SignalDetect-fallback',live:false,signals:staticSignals()}) }
+  } catch(err) { return NextResponse.json({source:'SignalDetect-fallback',live:false,signals:staticSignals(),count:staticSignals().length,updated:new Date().toISOString()}) }
 }
