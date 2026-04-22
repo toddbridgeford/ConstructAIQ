@@ -3,7 +3,15 @@ export interface ModelResult   { model: string; weight: number; mape: number; ac
 export interface ForecastData  {
   ensemble:  ForecastPoint[]
   models:    ModelResult[]
-  metrics:   { accuracy: number; mape: number; models: number }
+  metrics: {
+    accuracy:       number
+    mape:           number
+    models:         number
+    hwWeight?:      number
+    sarimaWeight?:  number
+    xgboostWeight?: number
+    n?:             number
+  }
   trainedOn: number
   runAt:     string
   history?:  number[]

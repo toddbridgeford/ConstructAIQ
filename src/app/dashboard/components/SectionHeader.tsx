@@ -38,12 +38,12 @@ export function SectionHeader({ sectionId, title, subtitle, badge, live, onExpor
         {hasExports && (
           <div style={{ display:"flex", gap:6, flexShrink:0, marginTop:2 }}>
             {onExportCSV && (
-              <button onClick={onExportCSV} style={{ background:"transparent", color:T4, fontFamily:MONO, fontSize:11, padding:"5px 10px", border:`1px solid ${BD1}`, borderRadius:8, cursor:"pointer", display:"flex", alignItems:"center", gap:4 }}>
+              <button onClick={onExportCSV} style={{ background:"transparent", color:T4, fontFamily:MONO, fontSize:11, padding:"5px 10px", border:`1px solid ${BD1}`, borderRadius:8, cursor:"pointer", display:"flex", alignItems:"center", gap:4, minHeight:44 }}>
                 📥 <span>CSV</span>
               </button>
             )}
             {onExportPNG && (
-              <button onClick={onExportPNG} style={{ background:"transparent", color:T4, fontFamily:MONO, fontSize:11, padding:"5px 10px", border:`1px solid ${BD1}`, borderRadius:8, cursor:"pointer", display:"flex", alignItems:"center", gap:4 }}>
+              <button onClick={onExportPNG} style={{ background:"transparent", color:T4, fontFamily:MONO, fontSize:11, padding:"5px 10px", border:`1px solid ${BD1}`, borderRadius:8, cursor:"pointer", display:"flex", alignItems:"center", gap:4, minHeight:44 }}>
                 📷 <span>PNG</span>
               </button>
             )}

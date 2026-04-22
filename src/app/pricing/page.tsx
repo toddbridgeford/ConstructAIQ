@@ -5,9 +5,9 @@ import { font, color } from "@/lib/theme"
 
 const SYS  = font.sys
 const MONO = font.mono
-
 const AMBER = color.amber
 const GREEN = color.green
+const BLUE  = color.blue
 const BG0   = color.bg0
 const BG1   = color.bg1
 const BG2   = color.bg2
@@ -18,161 +18,118 @@ const T2    = color.t2
 const T3    = color.t3
 const T4    = color.t4
 
-interface Plan {
-  tier:      string
-  tagline:   string
-  price:     string
-  priceSub:  string
+interface Tier {
+  label:    string
+  badge:    string
+  badgeCol: string
+  tagline:  string
+  features: string[]
+  ctaLabel: string
+  ctaHref:  string
   highlight: boolean
-  badge?:    string
-  outcomes:  string[]
-  forWho:    string
-  ctaLabel:  string
-  ctaHref:   string
 }
 
-const PLANS: Plan[] = [
+const TIERS: Tier[] = [
   {
-    tier:     "INTELLIGENCE",
-    tagline:  "Everything you need to get started",
-    price:    "$490",
-    priceSub: "per month",
-    highlight: false,
-    outcomes: [
-      "12-month AI construction sector forecast — model-grade accuracy",
-      "Daily signals across permits, spending, employment, and materials",
-      "50-state construction activity map — HOT / GROWING / COOLING",
-      "Materials BUY/SELL/HOLD signals: lumber, steel, concrete, copper, WTI, diesel",
-      "Weekly Market Intelligence Brief — every Monday",
-      "Full dashboard access — no technical setup required",
-      "CSV export for internal reporting and analysis",
+    label:    "INDIVIDUAL",
+    badge:    "FREE",
+    badgeCol: GREEN,
+    tagline:  "Full access. No credit card. No expiry.",
+    features: [
+      "Full dashboard access",
+      "12-month AI ensemble forecast",
+      "All signals and anomaly detection",
+      "1,000 API requests / day",
+      "CSV export",
     ],
-    forWho:   "For individual analysts, project developers, and portfolio managers who need a daily edge.",
-    ctaLabel: "Get Started",
-    ctaHref:  "/contact",
+    ctaLabel:  "Get Free Access",
+    ctaHref:   "/api/keys/issue",
+    highlight: false,
   },
   {
-    tier:      "INSTITUTIONAL",
-    tagline:   "For teams that move markets",
-    price:     "$1,490",
-    priceSub:  "per month",
+    label:    "RESEARCHER",
+    badge:    "FREE — .edu verified",
+    badgeCol: BLUE,
+    tagline:  "For academic and policy research.",
+    features: [
+      "Everything in Individual",
+      "10,000 API requests / day",
+      "Bulk historical data download",
+      "Priority data freshness",
+    ],
+    ctaLabel:  "Apply for Research Access",
+    ctaHref:   "mailto:research@constructaiq.trade?subject=Research Access Request",
     highlight: true,
-    badge:     "MOST POPULAR",
-    outcomes: [
-      "Everything in Intelligence, plus:",
-      "Quarterly construction sector outlook — full PDF report",
-      "Historical data archive back to 2000",
-      "Up to 5 named user seats for your team",
-      "Priority analyst support — response within 4 business hours",
-      "Scheduled data delivery for internal BI tools",
-      "Suitable for embedding in proprietary dashboards",
-    ],
-    forWho:   "For banks, investment firms, government agencies, and developer groups that run on data.",
-    ctaLabel: "Get Institutional Access",
-    ctaHref:  "/contact",
   },
   {
-    tier:     "ENTERPRISE",
-    tagline:  "White-glove intelligence at scale",
-    price:    "Custom",
-    priceSub: "contact us",
-    highlight: false,
-    outcomes: [
-      "Everything in Institutional, plus:",
-      "Unlimited user seats",
-      "Dedicated account manager",
-      "99.9% uptime SLA with documentation for procurement",
-      "Custom integrations — Salesforce, Power BI, or any BI platform",
-      "Executive briefings and on-site presentations",
-      "Co-branded research deliverables",
+    label:    "ENTERPRISE",
+    badge:    "CONTACT US",
+    badgeCol: AMBER,
+    tagline:  "White-label, custom feeds, SLA.",
+    features: [
+      "White-label embed",
+      "Custom data feeds",
+      "SLA and dedicated support",
+      "Data licensing",
     ],
-    forWho:   "For federal agencies, large banks, REITs, and enterprise construction groups.",
-    ctaLabel: "Talk to Sales",
-    ctaHref:  "/contact",
+    ctaLabel:  "Contact Us",
+    ctaHref:   "/contact",
+    highlight: false,
   },
 ]
 
-function PricingCard({ plan }: { plan: Plan }) {
-  const borderColor = plan.highlight ? AMBER : BD1
-  const bg = plan.highlight ? "#1a1200" : BG2
-
+function TierCard({ tier }: { tier: Tier }) {
   return (
     <div style={{
-      background: bg,
-      borderRadius: 20,
-      border: `1px solid ${borderColor}`,
-      padding: "36px 28px",
-      flex: 1,
-      minWidth: 280,
+      flex: "1 1 280px",
       maxWidth: 380,
+      background: tier.highlight ? BG2 : BG1,
+      border: `1px solid ${tier.highlight ? tier.badgeCol + "55" : BD1}`,
+      borderRadius: 20,
+      padding: "32px 28px",
       display: "flex",
       flexDirection: "column",
-      position: "relative",
-      boxShadow: plan.highlight ? `0 0 40px ${AMBER}22` : "none",
+      boxShadow: tier.highlight ? `0 0 48px ${tier.badgeCol}18` : "none",
     }}>
-      {plan.badge && (
-        <div style={{
-          position: "absolute",
-          top: -14,
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: AMBER,
-          color: "#000",
-          fontFamily: MONO,
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: "0.1em",
-          padding: "4px 14px",
-          borderRadius: 20,
-          whiteSpace: "nowrap",
+      {/* Badge */}
+      <div style={{ marginBottom: 16 }}>
+        <span style={{
+          fontFamily: MONO, fontSize: 11, fontWeight: 700,
+          letterSpacing: "0.12em", color: tier.badgeCol,
+          background: tier.badgeCol + "18",
+          padding: "4px 10px", borderRadius: 6,
         }}>
-          {plan.badge}
-        </div>
-      )}
-
-      <div style={{ fontFamily: MONO, fontSize: 13, color: plan.highlight ? AMBER : T4, letterSpacing: "0.12em", marginBottom: 8 }}>
-        {plan.tier}
-      </div>
-      <div style={{ fontFamily: SYS, fontSize: 15, color: T3, marginBottom: 20, lineHeight: 1.5 }}>{plan.tagline}</div>
-
-      <div style={{ marginBottom: 24 }}>
-        <span style={{ fontFamily: SYS, fontSize: 48, fontWeight: 700, color: T1, letterSpacing: "-0.02em" }}>{plan.price}</span>
-        {plan.price !== "Custom" && (
-          <span style={{ fontFamily: SYS, fontSize: 16, color: T4, marginLeft: 6 }}>/mo</span>
-        )}
-        {plan.price === "Custom" && (
-          <div style={{ fontFamily: SYS, fontSize: 14, color: T4, marginTop: 4 }}>Pricing based on your needs</div>
-        )}
+          {tier.badge}
+        </span>
       </div>
 
-      <div style={{ flex: 1, marginBottom: 24 }}>
-        {plan.outcomes.map((o, i) => (
+      <div style={{ fontFamily: MONO, fontSize: 13, color: T4, letterSpacing: "0.1em", marginBottom: 8 }}>
+        {tier.label}
+      </div>
+      <div style={{ fontFamily: SYS, fontSize: 15, color: T3, marginBottom: 28, lineHeight: 1.5 }}>
+        {tier.tagline}
+      </div>
+
+      <div style={{ flex: 1, marginBottom: 28 }}>
+        {tier.features.map((f, i) => (
           <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
-            <span style={{ fontFamily: MONO, fontSize: 13, color: GREEN, flexShrink: 0, marginTop: 1 }}>✓</span>
-            <span style={{ fontFamily: SYS, fontSize: 14, color: i === 0 && plan.tier !== "INTELLIGENCE" ? T4 : T2, lineHeight: 1.5, fontStyle: i === 0 && plan.tier !== "INTELLIGENCE" ? "italic" : "normal" }}>{o}</span>
+            <span style={{ color: tier.badgeCol, fontFamily: MONO, fontSize: 13, flexShrink: 0, marginTop: 1 }}>✓</span>
+            <span style={{ fontFamily: SYS, fontSize: 14, color: T2, lineHeight: 1.5 }}>{f}</span>
           </div>
         ))}
-        <div style={{ marginTop: 16, padding: "12px 16px", background: BG1, borderRadius: 10, border: `1px solid ${BD2}` }}>
-          <span style={{ fontFamily: SYS, fontSize: 13, color: T3 }}>{plan.forWho}</span>
-        </div>
       </div>
 
-      <Link href={plan.ctaHref} style={{ display: "block" }}>
+      <Link href={tier.ctaHref} style={{ display: "block" }}>
         <button style={{
-          width: "100%",
-          background: plan.highlight ? AMBER : "transparent",
-          color: plan.highlight ? "#000" : AMBER,
-          fontFamily: MONO,
-          fontSize: 14,
-          fontWeight: 700,
-          padding: "14px 24px",
-          borderRadius: 12,
-          letterSpacing: "0.06em",
-          minHeight: 50,
-          border: plan.highlight ? "none" : `1px solid ${AMBER}`,
-          cursor: "pointer",
+          width: "100%", minHeight: 48,
+          background: tier.highlight ? tier.badgeCol : "transparent",
+          color: tier.highlight ? BG0 : tier.badgeCol,
+          border: `1px solid ${tier.badgeCol}`,
+          borderRadius: 12, fontFamily: MONO,
+          fontSize: 13, fontWeight: 700,
+          letterSpacing: "0.06em", cursor: "pointer",
         }}>
-          {plan.ctaLabel} →
+          {tier.ctaLabel} →
         </button>
       </Link>
     </div>
@@ -187,7 +144,6 @@ export default function PricingPage() {
         a{color:inherit;text-decoration:none}
         button{outline:none;font-family:inherit;cursor:pointer;border:none}
         button:hover{opacity:0.85}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
       `}</style>
 
       {/* NAV */}
@@ -196,7 +152,7 @@ export default function PricingPage() {
         background: BG1 + "ee", backdropFilter: "blur(12px)",
         borderBottom: `1px solid ${BD1}`,
         padding: "0 32px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", height: 60,
+        justifyContent: "space-between", minHeight: 60,
         paddingTop: "env(safe-area-inset-top,0px)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -204,56 +160,57 @@ export default function PricingPage() {
             <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ" style={{ height: 24, width: "auto" }} />
           </Link>
           <div style={{ width: 1, height: 24, background: BD1 }} />
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>PRICING</div>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>FREE ACCESS</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Link href="/dashboard">
             <button style={{ background: "transparent", color: T3, fontFamily: MONO, fontSize: 13, padding: "8px 16px", borderRadius: 10, border: `1px solid ${BD1}`, minHeight: 44 }}>DASHBOARD</button>
           </Link>
           <Link href="/contact">
-            <button style={{ background: AMBER, color: "#000", fontFamily: MONO, fontSize: 13, fontWeight: 700, padding: "8px 20px", borderRadius: 10, letterSpacing: "0.06em", minHeight: 44 }}>TALK TO US →</button>
+            <button style={{ background: AMBER, color: BG0, fontFamily: MONO, fontSize: 13, fontWeight: 700, padding: "8px 20px", borderRadius: 10, letterSpacing: "0.06em", minHeight: 44 }}>ENTERPRISE →</button>
           </Link>
         </div>
       </nav>
 
-      <div style={{ maxWidth: 1140, margin: "0 auto", padding: "72px 32px 80px" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 32px 80px" }}>
 
         {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: 64 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: BG2, border: `1px solid ${AMBER}44`, borderRadius: 20, padding: "6px 16px", marginBottom: 24 }}>
-            <span style={{ fontFamily: MONO, fontSize: 12, color: AMBER }}>▲ Simple Pricing</span>
-            <span style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>No setup fees · Cancel anytime</span>
+        <div style={{ textAlign: "center", marginBottom: 72 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: GREEN + "18", border: `1px solid ${GREEN}44`, borderRadius: 20, padding: "6px 18px", marginBottom: 28 }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: GREEN, display: "inline-block" }} />
+            <span style={{ fontFamily: MONO, fontSize: 11, color: GREEN, letterSpacing: "0.08em" }}>FREE FOREVER</span>
           </div>
 
-          <h1 style={{ fontFamily: SYS, fontSize: 48, fontWeight: 700, lineHeight: 1.1, color: T1, marginBottom: 16, letterSpacing: "-0.02em" }}>
-            Intelligence that pays for itself<br />
-            <span style={{ color: AMBER }}>on the first insight</span>
+          <h1 style={{ fontFamily: SYS, fontSize: 56, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.05, color: T1, marginBottom: 20 }}>
+            Free. Forever.<br />No credit card.
           </h1>
 
-          <p style={{ fontFamily: SYS, fontSize: 18, color: T3, lineHeight: 1.6, maxWidth: 560, margin: "0 auto" }}>
-            One missed market signal costs more than a year of ConstructAIQ. Choose the tier that fits your team.
+          <p style={{ fontFamily: SYS, fontSize: 19, color: T3, lineHeight: 1.65, maxWidth: 600, margin: "0 auto 0" }}>
+            The FRED for the American construction economy. Every data point, every forecast,
+            every signal — free.
           </p>
         </div>
 
-        {/* Pricing Cards */}
-        <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "center", marginBottom: 72, alignItems: "stretch" }}>
-          {PLANS.map(plan => <PricingCard key={plan.tier} plan={plan} />)}
+        {/* Tier cards */}
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap", justifyContent: "center", marginBottom: 80 }}>
+          {TIERS.map(t => <TierCard key={t.label} tier={t} />)}
         </div>
 
-        {/* What every plan delivers */}
-        <div style={{ background: BG2, borderRadius: 20, padding: "40px", border: `1px solid ${BD1}`, marginBottom: 48 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 24, textAlign: "center" }}>EVERY PLAN DELIVERS</div>
+        {/* What's always included */}
+        <div style={{ background: BG2, borderRadius: 20, padding: "44px 40px", border: `1px solid ${BD1}`, marginBottom: 48 }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 28, textAlign: "center" }}>
+            ALWAYS INCLUDED — NO PAYWALL
+          </div>
           <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "center" }}>
             {[
-              { icon: "📊", label: "Daily Sector Signals",  desc: "Know before the market moves" },
-              { icon: "🤖", label: "AI 12-Month Forecasts", desc: "Ensemble of 3 proven models" },
-              { icon: "🗺",  label: "All 50 States",        desc: "HOT / GROWING / COOLING map" },
-              { icon: "💹", label: "Materials Intelligence", desc: "BUY / SELL / HOLD signals" },
-              { icon: "📄", label: "Research Reports",       desc: "Monthly + quarterly outlooks" },
-              { icon: "📥", label: "Export Your Data",       desc: "CSV for your own analysis" },
-            ].map(({ icon, label, desc }) => (
-              <div key={label} style={{ textAlign: "center", minWidth: 140, flex: "1 1 140px" }}>
-                <div style={{ fontSize: 28, marginBottom: 8 }}>{icon}</div>
+              { label: "AI Ensemble Forecast",  desc: "Holt-Winters + SARIMA + XGBoost" },
+              { label: "50-State Activity Map",  desc: "HOT / GROWING / COOLING by state" },
+              { label: "Materials Signals",      desc: "BUY / SELL / HOLD for 6 commodities" },
+              { label: "Anomaly Detection",      desc: "Z-score alerts across 10+ series" },
+              { label: "Weekly Intelligence Brief", desc: "AI-generated every Monday" },
+              { label: "Federal Pipeline",       desc: "IIJA/IRA program execution tracker" },
+            ].map(({ label, desc }) => (
+              <div key={label} style={{ textAlign: "center", minWidth: 160, flex: "1 1 160px" }}>
                 <div style={{ fontFamily: SYS, fontSize: 14, color: T1, fontWeight: 600, marginBottom: 4 }}>{label}</div>
                 <div style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>{desc}</div>
               </div>
@@ -261,30 +218,34 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* FAQ */}
+        {/* API key section */}
         <div style={{ background: BG1, borderRadius: 20, padding: "40px", border: `1px solid ${BD1}`, marginBottom: 48 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 28, textAlign: "center" }}>COMMON QUESTIONS</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 720, margin: "0 auto" }}>
-            {[
-              { q: "Do I need a technical background to use this?", a: "No. The dashboard requires no technical knowledge — it reads like a market briefing, not a developer tool. If you can read a research report, you can use ConstructAIQ." },
-              { q: "Is there a free trial?", a: "Yes — the full live dashboard is accessible without any account or payment. See real signals and forecasts before you commit to a plan." },
-              { q: "How quickly can we get access?", a: "Contact us and we typically activate accounts within one business day. Enterprise and government contracts can be structured for procurement within 2–5 business days." },
-              { q: "How is this different from general financial data platforms?", a: "General platforms cover construction as a footnote. We cover it as the whole story — 16 government data sources, AI forecasting, and 50-state granularity that no other platform provides." },
-            ].map(({ q, a }) => (
-              <div key={q}>
-                <div style={{ fontFamily: SYS, fontSize: 16, color: T1, fontWeight: 600, marginBottom: 8 }}>{q}</div>
-                <div style={{ fontFamily: SYS, fontSize: 15, color: T3, lineHeight: 1.6 }}>{a}</div>
+          <div style={{ display: "flex", gap: 40, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ flex: "1 1 320px" }}>
+              <div style={{ fontFamily: MONO, fontSize: 11, color: AMBER, letterSpacing: "0.1em", marginBottom: 12 }}>REST API</div>
+              <h2 style={{ fontFamily: SYS, fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em", color: T1, marginBottom: 12 }}>
+                Free API access.<br />1,000 requests/day.
+              </h2>
+              <p style={{ fontFamily: SYS, fontSize: 15, color: T3, lineHeight: 1.6 }}>
+                Every data endpoint — forecasts, signals, observations, state maps — accessible
+                via API key. Build your own tools on public construction data.
+              </p>
+            </div>
+            <div style={{ flex: "0 0 auto" }}>
+              <div style={{ fontFamily: MONO, fontSize: 12, color: T4, marginBottom: 8 }}>EXAMPLE</div>
+              <div style={{ background: BG0, borderRadius: 10, padding: "16px 20px", border: `1px solid ${BD2}`, fontFamily: MONO, fontSize: 13, color: GREEN, letterSpacing: "0.02em", whiteSpace: "nowrap" }}>
+                curl constructaiq.trade/api/forecast<br />
+                <span style={{ color: T4 }}>  -H "X-API-Key: caiq_..."</span>
               </div>
-            ))}
+            </div>
           </div>
         </div>
 
         {/* Back links */}
-        <div style={{ textAlign: "center" }}>
+        <div style={{ textAlign: "center", display: "flex", gap: 24, justifyContent: "center", flexWrap: "wrap" }}>
           <Link href="/dashboard" style={{ fontFamily: SYS, fontSize: 15, color: T4, textDecoration: "underline" }}>
-            ← Back to Dashboard
+            ← Open Dashboard
           </Link>
-          <span style={{ fontFamily: SYS, fontSize: 15, color: T4, margin: "0 16px" }}>·</span>
           <Link href="/" style={{ fontFamily: SYS, fontSize: 15, color: T4, textDecoration: "underline" }}>
             Back to Home
           </Link>

@@ -61,21 +61,26 @@ afterEach(() => {
 })
 
 describe('POST /api/keys/issue', () => {
-  it('returns 401 when no Authorization header is provided', async () => {
-    const res = await POST(makePostReq({ email: 'test@example.com' }))
+  it('allows unauthenticated self-serve requests for free plan', async () => {
+    mockInsert.mockResolvedValue({ error: null })
+    makeChain({ insert: mockInsert })
+    const res = await POST(makePostReq({ email: 'self@example.com' }))
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.plan).toBe('free')
+    expect(body.message).toMatch(/Store this key/)
+  })
+
+  it('blocks unauthenticated requests for non-free plans', async () => {
+    const res = await POST(makePostReq({ email: 'test@example.com', plan: 'researcher' }))
     expect(res.status).toBe(401)
     const body = await res.json()
     expect(body.error).toBe('Unauthorized')
   })
 
-  it('returns 401 when Authorization header has wrong secret', async () => {
-    const res = await POST(makePostReq({ email: 'test@example.com' }, 'Bearer wrong-secret'))
-    expect(res.status).toBe(401)
-  })
-
-  it('returns 401 when CRON_SECRET env var is not set', async () => {
+  it('blocks non-free plan when CRON_SECRET is unset', async () => {
     vi.stubEnv('CRON_SECRET', '')
-    const res = await POST(makePostReq({ email: 'test@example.com' }, 'Bearer test-admin-secret'))
+    const res = await POST(makePostReq({ email: 'test@example.com', plan: 'researcher' }))
     expect(res.status).toBe(401)
   })
 
@@ -110,23 +115,24 @@ describe('POST /api/keys/issue', () => {
   it('returns 201 with key on successful issuance', async () => {
     mockInsert.mockResolvedValue({ error: null })
     makeChain({ insert: mockInsert })
-    const res = await POST(makePostReq({ email: 'new@example.com', plan: 'starter' }, 'Bearer test-admin-secret'))
+    const res = await POST(makePostReq({ email: 'new@example.com', plan: 'free' }, 'Bearer test-admin-secret'))
     expect(res.status).toBe(201)
     const body = await res.json()
     expect(body.success).toBe(true)
     expect(body.key).toMatch(/^caiq_[0-9a-f]{64}$/)
-    expect(body.plan).toBe('starter')
+    expect(body.plan).toBe('free')
     expect(body.limits.requestsPerMinute).toBe(60)
+    expect(body.message).toMatch(/Store this key/)
     expect(body.warning).toMatch(/Store this key/)
   })
 
-  it('issues a professional key with correct limits', async () => {
+  it('issues a researcher key with correct limits', async () => {
     mockInsert.mockResolvedValue({ error: null })
     makeChain({ insert: mockInsert })
-    const res = await POST(makePostReq({ email: 'pro@example.com', plan: 'professional' }, 'Bearer test-admin-secret'))
+    const res = await POST(makePostReq({ email: 'researcher@university.edu', plan: 'researcher' }, 'Bearer test-admin-secret'))
     expect(res.status).toBe(201)
     const body = await res.json()
-    expect(body.limits.requestsPerMinute).toBe(300)
+    expect(body.limits.requestsPerMinute).toBe(60)
     expect(body.limits.requestsPerDay).toBe(10000)
   })
 })

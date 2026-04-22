@@ -7,6 +7,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend,
 } from "recharts"
 import { font, color } from "@/lib/theme"
+import { seeded } from "@/lib/seeded"
 
 const SYS = font.sys, MONO = font.mono
 const AMBER = color.amber, GREEN = color.green, RED = color.red, BLUE = color.blue
@@ -88,8 +89,8 @@ export default function CCCIPage() {
   const histWithBenchmarks = filteredHistory.map((p: { period: string; value: number }, i: number) => ({
     ...p,
     label: p.period,
-    cpi: +(100 + i * 0.38 + (Math.random() - 0.5) * 0.4).toFixed(1),
-    ppi: +(100 + i * 0.29 + (Math.random() - 0.5) * 0.3).toFixed(1),
+    cpi: +(100 + i * 0.38 + (seeded(i * 2) - 0.5) * 0.4).toFixed(1),
+    ppi: +(100 + i * 0.29 + (seeded(i * 2 + 1) - 0.5) * 0.3).toFixed(1),
   }))
 
   const forecastData = (() => {
@@ -105,13 +106,13 @@ export default function CCCIPage() {
     return pts
   })()
 
-  const compData = COMPONENTS.map(c => ({
+  const compData = COMPONENTS.map((c, ci) => ({
     ...c,
-    current: data?.components?.[c.key]?.value ?? (100 + c.weight * 24 * (Math.random() + 0.5)),
-    mom: data?.components?.[c.key]?.mom_change ?? ((Math.random() - 0.3) * 3),
+    current: data?.components?.[c.key]?.value ?? (100 + c.weight * 24 * (seeded(ci) + 0.5)),
+    mom: data?.components?.[c.key]?.mom_change ?? ((seeded(ci + 10) - 0.3) * 3),
     history: Array.from({ length: 24 }, (_, i) => ({
       label: `M${i + 1}`,
-      value: +(100 + i * c.weight * 0.8 + (Math.random() - 0.5) * 2).toFixed(1),
+      value: +(100 + i * c.weight * 0.8 + (seeded(ci * 24 + i) - 0.5) * 2).toFixed(1),
     })),
   }))
 

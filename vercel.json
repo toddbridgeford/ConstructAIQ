@@ -12,6 +12,14 @@
     {
       "path": "/api/cron/forecast",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/federal",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/brief",
+      "schedule": "0 12 * * 1"
     }
   ]
 }

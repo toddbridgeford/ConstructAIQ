@@ -2,9 +2,11 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
+import { font } from "@/lib/theme"
+import { seeded } from "@/lib/seeded"
 
-var SYS  = "-apple-system,BlinkMacSystemFont,'SF Pro Display',Arial,sans-serif"
-var MONO = "ui-monospace,'SF Mono','Cascadia Code',Consolas,monospace"
+var SYS  = font.sys
+var MONO = font.mono
 var AMBER="#f5a623",GREEN="#30d158",RED="#ff453a",BLUE="#0a84ff",CYAN="#64d2ff"
 var BD1="rgba(255,255,255,0.1)"
 
@@ -198,9 +200,9 @@ export default function GlobeClient() {
             var c=s.yoyChange||0
             return{lat:CAP[s.code][0],lng:CAP[s.code][1],color:ac(c),maxR:2+Math.abs(c)*0.3,speed:0.8+Math.abs(c)*0.05,code:s.code,name:SN[s.code]||s.code,change:c,permits:s.permits||0,signal:s.signal||"STABLE"}
           })
-        :Object.keys(CAP).map(function(k){
-            var c=(Math.random()-0.4)*12
-            return{lat:CAP[k][0],lng:CAP[k][1],color:ac(c),maxR:2+Math.abs(c)*0.2,speed:1,code:k,name:SN[k]||k,change:c,permits:Math.random()*15000+1000,signal:"STABLE"}
+        :Object.keys(CAP).map(function(k,ki){
+            var c=(seeded(ki)-0.4)*12
+            return{lat:CAP[k][0],lng:CAP[k][1],color:ac(c),maxR:2+Math.abs(c)*0.2,speed:1,code:k,name:SN[k]||k,change:c,permits:seeded(ki+100)*15000+1000,signal:"STABLE"}
           })
       if(layers.rings){try{
         g.ringsData(rd)
@@ -220,8 +222,8 @@ export default function GlobeClient() {
       var AG=["Army Corps","GSA","DOT","VA","DOD","USAF","DOE","HUD","DHS","EPA"]
       var pts=Object.keys(CAP).slice(0,42).map(function(k,i){
         var c=ctrs.find(function(x){return(x.state||"")===k})
-        var amt=c?(c.total_obligated_amount||c.amount||0):(Math.random()*500+50)*1e6
-        return{lat:CAP[k][0]+(Math.random()-0.5)*1.5,lng:CAP[k][1]+(Math.random()-0.5)*1.5,
+        var amt=c?(c.total_obligated_amount||c.amount||0):(seeded(i+200)*500+50)*1e6
+        return{lat:CAP[k][0]+(seeded(i+300)-0.5)*1.5,lng:CAP[k][1]+(seeded(i+400)-0.5)*1.5,
                size:0.3+Math.min(amt/800e6,1)*2.5,color:i%3===0?"#ff6b35":i%3===1?"#f97316":"#fbbf24",
                label:AG[i%10]+" $"+(amt/1e6).toFixed(0)+"M",state:k,amt}
       })
@@ -245,12 +247,12 @@ export default function GlobeClient() {
     }else if(l==="GROUND_TRUTH"){
       try{g.atmosphereColor(CYAN)}catch(e){}
       var hp=[]
-      var bs=states.length>0?states:Object.keys(CAP).map(function(k){return{code:k,permits:Math.random()*20000+1000}})
-      bs.forEach(function(s){
+      var bs=states.length>0?states:Object.keys(CAP).map(function(k,ki){return{code:k,permits:seeded(ki+500)*20000+1000}})
+      bs.forEach(function(s,si){
         var b=CAP[s.code];if(!b)return
         var iv=Math.max(0.1,Math.min(1,(s.permits||5000)/20000))
         for(var j=0;j<Math.floor(iv*120);j++){
-          hp.push({lat:b[0]+(Math.random()-0.5)*8,lng:b[1]+(Math.random()-0.5)*10,weight:iv*(0.5+Math.random()*0.5)})
+          hp.push({lat:b[0]+(seeded(si*120+j)-0.5)*8,lng:b[1]+(seeded(si*120+j+1)-0.5)*10,weight:iv*(0.5+seeded(si*120+j+2)*0.5)})
         }
       })
       try{
@@ -300,7 +302,7 @@ export default function GlobeClient() {
     }else if(l==="RISK"){
       try{g.atmosphereColor("#ff9500")}catch(e){}
       var qd=seis.length>0?seis:[[37.7,-122.4],[34.1,-118.2],[47.6,-122.3],[44.1,-114.5],[35.2,-92.4],[29.7,-95.4]].map(function(z,i){
-        return{lat:z[0]+(Math.random()-0.5)*3,lng:z[1]+(Math.random()-0.5)*3,magnitude:2.5+Math.random()*3.5,place:"Seismic Zone "+(i+1)}
+        return{lat:z[0]+(seeded(i*2+600)-0.5)*3,lng:z[1]+(seeded(i*2+601)-0.5)*3,magnitude:2.5+seeded(i+700)*3.5,place:"Seismic Zone "+(i+1)}
       })
       if(layers.seismic){try{
         g.ringsData(qd).ringLat(function(d){return d.lat}).ringLng(function(d){return d.lng})
@@ -317,9 +319,9 @@ export default function GlobeClient() {
 
     }else if(l==="LABOR"){
       try{g.atmosphereColor(BLUE)}catch(e){}
-      var lb=(states.length>0?states:Object.keys(CAP).map(function(k){return{code:k,permits:Math.random()*15000+500}}))
-        .filter(function(s){return CAP[s.code]}).map(function(s){
-          var tr=(Math.random()*3+1).toFixed(1),wg=(25+Math.random()*25).toFixed(0)
+      var lb=(states.length>0?states:Object.keys(CAP).map(function(k,ki){return{code:k,permits:seeded(ki+800)*15000+500}}))
+        .filter(function(s){return CAP[s.code]}).map(function(s,si){
+          var tr=(seeded(si+900)*3+1).toFixed(1),wg=(25+seeded(si+1000)*25).toFixed(0)
           return{lat:CAP[s.code][0],lng:CAP[s.code][1],size:0.3+Math.min(1,(s.permits||5000)/15000)*2,trir:tr,wage:wg,code:s.code,name:SN[s.code]||s.code}
         })
       try{
