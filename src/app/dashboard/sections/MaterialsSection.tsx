@@ -3,7 +3,6 @@ import { CommoditySignalCard }  from "../components/CommoditySignalCard"
 import { ProcurementIndex }     from "../components/ProcurementIndex"
 import { MaterialsHeatmap }     from "../components/MaterialsHeatmap"
 import { MaterialsCorrelation } from "../components/MaterialsCorrelation"
-import { GateLock }             from "../components/GateLock"
 import { SectionHeader }        from "../components/SectionHeader"
 import { color } from "@/lib/theme"
 
@@ -59,18 +58,14 @@ export function MaterialsSection({ commodities, procurementValue, heatmapData, c
         <Card style={{ flex:"0 0 auto", minWidth:280 }}>
           <ProcurementIndex value={procurementValue} />
         </Card>
-        <GateLock locked={false} requiredPlan="Starter" featureName="Materials Heatmap">
-          <Card style={{ flex:"2 1 400px", minWidth:0 }}>
-            <MaterialsHeatmap data={heatmapData} />
-          </Card>
-        </GateLock>
+        <Card style={{ flex:"2 1 400px", minWidth:0 }}>
+          <MaterialsHeatmap data={heatmapData} />
+        </Card>
       </div>
 
-      <GateLock locked={false} requiredPlan="Starter" featureName="Materials Correlation Chart">
-        <Card>
-          <MaterialsCorrelation materialsCostData={corrMaterials} constructionSpendData={corrSpend} />
-        </Card>
-      </GateLock>
+      <Card>
+        <MaterialsCorrelation materialsCostData={corrMaterials} constructionSpendData={corrSpend} />
+      </Card>
     </section>
   )
 }

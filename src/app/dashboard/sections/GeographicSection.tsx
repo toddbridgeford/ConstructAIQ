@@ -2,7 +2,6 @@
 import dynamic from "next/dynamic"
 import { StateDrillDown } from "../components/StateDrillDown"
 import { TopStatesChart } from "../components/TopStatesChart"
-import { GateLock }       from "../components/GateLock"
 import { SectionHeader }  from "../components/SectionHeader"
 import { Skeleton }       from "@/app/components/Skeleton"
 import { color, font } from "@/lib/theme"
@@ -52,11 +51,9 @@ export function GeographicSection({ states, selState, onSelState, mapToggle, onT
         </div>
       )}
 
-      <GateLock locked={false} requiredPlan="Starter" featureName="State Drill-Down">
-        <Card>
-          <TopStatesChart states={states} toggle={mapToggle} onToggleChange={onToggleChange} />
-        </Card>
-      </GateLock>
+      <Card>
+        <TopStatesChart states={states} toggle={mapToggle} onToggleChange={onToggleChange} />
+      </Card>
     </section>
   )
 }

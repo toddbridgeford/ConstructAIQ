@@ -6,9 +6,9 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const PLANS = {
-  starter:      { rpm: 60,   rpd: 1000,  price: 490  },
-  professional: { rpm: 300,  rpd: 10000, price: 1490 },
-  enterprise:   { rpm: 1000, rpd: 100000, price: 0   },
+  free:       { rpm: 60, rpd: 1000  },
+  researcher: { rpm: 60, rpd: 10000 },
+  enterprise: { rpm: 60, rpd: 100000 },
 }
 
 function generateKey(): { key: string; prefix: string; hash: string } {
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
   try {
     const body  = await request.json()
-    const { email, plan = 'starter', name = '' } = body
+    const { email, plan = 'free', name = '' } = body
 
     if (!email || !email.includes('@')) {
       return NextResponse.json({ error: 'Valid email required' }, { status: 400 })

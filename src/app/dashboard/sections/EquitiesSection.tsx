@@ -3,7 +3,6 @@ import { SectorChart }    from "../components/SectorChart"
 import { EarningsCards }  from "../components/EarningsCards"
 import { SectorRotation } from "../components/SectorRotation"
 import { ETFMonitor }     from "../components/ETFMonitor"
-import { GateLock }       from "../components/GateLock"
 import { SectionHeader }  from "../components/SectionHeader"
 import { color } from "@/lib/theme"
 
@@ -40,17 +39,13 @@ export function EquitiesSection({ equities, sectorRange, onSectorRangeChange }: 
         </Card>
       </div>
 
-      <GateLock locked={false} requiredPlan="Institutional" featureName="Earnings Signal Cards">
-        <Card style={{ marginBottom:20 }}>
-          <EarningsCards companies={equities?.companies ?? []} />
-        </Card>
-      </GateLock>
+      <Card style={{ marginBottom:20 }}>
+        <EarningsCards companies={equities?.companies ?? []} />
+      </Card>
 
-      <GateLock locked={false} requiredPlan="Institutional" featureName="Sector Rotation Quadrant">
-        <Card>
-          <SectorRotation data={equities?.sectorRotation ?? []} />
-        </Card>
-      </GateLock>
+      <Card>
+        <SectorRotation data={equities?.sectorRotation ?? []} />
+      </Card>
     </section>
   )
 }

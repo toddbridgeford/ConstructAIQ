@@ -110,23 +110,23 @@ describe('POST /api/keys/issue', () => {
   it('returns 201 with key on successful issuance', async () => {
     mockInsert.mockResolvedValue({ error: null })
     makeChain({ insert: mockInsert })
-    const res = await POST(makePostReq({ email: 'new@example.com', plan: 'starter' }, 'Bearer test-admin-secret'))
+    const res = await POST(makePostReq({ email: 'new@example.com', plan: 'free' }, 'Bearer test-admin-secret'))
     expect(res.status).toBe(201)
     const body = await res.json()
     expect(body.success).toBe(true)
     expect(body.key).toMatch(/^caiq_[0-9a-f]{64}$/)
-    expect(body.plan).toBe('starter')
+    expect(body.plan).toBe('free')
     expect(body.limits.requestsPerMinute).toBe(60)
     expect(body.warning).toMatch(/Store this key/)
   })
 
-  it('issues a professional key with correct limits', async () => {
+  it('issues a researcher key with correct limits', async () => {
     mockInsert.mockResolvedValue({ error: null })
     makeChain({ insert: mockInsert })
-    const res = await POST(makePostReq({ email: 'pro@example.com', plan: 'professional' }, 'Bearer test-admin-secret'))
+    const res = await POST(makePostReq({ email: 'researcher@university.edu', plan: 'researcher' }, 'Bearer test-admin-secret'))
     expect(res.status).toBe(201)
     const body = await res.json()
-    expect(body.limits.requestsPerMinute).toBe(300)
+    expect(body.limits.requestsPerMinute).toBe(60)
     expect(body.limits.requestsPerDay).toBe(10000)
   })
 })

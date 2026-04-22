@@ -3,7 +3,6 @@ import { PipelineTimeline }  from "../components/PipelineTimeline"
 import { CascadeAlerts }     from "../components/CascadeAlerts"
 import { PredictiveOverlay } from "../components/PredictiveOverlay"
 import { CycleComparison }   from "../components/CycleComparison"
-import { GateLock }          from "../components/GateLock"
 import { SectionHeader }     from "../components/SectionHeader"
 import { color } from "@/lib/theme"
 
@@ -47,25 +46,21 @@ export function PipelineSection({ pipeline }: PipelineSectionProps) {
         <div style={{ flex:"1 1 300px", minWidth:0 }}>
           <CascadeAlerts alerts={pipeline?.alerts ?? DEFAULT_ALERTS} />
         </div>
-        <GateLock locked={false} requiredPlan="Starter" featureName="Predictive Overlay">
-          <Card style={{ flex:"2 1 400px", minWidth:0, height:"100%" }}>
-            <PredictiveOverlay />
-          </Card>
-        </GateLock>
+        <Card style={{ flex:"2 1 400px", minWidth:0, height:"100%" }}>
+          <PredictiveOverlay />
+        </Card>
       </div>
 
-      <GateLock locked={false} requiredPlan="Starter" featureName="Historical Cycle Comparison">
-        <Card>
-          <CycleComparison
-            current={pipeline?.cycleComparison?.current}
-            cycle2008={pipeline?.cycleComparison?.cycle2008}
-            cycle2016={pipeline?.cycleComparison?.cycle2016}
-            cycle2020={pipeline?.cycleComparison?.cycle2020}
-            currentMonth={pipeline?.cycleComparison?.currentMonth ?? 14}
-            description={pipeline?.cycleComparison?.description}
-          />
-        </Card>
-      </GateLock>
+      <Card>
+        <CycleComparison
+          current={pipeline?.cycleComparison?.current}
+          cycle2008={pipeline?.cycleComparison?.cycle2008}
+          cycle2016={pipeline?.cycleComparison?.cycle2016}
+          cycle2020={pipeline?.cycleComparison?.cycle2020}
+          currentMonth={pipeline?.cycleComparison?.currentMonth ?? 14}
+          description={pipeline?.cycleComparison?.description}
+        />
+      </Card>
     </section>
   )
 }

@@ -2,7 +2,6 @@
 import { AnomalyFeed }        from "../components/AnomalyFeed"
 import { DivergenceDetector } from "../components/DivergenceDetector"
 import { WeeklyBrief }        from "../components/WeeklyBrief"
-import { GateLock }           from "../components/GateLock"
 import { SectionHeader }      from "../components/SectionHeader"
 import { Skeleton }           from "@/app/components/Skeleton"
 import { color } from "@/lib/theme"
@@ -36,18 +35,14 @@ export function SignalsSection({ signals, brief }: SignalsSectionProps) {
         <div style={{ flex:"1 1 320px", minWidth:0 }}>
           <AnomalyFeed alerts={signals?.anomalies ?? []} />
         </div>
-        <GateLock locked={false} requiredPlan="Starter" featureName="Divergence Detector">
-          <div style={{ flex:"1 1 320px", minWidth:0 }}>
-            <DivergenceDetector pairs={signals?.divergences ?? []} />
-          </div>
-        </GateLock>
+        <div style={{ flex:"1 1 320px", minWidth:0 }}>
+          <DivergenceDetector pairs={signals?.divergences ?? []} />
+        </div>
       </div>
 
-      <GateLock locked={false} requiredPlan="Starter" featureName="AI Weekly Intelligence Brief">
-        <Card>
-          <WeeklyBrief {...(brief ?? {})} />
-        </Card>
-      </GateLock>
+      <Card>
+        <WeeklyBrief {...(brief ?? {})} />
+      </Card>
     </section>
   )
 }

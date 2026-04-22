@@ -178,7 +178,7 @@ export default function Dashboard() {
           <div>Data: Census Bureau · BLS · FRED · BEA · EIA · USASpending.gov</div>
           <div style={{ marginTop:4 }}>Updates: 06:00 ET daily · Signals refresh every 15 min</div>
           <div style={{ marginTop:8,display:"flex",gap:16,justifyContent:"flex-end" }}>
-            <Link href="/pricing" style={{ color:AMBER }}>Pricing</Link>
+            <Link href="/pricing" style={{ color:AMBER }}>Free Access</Link>
             <Link href="/contact" style={{ color:T4 }}>Contact</Link>
             <Link href="/" style={{ color:T4 }}>Home</Link>
           </div>

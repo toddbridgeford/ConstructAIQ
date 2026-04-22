@@ -3,7 +3,6 @@ import { FederalPrograms }    from "../components/FederalPrograms"
 import { AgencyVelocity }     from "../components/AgencyVelocity"
 import { FederalLeaderboard } from "../components/FederalLeaderboard"
 import { FederalStateTable }  from "../components/FederalStateTable"
-import { GateLock }           from "../components/GateLock"
 import { SectionHeader }      from "../components/SectionHeader"
 import { Skeleton }           from "@/app/components/Skeleton"
 import { color } from "@/lib/theme"
@@ -40,18 +39,14 @@ export function FederalSection({ federal }: FederalSectionProps) {
         <Card style={{ flex:"1 1 340px" }}>
           <AgencyVelocity agencies={federal?.agencies ?? []} />
         </Card>
-        <GateLock locked={false} requiredPlan="Institutional" featureName="Contractor Leaderboard">
-          <Card style={{ flex:"2 1 440px" }}>
-            <FederalLeaderboard contractors={federal?.contractors ?? []} />
-          </Card>
-        </GateLock>
+        <Card style={{ flex:"2 1 440px" }}>
+          <FederalLeaderboard contractors={federal?.contractors ?? []} />
+        </Card>
       </div>
 
-      <GateLock locked={false} requiredPlan="Institutional" featureName="State Allocation Table">
-        <Card>
-          <FederalStateTable stateAllocations={federal?.stateAllocations ?? []} />
-        </Card>
-      </GateLock>
+      <Card>
+        <FederalStateTable stateAllocations={federal?.stateAllocations ?? []} />
+      </Card>
     </section>
   )
 }
