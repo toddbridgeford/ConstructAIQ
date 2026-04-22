@@ -18,7 +18,7 @@
 
 ## Product
 
-ConstructAIQ is a premium construction market intelligence platform deployed at **constructaiq.trade**.
+ConstructAIQ is a FREE construction intelligence platform — free forever, open API, open methodology. The FRED for the American construction economy. Deployed at **constructaiq.trade**.
 
 It aggregates public construction and macroeconomic data into a unified Supabase time-series store and surfaces:
 
@@ -28,8 +28,16 @@ It aggregates public construction and macroeconomic data into a unified Supabase
 - Materials intelligence — BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI, diesel
 - Federal infrastructure tracking (IIJA/IRA program execution)
 - Scenario builder (rate shocks, IIJA funding, labor/material cost shifts)
-- REST API with tiered key access (Intelligence $490/mo, Professional $1,490/mo, Enterprise custom)
+- SAM.gov active solicitations — live federal bid opportunities (NAICS 236/237/238)
+- REST API with free public access + researcher tier for .edu users
 - Weekly AI intelligence brief
+- Embeddable chart widgets for any third-party website
+
+**Pricing model (free platform):**
+- Dashboard access: **Free forever** — no account required
+- Free API: 1,000 requests/day — open registration
+- Researcher API: 10,000 requests/day — .edu email verification
+- Enterprise: white-label and data licensing only (no paid dashboard tier)
 
 -----
 
@@ -66,11 +74,17 @@ src/lib/models/                          Forecasting engine — DO NOT MODIFY
 src/app/api/                             38+ API routes
 src/app/api/cron/harvest/route.ts        Data harvest cron — FRED, Census, BLS → Supabase
 src/app/api/cron/forecast/route.ts       Forecast compute cron
-src/app/api/federal/route.ts             ⚠ MOCK DATA — needs USASpending API integration
+src/app/api/federal/route.ts             Federal data — SAM.gov solicitations wired; USASpending still mock
 src/app/api/weekly-brief/route.ts        ⚠ STATIC CONTENT — needs Claude API integration
 schema.sql                               PostgreSQL schema — idempotent, safe to re-run
 src/app/globe/GlobeClient.tsx            WebGL globe — impressive; uses hardcoded fonts (fix)
-public/widget.js                         Embeddable widget loader
+public/widget.js                         Embeddable iframe widget loader (data-chart, data-geo, data-theme)
+public/embed.js                          Alias for widget.js (served at /embed.js URL)
+src/app/federal/page.tsx                 Federal Pipeline Feed (public) — programs, solicitations, leaderboard
+src/app/api-access/page.tsx             API documentation, key registration, embed widget generator
+src/app/methodology/page.tsx            Open methodology documentation — models, data sources, confidence
+src/app/methodology/track-record/page.tsx  Forecast accuracy record — MAPE, model comparison, back-tests
+src/app/embed/[chart]/page.tsx          Embeddable chart pages — forecast | federal-pipeline | signals | materials
 ```
 
 -----
