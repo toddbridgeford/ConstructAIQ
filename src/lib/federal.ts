@@ -23,7 +23,7 @@ const NAICS = ['2361','2362','2371','2372','2379','2381','2382','2383','2389']
 
 async function fetchFromUSASpending(): Promise<StateAllocation[]> {
   const res = await fetch(
-    'https://api.usaspending.gov/api/v2/spending_by_geography/',
+    'https://api.usaspending.gov/api/v2/search/spending_by_geography/',
     {
       method:  'POST',
       headers: {
