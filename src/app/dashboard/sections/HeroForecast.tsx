@@ -9,6 +9,7 @@ import { LeadingIndicatorCard }   from "../components/LeadingIndicatorCard"
 import { CycleClock }             from "../components/CycleClock"
 import { SectionHeader }   from "../components/SectionHeader"
 import { SectionVerdict }  from "../components/SectionVerdict"
+import { DriverPanel }     from "../components/DriverPanel"
 import { BottomSheet }     from "@/app/components/BottomSheet"
 import { Skeleton }       from "@/app/components/Skeleton"
 import { color, font } from "@/lib/theme"
@@ -108,6 +109,8 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
           onScenarioChange={(line) => { setScenarioLine(line); setSheetOpen(false) }}
         />
       </BottomSheet>
+
+      <DriverPanel seriesId="TTLCONS" />
 
       {/* Supporting metrics */}
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>

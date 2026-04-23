@@ -7,6 +7,7 @@ import { ProjectFeed, type Project } from "../components/ProjectFeed"
 import { ProjectMap } from "../components/ProjectMap"
 import { SectionHeader } from "../components/SectionHeader"
 import { SectionVerdict } from "../components/SectionVerdict"
+import { DriverPanel }   from "../components/DriverPanel"
 import { EmptyState } from "@/app/components/ui/EmptyState"
 import { FreshnessIndicator } from "@/app/components/ui/FreshnessIndicator"
 import { Skeleton } from "@/app/components/Skeleton"
@@ -130,6 +131,7 @@ export function PermitsSection({ data }: Props) {
                 />
               )
             })()}
+            <DriverPanel seriesId="PERMIT" />
             <div style={{ marginTop: 20 }}>
               {data.cities.length === 0 ? (
                 <EmptyState

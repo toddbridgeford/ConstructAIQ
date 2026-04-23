@@ -74,6 +74,16 @@ function trimPayload(url: string, data: unknown): unknown {
     return { ...d, signals: signals.slice(0, 5) }
   }
 
+  if (url.includes('/api/driver-analysis')) {
+    return {
+      series:         d.series,
+      driver_summary: d.driver_summary,
+      components:     d.components,
+      macro_context:  d.macro_context,
+      as_of:          d.as_of,
+    }
+  }
+
   if (url.includes('/api/benchmark')) {
     // Return only the fields the LLM needs — omit raw percentile internals
     return {
@@ -161,6 +171,11 @@ function selectDataSources(question: string): string[] {
 
   if (q.includes('layoff') || q.includes('warn') || q.includes('cuts') || q.includes('reduction') || q.includes('contraction'))
     sources.push('/api/warn')
+
+  if (q.includes('why') || q.includes('cause') || q.includes('driven') || q.includes('reason') ||
+      q.includes('explain') || q.includes('what happened') || q.includes('decline') ||
+      q.includes('increase') || q.includes('drop') || q.includes('rise') || q.includes('surge'))
+    sources.push('/api/driver-analysis?series=TTLCONS', '/api/driver-analysis?series=PERMIT')
 
   return [...new Set(sources)]
 }
