@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { classifyScore, classifyConfidence } from '@/lib/verdict'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -207,13 +208,8 @@ export async function GET(request: Request) {
 
   // ── Classification ────────────────────────────────────────────────────────
 
-  const overall: 'EXPAND' | 'HOLD' | 'CONTRACT' =
-    score >= 3  ? 'EXPAND'   :
-    score <= -3 ? 'CONTRACT' : 'HOLD'
-
-  const confidence: 'HIGH' | 'MEDIUM' | 'LOW' =
-    directional >= 5 ? 'HIGH'   :
-    directional >= 3 ? 'MEDIUM' : 'LOW'
+  const overall     = classifyScore(score)
+  const confidence  = classifyConfidence(directional)
 
   const headline   = buildHeadline(overall, cshiScore, forecastPct, warnCount)
   const supporting = bullets.slice(0, 3)

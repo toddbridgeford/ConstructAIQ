@@ -13,12 +13,12 @@ interface Recommendation {
 }
 
 // ── Priority sort weight ─────────────────────────────────────
-const PRIORITY_WEIGHT = { HIGH: 3, MEDIUM: 2, LOW: 1 } as const
+export const PRIORITY_WEIGHT = { HIGH: 3, MEDIUM: 2, LOW: 1 } as const
 
 // ── Role rule sets ───────────────────────────────────────────
 // Each rule: a test function over signal data + the rec to emit
 
-interface Signals {
+export interface Signals {
   verdict:            string
   lics:               number
   recessionProb:      number
@@ -36,7 +36,7 @@ type RuleSet = Array<{
   rec:  (s: Signals) => Recommendation
 }>
 
-const CONTRACTOR_RULES: RuleSet = [
+export const CONTRACTOR_RULES: RuleSet = [
   {
     test: s => s.verdict === 'EXPAND' && s.lics > 60,
     rec:  _s => ({
@@ -138,7 +138,7 @@ const CONTRACTOR_RULES: RuleSet = [
   },
 ]
 
-const LENDER_RULES: RuleSet = [
+export const LENDER_RULES: RuleSet = [
   {
     test: s => s.recessionProb > 35,
     rec:  s => ({
@@ -211,7 +211,7 @@ const LENDER_RULES: RuleSet = [
   },
 ]
 
-const SUPPLIER_RULES: RuleSet = [
+export const SUPPLIER_RULES: RuleSet = [
   {
     test: s => s.demandDrivenMsas >= 3 && s.verdict === 'EXPAND',
     rec:  _s => ({
@@ -288,6 +288,25 @@ const ROLE_RULES: Record<string, RuleSet> = {
   contractor: CONTRACTOR_RULES,
   lender:     LENDER_RULES,
   supplier:   SUPPLIER_RULES,
+}
+
+/** Pure function: run rules against signals, deduplicate by category, return top 3. */
+export function runRules(rules: RuleSet, signals: Signals): Recommendation[] {
+  const recs = rules
+    .filter(r => r.test(signals))
+    .map(r => r.rec(signals))
+
+  const byCat = new Map<string, Recommendation>()
+  for (const rec of recs) {
+    const existing = byCat.get(rec.category)
+    if (!existing || PRIORITY_WEIGHT[rec.priority] > PRIORITY_WEIGHT[existing.priority]) {
+      byCat.set(rec.category, rec)
+    }
+  }
+
+  return [...byCat.values()]
+    .sort((a, b) => PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority])
+    .slice(0, 3)
 }
 
 export async function GET(request: Request) {
@@ -385,27 +404,7 @@ export async function GET(request: Request) {
   }
 
   // ── Run rules ────────────────────────────────────────────
-  const recs: Recommendation[] = rules
-    .filter(r => r.test(signals))
-    .map(r => r.rec(signals))
-
-  // Deduplicate by category (keep highest priority per category)
-  const byCat = new Map<string, Recommendation>()
-  for (const rec of recs) {
-    const existing = byCat.get(rec.category)
-    if (!existing ||
-        PRIORITY_WEIGHT[rec.priority] >
-        PRIORITY_WEIGHT[existing.priority]) {
-      byCat.set(rec.category, rec)
-    }
-  }
-
-  const top3 = [...byCat.values()]
-    .sort((a, b) =>
-      PRIORITY_WEIGHT[b.priority] -
-      PRIORITY_WEIGHT[a.priority]
-    )
-    .slice(0, 3)
+  const top3 = runRules(rules, signals)
 
   return NextResponse.json({
     role,
