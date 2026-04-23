@@ -26,69 +26,134 @@ jobs:
 
       - name: 1 — Harvest government data (FRED/BLS/Census)
         if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'harvest' || github.event_name == 'schedule' }}
+        continue-on-error: true
         run: |
           echo "Fetching government data..."
-          curl -f -s -X GET "$APP_URL/api/cron/harvest" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            -o harvest.json
-          echo "Harvest result:"
-          cat harvest.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Series processed: {len(d.get(\"results\",{}))}')" 2>/dev/null || cat harvest.json
+          HTTP=$(curl -s -o harvest.json -w "%{http_code}" -X GET "$APP_URL/api/cron/harvest" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          echo "HTTP $HTTP"
+          cat harvest.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if 'error' in d:
+            print('ERROR:', d['error'])
+            sys.exit(1)
+          print(f'Harvested: {d.get(\"harvested\",[])}')
+          print(f'Records: {d.get(\"recordsUpserted\",0)} | Errors: {len(d.get(\"errors\",[]))}')
+          if d.get('errors'): print('Errors:', d['errors'])
+          " 2>/dev/null || cat harvest.json
+          [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || (echo "Non-2xx response: HTTP $HTTP" && exit 1)
 
       - name: Wait for harvest to settle
         run: sleep 15
 
       - name: 2 — Run forecast models
         if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'forecast' || github.event_name == 'schedule' }}
+        continue-on-error: true
         run: |
           echo "Running forecast models..."
-          curl -f -s -X GET "$APP_URL/api/cron/forecast" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            -o forecast.json
-          echo "Forecast result:"
-          cat forecast.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Models run: {len(d.get(\"processed\",[]))}')" 2>/dev/null || cat forecast.json
+          HTTP=$(curl -s -o forecast.json -w "%{http_code}" -X GET "$APP_URL/api/cron/forecast" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          echo "HTTP $HTTP"
+          cat forecast.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if 'error' in d:
+            print('ERROR:', d['error'])
+            sys.exit(1)
+          print(f'Processed: {d.get(\"processed\",[])}')
+          print(f'Forecasts written: {d.get(\"forecastsWritten\",0)} | Errors: {len(d.get(\"errors\",[]))}')
+          if d.get('errors'): print('Errors:', d['errors'])
+          " 2>/dev/null || cat forecast.json
+          [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || (echo "Non-2xx response: HTTP $HTTP" && exit 1)
 
       - name: 3 — Refresh federal awards
         if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'federal' || github.event_name == 'schedule' }}
+        continue-on-error: true
         run: |
           echo "Refreshing federal data..."
-          curl -f -s -X GET "$APP_URL/api/cron/federal" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            -o federal.json
-          cat federal.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Federal: {d.get(\"fromCache\",\"unknown\")}')" 2>/dev/null || cat federal.json
+          HTTP=$(curl -s -o federal.json -w "%{http_code}" -X GET "$APP_URL/api/cron/federal" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          echo "HTTP $HTTP"
+          cat federal.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if 'error' in d:
+            print('ERROR:', d['error'])
+            sys.exit(1)
+          print(f'States refreshed: {d.get(\"statesRefreshed\",0)} | From cache: {d.get(\"fromCache\",\"unknown\")}')
+          " 2>/dev/null || cat federal.json
+          [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || (echo "Non-2xx response: HTTP $HTTP" && exit 1)
 
       - name: 4 — Fetch city permits
         if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'permits' || github.event_name == 'schedule' }}
+        continue-on-error: true
         run: |
           echo "Fetching city permits..."
-          curl -f -s -X GET "$APP_URL/api/cron/permits" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            -o permits.json
-          cat permits.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Cities processed: {d.get(\"cities\",0)}')" 2>/dev/null || cat permits.json
+          HTTP=$(curl -s -o permits.json -w "%{http_code}" -X GET "$APP_URL/api/cron/permits" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          echo "HTTP $HTTP"
+          cat permits.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if 'error' in d:
+            print('ERROR:', d['error'])
+            sys.exit(1)
+          cities = d.get('cities', 0)
+          if cities == 0:
+            print('No permit sources configured yet — run seed-permit-sources.ts')
+          else:
+            print(f'Cities processed: {cities}')
+            for city, r in d.get('results', {}).items():
+              print(f'  {city}: inserted={r[\"inserted\"]} promoted={r[\"promoted\"]} errors={r[\"errors\"]}')
+          " 2>/dev/null || cat permits.json
+          [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || (echo "Non-2xx response: HTTP $HTTP" && exit 1)
 
       - name: 5 — Weekly brief (Mondays only)
         if: ${{ github.event_name == 'schedule' }}
+        continue-on-error: true
         run: |
           DAY=$(date +%u)
           if [ "$DAY" = "1" ]; then
             echo "Monday — generating weekly brief..."
-            curl -f -s -X GET "$APP_URL/api/cron/brief" \
-              -H "Authorization: Bearer $CRON_SECRET"
+            HTTP=$(curl -s -o brief.json -w "%{http_code}" -X GET "$APP_URL/api/cron/brief" \
+              -H "Authorization: Bearer $CRON_SECRET")
+            echo "HTTP $HTTP"
+            cat brief.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          print(f'Source: {d.get(\"source\",\"unknown\")} | Status: {d.get(\"status\",\"unknown\")}')
+          if d.get('error'): print('Error:', d['error'])
+          " 2>/dev/null || cat brief.json
+            [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || (echo "Non-2xx response: HTTP $HTTP" && exit 1)
           else
             echo "Not Monday — skipping brief (day=$DAY)"
           fi
 
       - name: 6 — Project summaries (Sundays only)
         if: ${{ github.event_name == 'schedule' }}
+        continue-on-error: true
         run: |
           DAY=$(date +%u)
           if [ "$DAY" = "7" ]; then
             echo "Sunday — generating project summaries..."
-            curl -f -s -X GET "$APP_URL/api/cron/project-summaries" \
-              -H "Authorization: Bearer $CRON_SECRET"
+            HTTP=$(curl -s -o summaries.json -w "%{http_code}" -X GET "$APP_URL/api/cron/project-summaries" \
+              -H "Authorization: Bearer $CRON_SECRET")
+            echo "HTTP $HTTP"
+            cat summaries.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          print(f'Processed: {d.get(\"processed\",0)} | Failed: {d.get(\"failed\",0)}')
+          if d.get('message'): print(d['message'])
+          " 2>/dev/null || cat summaries.json
+            [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || (echo "Non-2xx response: HTTP $HTTP" && exit 1)
           else
             echo "Not Sunday — skipping project summaries (day=$DAY)"
           fi
 
       - name: Summary
         if: always()
-        run: echo "Data refresh complete at $(date -u)"
+        run: |
+          echo "Data refresh complete at $(date -u)"
+          echo "Individual step failures above are logged but do not block the workflow."
+          echo "Check step outputs for HTTP status codes and error details."

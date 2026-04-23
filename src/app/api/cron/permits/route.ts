@@ -23,8 +23,11 @@ export async function GET(request: Request) {
     .select('*')
     .eq('status', 'active')
 
-  if (srcErr || !sources?.length) {
-    return NextResponse.json({ error: 'No active permit sources' }, { status: 500 })
+  if (srcErr) {
+    return NextResponse.json({ error: srcErr.message }, { status: 500 })
+  }
+  if (!sources?.length) {
+    return NextResponse.json({ ok: true, cities: 0, results: {}, duration: Date.now() - start, message: 'No active permit sources configured — run seed-permit-sources.ts' })
   }
 
   for (const source of sources) {
