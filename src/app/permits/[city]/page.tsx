@@ -1,5 +1,6 @@
 'use client'
 import { use, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Nav } from '@/app/components/Nav'
 import { CityPermitDetail, type CityPermitData } from '@/app/dashboard/components/CityPermitDetail'
 import { BenchmarkBadge } from '@/app/components/ui/BenchmarkBadge'
@@ -84,7 +85,7 @@ export default function CityPermitsPage({ params }: { params: Promise<{ city: st
 
         {/* ── Breadcrumb ─────────────────────────────────────────────────── */}
         <div style={{ fontFamily: MONO, fontSize: 11, color: T4, marginBottom: 28, letterSpacing: '0.06em' }}>
-          <a href="/permits" style={{ color: BLUE }}>Permits</a>
+          <Link href="/permits" style={{ color: BLUE }}>Permits</Link>
           {' / '}
           <span style={{ color: T3 }}>{cityName}</span>
         </div>
@@ -267,7 +268,7 @@ export default function CityPermitsPage({ params }: { params: Promise<{ city: st
           marginTop:     32,
         }}>
           Source: City permit API · Benchmark: 24-month local history ·{' '}
-          <a href="/permits" style={{ color: BLUE }}>← All cities</a>
+          <Link href="/permits" style={{ color: BLUE }}>← All cities</Link>
         </div>
 
       </div>
