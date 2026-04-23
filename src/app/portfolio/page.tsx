@@ -4,6 +4,7 @@ import { Nav } from "@/app/components/Nav"
 import { BenchmarkBadge, type BenchmarkResult } from "@/app/components/ui/BenchmarkBadge"
 import { color, font, radius } from "@/lib/theme"
 import { getPrefs, removeMarket, PREF_EVENT, type UserPreferences } from "@/lib/preferences"
+import type { SectorResponse, Verdict } from "@/app/api/sector/[sector]/route"
 import type { SatelliteMsa } from "@/app/dashboard/components/SatelliteHeatmap"
 import type { CityPermitData } from "@/app/dashboard/components/CityPermitDetail"
 import type { Project } from "@/app/dashboard/components/ProjectFeed"
@@ -175,6 +176,114 @@ const GROUP_TD: React.CSSProperties = {
 
 const SYS  = font.sys
 const MONO = font.mono
+
+// ── Sector health row ──────────────────────────────────────────────────────
+
+function sectorVerdictColor(v: Verdict | undefined): string {
+  if (v === 'EXPANDING')   return color.green
+  if (v === 'CONTRACTING') return color.red
+  return color.amber
+}
+
+type SectorKey = 'residential' | 'commercial' | 'infrastructure' | 'industrial'
+
+const SECTOR_LABELS: Record<SectorKey, string> = {
+  residential:    'Residential',
+  commercial:     'Commercial',
+  infrastructure: 'Infrastructure',
+  industrial:     'Industrial',
+}
+
+function SectorVerdictChip({ sector, data }: { sector: SectorKey; data: SectorResponse | null }) {
+  const col = sectorVerdictColor(data?.verdict)
+  return (
+    <a href={`/sectors/${sector}`} style={{ textDecoration: 'none' }}>
+      <div style={{
+        background:    color.bg2,
+        border:        `1px solid ${data ? col + '44' : color.bd2}`,
+        borderTop:     `2px solid ${data ? col : color.bd2}`,
+        borderRadius:  10,
+        padding:       '12px 16px',
+        minWidth:      140,
+        display:       'flex',
+        flexDirection: 'column',
+        gap:           6,
+        cursor:        'pointer',
+        transition:    'border-color 0.15s',
+      }}>
+        <div style={{ fontFamily: font.mono, fontSize: 10, color: color.t4, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>
+          {SECTOR_LABELS[sector]}
+        </div>
+        {data ? (
+          <>
+            <div style={{ fontFamily: font.mono, fontSize: 11, fontWeight: 700, color: col, letterSpacing: '0.06em' }}>
+              {data.verdict}
+            </div>
+            <div style={{ fontFamily: font.sys, fontSize: 11, color: color.t4, lineHeight: 1.4 }}>
+              {data.headline.split('—')[0].trim().slice(0, 48)}…
+            </div>
+          </>
+        ) : (
+          <div style={{
+            height: 12, borderRadius: 4, background: color.bg3,
+            animation: 'shimmer 1.5s infinite',
+          }} />
+        )}
+      </div>
+    </a>
+  )
+}
+
+function SectorHealthRow({ role }: { role: string | null }) {
+  type SectorData = Partial<Record<SectorKey, SectorResponse>>
+  const [sectors, setSectors] = useState<SectorData>({})
+
+  const toFetch: SectorKey[] = role === 'lender'
+    ? ['residential', 'commercial', 'infrastructure', 'industrial']
+    : ['residential', 'commercial']
+
+  useEffect(() => {
+    let mounted = true
+    void Promise.all(
+      toFetch.map(id =>
+        fetch(`/api/sector/${id}`)
+          .then(r => r.ok ? r.json() as Promise<SectorResponse> : null)
+          .then(d => { if (mounted && d) setSectors(prev => ({ ...prev, [id]: d })) })
+          .catch(() => null)
+      )
+    )
+    return () => { mounted = false }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role])
+
+  const rowLabel = role === 'lender' ? 'Sector Risk Overview' : 'Your Sector Health'
+
+  return (
+    <div style={{
+      background:    color.bg1,
+      border:        `1px solid ${color.bd1}`,
+      borderRadius:  12,
+      padding:       '20px 24px',
+      marginBottom:  24,
+    }}>
+      <div style={{
+        fontFamily:    font.mono,
+        fontSize:      10,
+        color:         color.t4,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        marginBottom:  14,
+      }}>
+        {rowLabel}
+      </div>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' as const }}>
+        {toFetch.map(id => (
+          <SectorVerdictChip key={id} sector={id} data={sectors[id] ?? null} />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function PortfolioPage() {
   const [prefs,    setPrefsState] = useState<UserPreferences>({ markets: [], role: null, sectors: [], set_at: 0 })
@@ -370,6 +479,11 @@ export default function PortfolioPage() {
             + ADD MARKET
           </a>
         </div>
+
+        {/* Sector health row — contractor or lender roles */}
+        {(prefs.role === 'contractor' || prefs.role === 'lender') && (
+          <SectorHealthRow role={prefs.role} />
+        )}
 
         {/* Scrollable table container */}
         <div style={{ overflowX: 'auto', borderRadius: 12, border: `1px solid ${color.bd1}` }}>

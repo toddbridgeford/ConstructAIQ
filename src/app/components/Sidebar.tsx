@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, TrendingUp, Building2, MapPin, FolderOpen,
   Radio, BarChart2, AlertTriangle, MessageSquare,
-  BookOpen, Key, PieChart, Newspaper, Mail, Calendar, type LucideIcon,
+  BookOpen, Key, PieChart, Newspaper, Mail, Calendar, Layers, type LucideIcon,
 } from "lucide-react"
 import { color, font, layout as L, type as TS } from "@/lib/theme"
 import { getPrefs, removeMarket, PREF_EVENT, type UserPreferences } from "@/lib/preferences"
@@ -36,6 +36,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { label: "My Portfolio",     href: "/portfolio",           Icon: PieChart        },
   { label: "Overview",         href: "/dashboard",          Icon: LayoutDashboard },
+  { label: "Sectors",          href: "/sectors",             Icon: Layers          },
   { label: "Forecast",         href: "/dashboard#forecast",  Icon: TrendingUp      },
   { label: "Federal Pipeline", href: "/federal",             Icon: Building2       },
   { label: "City Permits",     href: "/permits",             Icon: MapPin          },
