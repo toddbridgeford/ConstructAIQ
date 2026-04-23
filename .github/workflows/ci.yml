@@ -3,9 +3,11 @@ name: CI
 on:
   push:
     branches:
+      - Predictive-Model
       - main
   pull_request:
     branches:
+      - Predictive-Model
       - main
 
 jobs:

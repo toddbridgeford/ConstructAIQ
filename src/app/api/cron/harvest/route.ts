@@ -11,7 +11,7 @@ const CENSUS_KEY = process.env.CENSUS_API_KEY || ''
 
 export const runtime  = 'nodejs'
 export const dynamic  = 'force-dynamic'
-export const maxDuration = 60  // seconds (Vercel Pro allows 60s for cron)
+export const maxDuration = 10
 
 export async function GET(request: Request) {
   // Verify Vercel cron secret

@@ -6,32 +6,8 @@
   "devCommand": "next dev",
   "crons": [
     {
-      "path": "/api/cron/permits",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/harvest",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/forecast",
-      "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/federal",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/brief",
-      "schedule": "0 12 * * 1"
-    },
-    {
-      "path": "/api/cron/project-summaries",
-      "schedule": "0 10 * * 0"
-    },
-    {
       "path": "/api/cron/push-alerts",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }

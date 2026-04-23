@@ -4,7 +4,7 @@ import { supabaseAdmin }        from '@/lib/supabase'
 
 export const runtime     = 'nodejs'
 export const dynamic     = 'force-dynamic'
-export const maxDuration = 30
+export const maxDuration = 10
 
 function cronSecret() { return process.env.CRON_SECRET || '' }
 

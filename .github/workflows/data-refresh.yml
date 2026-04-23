@@ -1,0 +1,94 @@
+name: Daily Data Refresh
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Which job to run (all, harvest, forecast, federal, permits)'
+        required: false
+        default: 'all'
+
+jobs:
+  refresh:
+    name: Refresh all data sources
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      APP_URL: https://constructaiq.trade
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 1 — Harvest government data (FRED/BLS/Census)
+        if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'harvest' || github.event_name == 'schedule' }}
+        run: |
+          echo "Fetching government data..."
+          curl -f -s -X GET "$APP_URL/api/cron/harvest" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -o harvest.json
+          echo "Harvest result:"
+          cat harvest.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Series processed: {len(d.get(\"results\",{}))}')" 2>/dev/null || cat harvest.json
+
+      - name: Wait for harvest to settle
+        run: sleep 15
+
+      - name: 2 — Run forecast models
+        if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'forecast' || github.event_name == 'schedule' }}
+        run: |
+          echo "Running forecast models..."
+          curl -f -s -X GET "$APP_URL/api/cron/forecast" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -o forecast.json
+          echo "Forecast result:"
+          cat forecast.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Models run: {len(d.get(\"processed\",[]))}')" 2>/dev/null || cat forecast.json
+
+      - name: 3 — Refresh federal awards
+        if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'federal' || github.event_name == 'schedule' }}
+        run: |
+          echo "Refreshing federal data..."
+          curl -f -s -X GET "$APP_URL/api/cron/federal" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -o federal.json
+          cat federal.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Federal: {d.get(\"fromCache\",\"unknown\")}')" 2>/dev/null || cat federal.json
+
+      - name: 4 — Fetch city permits
+        if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'permits' || github.event_name == 'schedule' }}
+        run: |
+          echo "Fetching city permits..."
+          curl -f -s -X GET "$APP_URL/api/cron/permits" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -o permits.json
+          cat permits.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Cities processed: {d.get(\"cities\",0)}')" 2>/dev/null || cat permits.json
+
+      - name: 5 — Weekly brief (Mondays only)
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          DAY=$(date +%u)
+          if [ "$DAY" = "1" ]; then
+            echo "Monday — generating weekly brief..."
+            curl -f -s -X GET "$APP_URL/api/cron/brief" \
+              -H "Authorization: Bearer $CRON_SECRET"
+          else
+            echo "Not Monday — skipping brief (day=$DAY)"
+          fi
+
+      - name: 6 — Project summaries (Sundays only)
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          DAY=$(date +%u)
+          if [ "$DAY" = "7" ]; then
+            echo "Sunday — generating project summaries..."
+            curl -f -s -X GET "$APP_URL/api/cron/project-summaries" \
+              -H "Authorization: Bearer $CRON_SECRET"
+          else
+            echo "Not Sunday — skipping project summaries (day=$DAY)"
+          fi
+
+      - name: Summary
+        if: always()
+        run: echo "Data refresh complete at $(date -u)"

@@ -98,11 +98,11 @@ export async function GET() {
       nextHarvest:   'Every 4 hours (cron: 0 */4 * * *)',
     },
     apis: {
-      total:    14,
-      healthy:  14,
+      total:    13,
+      healthy:  13,
       routes: [
         '/api/census', '/api/bls', '/api/fred', '/api/rates',
-        '/api/forecast', '/api/contracts',
+        '/api/forecast',
         '/api/bea', '/api/eia', '/api/signals', '/api/news',
         '/api/map', '/api/pricewatch', '/api/subscribe', '/api/status',
       ],
