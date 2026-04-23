@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { fetchCityPermits } from '@/lib/permits'
 import { promotePermitsToProjects } from '@/lib/projects'
+import { upsertEntityBatch, writeEventLogBatch, type EntityRow, type EventRow } from '@/lib/entity'
+import type { NormalizedPermit } from '@/lib/permits'
 
 function cronSecret() { return process.env.CRON_SECRET || '' }
 
@@ -16,7 +18,7 @@ export async function GET(request: Request) {
   }
 
   const start   = Date.now()
-  const results: Record<string, { inserted: number; errors: number; skipped: number; promoted: number }> = {}
+  const results: Record<string, { inserted: number; errors: number; skipped: number; promoted: number; entities: number; events: number }> = {}
 
   const { data: sources, error: srcErr } = await supabaseAdmin
     .from('permit_sources')
@@ -31,7 +33,7 @@ export async function GET(request: Request) {
   }
 
   for (const source of sources) {
-    results[source.city_code] = { inserted: 0, errors: 0, skipped: 0, promoted: 0 }
+    results[source.city_code] = { inserted: 0, errors: 0, skipped: 0, promoted: 0, entities: 0, events: 0 }
 
     try {
       const permits = await fetchCityPermits(source, 2000, 180)
@@ -75,6 +77,15 @@ export async function GET(request: Request) {
       const promoted = await promotePermitsToProjects(source.city_code)
       results[source.city_code].promoted = promoted
 
+      // Entity ingestion — runs after permit upsert; non-fatal if it fails
+      const ingested = await ingestPermitEntities(permits, {
+        city_code:  source.city_code,
+        state_code: source.state_code as string,
+        msa_code:   source.msa_code as string | null,
+      })
+      results[source.city_code].entities = ingested.entities
+      results[source.city_code].events   = ingested.events
+
     } catch (err) {
       console.error(`[permits] ${source.city_code} failed:`, err)
       results[source.city_code].errors++
@@ -93,6 +104,101 @@ export async function GET(request: Request) {
     cities:   Object.keys(results).length,
   })
 }
+
+// ---------------------------------------------------------------------------
+// Entity ingestion helpers
+// ---------------------------------------------------------------------------
+
+async function ingestPermitEntities(
+  permits: NormalizedPermit[],
+  source: { city_code: string; state_code: string; msa_code: string | null },
+): Promise<{ entities: number; events: number }> {
+  let totalEntities = 0
+  let totalEvents   = 0
+  const now = new Date().toISOString().split('T')[0]
+
+  const BATCH = 200
+  for (let i = 0; i < permits.length; i += BATCH) {
+    const batch = permits.slice(i, i + BATCH)
+
+    const entityRows: EntityRow[] = batch.map(p => ({
+      type:        'permit',
+      external_id: p.permit_number,
+      source:      'socrata',
+      label:       `${(p.permit_type ?? 'permit').replace(/_/g, ' ')} at ${p.address}`.trim(),
+      state_code:  source.state_code || null,
+      metro_code:  source.msa_code || source.city_code,
+      attributes: {
+        permit_type:  p.permit_type,
+        permit_class: p.permit_class,
+        status:       p.status,
+        valuation:    p.valuation,
+        sqft:         p.sqft,
+        units:        p.units,
+        address:      p.address,
+        zip_code:     p.zip_code,
+        city_code:    source.city_code,
+        applied_date: p.applied_date,
+        issued_date:  p.issued_date,
+      },
+    }))
+
+    const idMap = await upsertEntityBatch(entityRows)
+    totalEntities += idMap.size
+
+    const eventRows: EventRow[] = []
+    for (const p of batch) {
+      const entityId = idMap.get(p.permit_number)
+      if (!entityId) continue
+
+      const isIssued  = /issued|approved|active|final|complet/i.test(p.status ?? '')
+      const eventDate = (isIssued ? p.issued_date : p.applied_date) ?? now
+
+      // Primary event: permit.issued or permit.filed
+      eventRows.push({
+        entity_id:   entityId,
+        event_type:  isIssued ? 'permit.issued' : 'permit.filed',
+        event_date:  eventDate,
+        source:      'socrata',
+        payload: {
+          permit_number: p.permit_number,
+          permit_type:   p.permit_type,
+          permit_class:  p.permit_class,
+          status:        p.status,
+          valuation:     p.valuation,
+          address:       p.address,
+          city_code:     source.city_code,
+        },
+        signal_value: p.valuation ? Math.min(100, Math.log10(p.valuation) * 10) : null,
+      })
+
+      // Secondary event: permit.filed on applied_date when a separate issued date exists
+      if (isIssued && p.applied_date && p.applied_date !== eventDate) {
+        eventRows.push({
+          entity_id:  entityId,
+          event_type: 'permit.filed',
+          event_date: p.applied_date,
+          source:     'socrata',
+          payload: {
+            permit_number: p.permit_number,
+            permit_type:   p.permit_type,
+            status:        'applied',
+            city_code:     source.city_code,
+          },
+        })
+      }
+    }
+
+    const written = await writeEventLogBatch(eventRows)
+    totalEvents += written
+  }
+
+  return { entities: totalEntities, events: totalEvents }
+}
+
+// ---------------------------------------------------------------------------
+// Monthly aggregation (unchanged)
+// ---------------------------------------------------------------------------
 
 async function computeMonthlyAgg(cityCode: string): Promise<void> {
   const cutoff = new Date(Date.now() - 365 * 86400000).toISOString().split('T')[0]

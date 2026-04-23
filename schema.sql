@@ -1027,3 +1027,18 @@ CREATE POLICY "anon_read_project_state_history"
 
 CREATE POLICY "service_all_project_state_history"
   ON project_state_history FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Deduplication indexes for entity ingestion pipeline
+-- ---------------------------------------------------------------------------
+
+-- One event per (entity, type, date) — enables ON CONFLICT DO NOTHING dedup
+-- in the writeEventLogBatch helper.  NULL entity_ids are exempt (NULL != NULL
+-- in PostgreSQL unique indexes), so orphan events remain insertable.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_event_log_entity_type_date
+  ON event_log (entity_id, event_type, event_date);
+
+-- One edge per (from, to, type) triple — prevents duplicate graph edges.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_entity_edges_triple
+  ON entity_edges (from_id, to_id, edge_type);
