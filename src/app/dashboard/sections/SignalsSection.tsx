@@ -5,6 +5,7 @@ import { DivergenceDetector } from "../components/DivergenceDetector"
 import { WeeklyBrief } from "../components/WeeklyBrief"
 import { NLQInterface } from "../components/NLQInterface"
 import { WarnFeed } from "../components/WarnFeed"
+import { SectionHeader } from "../components/SectionHeader"
 
 const MONO = font.mono
 
@@ -37,8 +38,13 @@ function Divider({ label }: { label: string }) {
 
 export function SignalsSection({ signals, brief, warn }: Props) {
   return (
-    <div>
-      {/* NLQ — Ask the Data */}
+    <section id="signals" style={{ paddingTop: 48, paddingBottom: 8 }}>
+      <SectionHeader
+        sectionId="05"
+        title="Market Signals"
+        subtitle="Anomalies, divergences, WARN Act alerts, and AI weekly brief"
+        shareSection="signals"
+      />
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
           <span style={{ fontFamily: MONO, fontSize: 19, fontWeight: 700, color: color.t1, letterSpacing: "-0.02em" }}>
@@ -88,6 +94,6 @@ export function SignalsSection({ signals, brief, warn }: Props) {
       }}>
         <WeeklyBrief {...(brief ?? {})} />
       </div>
-    </div>
+    </section>
   )
 }

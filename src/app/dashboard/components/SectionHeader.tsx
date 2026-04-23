@@ -1,5 +1,6 @@
 'use client'
 import { font, color } from '@/lib/theme'
+import { ShareButton } from '@/app/components/ui/ShareButton'
 
 const MONO = font.mono, SYS = font.sys
 
@@ -12,15 +13,17 @@ interface SectionHeaderProps {
   rightContent?: React.ReactNode
   onExportCSV?:  () => void
   onExportPNG?:  () => void
+  shareSection?: string
 }
 
 export function SectionHeader({
-  title, subtitle, badge, live, rightContent, onExportCSV, onExportPNG,
+  title, subtitle, badge, live, rightContent, onExportCSV, onExportPNG, shareSection,
 }: SectionHeaderProps) {
   const hasExports = onExportCSV || onExportPNG
-  const right = rightContent ?? (hasExports
+  const right = rightContent ?? ((hasExports || shareSection)
     ? (
-      <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginTop: 2 }}>
+      <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginTop: 2, alignItems: 'center' }}>
+        {shareSection && <ShareButton section={shareSection} title={title} />}
         {onExportCSV && (
           <button onClick={onExportCSV} style={{
             background: 'transparent', color: color.t4,

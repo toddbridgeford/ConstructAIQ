@@ -110,6 +110,7 @@ export function SatelliteSection({ data }: Props) {
         title="Ground Signal Intelligence"
         badge="SENTINEL-2"
         subtitle="Satellite-detected construction activity · 20 US markets · Updated weekly"
+        shareSection="satellite"
       />
 
       {/* Tab bar */}

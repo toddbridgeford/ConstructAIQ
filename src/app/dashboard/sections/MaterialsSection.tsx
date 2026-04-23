@@ -39,7 +39,7 @@ export function MaterialsSection({ commodities, procurementValue, heatmapData, c
   const items = (commodities.length > 0 ? commodities : FALLBACK_COMMODITIES).slice(0, 6)
   return (
     <section id="materials" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="04" title="Materials Intelligence" subtitle="BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI, and diesel" />
+      <SectionHeader sectionId="04" title="Materials Intelligence" subtitle="BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI, and diesel" shareSection="materials" />
 
       <div style={{ display:"flex", gap:14, flexWrap:"wrap", marginBottom:20 }}>
         {loading

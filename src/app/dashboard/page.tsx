@@ -17,6 +17,13 @@ import Link                     from "next/link"
 const SYS  = font.sys
 const MONO = font.mono
 
+const NAV_SECTIONS = [
+  { id: 'overview'  },
+  { id: 'forecast'  },
+  { id: 'materials' },
+  { id: 'signals'   },
+]
+
 function DashboardFooter() {
   return (
     <div style={{
@@ -75,6 +82,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!getPrefs().role) setShowRolePrompt(true)
+    const hash = window.location.hash.replace('#', '')
+    if (hash && NAV_SECTIONS.some(s => s.id === hash)) {
+      setSection(hash)
+      setTimeout(() => {
+        document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' })
+      }, 300)
+    }
   }, [])
 
   // ── Data state ──────────────────────────────────────────────────────────
