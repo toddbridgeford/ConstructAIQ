@@ -8,9 +8,7 @@ import { ErrorState }         from "@/app/components/ui/ErrorState"
 import { FreshnessIndicator } from "@/app/components/ui/FreshnessIndicator"
 import { Skeleton }           from "@/app/components/Skeleton"
 import { color } from "@/lib/theme"
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
+import type { FederalResponse } from "@/lib/api-types"
 
 const BG1 = color.bg1, BD1 = color.bd1
 
@@ -19,7 +17,7 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 }
 
 interface FederalSectionProps {
-  federal: AnyData | null
+  federal: FederalResponse | null
 }
 
 export function FederalSection({ federal }: FederalSectionProps) {

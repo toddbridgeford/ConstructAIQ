@@ -4,9 +4,8 @@ import { CSHIHistory }    from "../components/CSHIHistory"
 import { ForecastBanner } from "../components/ForecastBanner"
 import { SectionHeader }  from "../components/SectionHeader"
 import { color } from "@/lib/theme"
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
+import type { CshiResponse } from "@/lib/api-types"
+import type { ForecastData } from "../types"
 
 const BG1 = color.bg1, BG2 = color.bg2, BD1 = color.bd1
 
@@ -15,8 +14,8 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 }
 
 interface CommandSectionProps {
-  cshi:      AnyData | null
-  foreData:  AnyData | null
+  cshi:      CshiResponse | null
+  foreData:  ForecastData | null
   corrSpend: { date: string; value: number }[]
 }
 

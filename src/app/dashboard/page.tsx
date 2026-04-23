@@ -14,6 +14,17 @@ import { RolePrompt }           from "@/app/components/RolePrompt"
 import { VerdictBanner }        from "./components/VerdictBanner"
 import Link                     from "next/link"
 import { Calendar }             from "lucide-react"
+import type {
+  CshiResponse,
+  CensusResponse,
+  BlsResponse,
+  PricewatchResponse,
+  SignalsResponse,
+  BriefResponse,
+  WarnData,
+  CommodityItem,
+} from "@/lib/api-types"
+import type { ForecastData } from "./types"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -125,9 +136,6 @@ function UpcomingReleaseAlert() {
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
-
 export default function Dashboard() {
   const [activeSection,   setSection]        = useState('overview')
   const [showRolePrompt,  setShowRolePrompt]  = useState(false)
@@ -144,14 +152,14 @@ export default function Dashboard() {
   }, [])
 
   // ── Data state ──────────────────────────────────────────────────────────
-  const [cshi,     setCshi]     = useState<AnyData>(null)
-  const [spend,    setSpend]    = useState<AnyData>(null)
-  const [employ,   setEmploy]   = useState<AnyData>(null)
-  const [fore,     setFore]     = useState<AnyData>(null)
-  const [prices,   setPrices]   = useState<AnyData>(null)
-  const [signals,  setSignals]  = useState<AnyData>(null)
-  const [brief,    setBrief]    = useState<AnyData>(null)
-  const [warn,     setWarn]     = useState<AnyData>(null)
+  const [cshi,     setCshi]     = useState<CshiResponse     | null>(null)
+  const [spend,    setSpend]    = useState<CensusResponse   | null>(null)
+  const [employ,   setEmploy]   = useState<BlsResponse      | null>(null)
+  const [fore,     setFore]     = useState<ForecastData     | null>(null)
+  const [prices,   setPrices]   = useState<PricewatchResponse | null>(null)
+  const [signals,  setSignals]  = useState<SignalsResponse  | null>(null)
+  const [brief,    setBrief]    = useState<BriefResponse    | null>(null)
+  const [warn,     setWarn]     = useState<WarnData         | null>(null)
   const [obsMap,   setObsMap]   = useState<Record<string, { date: string; value: number }[]>>({})
 
   const load = useCallback(async () => {
@@ -238,7 +246,7 @@ export default function Dashboard() {
   const foreAccuracy  = fore?.metrics?.accuracy ?? 87.3
   const foreMAPE      = fore?.metrics?.mape     ?? 4.2
   const procurementValue = commodities.length > 0
-    ? Math.round(commodities.reduce((s: number, c: AnyData) =>
+    ? Math.round(commodities.reduce((s: number, c: CommodityItem) =>
         s + (c.signal === "BUY" ? 72 : c.signal === "SELL" ? 32 : 54), 0) / commodities.length)
     : 61
 
@@ -262,7 +270,7 @@ export default function Dashboard() {
               <MaterialsSection
                 commodities={commodities}
                 procurementValue={procurementValue}
-                heatmapData={commodities.slice(0, 6).map((c: AnyData) => ({
+                heatmapData={commodities.slice(0, 6).map((c: CommodityItem) => ({
                   commodity: c.name,
                   months: Array.from({ length: 12 }, (_, i) => ({
                     month: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i],

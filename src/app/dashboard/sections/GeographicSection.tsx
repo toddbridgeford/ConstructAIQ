@@ -5,9 +5,7 @@ import { TopStatesChart } from "../components/TopStatesChart"
 import { SectionHeader }  from "../components/SectionHeader"
 import { Skeleton }       from "@/app/components/Skeleton"
 import { color, font } from "@/lib/theme"
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
+import type { StateData } from "../components/StateMap"
 
 const BG1 = color.bg1, BG2 = color.bg2, BD1 = color.bd1
 const MONO = font.mono, T4 = color.t4
@@ -22,7 +20,7 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 }
 
 interface GeographicSectionProps {
-  states:          AnyData[]
+  states:          StateData[]
   selState:        string | null
   onSelState:      (code: string | null) => void
   mapToggle:       "permits" | "employment"

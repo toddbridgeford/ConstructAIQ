@@ -6,9 +6,7 @@ import { MaterialsCorrelation } from "../components/MaterialsCorrelation"
 import { SectionHeader }        from "../components/SectionHeader"
 import { color, font } from "@/lib/theme"
 import Link from "next/link"
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
+import type { CommodityItem } from "@/lib/api-types"
 
 const BG1 = color.bg1, BG2 = color.bg2, BD1 = color.bd1
 const SYS = font.sys
@@ -17,7 +15,7 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
   return <div style={{ background:BG1, borderRadius:20, border:`1px solid ${BD1}`, padding:"24px 28px", ...style }}>{children}</div>
 }
 
-const FALLBACK_COMMODITIES = [
+const FALLBACK_COMMODITIES: CommodityItem[] = [
   { name:"Lumber",    icon:"🌲", value:421.8, unit:"PPI",   signal:"BUY",  mom7d:-1.2, mom30d:-3.7, mom90d:-8.4,  sparkData:Array(12).fill(421.8) },
   { name:"Steel",     icon:"🔩", value:318.4, unit:"PPI",   signal:"SELL", mom7d:2.8,  mom30d:4.1,  mom90d:8.4,   sparkData:Array(12).fill(318.4) },
   { name:"Concrete",  icon:"🧱", value:284.6, unit:"PPI",   signal:"HOLD", mom7d:0.4,  mom30d:1.2,  mom90d:4.8,   sparkData:Array(12).fill(284.6) },
@@ -26,10 +24,21 @@ const FALLBACK_COMMODITIES = [
   { name:"Diesel",    icon:"⛽", value:3.84,  unit:"$/gal", signal:"HOLD", mom7d:-0.6, mom30d:-1.4, mom90d:2.8,   sparkData:Array(12).fill(3.84)  },
 ]
 
+export interface HeatmapMonth {
+  month:     string
+  value:     number
+  pctChange: number
+}
+
+export interface HeatmapRow {
+  commodity: string
+  months:    HeatmapMonth[]
+}
+
 interface MaterialsSectionProps {
-  commodities:      AnyData[]
+  commodities:      CommodityItem[]
   procurementValue: number
-  heatmapData:      AnyData[]
+  heatmapData:      HeatmapRow[]
   corrMaterials:    { date: string; value: number }[]
   corrSpend:        { date: string; value: number }[]
   loading:          boolean
@@ -44,7 +53,7 @@ export function MaterialsSection({ commodities, procurementValue, heatmapData, c
       <div style={{ display:"flex", gap:14, flexWrap:"wrap", marginBottom:20 }}>
         {loading
           ? Array.from({length:6}).map((_,i) => <div key={i} style={{ flex:"1 1 160px", height:180, borderRadius:14, background:BG2, animation:"pulse 1.5s infinite" }} />)
-          : items.map((c: AnyData, i: number) => (
+          : items.map((c, i) => (
               <div key={i} style={{ flex:"1 1 160px", minWidth:150 }}>
                 <CommoditySignalCard
                   name={c.name} icon={c.icon||"📦"} value={c.value} unit={c.unit||"PPI"}

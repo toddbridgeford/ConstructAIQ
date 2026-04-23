@@ -24,9 +24,6 @@ function forecastContext(fore: ForecastData): string | null {
   return null
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
-
 const BG1 = color.bg1, BG2 = color.bg2, BD1 = color.bd1
 const AMBER = color.amber
 
@@ -35,7 +32,7 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 }
 
 interface HeroForecastProps {
-  fore:         AnyData | null
+  fore:         ForecastData | null
   foreAccuracy: number
   foreMAPE:     number
 }
@@ -78,13 +75,13 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
         <Card style={{ flex:"3 1 480px", minWidth:0 }}>
           <ForecastChart
-            foreData={fore as ForecastData | null}
+            foreData={fore}
             scenarioLine={scenarioLine}
             onSeriesChange={setActiveSeries}
           />
           {/* Contextual footnote */}
           {fore && (() => {
-            const ctx = forecastContext(fore as ForecastData)
+            const ctx = forecastContext(fore)
             return ctx ? (
               <p style={{
                 marginTop:  14,
@@ -121,7 +118,7 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
           <Card style={{ flex:"1 1 280px", minWidth:0 }}>
             <ScenarioBuilder
               spendVal={lastHistVal}
-              foreData={fore as ForecastData | null}
+              foreData={fore}
               onScenarioChange={setScenarioLine}
             />
           </Card>
@@ -132,7 +129,7 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
       <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Scenario Builder">
         <ScenarioBuilder
           spendVal={lastHistVal}
-          foreData={fore as ForecastData | null}
+          foreData={fore}
           onScenarioChange={(line) => { setScenarioLine(line); setSheetOpen(false) }}
         />
       </BottomSheet>

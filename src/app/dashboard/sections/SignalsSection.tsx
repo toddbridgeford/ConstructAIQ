@@ -9,13 +9,12 @@ import { SectionHeader } from "../components/SectionHeader"
 
 const MONO = font.mono
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
+import type { SignalsResponse, BriefResponse, WarnData } from "@/lib/api-types"
 
 interface Props {
-  signals: AnyData
-  brief:   AnyData
-  warn:    AnyData
+  signals: SignalsResponse | null
+  brief:   BriefResponse | null
+  warn:    WarnData | null
 }
 
 function Divider({ label }: { label: string }) {
