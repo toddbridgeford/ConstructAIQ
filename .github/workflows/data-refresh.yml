@@ -130,7 +130,39 @@ jobs:
             echo "Not Monday — skipping brief (day=$DAY)"
           fi
 
-      - name: 6 — Project summaries (Sundays only)
+      - name: 6 — Send newsletter (Mondays only)
+        if: ${{ github.event_name == 'schedule' }}
+        continue-on-error: true
+        run: |
+          DAY=$(date +%u)
+          if [ "$DAY" = "1" ]; then
+            echo "Monday — sending newsletter..."
+            BATCH=0
+            while true; do
+              HTTP=$(curl -s -o newsletter.json -w "%{http_code}" \
+                -X GET "$APP_URL/api/cron/newsletter?batch=$BATCH" \
+                -H "Authorization: Bearer $CRON_SECRET")
+              echo "HTTP $HTTP batch $BATCH"
+              cat newsletter.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          print(f'Sent: {d.get(\"sent\",0)} | Failed: {d.get(\"failed\",0)} | nextBatch: {d.get(\"nextBatch\")}')
+          if d.get('error'): print('Error:', d['error'])
+          " 2>/dev/null || cat newsletter.json
+              NEXT=$(cat newsletter.json | python3 -c \
+                "import json,sys; d=json.load(sys.stdin); \
+                 print(d.get('nextBatch','done'))" 2>/dev/null)
+              [ "$NEXT" = "None" ] || [ "$NEXT" = "done" ] \
+                || [ "$NEXT" = "null" ] && break
+              BATCH=$NEXT
+              sleep 2
+            done
+            [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || (echo "Non-2xx response: HTTP $HTTP" && exit 1)
+          else
+            echo "Not Monday — skipping newsletter (day=$DAY)"
+          fi
+
+      - name: 7 — Project summaries (Sundays only)
         if: ${{ github.event_name == 'schedule' }}
         continue-on-error: true
         run: |

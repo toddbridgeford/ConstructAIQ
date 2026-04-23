@@ -25,11 +25,13 @@ export async function POST(request: Request) {
       .from('subscribers')
       .upsert(
         {
-          email:      email.toLowerCase().trim(),
+          email:           email.toLowerCase().trim(),
           source,
           plan,
-          created_at: new Date().toISOString(),
-          active:     true,
+          created_at:      new Date().toISOString(),
+          active:          true,
+          confirmed:       true,
+          unsubscribed_at: null,
         },
         { onConflict: 'email' }
       )

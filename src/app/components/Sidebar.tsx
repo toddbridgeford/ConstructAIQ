@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, TrendingUp, Building2, MapPin, FolderOpen,
   Radio, BarChart2, AlertTriangle, MessageSquare,
-  BookOpen, Key, PieChart, Newspaper, type LucideIcon,
+  BookOpen, Key, PieChart, Newspaper, Mail, type LucideIcon,
 } from "lucide-react"
 import { color, font, layout as L, type as TS } from "@/lib/theme"
 import { getPrefs, removeMarket, PREF_EVENT, type UserPreferences } from "@/lib/preferences"
@@ -292,6 +292,34 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
               + Add market
             </Link>
           </div>
+        )}
+
+        {/* Subscribe to The Signal */}
+        {mode === 'full' && (
+          <>
+            <div style={{ height: 1, margin: '4px 12px 8px', background: color.bd1 }} />
+            <div style={{ padding: '10px 16px 6px' }}>
+              <div style={{ ...TS.label, color: color.t4, marginBottom: 8 }}>The Signal</div>
+              <Link
+                href="/subscribe"
+                style={{
+                  display:        'flex',
+                  alignItems:     'center',
+                  gap:            8,
+                  background:     color.amberDim,
+                  border:         `1px solid ${color.amber}33`,
+                  borderRadius:   8,
+                  padding:        '9px 12px',
+                  textDecoration: 'none',
+                }}
+              >
+                <Mail size={13} color={color.amber} strokeWidth={2} />
+                <span style={{ fontFamily: font.sys, fontSize: 12, color: color.amber, fontWeight: 500 }}>
+                  Subscribe to The Signal
+                </span>
+              </Link>
+            </div>
+          </>
         )}
 
         {/* Second divider before bottom items */}

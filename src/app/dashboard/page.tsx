@@ -12,9 +12,59 @@ import { ErrorBoundary }        from "./components/ErrorBoundary"
 import { SectionFallback }      from "./components/SectionFallback"
 import { RolePrompt }           from "@/app/components/RolePrompt"
 import { VerdictBanner }        from "./components/VerdictBanner"
+import Link                     from "next/link"
 
 const SYS  = font.sys
 const MONO = font.mono
+
+function DashboardFooter() {
+  return (
+    <div style={{
+      borderTop:   `1px solid ${color.bd1}`,
+      marginTop:   48,
+      paddingTop:  32,
+      paddingBottom: 16,
+      display:     'flex',
+      alignItems:  'center',
+      justifyContent: 'space-between',
+      flexWrap:    'wrap',
+      gap:         16,
+    }}>
+      <div>
+        <div style={{
+          fontFamily:    MONO,
+          fontSize:      10,
+          color:         color.amber,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          marginBottom:  6,
+        }}>
+          The Signal — Free Weekly
+        </div>
+        <p style={{ fontFamily: SYS, fontSize: 13, color: color.t3, margin: 0, lineHeight: 1.5 }}>
+          Verdict, key numbers, and the week&apos;s top signal — every Monday morning.
+        </p>
+      </div>
+      <Link href="/subscribe" style={{
+        display:        'inline-flex',
+        alignItems:     'center',
+        gap:            8,
+        background:     color.amberDim,
+        border:         `1px solid ${color.amber}44`,
+        borderRadius:   10,
+        padding:        '10px 18px',
+        fontSize:       13,
+        fontWeight:     600,
+        color:          color.amber,
+        textDecoration: 'none',
+        fontFamily:     SYS,
+        whiteSpace:     'nowrap',
+      }}>
+        Subscribe to The Signal
+      </Link>
+    </div>
+  )
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyData = any
@@ -200,6 +250,7 @@ export default function Dashboard() {
               <VerdictBanner />
             </div>
             {renderSection()}
+            <DashboardFooter />
           </div>
         </DashboardShell>
       </ErrorBoundary>
