@@ -41,7 +41,7 @@ const NAV: NavItem[] = [
   { label: "City Permits",     href: "/permits",             Icon: MapPin          },
   { label: "Projects",         href: "/projects",            Icon: FolderOpen      },
   { label: "Satellite",        href: "/ground-signal",       Icon: Radio           },
-  { label: "Materials",        href: "/dashboard#materials", Icon: BarChart2       },
+  { label: "Material Costs",   href: "/materials",            Icon: BarChart2       },
   { label: "WARN Act",         href: "/dashboard#signals",   Icon: AlertTriangle   },
   { label: "Ask the Market",   href: "/ask",                 Icon: MessageSquare   },
   { label: "Research",         href: "/research",            Icon: Newspaper       },
