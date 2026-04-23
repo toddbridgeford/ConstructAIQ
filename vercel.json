@@ -28,6 +28,10 @@
     {
       "path": "/api/cron/project-summaries",
       "schedule": "0 10 * * 0"
+    },
+    {
+      "path": "/api/cron/push-alerts",
+      "schedule": "*/30 * * * *"
     }
   ]
 }

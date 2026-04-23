@@ -877,3 +877,72 @@ CREATE POLICY IF NOT EXISTS "service_all_projects"
 
 CREATE POLICY IF NOT EXISTS "service_all_project_events"
   ON project_events FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- ---------------------------------------------------------------------------
+-- Table: push_subscriptions
+-- Web Push (VAPID) subscription records — one row per browser/device that
+-- has opted in to push notifications.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id              BIGSERIAL    PRIMARY KEY,
+  endpoint        TEXT         NOT NULL UNIQUE,
+  p256dh          TEXT         NOT NULL,  -- public key
+  auth            TEXT         NOT NULL,  -- auth secret
+  user_agent      TEXT,
+  subscribed_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  last_notified   TIMESTAMPTZ,
+
+  -- User preferences — which alert types they want
+  alert_warn      BOOLEAN      NOT NULL DEFAULT TRUE,
+  alert_federal   BOOLEAN      NOT NULL DEFAULT TRUE,
+  alert_satellite BOOLEAN      NOT NULL DEFAULT TRUE,
+  alert_forecast  BOOLEAN      NOT NULL DEFAULT FALSE,
+
+  -- For unsubscribe / expiry cleanup
+  is_active       BOOLEAN      NOT NULL DEFAULT TRUE
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_active
+  ON push_subscriptions (is_active, last_notified);
+
+COMMENT ON TABLE  push_subscriptions              IS 'Web Push (VAPID) browser/device subscriptions.';
+COMMENT ON COLUMN push_subscriptions.p256dh       IS 'Browser-generated ECDH public key for payload encryption.';
+COMMENT ON COLUMN push_subscriptions.auth         IS 'Browser-generated auth secret for payload encryption.';
+COMMENT ON COLUMN push_subscriptions.alert_warn   IS 'Receive WARN Act layoff alerts.';
+COMMENT ON COLUMN push_subscriptions.alert_federal IS 'Receive federal award alerts.';
+COMMENT ON COLUMN push_subscriptions.alert_satellite IS 'Receive satellite construction surge alerts.';
+COMMENT ON COLUMN push_subscriptions.alert_forecast IS 'Receive forecast revision alerts.';
+
+-- RLS
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "service_all_push_subscriptions"
+  ON push_subscriptions FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- ---------------------------------------------------------------------------
+-- Table: push_notifications_log
+-- Audit log of every push notification sent (or attempted).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS push_notifications_log (
+  id                BIGSERIAL    PRIMARY KEY,
+  subscription_id   BIGINT       REFERENCES push_subscriptions(id),
+  notification_type TEXT         NOT NULL,  -- 'warn','federal','satellite','forecast'
+  title             TEXT         NOT NULL,
+  body              TEXT         NOT NULL,
+  sent_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  delivered         BOOLEAN      DEFAULT NULL,
+  error_message     TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_notifications_log_sub
+  ON push_notifications_log (subscription_id, sent_at DESC);
+
+COMMENT ON TABLE  push_notifications_log                    IS 'Audit log of push notification delivery attempts.';
+COMMENT ON COLUMN push_notifications_log.notification_type  IS 'Signal category: warn, federal, satellite, or forecast.';
+COMMENT ON COLUMN push_notifications_log.delivered          IS 'NULL = unknown, TRUE = push service accepted, FALSE = error.';
+
+-- RLS
+ALTER TABLE push_notifications_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "service_all_push_notifications_log"
+  ON push_notifications_log FOR ALL TO service_role USING (true) WITH CHECK (true);
