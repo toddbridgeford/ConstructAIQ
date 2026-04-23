@@ -1042,3 +1042,55 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_event_log_entity_type_date
 -- One edge per (from, to, type) triple — prevents duplicate graph edges.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_entity_edges_triple
   ON entity_edges (from_id, to_id, edge_type);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: project_formation_scores
+-- Nightly-computed project-level Formation Score (0–100) measuring the
+-- probability that a specific construction project will proceed to active
+-- formation. One row per (project_id, computed_at) — the most recent row
+-- within its valid_through window is served to consumers.
+--
+-- Five input drivers (weights in parentheses):
+--   satellite_bsi      (0.25) — ground truth: BSI 90-day change at the site
+--   permit_amendments  (0.25) — behavioral intent: amendment filing activity
+--   permit_age         (0.20) — timing: days since first permit event
+--   federal_proximity  (0.15) — co-location: nearby USASpending.gov award
+--   contractor_track   (0.15) — credibility: prior completions in this metro
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS project_formation_scores (
+  id             BIGSERIAL    PRIMARY KEY,
+  project_id     BIGINT       NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  score          INTEGER      NOT NULL,
+  classification TEXT         NOT NULL,  -- FORMATION | BUILDING | STABLE | COOLING | CONTRACTING
+  confidence     TEXT         NOT NULL,  -- HIGH | MEDIUM | LOW
+  driver_json    JSONB        NOT NULL,  -- full driver breakdown + top_drivers array
+  computed_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  valid_through  TIMESTAMPTZ  NOT NULL,
+
+  CONSTRAINT project_formation_scores_project_computed_unique
+    UNIQUE (project_id, computed_at)
+);
+
+COMMENT ON TABLE  project_formation_scores                IS 'Nightly project-level Formation Score (0–100) — probability a project proceeds to active construction.';
+COMMENT ON COLUMN project_formation_scores.project_id     IS 'Foreign key to projects.id.';
+COMMENT ON COLUMN project_formation_scores.score          IS 'Composite formation score, 0–100 integer.';
+COMMENT ON COLUMN project_formation_scores.classification IS 'FORMATION | BUILDING | STABLE | COOLING | CONTRACTING.';
+COMMENT ON COLUMN project_formation_scores.confidence     IS 'HIGH | MEDIUM | LOW — based on how many of the five input signals are live vs null/fallback.';
+COMMENT ON COLUMN project_formation_scores.driver_json    IS 'Per-driver breakdown (all 5) and top_drivers array (top 3 by deviation from neutral).';
+COMMENT ON COLUMN project_formation_scores.computed_at    IS 'Timestamp the score was computed.';
+COMMENT ON COLUMN project_formation_scores.valid_through  IS 'Serve-fresh cutoff — score should be recomputed after this timestamp.';
+
+CREATE INDEX IF NOT EXISTS idx_project_formation_scores_project_latest
+  ON project_formation_scores (project_id, computed_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_project_formation_scores_score
+  ON project_formation_scores (score DESC, computed_at DESC);
+
+ALTER TABLE project_formation_scores ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_read_project_formation_scores"
+  ON project_formation_scores FOR SELECT TO anon USING (true);
+
+CREATE POLICY "service_all_project_formation_scores"
+  ON project_formation_scores FOR ALL TO service_role USING (true) WITH CHECK (true);
