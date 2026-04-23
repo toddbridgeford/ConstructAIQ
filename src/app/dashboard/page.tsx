@@ -11,6 +11,7 @@ import { SignalsSection }        from "./sections/SignalsSection"
 import { ErrorBoundary }        from "./components/ErrorBoundary"
 import { SectionFallback }      from "./components/SectionFallback"
 import { RolePrompt }           from "@/app/components/RolePrompt"
+import { VerdictBanner }        from "./components/VerdictBanner"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -195,6 +196,9 @@ export default function Dashboard() {
       <ErrorBoundary fallback={<div style={{ color: color.t1, padding: 40, fontFamily: SYS }}>Dashboard unavailable.</div>}>
         <DashboardShell activeSection={activeSection} onNavigate={setSection}>
           <div style={{ padding: '0 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
+            <div style={{ paddingTop: 24 }}>
+              <VerdictBanner />
+            </div>
             {renderSection()}
           </div>
         </DashboardShell>

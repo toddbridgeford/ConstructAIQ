@@ -1,5 +1,6 @@
 "use client"
 import { color, font, radius } from "@/lib/theme"
+import { SectionVerdict } from "./SectionVerdict"
 import type { WarnData, WarnNotice } from "@/app/api/warn/route"
 
 const SYS  = font.sys
@@ -216,6 +217,18 @@ export function WarnFeed({ data }: Props) {
           {data.stale && <span style={{ color: color.amber }}>STALE DATA</span>}
         </div>
       )}
+
+      {data && (() => {
+        const MONTHLY_AVG = 25
+        const direction = data.total_count > MONTHLY_AVG ? 'above' : data.total_count < MONTHLY_AVG ? 'below' : 'in line with'
+        return (
+          <div style={{ padding: "0 18px 14px" }}>
+            <SectionVerdict
+              text={`${data.total_count} construction WARN Act notices in the last 30 days — ${direction} the prior 12-month average of ${MONTHLY_AVG}.`}
+            />
+          </div>
+        )
+      })()}
     </div>
   )
 }

@@ -1,12 +1,19 @@
 "use client"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { NationalPermitSummary } from "../components/NationalPermitSummary"
 import { CityPermitMap, type PermitApiResponse } from "../components/CityPermitMap"
 import { ProjectFeed, type Project } from "../components/ProjectFeed"
 import { ProjectMap } from "../components/ProjectMap"
 import { SectionHeader } from "../components/SectionHeader"
+import { SectionVerdict } from "../components/SectionVerdict"
 import { Skeleton } from "@/app/components/Skeleton"
 import { color, font, radius } from "@/lib/theme"
+
+interface BenchmarkSnippet {
+  percentile:     number
+  classification: string
+  yoy_change_pct: number | null
+}
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -35,6 +42,16 @@ export function PermitsSection({ data }: Props) {
   const [projectsLoaded, setProjectsLoaded] = useState(false)
   const [projectsLoading, setProjectsLoading] = useState(false)
   const [projectView, setProjectView]     = useState<'list' | 'map'>('list')
+  const [permitBench, setPermitBench]     = useState<BenchmarkSnippet | null>(null)
+
+  useEffect(() => {
+    const latestCount = data?.national_total?.latest_month_count
+    if (!latestCount) return
+    fetch(`/api/benchmark?series=PERMIT&value=${latestCount}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error) setPermitBench(d) })
+      .catch(() => {})
+  }, [data?.national_total?.latest_month_count])
 
   const handleTabChange = useCallback((tab: TabKey) => {
     setActiveTab(tab)
@@ -100,6 +117,16 @@ export function PermitsSection({ data }: Props) {
         ) : (
           <>
             <NationalPermitSummary national={data.national_total} />
+            {permitBench && (() => {
+              const yoy = data.national_total?.yoy_change_pct ?? permitBench.yoy_change_pct
+              const pipeline = (yoy ?? 0) > 3 ? 'Expanding'
+                : (yoy ?? 0) < -3 ? 'Contracting' : 'Stable'
+              return (
+                <SectionVerdict
+                  text={`Current permit issuance is at the ${permitBench.percentile}th percentile of the historical range. ${pipeline} construction pipeline.`}
+                />
+              )
+            })()}
             <div style={{ marginTop: 20 }}>
               <CityPermitMap
                 data={data}

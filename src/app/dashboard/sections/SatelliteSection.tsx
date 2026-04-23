@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { font, color } from "@/lib/theme"
 import { SectionHeader } from "../components/SectionHeader"
+import { SectionVerdict } from "../components/SectionVerdict"
 import { SatelliteHeatmap, type SatelliteMsa } from "../components/SatelliteHeatmap"
 import type { FusionMsa } from "../components/FusionMap"
 
@@ -170,6 +171,24 @@ export function SatelliteSection({ data }: Props) {
           Source: ESA Copernicus · constructaiq.trade/methodology
         </a>
       </div>
+
+      {!isLoading && !isPending && (() => {
+        const activeCount = msas.filter(m => m.classification !== 'LOW_ACTIVITY').length
+        const topTwo = [...msas]
+          .filter(m => m.bsi_mean !== null)
+          .sort((a, b) => (b.bsi_mean ?? 0) - (a.bsi_mean ?? 0))
+          .slice(0, 2)
+          .map(m => m.msa_name.split('-')[0].trim())
+        const topLabel = topTwo.length >= 2
+          ? `${topTwo[0]} and ${topTwo[1]}`
+          : topTwo[0] ?? 'top markets'
+        const total = msas.length || 20
+        return (
+          <SectionVerdict
+            text={`${activeCount} of ${total} tracked markets show active ground disturbance. Demand is concentrated in ${topLabel}.`}
+          />
+        )
+      })()}
     </section>
   )
 }
