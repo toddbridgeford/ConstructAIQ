@@ -43,6 +43,14 @@ export const color = {
   t4:  '#6e6e73',
 }
 
+export const signal = {
+  expand:   color.green,
+  contract: color.red,
+  watch:    color.amber,
+  federal:  '#0066CC',
+  neutral:  color.t3,
+}
+
 // Price-change heatmap palette — 5-tier red-to-green scale
 export const heatmap = {
   veryHighBg:  '#7f1d1d',
@@ -97,6 +105,16 @@ export const space = {
   1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32, 10: 40, 12: 48, 16: 64, 20: 80, 24: 96,
 } as const
 
+export const layout = {
+  sidebar:      240,
+  contextPanel: 320,
+  maxContent:   900,
+  sectionGap:   32,
+  cardPad:      24,
+  cardRadius:   12,
+  rowHeight:    52,
+}
+
 export const radius = {
   xs: 4, sm: 6, md: 8, lg: 12, xl: 16, xl2: 20, xl3: 24, full: 9999,
 } as const
@@ -111,14 +129,18 @@ export const shadow = {
 } as const
 
 export const type = {
-  hero:    { fontSize: 88,   fontWeight: 700, letterSpacing: '-0.045em', lineHeight: 1.01 },
-  h1:      { fontSize: 72,   fontWeight: 700, letterSpacing: '-0.04em',  lineHeight: 1.03 },
-  h2:      { fontSize: 52,   fontWeight: 700, letterSpacing: '-0.035em', lineHeight: 1.07 },
-  h3:      { fontSize: 27,   fontWeight: 700, letterSpacing: '-0.03em',  lineHeight: 1.2  },
-  h4:      { fontSize: 19,   fontWeight: 700, letterSpacing: '-0.02em',  lineHeight: 1.3  },
-  body:    { fontSize: 16,   fontWeight: 400, letterSpacing: '-0.01em',  lineHeight: 1.6  },
-  bodySm:  { fontSize: 13.5, fontWeight: 400, letterSpacing: '-0.005em', lineHeight: 1.72 },
-  label:   { fontSize: 15,   fontWeight: 600, letterSpacing: '-0.01em',  lineHeight: 1.4  },
-  caption: { fontSize: 10.5, fontWeight: 600, letterSpacing: '0.1em',    lineHeight: 1.4, textTransform: 'uppercase' as const },
-  kpi:     { fontSize: 54,   fontWeight: 700, letterSpacing: '-0.045em', lineHeight: 1    },
+  kpi:     { fontSize: 48,   fontFamily: font.mono, fontWeight: 700, lineHeight: 1.1 },
+  kpiSm:   { fontSize: 32,   fontFamily: font.mono, fontWeight: 700, lineHeight: 1.1 },
+  h1:      { fontSize: 28,   fontFamily: font.sys,  fontWeight: 700, lineHeight: 1.2 },
+  h2:      { fontSize: 22,   fontFamily: font.sys,  fontWeight: 600, lineHeight: 1.3 },
+  h3:      { fontSize: 17,   fontFamily: font.sys,  fontWeight: 600, lineHeight: 1.4 },
+  body:    { fontSize: 15,   fontFamily: font.sys,  fontWeight: 400, lineHeight: 1.6 },
+  label:   { fontSize: 11,   fontFamily: font.mono, fontWeight: 500, lineHeight: 1.2,
+             letterSpacing: '0.08em', textTransform: 'uppercase' as const },
+  data:    { fontSize: 14,   fontFamily: font.mono, fontWeight: 400, lineHeight: 1.5 },
+  caption: { fontSize: 12,   fontFamily: font.sys,  fontWeight: 400, lineHeight: 1.5,
+             color: color.t4 },
+  // backward-compat aliases
+  bodySm:  { fontSize: 13.5, fontFamily: font.sys,  fontWeight: 400, lineHeight: 1.72 },
+  hero:    { fontSize: 88,   fontFamily: font.sys,  fontWeight: 700, lineHeight: 1.01 },
 } as const
