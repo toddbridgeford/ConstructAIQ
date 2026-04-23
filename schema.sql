@@ -200,30 +200,61 @@ ALTER TABLE observations      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forecasts         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE api_keys          ENABLE ROW LEVEL SECURITY;
 
+-- Drop all existing RLS policies before recreating.
+-- PostgreSQL does not support CREATE POLICY IF NOT EXISTS; this DO block
+-- makes the file safe to re-run idempotently.
+DO $$
+DECLARE
+  pol RECORD;
+BEGIN
+  FOR pol IN
+    SELECT policyname, tablename
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND policyname IN (
+        'anon_read_series', 'anon_read_observations', 'anon_read_forecasts',
+        'service_all_series', 'service_all_observations', 'service_all_forecasts',
+        'service_all_api_keys', 'service_all_federal_cache',
+        'anon_read_weekly_briefs', 'service_all_weekly_briefs',
+        'anon_read_msa_boundaries', 'service_all_msa_boundaries',
+        'anon_read_satellite_bsi', 'service_all_satellite_bsi',
+        'anon_read_signal_fusion', 'service_all_signal_fusion',
+        'anon_read_permit_sources', 'anon_read_city_permits', 'anon_read_permit_monthly_agg',
+        'service_all_permit_sources', 'service_all_city_permits', 'service_all_permit_monthly_agg',
+        'anon_read_projects', 'anon_read_project_events',
+        'service_all_projects', 'service_all_project_events',
+        'service_all_push_subscriptions', 'service_all_push_notifications_log'
+      )
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, pol.tablename);
+  END LOOP;
+END;
+$$;
+
 -- Public read access for market data tables (anon can read, not write)
-CREATE POLICY IF NOT EXISTS "anon_read_series"
+CREATE POLICY "anon_read_series"
     ON series FOR SELECT TO anon USING (true);
 
-CREATE POLICY IF NOT EXISTS "anon_read_observations"
+CREATE POLICY "anon_read_observations"
     ON observations FOR SELECT TO anon USING (true);
 
-CREATE POLICY IF NOT EXISTS "anon_read_forecasts"
+CREATE POLICY "anon_read_forecasts"
     ON forecasts FOR SELECT TO anon USING (true);
 
 -- api_keys: no anon access — service_role only (bypasses RLS by default in Supabase)
 
 -- Service role gets full access on all tables (Supabase service_role bypasses RLS by default;
 -- these explicit policies are belt-and-suspenders for any direct psql access patterns)
-CREATE POLICY IF NOT EXISTS "service_all_series"
+CREATE POLICY "service_all_series"
     ON series FOR ALL TO service_role USING (true) WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "service_all_observations"
+CREATE POLICY "service_all_observations"
     ON observations FOR ALL TO service_role USING (true) WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "service_all_forecasts"
+CREATE POLICY "service_all_forecasts"
     ON forecasts FOR ALL TO service_role USING (true) WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "service_all_api_keys"
+CREATE POLICY "service_all_api_keys"
     ON api_keys FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 
@@ -245,7 +276,7 @@ COMMENT ON COLUMN federal_cache.cached_at IS 'Timestamp of the last successful f
 
 ALTER TABLE federal_cache ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "service_all_federal_cache"
+CREATE POLICY "service_all_federal_cache"
     ON federal_cache FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 
@@ -276,10 +307,10 @@ CREATE INDEX IF NOT EXISTS idx_weekly_briefs_generated_at
 
 ALTER TABLE weekly_briefs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "anon_read_weekly_briefs"
+CREATE POLICY "anon_read_weekly_briefs"
     ON weekly_briefs FOR SELECT TO anon USING (true);
 
-CREATE POLICY IF NOT EXISTS "service_all_weekly_briefs"
+CREATE POLICY "service_all_weekly_briefs"
     ON weekly_briefs FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 
@@ -309,10 +340,10 @@ COMMENT ON COLUMN msa_boundaries.bbox_north  IS 'Northern latitude bound of the 
 
 ALTER TABLE msa_boundaries ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "anon_read_msa_boundaries"
+CREATE POLICY "anon_read_msa_boundaries"
     ON msa_boundaries FOR SELECT TO anon USING (true);
 
-CREATE POLICY IF NOT EXISTS "service_all_msa_boundaries"
+CREATE POLICY "service_all_msa_boundaries"
     ON msa_boundaries FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 
@@ -354,10 +385,10 @@ CREATE INDEX IF NOT EXISTS idx_satellite_bsi_msa_date
 
 ALTER TABLE satellite_bsi ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "anon_read_satellite_bsi"
+CREATE POLICY "anon_read_satellite_bsi"
     ON satellite_bsi FOR SELECT TO anon USING (true);
 
-CREATE POLICY IF NOT EXISTS "service_all_satellite_bsi"
+CREATE POLICY "service_all_satellite_bsi"
     ON satellite_bsi FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 
@@ -389,10 +420,10 @@ COMMENT ON COLUMN signal_fusion.interpretation       IS 'Human-readable explanat
 
 ALTER TABLE signal_fusion ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "anon_read_signal_fusion"
+CREATE POLICY "anon_read_signal_fusion"
     ON signal_fusion FOR SELECT TO anon USING (true);
 
-CREATE POLICY IF NOT EXISTS "service_all_signal_fusion"
+CREATE POLICY "service_all_signal_fusion"
     ON signal_fusion FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 
@@ -494,22 +525,22 @@ ALTER TABLE permit_sources    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE city_permits      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE permit_monthly_agg ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "anon_read_permit_sources"
+CREATE POLICY "anon_read_permit_sources"
     ON permit_sources FOR SELECT TO anon USING (true);
 
-CREATE POLICY IF NOT EXISTS "anon_read_city_permits"
+CREATE POLICY "anon_read_city_permits"
     ON city_permits FOR SELECT TO anon USING (true);
 
-CREATE POLICY IF NOT EXISTS "anon_read_permit_monthly_agg"
+CREATE POLICY "anon_read_permit_monthly_agg"
     ON permit_monthly_agg FOR SELECT TO anon USING (true);
 
-CREATE POLICY IF NOT EXISTS "service_all_permit_sources"
+CREATE POLICY "service_all_permit_sources"
     ON permit_sources FOR ALL TO service_role USING (true) WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "service_all_city_permits"
+CREATE POLICY "service_all_city_permits"
     ON city_permits FOR ALL TO service_role USING (true) WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "service_all_permit_monthly_agg"
+CREATE POLICY "service_all_permit_monthly_agg"
     ON permit_monthly_agg FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 
@@ -609,16 +640,16 @@ CREATE INDEX IF NOT EXISTS idx_project_events_project
 ALTER TABLE projects       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_events ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "anon_read_projects"
+CREATE POLICY "anon_read_projects"
   ON projects FOR SELECT TO anon USING (true);
 
-CREATE POLICY IF NOT EXISTS "anon_read_project_events"
+CREATE POLICY "anon_read_project_events"
   ON project_events FOR SELECT TO anon USING (true);
 
-CREATE POLICY IF NOT EXISTS "service_all_projects"
+CREATE POLICY "service_all_projects"
   ON projects FOR ALL TO service_role USING (true) WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "service_all_project_events"
+CREATE POLICY "service_all_project_events"
   ON project_events FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- ---------------------------------------------------------------------------
@@ -659,7 +690,7 @@ COMMENT ON COLUMN push_subscriptions.alert_forecast IS 'Receive forecast revisio
 -- RLS
 ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "service_all_push_subscriptions"
+CREATE POLICY "service_all_push_subscriptions"
   ON push_subscriptions FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- ---------------------------------------------------------------------------
@@ -687,5 +718,5 @@ COMMENT ON COLUMN push_notifications_log.delivered          IS 'NULL = unknown, 
 -- RLS
 ALTER TABLE push_notifications_log ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "service_all_push_notifications_log"
+CREATE POLICY "service_all_push_notifications_log"
   ON push_notifications_log FOR ALL TO service_role USING (true) WITH CHECK (true);
