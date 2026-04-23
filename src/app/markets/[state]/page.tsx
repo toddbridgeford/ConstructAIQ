@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { color, font } from '@/lib/theme'
+import { RecommendationsCard } from '@/app/dashboard/components/RecommendationsCard'
 import { STATE_NAMES } from '@/app/api/state/[code]/route'
 
 // ── Types ────────────────────────────────────────────────────
@@ -419,6 +420,18 @@ export default function StatePage() {
             fontSize:15, color:color.t2, lineHeight:1.8 }}>
             {narrative}
           </div>
+        </div>
+
+        {/* What This Means For You */}
+        <div style={{ marginTop:40 }}>
+          <div style={{ fontFamily:font.mono, fontSize:10,
+            color:color.t4, letterSpacing:'0.1em',
+            textTransform:'uppercase', marginBottom:14 }}>
+            What This Means For You
+          </div>
+          <RecommendationsCard
+            markets={data.cities}
+          />
         </div>
 
       </div>

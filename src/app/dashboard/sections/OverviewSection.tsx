@@ -6,6 +6,7 @@ import { color, font, type as TS, signal as SIG, layout as L, fmtB } from "@/lib
 import { BenchmarkBadge, type BenchmarkResult } from "@/app/components/ui/BenchmarkBadge"
 import { InsightChip } from "@/app/components/ui/InsightChip"
 import { getPrefs } from "@/lib/preferences"
+import { RecommendationsCard } from '@/app/dashboard/components/RecommendationsCard'
 import type { Signal } from "../types"
 
 const ROLE_ORDER: Record<string, string[]> = {
@@ -216,6 +217,7 @@ export function OverviewSection({
 
   // Role-based ordering
   const role       = getPrefs().role
+  const markets    = getPrefs().markets ?? []
   const cardOrder  = ROLE_ORDER[role ?? ''] ?? DEFAULT_ORDER
   const roleNote   = role ? ROLE_NOTES[role] : null
 
@@ -448,6 +450,13 @@ export function OverviewSection({
           </Link>
         </div>
 
+      </div>
+
+      {/* Recommendations */}
+      <div style={{ marginTop: 32 }}>
+        <RecommendationsCard
+          markets={markets}
+        />
       </div>
     </div>
   )
