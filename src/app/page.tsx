@@ -30,6 +30,7 @@ const T2    = color.bg1      // #0d0d0d — readable on light banner backgrounds
 const T4    = color.t4       // #6e6e73 — muted, used in banner link
 const BLUE  = color.blue     // #0a84ff
 const BG1   = color.lightBg  // #f8f8f8 — live stats strip background
+const BD2   = color.lightBd  // #e5e5e5 — secondary button border
 
 async function safeFetch(url: string) {
   try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
@@ -473,8 +474,7 @@ export default function HomePage() {
             color:    T3, lineHeight: 1.65,
             maxWidth: 460, margin: '0 auto 56px',
           }}>
-            Free intelligence for contractors, lenders, and suppliers.
-            Updated daily.
+            For contractors, lenders, and suppliers. Free.
           </p>
 
           {/* ── Spending KPI ── */}
@@ -516,19 +516,23 @@ export default function HomePage() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
             <Link href="/dashboard" style={{
               display:        'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background:     color.blue, color: WHITE,
+              background:     BLUE, color: WHITE,
               fontSize:       16, fontWeight: 600,
               padding:        '14px 32px', borderRadius: 12, minHeight: 52,
               textDecoration: 'none', letterSpacing: '-0.01em',
               boxShadow:      '0 4px 20px rgba(10,132,255,0.28)',
             }}>
-              Open the Dashboard →
+              Open Dashboard →
             </Link>
-            <Link href="/methodology" style={{
-              fontSize: 14, color: T3, fontFamily: SYS,
-              textDecoration: 'underline', textDecorationColor: BD,
+            <Link href="/subscribe" style={{
+              display:        'inline-flex', alignItems: 'center', justifyContent: 'center',
+              background:     'transparent', color: T2,
+              fontSize:       15, fontWeight: 500,
+              padding:        '13px 24px', borderRadius: 12, minHeight: 48,
+              border:         `1px solid ${BD2}`,
+              letterSpacing:  '-0.01em', textDecoration: 'none',
             }}>
-              See methodology
+              Subscribe to The Signal
             </Link>
           </div>
         </div>
@@ -752,16 +756,28 @@ export default function HomePage() {
             Used by contractors, lenders, and suppliers across the US.
             Start with the dashboard.
           </p>
-          <Link href="/dashboard" style={{
-            display:        'inline-flex', alignItems: 'center', justifyContent: 'center',
-            background:     color.blue, color: WHITE,
-            fontSize:       16, fontWeight: 600,
-            padding:        '14px 32px', borderRadius: 12, minHeight: 52,
-            textDecoration: 'none', letterSpacing: '-0.01em',
-            boxShadow:      '0 4px 20px rgba(10,132,255,0.28)',
-          }}>
-            Open Dashboard →
-          </Link>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/dashboard" style={{
+              display:        'inline-flex', alignItems: 'center', justifyContent: 'center',
+              background:     BLUE, color: WHITE,
+              fontSize:       16, fontWeight: 600,
+              padding:        '14px 32px', borderRadius: 12, minHeight: 52,
+              textDecoration: 'none', letterSpacing: '-0.01em',
+              boxShadow:      '0 4px 20px rgba(10,132,255,0.28)',
+            }}>
+              Open Dashboard →
+            </Link>
+            <Link href="/methodology"
+              style={{ display: 'inline-flex', alignItems: 'center',
+                justifyContent: 'center',
+                background: 'transparent', color: T2,
+                fontSize: 15, fontWeight: 500,
+                padding: '13px 24px', borderRadius: 12,
+                minHeight: 48, border: `1px solid ${BD2}`,
+                letterSpacing: '-0.01em', textDecoration: 'none' }}>
+              Read Methodology →
+            </Link>
+          </div>
         </div>
       </section>
 
