@@ -532,6 +532,83 @@ export default function MethodologyPage() {
           </div>
         </section>
 
+        {/* ── SECTION: City Permit Intelligence ── */}
+        <section style={{ marginBottom: 64 }}>
+          <SectionLabel label="CITY PERMIT INTELLIGENCE" />
+          <h2 style={sectionH2}>Building Permit Data — 26 Cities</h2>
+          <p style={bodyP}>
+            ConstructAIQ ingests building permit data from 26 municipal open data portals via
+            Socrata APIs. Permits are normalized to a unified schema, classified by type
+            (new construction, alteration, addition, demolition) and class (residential,
+            commercial, industrial), and aggregated into monthly counts and valuations per city.
+            Each city&apos;s dataset is harvested daily with a 180-day lookback window.
+          </p>
+          <div style={{
+            border: `1px solid ${color.bd1}`,
+            borderRadius: radius.lg,
+            overflow: "hidden",
+            marginTop: 24,
+          }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${color.bd1}` }}>
+                  {["Code", "City", "State", "MSA", "Portal"].map(h => (
+                    <th key={h} style={{
+                      fontFamily: MONO, fontSize: 10, color: color.t4,
+                      letterSpacing: "0.08em", padding: "10px 14px",
+                      textAlign: "left", fontWeight: 600,
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["NYC", "New York City",  "NY", "NYC", "data.cityofnewyork.us"],
+                  ["LAX", "Los Angeles",    "CA", "LAX", "data.lacity.org"],
+                  ["CHI", "Chicago",        "IL", "CHI", "data.cityofchicago.org"],
+                  ["HOU", "Houston",        "TX", "HOU", "opendata.houstontx.gov"],
+                  ["PHX", "Phoenix",        "AZ", "PHX", "phoenixopendata.com"],
+                  ["SAN", "San Antonio",    "TX", "SAN", "data.sanantonio.gov"],
+                  ["DAL", "Dallas",         "TX", "DFW", "dallasopendata.com"],
+                  ["JAX", "Jacksonville",   "FL", "JAX", "data.coj.net"],
+                  ["AUS", "Austin",         "TX", "AUS", "data.austintexas.gov"],
+                  ["COL", "Columbus",       "OH", "COL", "opendata.columbus.gov"],
+                  ["IND", "Indianapolis",   "IN", "IND", "data.indy.gov"],
+                  ["SJC", "San Jose",       "CA", "SJC", "data.sanjoseca.gov"],
+                  ["SEA", "Seattle",        "WA", "SEA", "data.seattle.gov"],
+                  ["DEN", "Denver",         "CO", "DEN", "denvergov.org"],
+                  ["NSH", "Nashville",      "TN", "NSH", "data.nashville.gov"],
+                  ["CLT", "Charlotte",      "NC", "CLT", "data.charlottenc.gov"],
+                  ["TPA", "Tampa",          "FL", "TPA", "data.tampagov.net"],
+                  ["ATL", "Atlanta",        "GA", "ATL", "opendata.atlantaga.gov"],
+                  ["MIA", "Miami",          "FL", "MIA", "opendata.miamidade.gov"],
+                  ["POR", "Portland",       "OR", "POR", "opendata.portland.gov"],
+                  ["MIN", "Minneapolis",    "MN", "MSP", "opendata.minneapolismn.gov"],
+                  ["STL", "St. Louis",      "MO", "STL", "stlouis-mo.gov"],
+                  ["KCY", "Kansas City",    "MO", "KCY", "data.kcmo.org"],
+                  ["ORL", "Orlando",        "FL", "ORL", "data.cityoforlando.net"],
+                  ["LVG", "Las Vegas",      "NV", "LAS", "opendata.lasvegasnevada.gov"],
+                  ["RAL", "Raleigh",        "NC", "RAL", "data.raleighnc.gov"],
+                ].map(([code, city, state, msa, portal], i, arr) => (
+                  <tr key={code} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${color.bd1}` : "none" }}>
+                    <td style={{ fontFamily: MONO, fontSize: 12, color: color.amber, padding: "9px 14px" }}>{code}</td>
+                    <td style={{ fontFamily: SYS, fontSize: 13, color: color.t2, padding: "9px 14px" }}>{city}</td>
+                    <td style={{ fontFamily: MONO, fontSize: 12, color: color.t3, padding: "9px 14px" }}>{state}</td>
+                    <td style={{ fontFamily: MONO, fontSize: 12, color: color.t3, padding: "9px 14px" }}>{msa}</td>
+                    <td style={{ fontFamily: MONO, fontSize: 11, color: color.t4, padding: "9px 14px" }}>{portal}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ ...bodyP, marginTop: 16, fontSize: 13, color: color.t4 }}>
+            Cities with non-standard Socrata column names have explicit field maps in the
+            normalization layer. Cities using the DEFAULT schema require no custom mapping.
+            Failed harvests are logged as degraded — the city remains in the source table
+            and retried on the next cron cycle.
+          </p>
+        </section>
+
         {/* ── SECTION: AI Query Methodology ── */}
         <section style={{ marginBottom: 64 }}>
           <SectionLabel label="AI QUERY ENGINE" />

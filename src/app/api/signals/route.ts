@@ -69,45 +69,6 @@ function detectDivergence(spend: Obs[], permits: Obs[]) {
   return []
 }
 
-async function surveySignals(): Promise<Signal[]> {
-  try {
-    const { data } = await supabaseAdmin
-      .from('survey_results')
-      .select('backlog_net, margin_net, labor_net, market_net, quarter')
-      .order('published_at', { ascending: false })
-      .limit(1)
-      .single()
-    if (!data) return []
-    const { backlog_net: b, margin_net: m, labor_net: l, market_net: mk, quarter: q } = data
-    const out: Signal[] = []
-    if (b !== null && b > 40) out.push({
-      type: 'BULLISH', series_id: 'SURVEY_BOI',
-      title: `Backlog Surge — ${q} BOI at +${b}`,
-      description: `General contractor backlog outlook index reached +${b} net score, indicating broad pipeline expansion.`,
-      confidence: 88, method: 'survey', value_at_signal: b, threshold: 40, is_active: true,
-    })
-    if (m !== null && m < -20) out.push({
-      type: 'WARNING', series_id: 'SURVEY_MEI',
-      title: `Margin Squeeze — ${q} MEI at ${m}`,
-      description: `Margin outlook index at ${m} net score. GCs reporting broad margin compression despite volume growth.`,
-      confidence: 85, method: 'survey', value_at_signal: m, threshold: -20, is_active: true,
-    })
-    if (l !== null && l < -30) out.push({
-      type: 'BEARISH', series_id: 'SURVEY_LAI',
-      title: `Labor Crisis Signal — ${q} LAI at ${l}`,
-      description: `Labor availability index at ${l} net score. Severe shortage conditions flagged by survey respondents.`,
-      confidence: 90, method: 'survey', value_at_signal: l, threshold: -30, is_active: true,
-    })
-    if (b !== null && m !== null && l !== null && mk !== null &&
-        b < 0 && m < 0 && l < 0 && mk < 0) out.push({
-      type: 'BEARISH', series_id: 'SURVEY_ALL',
-      title: `Contraction Signal — All ${q} Indices Negative`,
-      description: `BOI ${b > 0 ? '+' : ''}${b}, MEI ${m > 0 ? '+' : ''}${m}, LAI ${l > 0 ? '+' : ''}${l}, MOI ${mk > 0 ? '+' : ''}${mk}. Broad-based sector contraction.`,
-      confidence: 93, method: 'survey', value_at_signal: b, threshold: 0, is_active: true,
-    })
-    return out
-  } catch { return [] }
-}
 
 async function warnSignals(baseUrl: string): Promise<Signal[]> {
   try {
@@ -188,7 +149,6 @@ export async function GET(request: Request) {
     const all: Signal[]=[]
     for(const id of ids) { if(!map[id]?.length) continue; all.push(...detectAnomalies(map[id]),...detectTrendReversals(map[id])) }
     if(map['TTLCONS']&&map['PERMIT']) all.push(...detectDivergence(map['TTLCONS'],map['PERMIT']))
-    all.push(...await surveySignals())
     all.push(...await warnSignals(baseUrl))
     const seen=new Set<string>()
     const deduped=all.filter(s=>{ const k=`${s.series_id}:${s.method}`; if(seen.has(k)) return false; seen.add(k); return true }).sort((a,b)=>b.confidence-a.confidence).slice(0,12)

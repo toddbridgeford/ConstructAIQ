@@ -768,3 +768,112 @@ CREATE POLICY IF NOT EXISTS "service_all_city_permits"
 
 CREATE POLICY IF NOT EXISTS "service_all_permit_monthly_agg"
     ON permit_monthly_agg FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Tables: projects, project_events
+-- Individual high-value construction projects promoted from permit data.
+-- A "project" is any permit with valuation > $500K or permit_type = 'new_construction'.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS projects (
+  id                   BIGSERIAL    PRIMARY KEY,
+  city_code            TEXT         REFERENCES permit_sources(city_code),
+  permit_id            BIGINT       REFERENCES city_permits(id),
+  permit_number        TEXT         NOT NULL,
+
+  -- Project identity
+  project_name         TEXT,
+  project_type         TEXT,
+  building_class       TEXT,
+  status               TEXT,
+
+  -- Location
+  address              TEXT,
+  city                 TEXT,
+  state_code           TEXT,
+  zip_code             TEXT,
+  latitude             NUMERIC,
+  longitude            NUMERIC,
+
+  -- Scale
+  valuation            NUMERIC,
+  sqft                 NUMERIC,
+  units                INTEGER,
+
+  -- Timeline
+  applied_date         DATE,
+  approved_date        DATE,
+  started_date         DATE,
+  estimated_completion DATE,
+
+  -- Enrichment signals
+  satellite_bsi_change NUMERIC,
+  federal_award_match  BOOLEAN      NOT NULL DEFAULT FALSE,
+  federal_award_id     TEXT,
+
+  -- AI-generated summary
+  ai_summary           TEXT,
+  ai_generated_at      TIMESTAMPTZ,
+
+  -- Metadata
+  first_seen_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  last_updated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
+  UNIQUE (city_code, permit_number)
+);
+
+COMMENT ON TABLE  projects                    IS 'High-value construction projects promoted from permit data (valuation > $500K or new construction).';
+COMMENT ON COLUMN projects.project_type       IS 'new_construction, major_renovation, or demolition.';
+COMMENT ON COLUMN projects.building_class     IS 'residential, commercial, industrial, or mixed.';
+COMMENT ON COLUMN projects.status             IS 'applied, approved, active, completed, or expired.';
+COMMENT ON COLUMN projects.satellite_bsi_change IS 'BSI 90-day change from signal_fusion if MSA matches.';
+COMMENT ON COLUMN projects.federal_award_match  IS 'TRUE if a USASpending award was matched nearby.';
+COMMENT ON COLUMN projects.ai_summary           IS 'One-sentence AI-generated project description from Claude.';
+
+CREATE INDEX IF NOT EXISTS idx_projects_city_val
+  ON projects (city_code, valuation DESC);
+
+CREATE INDEX IF NOT EXISTS idx_projects_status
+  ON projects (status, building_class);
+
+CREATE INDEX IF NOT EXISTS idx_projects_location
+  ON projects (state_code, zip_code);
+
+CREATE INDEX IF NOT EXISTS idx_projects_date
+  ON projects (applied_date DESC);
+
+
+CREATE TABLE IF NOT EXISTS project_events (
+  id          BIGSERIAL    PRIMARY KEY,
+  project_id  BIGINT       REFERENCES projects(id) ON DELETE CASCADE,
+  event_type  TEXT         NOT NULL,
+  event_date  DATE         NOT NULL,
+  description TEXT,
+  value       NUMERIC,
+  source      TEXT,
+  created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE  project_events             IS 'Key activity events on a project (permit issued, satellite surge, federal award matched).';
+COMMENT ON COLUMN project_events.event_type  IS 'permit_issued, permit_finaled, satellite_surge, or federal_award_matched.';
+COMMENT ON COLUMN project_events.source      IS 'Origin of the event: permit, satellite, or usaspending.';
+
+CREATE INDEX IF NOT EXISTS idx_project_events_project
+  ON project_events (project_id, event_date DESC);
+
+-- RLS
+ALTER TABLE projects       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "anon_read_projects"
+  ON projects FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "anon_read_project_events"
+  ON project_events FOR SELECT TO anon USING (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_projects"
+  ON projects FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_all_project_events"
+  ON project_events FOR ALL TO service_role USING (true) WITH CHECK (true);

@@ -131,11 +131,15 @@ export async function GET() {
     const result  = buildResult(notices)
 
     // Cache result — best-effort, don't block response
-    supabaseAdmin.from('federal_cache').upsert({
-      key:       CACHE_KEY,
-      data_json: result,
-      cached_at: new Date().toISOString(),
-    }).catch(e => console.warn('[WARN] cache write failed:', e))
+    void (async () => {
+      try {
+        await supabaseAdmin.from('federal_cache').upsert({
+          key:       CACHE_KEY,
+          data_json: result,
+          cached_at: new Date().toISOString(),
+        })
+      } catch (e) { console.warn('[WARN] cache write failed:', e) }
+    })()
 
     return NextResponse.json(result, {
       headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
