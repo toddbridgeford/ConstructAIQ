@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { Bell } from "lucide-react"
 import { color, font, radius } from "@/lib/theme"
+import { NotificationSettings } from "@/app/components/NotificationSettings"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -32,9 +34,15 @@ interface NavProps {
 }
 
 export function Nav({ transparent = false, ctaLabel = "Dashboard →", ctaHref = "/dashboard" }: NavProps) {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
-  const [survey, setSurvey]   = useState<SurveyStatus | null>(null)
+  const [menuOpen,    setMenuOpen]    = useState(false)
+  const [scrolled,    setScrolled]    = useState(false)
+  const [survey,      setSurvey]      = useState<SurveyStatus | null>(null)
+  const [showNotif,   setShowNotif]   = useState(false)
+  const [bellBadge,   setBellBadge]   = useState(false)
+
+  useEffect(() => {
+    if ('Notification' in window) setBellBadge(Notification.permission === 'default')
+  }, [])
 
   useEffect(() => {
     if (!transparent) return
@@ -142,7 +150,7 @@ export function Nav({ transparent = false, ctaLabel = "Dashboard →", ctaHref =
           )}
         </div>
 
-        {/* Desktop CTA + hamburger */}
+        {/* Desktop CTA + bell + hamburger */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Link href={ctaHref} className="nav-desktop" style={{ display: "flex" }}>
             <button style={{
@@ -155,6 +163,39 @@ export function Nav({ transparent = false, ctaLabel = "Dashboard →", ctaHref =
               {ctaLabel}
             </button>
           </Link>
+
+          {/* Bell — desktop only */}
+          <button
+            className="nav-desktop"
+            onClick={() => { setShowNotif(true); setBellBadge(false) }}
+            aria-label="Signal alerts"
+            style={{
+              display:        "flex",
+              alignItems:     "center",
+              justifyContent: "center",
+              position:       "relative",
+              width:          44,
+              height:         44,
+              background:     "transparent",
+              border:         `1px solid ${color.bd1}`,
+              borderRadius:   radius.md,
+              cursor:         "pointer",
+            }}
+          >
+            <Bell size={18} color={color.t3} />
+            {bellBadge && (
+              <span style={{
+                position:     "absolute",
+                top:          8,
+                right:        8,
+                width:        7,
+                height:       7,
+                borderRadius: "50%",
+                background:   color.red,
+                border:       `1.5px solid ${color.bg1}`,
+              }} />
+            )}
+          </button>
 
           {/* Hamburger */}
           <button
@@ -173,6 +214,8 @@ export function Nav({ transparent = false, ctaLabel = "Dashboard →", ctaHref =
           </button>
         </div>
       </nav>
+
+      {showNotif && <NotificationSettings onClose={() => setShowNotif(false)} />}
 
       {/* Mobile menu */}
       {menuOpen && (
