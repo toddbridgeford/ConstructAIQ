@@ -223,7 +223,8 @@ BEGIN
         'service_all_permit_sources', 'service_all_city_permits', 'service_all_permit_monthly_agg',
         'anon_read_projects', 'anon_read_project_events',
         'service_all_projects', 'service_all_project_events',
-        'service_all_push_subscriptions', 'service_all_push_notifications_log'
+        'service_all_push_subscriptions', 'service_all_push_notifications_log',
+        'anon_read_opportunity_scores', 'service_all_opportunity_scores'
       )
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, pol.tablename);
@@ -750,3 +751,44 @@ ALTER TABLE webhook_subscriptions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "service_all_webhook_subscriptions"
   ON webhook_subscriptions FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: opportunity_scores
+-- Daily-computed metro-level Opportunity Truth Index scores (0–100).
+-- One row per (metro_code, computed_at) — the most recent row within its
+-- valid_through window is served to consumers of /api/opportunity-score.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS opportunity_scores (
+    id              BIGSERIAL    PRIMARY KEY,
+    metro_code      TEXT         NOT NULL,
+    score           INTEGER      NOT NULL,
+    classification  TEXT         NOT NULL,
+    driver_json     JSONB        NOT NULL,
+    confidence      TEXT         NOT NULL,
+    computed_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    valid_through   TIMESTAMPTZ  NOT NULL,
+
+    CONSTRAINT opportunity_scores_metro_computed_unique
+        UNIQUE (metro_code, computed_at)
+);
+
+COMMENT ON TABLE  opportunity_scores                IS 'Daily-computed metro Opportunity Truth Index scores (0–100) with driver attribution.';
+COMMENT ON COLUMN opportunity_scores.metro_code     IS 'Metro identifier — matches permit_sources.city_code (e.g. PHX, NYC, LAX).';
+COMMENT ON COLUMN opportunity_scores.score          IS 'Composite opportunity score, 0–100 integer.';
+COMMENT ON COLUMN opportunity_scores.classification IS 'FORMATION | BUILDING | STABLE | COOLING | CONTRACTING.';
+COMMENT ON COLUMN opportunity_scores.driver_json    IS 'Per-component driver breakdown, top 3 drivers, and metro metadata.';
+COMMENT ON COLUMN opportunity_scores.confidence     IS 'HIGH | MEDIUM | LOW — based on how many component signals are live vs fallback.';
+COMMENT ON COLUMN opportunity_scores.computed_at    IS 'Timestamp the score was computed.';
+COMMENT ON COLUMN opportunity_scores.valid_through  IS 'Serve-fresh cutoff — scores older than this should be recomputed.';
+
+CREATE INDEX IF NOT EXISTS idx_opportunity_scores_metro_latest
+    ON opportunity_scores (metro_code, computed_at DESC);
+
+ALTER TABLE opportunity_scores ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_read_opportunity_scores"
+    ON opportunity_scores FOR SELECT TO anon USING (true);
+
+CREATE POLICY "service_all_opportunity_scores"
+    ON opportunity_scores FOR ALL TO service_role USING (true) WITH CHECK (true);
