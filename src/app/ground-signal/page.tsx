@@ -1,7 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { font, color } from '@/lib/theme'
 import { Skeleton } from '@/app/components/Skeleton'
+
+const SatelliteMap = dynamic(
+  () => import('./SatelliteMap').then(m => ({ default: m.SatelliteMap })),
+  { ssr: false, loading: () => null }
+)
 
 interface MsaRow {
   msa_code:         string
@@ -104,9 +110,18 @@ export default function GroundSignalPage() {
         position: 'relative',
       }}>
         {/* MapComponent goes here — UI6-B */}
-        <span style={{ fontFamily: font.mono, fontSize: 12, color: color.t4 }}>
-          Map loading in next session
-        </span>
+        {loading
+          ? <span style={{ fontFamily: font.mono, fontSize: 12, color: color.t4 }}>Loading map...</span>
+          : data && data.msas.length > 0
+            ? <SatelliteMap
+                msas={data.msas}
+                selectedMsa={selectedMsa}
+                onMsaClick={(code) =>
+                  setSelectedMsa(prev => prev === code ? null : code)
+                }
+              />
+            : <span style={{ fontFamily: font.mono, fontSize: 12, color: color.t4 }}>No satellite data yet</span>
+        }
       </div>
 
       {/* Section 3: Ranked table */}
