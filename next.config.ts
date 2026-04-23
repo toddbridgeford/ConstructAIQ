@@ -84,6 +84,10 @@ const pwaConfig = withPWA({
   disable: !isProd,
   fallbacks: {
     document: "/offline.html",
+    image:    "/icons/icon-192.png",
+    audio:    "",
+    video:    "",
+    font:     "",
   },
   runtimeCaching: [
     {

@@ -56,8 +56,8 @@ export function PermitsSection({ data }: Props) {
       <SectionHeader
         sectionId="06"
         title="City Permit Intelligence"
-        subtitle="Building permit activity across 26 major US cities"
-        badge="26 CITIES"
+        subtitle="Building permit activity across 40 major US cities"
+        badge="40 CITIES"
         live
       />
 

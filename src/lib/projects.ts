@@ -69,6 +69,9 @@ const CITY_STATES: Record<string, string> = {
   JAX:'FL', AUS:'TX', COL:'OH', IND:'IN', SJC:'CA', SEA:'WA', DEN:'CO',
   NSH:'TN', CLT:'NC', TPA:'FL', ATL:'GA', MIA:'FL', POR:'OR',
   MIN:'MN', STL:'MO', KCY:'MO', ORL:'FL', LVG:'NV', RAL:'NC',
+  BOS:'MA', BAL:'MD', MEM:'TN', LOU:'KY', OKC:'OK', TUC:'AZ',
+  FRE:'CA', SAC:'CA', MES:'AZ', KNX:'TN', ABQ:'NM', OAK:'CA',
+  ANA:'CA', STK:'CA',
 }
 
 function stateFromCity(code: string): string { return CITY_STATES[code] ?? '' }
