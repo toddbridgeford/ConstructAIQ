@@ -225,7 +225,11 @@ BEGIN
         'service_all_projects', 'service_all_project_events',
         'service_all_push_subscriptions', 'service_all_push_notifications_log',
         'anon_read_opportunity_scores', 'service_all_opportunity_scores',
-        'service_all_watchlists'
+        'service_all_watchlists',
+        'anon_read_entities', 'service_all_entities',
+        'anon_read_entity_edges', 'service_all_entity_edges',
+        'anon_read_event_log', 'service_all_event_log',
+        'anon_read_project_state_history', 'service_all_project_state_history'
       )
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, pol.tablename);
@@ -832,3 +836,194 @@ ALTER TABLE watchlists ENABLE ROW LEVEL SECURITY;
 -- authenticated api_key_hash supplied by the route handler.
 CREATE POLICY "service_all_watchlists"
     ON watchlists FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- PostGIS extension — required for GEOGRAPHY type on entities.geo_point.
+-- Pre-enabled on Supabase; this is a no-op if already installed.
+-- ---------------------------------------------------------------------------
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+
+-- ---------------------------------------------------------------------------
+-- Column: projects.lifecycle_state
+-- Lifecycle phase for tracked projects, driven by event_log signals.
+-- Values: inactive|forming|mobilizing|active|stalled|completed|ghost
+-- ---------------------------------------------------------------------------
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS
+  lifecycle_state TEXT NOT NULL DEFAULT 'forming';
+
+COMMENT ON COLUMN projects.lifecycle_state IS
+  'Project lifecycle phase: inactive|forming|mobilizing|active|stalled|completed|ghost.';
+
+
+-- ---------------------------------------------------------------------------
+-- Table: entities
+-- Canonical entity registry — deduplicated across all data sources.
+-- One row per (type, external_id, source) triple.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS entities (
+  id           BIGSERIAL    PRIMARY KEY,
+  type         TEXT         NOT NULL,
+  external_id  TEXT         NOT NULL,
+  source       TEXT         NOT NULL,
+  label        TEXT         NOT NULL,
+  geo_point    GEOGRAPHY(POINT, 4326),
+  state_code   TEXT,
+  metro_code   TEXT,
+  attributes   JSONB        NOT NULL DEFAULT '{}',
+  first_seen   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  last_updated TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
+  UNIQUE (type, external_id, source)
+);
+
+COMMENT ON TABLE  entities              IS 'Canonical entity registry — deduplicated across all data sources (sites, permits, projects, contractors, agencies, awards).';
+COMMENT ON COLUMN entities.type         IS 'Entity category: site|permit|project|contractor|agency|award.';
+COMMENT ON COLUMN entities.external_id  IS 'Source system identifier (e.g. permit number, USASpending award ID).';
+COMMENT ON COLUMN entities.source       IS 'Originating data source: census|usaspending|socrata|sam_gov.';
+COMMENT ON COLUMN entities.label        IS 'Human-readable display name for this entity.';
+COMMENT ON COLUMN entities.geo_point    IS 'WGS-84 point geometry for map rendering and spatial queries.';
+COMMENT ON COLUMN entities.state_code   IS 'Two-letter US state code.';
+COMMENT ON COLUMN entities.metro_code   IS 'CBSA code linking to msa_boundaries.msa_code.';
+COMMENT ON COLUMN entities.attributes   IS 'Source-specific key/value metadata (e.g. contractor DUNS, permit valuation).';
+COMMENT ON COLUMN entities.first_seen   IS 'Timestamp when this entity was first ingested.';
+COMMENT ON COLUMN entities.last_updated IS 'Timestamp of the most recent upsert for this entity.';
+
+CREATE INDEX IF NOT EXISTS idx_entities_type_source
+  ON entities (type, source);
+
+CREATE INDEX IF NOT EXISTS idx_entities_state
+  ON entities (state_code);
+
+CREATE INDEX IF NOT EXISTS idx_entities_metro
+  ON entities (metro_code);
+
+CREATE INDEX IF NOT EXISTS idx_entities_geo
+  ON entities USING GIST (geo_point);
+
+ALTER TABLE entities ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_read_entities"
+  ON entities FOR SELECT TO anon USING (true);
+
+CREATE POLICY "service_all_entities"
+  ON entities FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: entity_edges
+-- Directed graph edges linking related entities across source systems.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS entity_edges (
+  id           BIGSERIAL    PRIMARY KEY,
+  from_id      BIGINT       NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+  to_id        BIGINT       NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+  edge_type    TEXT         NOT NULL,
+  confidence   FLOAT        NOT NULL DEFAULT 1.0,
+  created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE  entity_edges            IS 'Directed graph edges linking related entities across source systems.';
+COMMENT ON COLUMN entity_edges.from_id    IS 'Source entity — e.g. the permit or site.';
+COMMENT ON COLUMN entity_edges.to_id      IS 'Target entity — e.g. the project or contractor.';
+COMMENT ON COLUMN entity_edges.edge_type  IS 'Relationship type: permit_to_project|award_to_contractor|site_to_permit.';
+COMMENT ON COLUMN entity_edges.confidence IS 'Match confidence (0.0–1.0); 1.0 = exact deterministic link.';
+
+CREATE INDEX IF NOT EXISTS idx_entity_edges_from
+  ON entity_edges (from_id);
+
+CREATE INDEX IF NOT EXISTS idx_entity_edges_to
+  ON entity_edges (to_id);
+
+CREATE INDEX IF NOT EXISTS idx_entity_edges_type
+  ON entity_edges (edge_type);
+
+ALTER TABLE entity_edges ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_read_entity_edges"
+  ON entity_edges FOR SELECT TO anon USING (true);
+
+CREATE POLICY "service_all_entity_edges"
+  ON entity_edges FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: event_log
+-- Immutable chronological event log for all tracked entities.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS event_log (
+  id           BIGSERIAL    PRIMARY KEY,
+  entity_id    BIGINT       REFERENCES entities(id) ON DELETE SET NULL,
+  event_type   TEXT         NOT NULL,
+  event_date   TIMESTAMPTZ  NOT NULL,
+  source       TEXT         NOT NULL,
+  payload      JSONB        NOT NULL DEFAULT '{}',
+  signal_value FLOAT,
+  ingested_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE  event_log               IS 'Immutable chronological event log for all tracked entities.';
+COMMENT ON COLUMN event_log.entity_id     IS 'Associated entity; NULL when not yet linked to a canonical entity.';
+COMMENT ON COLUMN event_log.event_type    IS 'Event category: permit.filed|permit.issued|permit.amended|award.made|award.modified|site.activated|site.progressing|solicitation.posted|warn.filed|materials.shock.';
+COMMENT ON COLUMN event_log.event_date    IS 'Business date the event occurred (may differ from ingested_at).';
+COMMENT ON COLUMN event_log.source        IS 'Data source that generated this event.';
+COMMENT ON COLUMN event_log.payload       IS 'Full event payload — schema varies by event_type.';
+COMMENT ON COLUMN event_log.signal_value  IS 'Normalized signal strength (0–100) for anomaly and alert ranking.';
+COMMENT ON COLUMN event_log.ingested_at   IS 'Timestamp when this row was written to the database.';
+
+CREATE INDEX IF NOT EXISTS idx_event_log_entity
+  ON event_log (entity_id);
+
+CREATE INDEX IF NOT EXISTS idx_event_log_type
+  ON event_log (event_type);
+
+CREATE INDEX IF NOT EXISTS idx_event_log_date
+  ON event_log (event_date DESC);
+
+ALTER TABLE event_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_read_event_log"
+  ON event_log FOR SELECT TO anon USING (true);
+
+CREATE POLICY "service_all_event_log"
+  ON event_log FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: project_state_history
+-- Audit log of lifecycle state transitions for tracked projects.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS project_state_history (
+  id               BIGSERIAL    PRIMARY KEY,
+  project_id       BIGINT       NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  from_state       TEXT,
+  to_state         TEXT         NOT NULL,
+  transitioned_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  confidence       FLOAT        NOT NULL DEFAULT 1.0,
+  trigger_event_id BIGINT       REFERENCES event_log(id) ON DELETE SET NULL,
+  explanation      TEXT
+);
+
+COMMENT ON TABLE  project_state_history                   IS 'Audit log of lifecycle state transitions for tracked projects.';
+COMMENT ON COLUMN project_state_history.project_id        IS 'Foreign key to projects.id.';
+COMMENT ON COLUMN project_state_history.from_state        IS 'Previous lifecycle state; NULL for the initial transition.';
+COMMENT ON COLUMN project_state_history.to_state          IS 'New lifecycle state: inactive|forming|mobilizing|active|stalled|completed|ghost.';
+COMMENT ON COLUMN project_state_history.transitioned_at   IS 'Timestamp when the transition was recorded.';
+COMMENT ON COLUMN project_state_history.confidence        IS 'Confidence in this classification (0.0–1.0).';
+COMMENT ON COLUMN project_state_history.trigger_event_id  IS 'The event_log row that triggered this state change.';
+COMMENT ON COLUMN project_state_history.explanation       IS 'Human-readable rationale for the transition.';
+
+CREATE INDEX IF NOT EXISTS idx_project_state_history_project
+  ON project_state_history (project_id, transitioned_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_project_state_history_state
+  ON project_state_history (to_state);
+
+ALTER TABLE project_state_history ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_read_project_state_history"
+  ON project_state_history FOR SELECT TO anon USING (true);
+
+CREATE POLICY "service_all_project_state_history"
+  ON project_state_history FOR ALL TO service_role USING (true) WITH CHECK (true);
