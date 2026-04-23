@@ -2,9 +2,10 @@
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { TrendingUp, Building2, HardHat, Radio, MessageSquare, Bell, type LucideIcon } from "lucide-react"
+import { TrendingUp, Building2, HardHat, Radio, MessageSquare, Bell, PieChart, type LucideIcon } from "lucide-react"
 import { color, font } from "@/lib/theme"
 import { NotificationSettings } from "@/app/components/NotificationSettings"
+import { getPrefs, PREF_EVENT } from "@/lib/preferences"
 
 const MONO = font.mono
 
@@ -20,7 +21,7 @@ interface Tab {
   Icon:   LucideIcon
 }
 
-const TABS: Tab[] = [
+const TABS_DEFAULT: Tab[] = [
   { id: "home",      label: "Home",      href: "/dashboard", scroll: "forecast",  Icon: TrendingUp   },
   { id: "federal",   label: "Federal",   href: "/federal",   scroll: null,        Icon: Building2    },
   { id: "projects",  label: "Projects",  href: "/projects",  scroll: null,        Icon: HardHat      },
@@ -28,25 +29,48 @@ const TABS: Tab[] = [
   { id: "ask",       label: "Ask AI",    href: "/ask",       scroll: null,        Icon: MessageSquare},
 ]
 
+const TABS_PORTFOLIO: Tab[] = [
+  { id: "portfolio", label: "Portfolio", href: "/portfolio", scroll: null,        Icon: PieChart     },
+  { id: "federal",   label: "Federal",   href: "/federal",   scroll: null,        Icon: Building2    },
+  { id: "projects",  label: "Projects",  href: "/projects",  scroll: null,        Icon: HardHat      },
+  { id: "satellite", label: "Satellite", href: "/dashboard", scroll: "satellite", Icon: Radio        },
+  { id: "ask",       label: "Ask AI",    href: "/ask",       scroll: null,        Icon: MessageSquare},
+]
+
 function useActiveTab(pathname: string): string {
-  if (pathname.startsWith("/projects")) return "projects"
-  if (pathname.startsWith("/federal"))  return "federal"
-  if (pathname.startsWith("/ask"))      return "ask"
-  if (pathname === "/dashboard")        return "home"
+  if (pathname.startsWith("/projects"))  return "projects"
+  if (pathname.startsWith("/federal"))   return "federal"
+  if (pathname.startsWith("/ask"))       return "ask"
+  if (pathname.startsWith("/portfolio")) return "portfolio"
+  if (pathname === "/dashboard")         return "home"
   return "home"
 }
 
 export function BottomNav() {
   const pathname  = usePathname()
   const activeId  = useActiveTab(pathname)
-  const [showNotif, setShowNotif]   = useState(false)
-  const [hasBadge,  setHasBadge]    = useState(false)
+  const [showNotif,    setShowNotif]    = useState(false)
+  const [hasBadge,     setHasBadge]     = useState(false)
+  const [hasMarkets,   setHasMarkets]   = useState(false)
 
   useEffect(() => {
     if ('Notification' in window) {
       setHasBadge(Notification.permission === 'default')
     }
+    setHasMarkets(getPrefs().markets.length > 0)
   }, [])
+
+  useEffect(() => {
+    const sync = () => setHasMarkets(getPrefs().markets.length > 0)
+    window.addEventListener(PREF_EVENT as keyof WindowEventMap, sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      window.removeEventListener(PREF_EVENT as keyof WindowEventMap, sync)
+      window.removeEventListener('storage', sync)
+    }
+  }, [])
+
+  const TABS = hasMarkets ? TABS_PORTFOLIO : TABS_DEFAULT
 
   return (
     <>

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, TrendingUp, Building2, MapPin, FolderOpen,
   Radio, BarChart2, AlertTriangle, MessageSquare,
-  BookOpen, Key, type LucideIcon,
+  BookOpen, Key, PieChart, type LucideIcon,
 } from "lucide-react"
 import { color, font, layout as L, type as TS } from "@/lib/theme"
 import { getPrefs, removeMarket, PREF_EVENT, type UserPreferences } from "@/lib/preferences"
@@ -34,6 +34,7 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
+  { label: "My Portfolio",     href: "/portfolio",           Icon: PieChart        },
   { label: "Overview",         href: "/dashboard",          Icon: LayoutDashboard },
   { label: "Forecast",         href: "/dashboard#forecast",  Icon: TrendingUp      },
   { label: "Federal Pipeline", href: "/federal",             Icon: Building2       },
@@ -199,11 +200,23 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
         {mode === 'full' && (
           <div style={{ padding: '10px 16px 4px' }}>
             <div style={{
-              ...TS.label,
-              color:         color.t4,
+              display:       'flex',
+              alignItems:    'center',
+              justifyContent:'space-between',
               marginBottom:  8,
             }}>
-              My Markets
+              <span style={{ ...TS.label, color: color.t4 }}>My Markets</span>
+              {prefs.markets.length >= 2 && (
+                <Link href="/portfolio" style={{
+                  fontFamily:    font.mono,
+                  fontSize:      10,
+                  color:         color.blue,
+                  letterSpacing: '0.04em',
+                  textDecoration:'none',
+                }}>
+                  View side-by-side →
+                </Link>
+              )}
             </div>
 
             {prefs.markets.length === 0 ? (
