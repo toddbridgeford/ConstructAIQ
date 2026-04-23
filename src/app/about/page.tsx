@@ -1,7 +1,7 @@
 "use client"
 import Image from "next/image"
 import Link from "next/link"
-import { Radio, Brain, Map, BarChart2, Building2, TrendingUp, type LucideIcon } from 'lucide-react'
+import { Radio, Brain, Map, BarChart2, TrendingUp, type LucideIcon } from 'lucide-react'
 import { font, color } from '@/lib/theme'
 import { Nav } from '@/app/components/Nav'
 
@@ -53,11 +53,6 @@ const CAPABILITIES: CapabilityCard[] = [
     icon: TrendingUp,
     title: "Materials Intelligence",
     desc: "Real-time BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI crude, and diesel.",
-  },
-  {
-    icon: Building2,
-    title: "Proprietary GC Survey",
-    desc: "Quarterly survey of general contractors across the US. Backlog, bid volume, subcontractor capacity, and labor availability — data you can't get from any government source.",
   },
   {
     icon: BarChart2,
@@ -189,7 +184,7 @@ export default function AboutPage() {
             fontFamily: SYS, fontSize: 18, color: T3,
             lineHeight: 1.7, maxWidth: 600, margin: "0 auto",
           }}>
-            ConstructAIQ is the free construction intelligence platform. 38+ live data sources. 12-month AI ensemble forecast. Proprietary GC survey. Satellite ground signal intelligence. Given freely to the industry.
+            ConstructAIQ is the free construction intelligence platform. 38+ live data sources. 12-month AI ensemble forecast. Satellite ground signal intelligence. City permit feed across 40 US cities. Given freely to the industry.
           </p>
         </div>
 
@@ -206,7 +201,7 @@ export default function AboutPage() {
             fontFamily: SYS, fontSize: 17, color: T2,
             lineHeight: 1.8, maxWidth: 780,
           }}>
-            ConstructAIQ is the free construction intelligence platform. 38+ live data sources. 12-month AI ensemble forecast. Proprietary GC survey. Satellite ground signal intelligence. Given freely to the industry.
+            ConstructAIQ is the free construction intelligence platform. 38+ live data sources. 12-month AI ensemble forecast. Satellite ground signal intelligence. City permit feed across 40 US cities. Given freely to the industry.
           </p>
         </div>
 

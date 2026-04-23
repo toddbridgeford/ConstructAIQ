@@ -1,6 +1,7 @@
 import type { NextConfig } from "next"
 import { withSentryConfig } from "@sentry/nextjs"
-import withPWA from "next-pwa"
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const withPWA = require("next-pwa")
 
 const isProd = process.env.NODE_ENV === "production";
 const ORIGIN  = isProd ? "https://constructaiq.trade" : "http://localhost:3000";

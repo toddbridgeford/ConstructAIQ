@@ -76,30 +76,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Key generation failed' }, { status: 500 })
     }
 
-    // Check if the survey is currently open (best-effort, non-blocking)
-    let surveyOpen = false
-    let surveyQuarter = 'Q2 2025'
-    try {
-      const surveyRes = await supabaseAdmin
-        .from('survey_periods')
-        .select('quarter')
-        .eq('is_active', true)
-        .limit(1)
-        .single()
-      if (surveyRes.data) {
-        surveyOpen    = true
-        surveyQuarter = surveyRes.data.quarter
-      }
-    } catch {/* ignore — survey state is non-critical */}
-
     // Send welcome email with API key (fire-and-forget)
     sendApiKeyWelcome({
       to: email,
       key,
       prefix,
       plan,
-      surveyOpen,
-      surveyQuarter,
     }).catch(err => console.warn('[/api/keys/issue] welcome email failed:', err))
 
     // Return the key once — it is never stored in plaintext

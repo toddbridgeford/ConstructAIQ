@@ -220,50 +220,6 @@ export default function CalendarPage() {
             ConstructAIQ Proprietary Releases
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {/* GC Survey open */}
-            <div style={{
-              background: color.bg2, border: `1px solid ${color.amber}44`,
-              borderRadius: 12, padding: "14px 20px",
-              display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
-            }}>
-              <div style={{ minWidth: 80, textAlign: "center" }}>
-                <div style={{ fontFamily: MONO, fontSize: 13, color: color.t2, fontWeight: 600 }}>Tue, Jul 1</div>
-                <div style={{ fontFamily: MONO, fontSize: 10, color: color.amber, marginTop: 2 }}>Q3 SURVEY</div>
-              </div>
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontFamily: SYS, fontSize: 15, color: color.t1, fontWeight: 500 }}>ConstructAIQ GC Survey — Opens Q3</div>
-                <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, marginTop: 4 }}>
-                  Opens July 1 · Closes July 21 · Proprietary GC Survey
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: color.amber }} />
-                <span style={{ fontFamily: MONO, fontSize: 10, color: color.amber }}>MEDIUM</span>
-              </div>
-            </div>
-
-            {/* GC Survey results */}
-            <div style={{
-              background: color.bg2, border: `1px solid ${color.amber}44`,
-              borderRadius: 12, padding: "14px 20px",
-              display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
-            }}>
-              <div style={{ minWidth: 80, textAlign: "center" }}>
-                <div style={{ fontFamily: MONO, fontSize: 13, color: color.t2, fontWeight: 600 }}>Wed, Jul 22</div>
-                <div style={{ fontFamily: MONO, fontSize: 10, color: color.green, marginTop: 2 }}>RESULTS</div>
-              </div>
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontFamily: SYS, fontSize: 15, color: color.t1, fontWeight: 500 }}>ConstructAIQ GC Survey — Q3 Results Published</div>
-                <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, marginTop: 4 }}>
-                  ~July 22 · Backlog, bid volume, subcontractor capacity, labor availability
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: color.green }} />
-                <span style={{ fontFamily: MONO, fontSize: 10, color: color.green }}>HIGH</span>
-              </div>
-            </div>
-
             {/* Satellite BSI weekly */}
             <div style={{
               background: color.bg2, border: `1px solid ${color.blue}44`,
