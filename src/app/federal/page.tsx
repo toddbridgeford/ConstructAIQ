@@ -286,7 +286,7 @@ export default function FederalPage() {
     .map(s => ({ state: s.state, value: s.obligated }))
 
   return (
-    <div style={{ minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS,
+    <div id="main-content" style={{ minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS,
                   paddingBottom: "env(safe-area-inset-bottom,24px)" }}>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }

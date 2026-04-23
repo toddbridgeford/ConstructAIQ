@@ -348,7 +348,7 @@ export default function Dashboard() {
   void fmtB
 
   return (
-    <div style={{ minHeight: "100vh", background: color.bg0, color: color.t1, fontFamily: SYS }}>
+    <div id="main-content" style={{ minHeight: "100vh", background: color.bg0, color: color.t1, fontFamily: SYS }}>
       <style>{`
         * { box-sizing: border-box; }
         @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }

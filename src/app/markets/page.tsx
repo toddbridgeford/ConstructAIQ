@@ -105,7 +105,7 @@ export default function MarketsPage() {
   const loaded = rows.length
 
   return (
-    <div style={{ minHeight:'100vh', background:color.bg0,
+    <div id="main-content" style={{ minHeight:'100vh', background:color.bg0,
       color:color.t1 }}>
       <div style={{ maxWidth:960, margin:'0 auto',
         padding:'48px 40px 80px' }}>

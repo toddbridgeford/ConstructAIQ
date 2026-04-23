@@ -331,7 +331,7 @@ export default function HomePage() {
    */
 
   return (
-    <div style={{ background: WHITE, color: T1, fontFamily: SYS, minHeight: '100vh' }}>
+    <div id="main-content" style={{ background: WHITE, color: T1, fontFamily: SYS, minHeight: '100vh' }}>
       <style>{`
         .hp-cards  { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
         .hp-trust  { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
