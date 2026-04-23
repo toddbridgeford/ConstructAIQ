@@ -198,20 +198,24 @@ export default function Dashboard() {
   useEffect(() => { load() }, [load])
 
   // ── Derived values ───────────────────────────────────────────────────────
-  const spendVal  = parseFloat(String(obsMap["TTLCONS_12"]?.slice(-1)[0]?.value ?? spend?.latest?.value ?? 2190))
-  const prevSpend = parseFloat(String(obsMap["TTLCONS_12"]?.slice(-2, -1)[0]?.value ?? spendVal))
-  const spendMom  = prevSpend > 0 ? ((spendVal - prevSpend) / prevSpend) * 100 : 0
+  const spendRaw  = obsMap["TTLCONS_12"]?.slice(-1)[0]?.value ?? spend?.latest?.value ?? null
+  const spendVal  = spendRaw != null ? parseFloat(String(spendRaw)) : null
+  const prevRaw   = obsMap["TTLCONS_12"]?.slice(-2, -1)[0]?.value ?? null
+  const prevSpend = prevRaw != null ? parseFloat(String(prevRaw)) : null
+  const spendMom  = (spendVal != null && prevSpend != null && prevSpend > 0)
+    ? ((spendVal - prevSpend) / prevSpend) * 100 : 0
 
-  const empVal    = spend?.value ?? employ?.value ?? employ?.latest?.value ?? 8330
+  const empVal    = spend?.value ?? employ?.value ?? employ?.latest?.value ?? null
   const empMom    = employ?.mom  ?? employ?.latest?.mom ?? 0.31
 
   const permitObs  = obsMap["PERMIT_12"] ?? []
-  const permitVal  = permitObs.slice(-1)[0]?.value  ?? 1482
-  const permitPrev = permitObs.slice(-2, -1)[0]?.value ?? permitVal
-  const permitMom  = permitPrev > 0 ? ((permitVal - permitPrev) / permitPrev) * 100 : 0
+  const permitVal  = permitObs.slice(-1)[0]?.value  ?? null
+  const permitPrev = permitObs.slice(-2, -1)[0]?.value ?? null
+  const permitMom  = (permitVal != null && permitPrev != null && permitPrev > 0)
+    ? ((permitVal - permitPrev) / permitPrev) * 100 : 0
 
-  const cshiScore  = cshi?.score        ?? 72.4
-  const cshiChange = cshi?.weeklyChange ?? 1.3
+  const cshiScore  = cshi?.score        ?? null
+  const cshiChange = cshi?.weeklyChange ?? null
   const cshiSpark  = (cshi?.history ?? []).slice(-12).map((h: { score: number }) => h.score)
 
   const spendSpark  = obsSpark(obsMap["TTLCONS_12"],       12, spendVal)

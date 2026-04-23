@@ -54,7 +54,7 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
     return () => mq.removeEventListener("change", handler)
   }, [])
 
-  const lastHistVal: number = fore?.history?.[fore.history.length - 1] ?? 2190
+  const lastHistVal = fore?.history?.[fore.history.length - 1] ?? null
 
   // Compute forecast verdict sentence
   const forecastVerdictText = (() => {

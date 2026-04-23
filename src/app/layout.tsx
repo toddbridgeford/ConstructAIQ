@@ -7,8 +7,9 @@ import { NetworkStatus }  from "@/app/components/NetworkStatus";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // maximumScale and userScalable intentionally omitted:
+  // Restricting zoom violates WCAG 1.4.4 (Resize Text)
+  // and harms users who rely on zoom for accessibility.
   themeColor: "#000000",
   viewportFit: "cover",
 };

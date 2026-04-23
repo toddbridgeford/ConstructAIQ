@@ -21,7 +21,7 @@ interface CommandSectionProps {
 }
 
 export function CommandSection({ cshi, foreData, corrSpend }: CommandSectionProps) {
-  const score     = cshi?.score          ?? 72.4
+  const score     = cshi?.score          ?? null
   const change    = cshi?.weeklyChange   ?? 1.3
   const cls       = cshi?.classification ?? "EXPANDING"
   const subScores = cshi?.subScores      ?? {}
@@ -34,7 +34,7 @@ export function CommandSection({ cshi, foreData, corrSpend }: CommandSectionProp
 
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
         <Card style={{ flex:"0 0 auto", minWidth:300 }}>
-          {cshi ? <CSHIGauge score={score} weeklyChange={change} classification={cls} subScores={subScores} /> : <div style={SKEL} />}
+          {cshi && score != null ? <CSHIGauge score={score} weeklyChange={change} classification={cls} subScores={subScores} /> : <div style={SKEL} />}
         </Card>
         <Card style={{ flex:1, minWidth:320 }}>
           {cshi ? <CSHIHistory data={history} /> : <div style={SKEL} />}

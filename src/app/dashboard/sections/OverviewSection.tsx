@@ -206,8 +206,12 @@ export function OverviewSection({
       .catch(() => {})
   }, [permitVal, loading])
 
-  const empDisplay    = empVal >= 1000  ? `${(empVal / 1000).toFixed(1)}M` : `${empVal.toFixed(0)}K`
-  const permitDisplay = permitVal >= 1000 ? `${(permitVal / 1000).toFixed(1)}M` : `${permitVal.toFixed(0)}K`
+  const empDisplay    = empVal != null
+    ? (empVal >= 1000 ? `${(empVal / 1000).toFixed(1)}M` : `${empVal.toFixed(0)}K`)
+    : '—'
+  const permitDisplay = permitVal != null
+    ? (permitVal >= 1000 ? `${(permitVal / 1000).toFixed(1)}M` : `${permitVal.toFixed(0)}K`)
+    : '—'
 
   // Chart data: month abbreviation + value
   const chartData = spendObs.slice(-12).map(o => ({
@@ -238,7 +242,7 @@ export function OverviewSection({
         <KpiCard
           key="spend"
           label="Construction Spending"
-          value={fmtB(spendVal)}
+          value={spendVal != null ? fmtB(spendVal) : '—'}
           mom={spendMom}
           spark={spendSpark}
           accent={color.amber}
@@ -280,9 +284,9 @@ export function OverviewSection({
         <KpiCard
           key="cshi"
           label="CSHI Score"
-          value={cshiScore.toFixed(1)}
-          mom={cshiChange}
-          spark={cshiSpark.length >= 2 ? cshiSpark : Array(12).fill(cshiScore)}
+          value={cshiScore != null ? cshiScore.toFixed(1) : '—'}
+          mom={cshiChange ?? 0}
+          spark={cshiSpark.length >= 2 ? cshiSpark : []}
           accent={color.purple}
         />
       ),

@@ -16,7 +16,7 @@ const SIG_COLOR: Record<string, string> = { BULLISH: GREEN, BEARISH: RED }
 const sigColor = (type: string) => SIG_COLOR[type] ?? AMBER
 
 function ForecastPreview({ currentValue, liveHist, liveFcast, forecastPct }: {
-  currentValue:  number
+  currentValue:  number | null
   liveHist?:     number[]
   liveFcast?:    number[]
   forecastPct?:  number | null
@@ -71,7 +71,7 @@ function ForecastPreview({ currentValue, liveHist, liveFcast, forecastPct }: {
       })}
       <text x={+divX - 8} y={py(hist[hLen - 1]) - 8} textAnchor="end"
             fill={AMBER} fontSize={10} fontFamily={MONO} fontWeight="600">
-        ${(currentValue / 1000).toFixed(1)}B
+        {currentValue != null ? `$${(currentValue / 1000).toFixed(1)}B` : '—'}
       </text>
       {pctLabel && (
         <text x={px(total - 1) - 8} y={py(fcast[fcast.length - 1]) - 8}
@@ -105,7 +105,7 @@ export function HeroSection() {
     })
   }, [])
 
-  const spendVal    = spend?.value ?? spend?.latest?.value ?? 2190
+  const spendVal    = spend?.value ?? spend?.latest?.value ?? null
   const spendMom    = spend?.mom   ?? spend?.latest?.mom   ?? 0.3
   const liveHist    = foreD?.history as number[] | undefined
   const liveFcast   = foreD?.ensemble?.map((p: { base: number }) => p.base) as number[] | undefined
@@ -154,7 +154,7 @@ export function HeroSection() {
                 <div style={{ fontFamily:MONO, fontSize:10, color:T4, letterSpacing:"0.1em", marginBottom:4 }}>
                   TOTAL CONSTRUCTION SPEND · TTLCONS
                 </div>
-                {loading ? <Skeleton height={32} width={150} borderRadius={6} /> : (
+                {loading ? <Skeleton height={32} width={150} borderRadius={6} /> : spendVal != null ? (
                   <div style={{ display:"flex", alignItems:"baseline", gap:12 }}>
                     <span style={{ fontFamily:MONO, fontSize:28, fontWeight:700, color:AMBER }}>
                       ${(spendVal / 1000).toFixed(1)}B
@@ -164,6 +164,8 @@ export function HeroSection() {
                       {spendMom >= 0 ? "+" : ""}{spendMom?.toFixed(2)}% MoM
                     </span>
                   </div>
+                ) : (
+                  <span style={{ fontFamily:MONO, fontSize:28, fontWeight:700, color:AMBER }}>—</span>
                 )}
               </div>
               {forecastPct != null && (
@@ -181,7 +183,7 @@ export function HeroSection() {
             <div style={{ padding:"20px 24px 8px" }}>
               {loading
                 ? <Skeleton height={200} borderRadius={8} />
-                : <ForecastPreview currentValue={spendVal}
+                : <ForecastPreview currentValue={spendVal ?? null}
                     liveHist={liveHist} liveFcast={liveFcast} forecastPct={forecastPct} />
               }
             </div>
