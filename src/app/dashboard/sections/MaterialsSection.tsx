@@ -4,12 +4,14 @@ import { ProcurementIndex }     from "../components/ProcurementIndex"
 import { MaterialsHeatmap }     from "../components/MaterialsHeatmap"
 import { MaterialsCorrelation } from "../components/MaterialsCorrelation"
 import { SectionHeader }        from "../components/SectionHeader"
-import { color } from "@/lib/theme"
+import { color, font } from "@/lib/theme"
+import Link from "next/link"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyData = any
 
 const BG1 = color.bg1, BG2 = color.bg2, BD1 = color.bd1
+const SYS = font.sys
 
 function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return <div style={{ background:BG1, borderRadius:20, border:`1px solid ${BD1}`, padding:"24px 28px", ...style }}>{children}</div>
@@ -37,7 +39,7 @@ export function MaterialsSection({ commodities, procurementValue, heatmapData, c
   const items = (commodities.length > 0 ? commodities : FALLBACK_COMMODITIES).slice(0, 6)
   return (
     <section id="materials" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="04" title="Materials Intelligence" subtitle="BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI, and diesel" />
+      <SectionHeader sectionId="04" title="Materials Intelligence" subtitle="BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI, and diesel" shareSection="materials" />
 
       <div style={{ display:"flex", gap:14, flexWrap:"wrap", marginBottom:20 }}>
         {loading
@@ -66,6 +68,19 @@ export function MaterialsSection({ commodities, procurementValue, heatmapData, c
       <Card>
         <MaterialsCorrelation materialsCostData={corrMaterials} constructionSpendData={corrSpend} />
       </Card>
+
+      <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${BD1}`, textAlign: "right" }}>
+        <Link href="/materials" style={{
+          fontFamily:     SYS,
+          fontSize:       13,
+          color:          color.amber,
+          textDecoration: "none",
+          fontWeight:     500,
+          letterSpacing:  "0.01em",
+        }}>
+          Full material cost index →
+        </Link>
+      </div>
     </section>
   )
 }

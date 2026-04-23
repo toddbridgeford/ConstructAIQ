@@ -6,6 +6,7 @@ import { BenchmarkBadge } from '@/app/components/ui/BenchmarkBadge'
 import type { BenchmarkResult } from '@/app/components/ui/BenchmarkBadge'
 import { color, font, layout as L } from '@/lib/theme'
 import { getPrefs, addMarket, removeMarket } from '@/lib/preferences'
+import { ShareButton } from '@/app/components/ui/ShareButton'
 
 const { bg0: BG0, bg1: BG1, bg2: BG2, bd1: BD1,
         t1: T1, t3: T3, t4: T4,
@@ -106,7 +107,12 @@ export default function CityPermitsPage({ params }: { params: Promise<{ city: st
               }}>
                 {cityName}
               </h1>
-              <button
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <ShareButton
+                  title={`${cityName} Construction Permits — ConstructAIQ`}
+                  url={`https://constructaiq.trade/permits/${city.toLowerCase()}`}
+                />
+                <button
                 onClick={toggleFollow}
                 style={{
                   fontFamily:   font.mono,
@@ -126,6 +132,7 @@ export default function CityPermitsPage({ params }: { params: Promise<{ city: st
               >
                 {following ? 'Following ✓' : '+ Follow this market'}
               </button>
+              </div>
             </div>
           )}
 

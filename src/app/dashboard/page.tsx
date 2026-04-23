@@ -12,9 +12,118 @@ import { ErrorBoundary }        from "./components/ErrorBoundary"
 import { SectionFallback }      from "./components/SectionFallback"
 import { RolePrompt }           from "@/app/components/RolePrompt"
 import { VerdictBanner }        from "./components/VerdictBanner"
+import Link                     from "next/link"
+import { Calendar }             from "lucide-react"
 
 const SYS  = font.sys
 const MONO = font.mono
+
+const NAV_SECTIONS = [
+  { id: 'overview'  },
+  { id: 'forecast'  },
+  { id: 'materials' },
+  { id: 'signals'   },
+]
+
+function DashboardFooter() {
+  return (
+    <div style={{
+      borderTop:   `1px solid ${color.bd1}`,
+      marginTop:   48,
+      paddingTop:  32,
+      paddingBottom: 16,
+      display:     'flex',
+      alignItems:  'center',
+      justifyContent: 'space-between',
+      flexWrap:    'wrap',
+      gap:         16,
+    }}>
+      <div>
+        <div style={{
+          fontFamily:    MONO,
+          fontSize:      10,
+          color:         color.amber,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          marginBottom:  6,
+        }}>
+          The Signal — Free Weekly
+        </div>
+        <p style={{ fontFamily: SYS, fontSize: 13, color: color.t3, margin: 0, lineHeight: 1.5 }}>
+          Verdict, key numbers, and the week&apos;s top signal — every Monday morning.
+        </p>
+      </div>
+      <Link href="/subscribe" style={{
+        display:        'inline-flex',
+        alignItems:     'center',
+        gap:            8,
+        background:     color.amberDim,
+        border:         `1px solid ${color.amber}44`,
+        borderRadius:   10,
+        padding:        '10px 18px',
+        fontSize:       13,
+        fontWeight:     600,
+        color:          color.amber,
+        textDecoration: 'none',
+        fontFamily:     SYS,
+        whiteSpace:     'nowrap',
+      }}>
+        Subscribe to The Signal
+      </Link>
+    </div>
+  )
+}
+
+function UpcomingReleaseAlert() {
+  const [alert, setAlert] = useState<{ name: string; when: string } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/calendar')
+      .then(r => r.json())
+      .then(d => {
+        const events: { date: string; name: string; importance: string }[] = d.events ?? []
+        const now   = new Date(); now.setHours(0, 0, 0, 0)
+        const today = now.toISOString().slice(0, 10)
+        const tomD  = new Date(now); tomD.setDate(now.getDate() + 1)
+        const tom   = tomD.toISOString().slice(0, 10)
+        const d2D   = new Date(now); d2D.setDate(now.getDate() + 2)
+        const d2    = d2D.toISOString().slice(0, 10)
+        const high  = events.filter(e => e.importance === 'high')
+        const match = high.find(e => e.date === today) ?? high.find(e => e.date === tom) ?? high.find(e => e.date === d2)
+        if (match) {
+          const days = match.date === today ? 'today' : match.date === tom ? 'tomorrow' : 'in 2 days'
+          setAlert({ name: match.name, when: days })
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  if (!alert) return null
+
+  return (
+    <Link href="/calendar" style={{ textDecoration: 'none' }}>
+      <div style={{
+        display:     'flex',
+        alignItems:  'center',
+        gap:         8,
+        padding:     '8px 14px',
+        background:  color.amberDim,
+        border:      `1px solid ${color.amber}33`,
+        borderRadius: 8,
+        marginTop:   12,
+        cursor:      'pointer',
+      }}>
+        <Calendar size={13} color={color.amber} strokeWidth={2} style={{ flexShrink: 0 }} />
+        <span style={{ fontFamily: SYS, fontSize: 12, color: color.amber }}>
+          <strong>{alert.name}</strong> releases {alert.when}
+        </span>
+        <span style={{ fontFamily: font.mono, fontSize: 10, color: color.amber + '99', marginLeft: 'auto' }}>
+          calendar →
+        </span>
+      </div>
+    </Link>
+  )
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyData = any
@@ -25,6 +134,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!getPrefs().role) setShowRolePrompt(true)
+    const hash = window.location.hash.replace('#', '')
+    if (hash && NAV_SECTIONS.some(s => s.id === hash)) {
+      setSection(hash)
+      setTimeout(() => {
+        document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' })
+      }, 300)
+    }
   }, [])
 
   // ── Data state ──────────────────────────────────────────────────────────
@@ -198,8 +314,10 @@ export default function Dashboard() {
           <div style={{ padding: '0 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
             <div style={{ paddingTop: 24 }}>
               <VerdictBanner />
+              <UpcomingReleaseAlert />
             </div>
             {renderSection()}
+            <DashboardFooter />
           </div>
         </DashboardShell>
       </ErrorBoundary>

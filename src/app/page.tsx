@@ -5,6 +5,9 @@ import Link                              from "next/link"
 import dynamic                           from "next/dynamic"
 import { color, font, type as TS, signal as SIG, layout as L } from "@/lib/theme"
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyStats = any
+
 const HomeMap = dynamic(
   () => import("./components/HomeMap").then(m => m.HomeMap),
   { ssr: false, loading: () => <MapPlaceholder /> },
@@ -104,16 +107,121 @@ function StatusCard({ label, verdict, col, metric, sub }: Card) {
   )
 }
 
+function NewsletterSignup() {
+  const [email,  setEmail]  = useState("")
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setStatus("loading")
+    try {
+      const res = await fetch("/api/subscribe", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email, source: "homepage", plan: "newsletter" }),
+      })
+      setStatus(res.ok ? "success" : "error")
+    } catch {
+      setStatus("error")
+    }
+  }
+
+  return (
+    <div style={{ maxWidth: 560, margin: "0 auto", textAlign: "center" }}>
+      <div style={{
+        fontFamily:    MONO,
+        fontSize:      10,
+        color:         color.amber,
+        letterSpacing: "0.14em",
+        textTransform: "uppercase",
+        marginBottom:  12,
+      }}>
+        The Signal — Free Weekly
+      </div>
+      <h2 style={{
+        fontSize:      22,
+        fontWeight:    700,
+        letterSpacing: "-0.02em",
+        color:         T1,
+        margin:        "0 0 8px",
+      }}>
+        Construction market intelligence, every Monday.
+      </h2>
+      <p style={{ fontSize: 14, color: T3, margin: "0 0 24px", lineHeight: 1.6 }}>
+        Verdict, key numbers, and the week&apos;s top signal — delivered free.
+      </p>
+
+      {status === "success" ? (
+        <p style={{
+          fontSize:   14,
+          fontFamily: MONO,
+          color:      color.green,
+          fontWeight: 600,
+        }}>
+          You&apos;re on the list. First issue next Monday.
+        </p>
+      ) : (
+        <form onSubmit={submit} style={{
+          display:        "flex",
+          gap:            8,
+          justifyContent: "center",
+          flexWrap:       "wrap",
+        }}>
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="your@email.com"
+            required
+            style={{
+              background:   color.bg0,
+              border:       `1px solid ${BD}`,
+              borderRadius: 10,
+              padding:      "11px 16px",
+              fontSize:     14,
+              color:        T1,
+              fontFamily:   SYS,
+              outline:      "none",
+              width:        240,
+            }}
+          />
+          <button
+            type="submit"
+            disabled={status === "loading"}
+            style={{
+              background:   color.amber,
+              color:        "#000",
+              border:       "none",
+              borderRadius: 10,
+              padding:      "11px 20px",
+              fontSize:     14,
+              fontWeight:   600,
+              cursor:       status === "loading" ? "wait" : "pointer",
+              fontFamily:   SYS,
+            }}
+          >
+            {status === "loading" ? "..." : "Subscribe free"}
+          </button>
+        </form>
+      )}
+
+      {status === "error" && (
+        <p style={{ fontSize: 12, color: color.red, marginTop: 8 }}>
+          Something went wrong. <Link href="/subscribe" style={{ color: color.blue }}>Try here</Link>.
+        </p>
+      )}
+    </div>
+  )
+}
+
 export default function HomePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [census,  setCensus]  = useState<any>(null)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [bls,     setBls]     = useState<any>(null)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [federal, setFederal] = useState<any>(null)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [mapData, setMapData] = useState<any>(null)
+  const [census,  setCensus]  = useState<AnyStats>(null)
+  const [bls,     setBls]     = useState<AnyStats>(null)
+  const [federal, setFederal] = useState<AnyStats>(null)
+  const [mapData, setMapData] = useState<AnyStats>(null)
   const [mapDate, setMapDate] = useState('')
+  const [stats,   setStats]   = useState<AnyStats>(null)
 
   useEffect(() => {
     Promise.all([
@@ -121,11 +229,13 @@ export default function HomePage() {
       safeFetch('/api/bls'),
       safeFetch('/api/federal'),
       safeFetch('/api/map'),
-    ]).then(([c, b, f, m]) => {
+      safeFetch('/api/platform-stats'),
+    ]).then(([c, b, f, m, s]) => {
       if (c) setCensus(c)
       if (b) setBls(b)
       if (f) setFederal(f)
       if (m) setMapData(m)
+      if (s) setStats(s)
     })
     setMapDate(new Date().toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' }))
   }, [])
@@ -184,11 +294,13 @@ export default function HomePage() {
   return (
     <div style={{ background: WHITE, color: T1, fontFamily: SYS, minHeight: '100vh' }}>
       <style>{`
-        .hp-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
-        .hp-proof { display: flex; align-items: center; justify-content: center; gap: 40px; }
+        .hp-cards  { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+        .hp-trust  { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+        .hp-proof  { display: flex; align-items: center; justify-content: center; gap: 40px; }
         .hp-proof-div { width: 1px; height: 20px; background: ${BD}; }
         @media (max-width: 768px) {
           .hp-cards { grid-template-columns: 1fr; gap: 12px; }
+          .hp-trust { grid-template-columns: 1fr; gap: 16px; }
           .hp-proof { gap: 20px; }
           .hp-kpi   { font-size: 64px !important; }
         }
@@ -315,10 +427,123 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── NEWSLETTER ── */}
+      <section style={{ background: BG, borderTop: `1px solid ${BD}`, padding: '48px 40px' }}>
+        <NewsletterSignup />
+      </section>
+
       {/* ── STATUS CARDS ── */}
       <section style={{ background: BG, borderTop: `1px solid ${BD}`, padding: '64px 40px' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
           <div className="hp-cards">{cards.map(c => <StatusCard key={c.label} {...c} />)}</div>
+        </div>
+      </section>
+
+      {/* ── TRUST SIGNALS ── */}
+      <section style={{ background: BG, borderTop: `1px solid ${BD}`, padding: '64px 40px' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+          <div style={{ ...TS.label, color: T3, textAlign: 'center', marginBottom: 36 }}>
+            BUILT ON TRUSTED SOURCES
+          </div>
+
+          <div className="hp-trust">
+            {/* Column 1 — Data Provenance */}
+            <div style={{
+              background: WHITE, border: `1px solid ${BD}`,
+              borderRadius: 14, padding: '28px 24px',
+            }}>
+              <div style={{ fontSize: 11, fontFamily: MONO, color: T3, letterSpacing: '0.1em', marginBottom: 14 }}>
+                DATA PROVENANCE
+              </div>
+              <div style={{ fontSize: 14, fontFamily: SYS, color: T1, fontWeight: 600, lineHeight: 1.7, marginBottom: 12 }}>
+                Census Bureau · BLS · FRED · BEA
+                <br />EIA · USASpending.gov · ESA Copernicus
+              </div>
+              <div style={{ fontSize: 13, fontFamily: SYS, color: T3, lineHeight: 1.6, marginBottom: 16 }}>
+                38+ official U.S. government and recognized industry sources. No scraped, unverified, or synthetic data.
+              </div>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: `${color.green}12`, border: `1px solid ${color.green}40`,
+                borderRadius: 7, padding: '5px 12px',
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: color.green, display: 'inline-block' }} />
+                <span style={{ fontSize: 12, fontFamily: MONO, color: color.green }}>
+                  {stats ? `${stats.observations_label}+ observations indexed` : '38+ data sources'}
+                </span>
+              </div>
+            </div>
+
+            {/* Column 2 — Methodology */}
+            <div style={{
+              background: WHITE, border: `1px solid ${BD}`,
+              borderRadius: 14, padding: '28px 24px',
+            }}>
+              <div style={{ fontSize: 11, fontFamily: MONO, color: T3, letterSpacing: '0.1em', marginBottom: 14 }}>
+                METHODOLOGY
+              </div>
+              <div style={{ fontSize: 14, fontFamily: SYS, color: T1, fontWeight: 600, lineHeight: 1.7, marginBottom: 12 }}>
+                Open methodology.
+                <br />Every calculation documented.
+                <br />Every source cited.
+              </div>
+              <div style={{ fontSize: 13, fontFamily: SYS, color: T3, lineHeight: 1.6, marginBottom: 16 }}>
+                3-model ensemble: Holt-Winters + SARIMA + XGBoost. Accuracy-weighted. Published confidence intervals.
+              </div>
+              <Link href="/methodology" style={{
+                fontSize: 13, fontFamily: SYS, fontWeight: 500,
+                color: color.blue, textDecoration: 'none',
+              }}>
+                Read methodology →
+              </Link>
+            </div>
+
+            {/* Column 3 — Free Forever */}
+            <div style={{
+              background: WHITE, border: `1px solid ${BD}`,
+              borderRadius: 14, padding: '28px 24px',
+            }}>
+              <div style={{ fontSize: 11, fontFamily: MONO, color: T3, letterSpacing: '0.1em', marginBottom: 14 }}>
+                FREE FOREVER
+              </div>
+              <div style={{ fontSize: 14, fontFamily: SYS, color: T1, fontWeight: 600, lineHeight: 1.7, marginBottom: 12 }}>
+                No subscription.
+                <br />No credit card.
+                <br />No data sold. Open API.
+              </div>
+              <div style={{ fontSize: 13, fontFamily: SYS, color: T3, lineHeight: 1.6, marginBottom: 16 }}>
+                Dashboard: free forever. API: 1,000 req/day free, 10,000/day for .edu researchers.
+              </div>
+              <Link href="/api-access" style={{
+                fontSize: 13, fontFamily: SYS, fontWeight: 500,
+                color: color.blue, textDecoration: 'none',
+              }}>
+                Get API access →
+              </Link>
+            </div>
+          </div>
+
+          {/* Live stats bar */}
+          <div style={{
+            marginTop: 28, borderTop: `1px solid ${BD}`, paddingTop: 20,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 32, flexWrap: 'wrap',
+          }}>
+            {[
+              { label: 'Cities tracked',       value: stats ? String(stats.cities_tracked)  : '40'  },
+              { label: 'Satellite MSAs',        value: stats ? String(stats.msas_tracked)    : '20'  },
+              { label: 'Gov. data sources',     value: stats ? `${stats.data_sources}+`      : '38+' },
+              { label: 'Observations indexed',  value: stats?.observations_label ? `${stats.observations_label}+` : '—' },
+            ].map(({ label, value }, i) => (
+              <Fragment key={label}>
+                {i > 0 && <div style={{ width: 1, height: 18, background: BD }} />}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 18, fontFamily: MONO, fontWeight: 700, color: T1 }}>{value}</div>
+                  <div style={{ fontSize: 12, fontFamily: SYS, color: T3, marginTop: 2 }}>{label}</div>
+                </div>
+              </Fragment>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -330,24 +555,6 @@ export default function HomePage() {
           ...TS.caption, color: T3,
         }}>
           Hot markets as of {mapDate || '—'}
-        </div>
-      </section>
-
-      {/* ── PROOF STRIP ── */}
-      <section style={{ background: BG, borderTop: `1px solid ${BD}`, borderBottom: `1px solid ${BD}`, padding: '40px 40px' }}>
-        <div className="hp-proof">
-          {[
-            { stat: '40 cities tracked' },
-            { stat: '38+ data sources'  },
-            { stat: 'Free forever'      },
-          ].map(({ stat }, i) => (
-            <Fragment key={stat}>
-              {i > 0 && <div className="hp-proof-div" />}
-              <span style={{ fontSize: 15, fontFamily: SYS, color: T3, fontWeight: 500 }}>
-                {stat}
-              </span>
-            </Fragment>
-          ))}
         </div>
       </section>
 
