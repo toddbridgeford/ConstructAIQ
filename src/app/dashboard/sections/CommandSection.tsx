@@ -4,9 +4,8 @@ import { CSHIHistory }    from "../components/CSHIHistory"
 import { ForecastBanner } from "../components/ForecastBanner"
 import { SectionHeader }  from "../components/SectionHeader"
 import { color } from "@/lib/theme"
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
+import type { CshiResponse } from "@/lib/api-types"
+import type { ForecastData } from "../types"
 
 const BG1 = color.bg1, BG2 = color.bg2, BD1 = color.bd1
 
@@ -15,13 +14,13 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 }
 
 interface CommandSectionProps {
-  cshi:      AnyData | null
-  foreData:  AnyData | null
+  cshi:      CshiResponse | null
+  foreData:  ForecastData | null
   corrSpend: { date: string; value: number }[]
 }
 
 export function CommandSection({ cshi, foreData, corrSpend }: CommandSectionProps) {
-  const score     = cshi?.score          ?? 72.4
+  const score     = cshi?.score          ?? null
   const change    = cshi?.weeklyChange   ?? 1.3
   const cls       = cshi?.classification ?? "EXPANDING"
   const subScores = cshi?.subScores      ?? {}
@@ -30,11 +29,11 @@ export function CommandSection({ cshi, foreData, corrSpend }: CommandSectionProp
 
   return (
     <section id="command" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="04" title="Sector Command Center" subtitle="The pulse of the entire US construction sector" live />
+      <SectionHeader sectionId="04" title="Sector Command Center" subtitle="The pulse of the entire US construction sector" />
 
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
         <Card style={{ flex:"0 0 auto", minWidth:300 }}>
-          {cshi ? <CSHIGauge score={score} weeklyChange={change} classification={cls} subScores={subScores} /> : <div style={SKEL} />}
+          {cshi && score != null ? <CSHIGauge score={score} weeklyChange={change} classification={cls} subScores={subScores} /> : <div style={SKEL} />}
         </Card>
         <Card style={{ flex:1, minWidth:320 }}>
           {cshi ? <CSHIHistory data={history} /> : <div style={SKEL} />}

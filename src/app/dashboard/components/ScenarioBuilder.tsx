@@ -70,7 +70,7 @@ interface ScenarioBuilderProps {
   onScenarioChange?: (line: number[] | null) => void
 }
 
-export function ScenarioBuilder({ spendVal = 2190, foreData, onScenarioChange }: ScenarioBuilderProps) {
+export function ScenarioBuilder({ spendVal, foreData, onScenarioChange }: ScenarioBuilderProps) {
   const [rate,           setRate]           = useState(0)
   const [iija,           setIija]           = useState(100)
   const [labor,          setLabor]          = useState(0)
@@ -104,11 +104,11 @@ export function ScenarioBuilder({ spendVal = 2190, foreData, onScenarioChange }:
     : 0
 
   const delta = (-rate * 0.018) + ((iija - 100) * 0.003) + (labor * 0.008) + (-material * 0.012) + (tariffContrib / 100 * 100)
-  const base  = spendVal
-  const proj  = base * (1 + delta / 100)
-  const diff  = proj - base
-  const pct   = (diff / base) * 100
-  const up    = proj >= base
+  const base  = spendVal ?? null
+  const proj  = base != null ? base * (1 + delta / 100) : null
+  const diff  = (proj != null && base != null) ? proj - base : null
+  const pct   = (diff != null && base != null && base > 0) ? (diff / base) * 100 : null
+  const up    = proj != null && base != null ? proj >= base : true
 
   // Emit scenario line whenever any slider or foreData changes
   useEffect(() => {
@@ -124,13 +124,13 @@ export function ScenarioBuilder({ spendVal = 2190, foreData, onScenarioChange }:
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rate, iija, labor, material, tariffContrib, foreData])
 
-  const impacts = [
+  const impacts = base != null ? [
     { label: "Rate shock",     val: (-rate * 0.018) / 100 * base },
     { label: "IIJA funding",   val: ((iija - 100) * 0.003) / 100 * base },
     { label: "Labor supply",   val: (labor * 0.008) / 100 * base },
     { label: "Material costs", val: (-material * 0.012) / 100 * base },
     { label: "Tariff impact",  val: (tariffContrib / 100) * base },
-  ]
+  ] : []
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
@@ -224,32 +224,40 @@ export function ScenarioBuilder({ spendVal = 2190, foreData, onScenarioChange }:
       </div>
 
       {/* Result panel */}
-      <div style={{
-        background: up ? color.greenDim : color.redDim, borderRadius:14, padding:"20px",
-        border: up ? "1px solid rgba(48,209,88,0.28)" : "1px solid rgba(255,69,58,0.28)",
-      }}>
-        <div style={{ fontFamily:MONO, fontSize:10, color:T4, letterSpacing:"0.1em", marginBottom:10 }}>
-          PROJECTED TOTAL CONSTRUCTION SPEND
+      {base == null ? (
+        <div style={{ background:color.bg2, borderRadius:14, padding:"20px", border:`1px solid ${color.bd1}` }}>
+          <div style={{ fontFamily:MONO, fontSize:11, color:color.t4, letterSpacing:"0.08em" }}>
+            Awaiting base spend data…
+          </div>
         </div>
-        <div style={{ display:"flex", alignItems:"baseline", gap:14, marginBottom:10 }}>
-          <span style={{ fontFamily:MONO, fontSize:34, color: up ? GREEN : RED, fontWeight:700, lineHeight:1 }}>
-            {fmtB(proj)}
-          </span>
-          <span style={{ fontFamily:MONO, fontSize:19, color: up ? GREEN : RED }}>
-            {diff >= 0 ? "+" : ""}{fmtB(Math.abs(diff))} ({fmtPct(pct)})
-          </span>
+      ) : (
+        <div style={{
+          background: up ? color.greenDim : color.redDim, borderRadius:14, padding:"20px",
+          border: up ? "1px solid rgba(48,209,88,0.28)" : "1px solid rgba(255,69,58,0.28)",
+        }}>
+          <div style={{ fontFamily:MONO, fontSize:10, color:T4, letterSpacing:"0.1em", marginBottom:10 }}>
+            PROJECTED TOTAL CONSTRUCTION SPEND
+          </div>
+          <div style={{ display:"flex", alignItems:"baseline", gap:14, marginBottom:10 }}>
+            <span style={{ fontFamily:MONO, fontSize:34, color: up ? GREEN : RED, fontWeight:700, lineHeight:1 }}>
+              {fmtB(proj!)}
+            </span>
+            <span style={{ fontFamily:MONO, fontSize:19, color: up ? GREEN : RED }}>
+              {diff! >= 0 ? "+" : ""}{fmtB(Math.abs(diff!))} ({fmtPct(pct)})
+            </span>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:5, borderTop:`1px solid ${BD1}`, paddingTop:12 }}>
+            {impacts.map(({ label, val: v }) => (
+              <div key={label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span style={{ fontSize:12, color:T3 }}>{label}</span>
+                <span style={{ fontFamily:MONO, fontSize:12, color: v === 0 ? T4 : v > 0 ? GREEN : RED }}>
+                  {v === 0 ? "—" : `${v > 0 ? "+" : ""}${fmtB(Math.abs(v))}`}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div style={{ display:"flex", flexDirection:"column", gap:5, borderTop:`1px solid ${BD1}`, paddingTop:12 }}>
-          {impacts.map(({ label, val: v }) => (
-            <div key={label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <span style={{ fontSize:12, color:T3 }}>{label}</span>
-              <span style={{ fontFamily:MONO, fontSize:12, color: v === 0 ? T4 : v > 0 ? GREEN : RED }}>
-                {v === 0 ? "—" : `${v > 0 ? "+" : ""}${fmtB(Math.abs(v))}`}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
 
     </div>
   )

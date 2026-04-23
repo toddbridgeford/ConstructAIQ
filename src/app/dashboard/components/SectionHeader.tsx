@@ -1,6 +1,7 @@
 'use client'
 import { font, color } from '@/lib/theme'
 import { ShareButton } from '@/app/components/ui/ShareButton'
+import type { FreshnessInfo } from '@/lib/freshness'
 
 const MONO = font.mono, SYS = font.sys
 
@@ -9,7 +10,7 @@ interface SectionHeaderProps {
   title:         string
   subtitle?:     string
   badge?:        string
-  live?:         boolean
+  freshness?:    FreshnessInfo
   rightContent?: React.ReactNode
   onExportCSV?:  () => void
   onExportPNG?:  () => void
@@ -17,8 +18,13 @@ interface SectionHeaderProps {
 }
 
 export function SectionHeader({
-  title, subtitle, badge, live, rightContent, onExportCSV, onExportPNG, shareSection,
+  title, subtitle, badge, freshness, rightContent, onExportCSV, onExportPNG, shareSection,
 }: SectionHeaderProps) {
+  // Green dot only when data timestamp is within the last 2 hours
+  const isLive = freshness?.isoDate
+    ? Date.now() - new Date(freshness.isoDate).getTime() < 2 * 3600000
+    : false
+
   const hasExports = onExportCSV || onExportPNG
   const right = rightContent ?? ((hasExports || shareSection)
     ? (
@@ -57,12 +63,21 @@ export function SectionHeader({
     <div style={{ paddingBottom: 12, borderBottom: `1px solid ${color.bd2}`, marginBottom: 24 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          {(live || badge) && (
+          {(isLive || badge || freshness) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              {live && (
+              {isLive && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: MONO, fontSize: 10, color: color.green }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: color.green, boxShadow: `0 0 6px ${color.green}`, display: 'inline-block' }} />
                   LIVE
+                </span>
+              )}
+              {freshness && (
+                <span style={{
+                  fontFamily: MONO, fontSize: 10,
+                  color: freshness.isStale ? color.amber : color.t4,
+                }}>
+                  {freshness.label}
+                  {freshness.isStale && ' ⚠ Data may be stale'}
                 </span>
               )}
               {badge && (

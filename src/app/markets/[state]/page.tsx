@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { color, font } from '@/lib/theme'
 import { RecommendationsCard } from '@/app/dashboard/components/RecommendationsCard'
-import { STATE_NAMES } from '@/app/api/state/[code]/route'
+import { STATE_NAMES } from '@/lib/state-names'
 
 // ── Types ────────────────────────────────────────────────────
 interface StateData {

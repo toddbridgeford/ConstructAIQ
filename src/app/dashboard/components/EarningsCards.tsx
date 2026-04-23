@@ -10,7 +10,7 @@ type MarginSignal = "STABLE" | "MODERATE" | "PRESSURE_HIGH"
 type BacklogSignal = "GROWING" | "STABLE" | "SHRINKING"
 type SectorFilter = "All" | "Homebuilders" | "Contractors" | "Materials" | "Equipment" | "Distribution"
 
-interface EarningsCompany {
+export interface EarningsCompany {
   ticker: string
   name: string
   sector: string

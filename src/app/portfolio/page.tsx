@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Nav } from "@/app/components/Nav"
 import { BenchmarkBadge, type BenchmarkResult } from "@/app/components/ui/BenchmarkBadge"
 import { color, font, radius } from "@/lib/theme"
@@ -396,12 +397,12 @@ export default function PortfolioPage() {
             fontFamily: SYS, fontSize: 28, fontWeight: 700,
             color: color.t1, lineHeight: 1.2, letterSpacing: '-0.02em',
           }}>
-            You haven't added any markets yet.
+            You haven&apos;t added any markets yet.
           </div>
           <div style={{ fontFamily: SYS, fontSize: 15, color: color.t3, lineHeight: 1.6 }}>
             Browse city permits and click <strong>+ Follow</strong> to add a market.
           </div>
-          <a href="/permits" style={{
+          <Link href="/permits" style={{
             display: 'inline-flex', alignItems: 'center',
             background: color.blue, color: color.t1,
             fontFamily: SYS, fontSize: 15, fontWeight: 600,
@@ -409,7 +410,7 @@ export default function PortfolioPage() {
             textDecoration: 'none', marginTop: 8,
           }}>
             Browse Cities →
-          </a>
+          </Link>
         </div>
       </div>
     )
@@ -471,13 +472,13 @@ export default function PortfolioPage() {
               Market Comparison
             </h1>
           </div>
-          <a href="/permits" style={{
+          <Link href="/permits" style={{
             fontFamily: MONO, fontSize: 11, color: color.blue,
             letterSpacing: '0.06em', padding: '8px 16px',
             border: `1px solid ${color.blue}44`, borderRadius: radius.sm,
           }}>
             + ADD MARKET
-          </a>
+          </Link>
         </div>
 
         {/* Sector health row — contractor or lender roles */}

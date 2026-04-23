@@ -83,8 +83,6 @@ interface Props {
 export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
   const pathname                  = usePathname()
   const [mode, setMode]           = useState<SidebarMode>('full')
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
-  const [dataAsOf, setDataAsOf]   = useState<string | null>(null)
   const [prefs, setPrefsState]    = useState<UserPreferences>(() => getPrefs())
   const [calBadge, setCalBadge]   = useState<string | null>(null)
 
@@ -96,12 +94,6 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
       return () => window.removeEventListener('resize', update)
     }
   }, [modeProp])
-
-  useEffect(() => {
-    const now = new Date()
-    setLastUpdated(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
-    setDataAsOf(now.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }))
-  }, [])
 
   // Sync prefs from same-tab and cross-tab changes
   useEffect(() => {
@@ -361,58 +353,6 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
         ))}
       </div>
 
-      {/* Live indicator + timestamps */}
-      <div style={{
-        borderTop:  `1px solid ${color.bd1}`,
-        padding:    mode === 'full' ? '12px 16px' : '12px 0',
-        flexShrink: 0,
-        display:    'flex',
-        flexDirection: 'column',
-        gap:        6,
-        alignItems: mode === 'full' ? 'flex-start' : 'center',
-      }}>
-        {/* Live dot + last updated */}
-        <div style={{
-          display:    'flex',
-          alignItems: 'center',
-          gap:        8,
-        }}>
-          <span
-            style={{
-              width:        7,
-              height:       7,
-              borderRadius: '50%',
-              background:   color.green,
-              boxShadow:    `0 0 8px ${color.green}`,
-              flexShrink:   0,
-              display:      'inline-block',
-              animation:    'pulse 2s infinite',
-            }}
-          />
-          {mode === 'full' && lastUpdated && (
-            <span style={{
-              fontSize:      11,
-              fontFamily:    font.mono,
-              color:         color.t3,
-              letterSpacing: '0.04em',
-            }}>
-              {lastUpdated}
-            </span>
-          )}
-        </div>
-
-        {/* Data as of */}
-        {mode === 'full' && dataAsOf && (
-          <span style={{
-            fontSize:      10,
-            fontFamily:    font.mono,
-            color:         color.t4,
-            letterSpacing: '0.04em',
-          }}>
-            Data as of: {dataAsOf}
-          </span>
-        )}
-      </div>
     </nav>
   )
 }

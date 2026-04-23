@@ -7,6 +7,7 @@ export interface ForecastData  {
     accuracy:       number
     mape:           number
     models:         number
+    yoy_implied?:   number
     hwWeight?:      number
     sarimaWeight?:  number
     xgboostWeight?: number

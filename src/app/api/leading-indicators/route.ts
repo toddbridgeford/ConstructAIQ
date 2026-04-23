@@ -67,9 +67,10 @@ export async function GET(request: Request) {
     .order('obs_date', { ascending: false })
     .limit(2)
 
-  const cesCurrent = cesRows?.[0]?.value ?? 8330
+  const cesCurrent = cesRows?.[0]?.value ?? null
   const cesPrev    = cesRows?.[1]?.value ?? cesCurrent
-  const joltsMoM   = cesPrev > 0 ? ((cesCurrent - cesPrev) / cesPrev) * 100 : 0
+  const joltsMoM   = (cesCurrent != null && cesPrev != null && cesPrev > 0)
+    ? ((cesCurrent - cesPrev) / cesPrev) * 100 : 0
 
   // ── 3. CSHI (ABI proxy) ───────────────────────────────────────────────────
   let abiProxy = 52.0

@@ -14,6 +14,15 @@ import { RolePrompt }           from "@/app/components/RolePrompt"
 import { VerdictBanner }        from "./components/VerdictBanner"
 import Link                     from "next/link"
 import { Calendar }             from "lucide-react"
+import type {
+  DashboardData,
+  CommodityItem,
+  SignalsResponse,
+  BriefResponse,
+  PricewatchResponse,
+} from "@/lib/api-types"
+import type { ForecastData } from "./types"
+import { formatFreshness } from "@/lib/freshness"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -125,9 +134,6 @@ function UpcomingReleaseAlert() {
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
-
 export default function Dashboard() {
   const [activeSection,   setSection]        = useState('overview')
   const [showRolePrompt,  setShowRolePrompt]  = useState(false)
@@ -143,102 +149,139 @@ export default function Dashboard() {
     }
   }, [])
 
-  // ── Data state ──────────────────────────────────────────────────────────
-  const [cshi,     setCshi]     = useState<AnyData>(null)
-  const [spend,    setSpend]    = useState<AnyData>(null)
-  const [employ,   setEmploy]   = useState<AnyData>(null)
-  const [fore,     setFore]     = useState<AnyData>(null)
-  const [prices,   setPrices]   = useState<AnyData>(null)
-  const [signals,  setSignals]  = useState<AnyData>(null)
-  const [brief,    setBrief]    = useState<AnyData>(null)
-  const [warn,     setWarn]     = useState<AnyData>(null)
-  const [obsMap,   setObsMap]   = useState<Record<string, { date: string; value: number }[]>>({})
+  // ── Single aggregated state ─────────────────────────────────────────────────
+  const [dashCore, setDashCore] = useState<DashboardData | null>(null)
 
   const load = useCallback(async () => {
     async function safe(url: string) {
       try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
     }
-    const [
-      cshiD, spendD, employD, foreD, pricesD, sigsD, briefD, warnD,
-      ttl12, ces12, permit12, ttl24, wps24,
-    ] = await Promise.all([
-      safe("/api/cshi"),
-      safe("/api/census"),
-      safe("/api/bls"),
-      safe("/api/forecast?series=TTLCONS"),
-      safe("/api/pricewatch"),
-      safe("/api/signals"),
-      safe("/api/weekly-brief"),
-      safe("/api/warn"),
-      safe("/api/obs?series=TTLCONS&n=12"),
-      safe("/api/obs?series=CES2000000001&n=12"),
-      safe("/api/obs?series=PERMIT&n=12"),
-      safe("/api/obs?series=TTLCONS&n=24"),
-      safe("/api/obs?series=WPS081&n=24"),
+    // 3 parallel fetches instead of 13+
+    const [core] = await Promise.all([
+      safe('/api/dashboard'),
+      // /api/permits and /api/satellite are fetched by their respective
+      // section components on demand — not needed for initial dashboard paint
     ])
-
-    if (cshiD)   setCshi(cshiD)
-    if (spendD)  setSpend(spendD)
-    if (employD) setEmploy(employD)
-    if (foreD)   setFore(foreD)
-    if (pricesD) setPrices(pricesD)
-    if (sigsD)   setSignals(sigsD)
-    if (briefD)  setBrief(briefD)
-    if (warnD)   setWarn(warnD)
-
-    setObsMap({
-      TTLCONS_12:       ttl12?.obs    ?? [],
-      CES2000000001_12: ces12?.obs    ?? [],
-      PERMIT_12:        permit12?.obs ?? [],
-      TTLCONS_24:       ttl24?.obs    ?? [],
-      WPS081_24:        wps24?.obs    ?? [],
-    })
+    if (core) setDashCore(core as DashboardData)
   }, [])
 
   useEffect(() => { load() }, [load])
 
-  // ── Derived values ───────────────────────────────────────────────────────
-  const spendVal  = parseFloat(String(obsMap["TTLCONS_12"]?.slice(-1)[0]?.value ?? spend?.latest?.value ?? 2190))
-  const prevSpend = parseFloat(String(obsMap["TTLCONS_12"]?.slice(-2, -1)[0]?.value ?? spendVal))
-  const spendMom  = prevSpend > 0 ? ((spendVal - prevSpend) / prevSpend) * 100 : 0
+  // ── Derived KPI values ───────────────────────────────────────────────────────
+  const obs       = dashCore?.obs
+  const ttl12     = obs?.TTLCONS_12       ?? []
+  const emp12     = obs?.CES2000000001_12 ?? []
+  const permit12  = obs?.PERMIT_12        ?? []
 
-  const empVal    = spend?.value ?? employ?.value ?? employ?.latest?.value ?? 8330
-  const empMom    = employ?.mom  ?? employ?.latest?.mom ?? 0.31
+  const spendRaw  = ttl12.at(-1)?.value    ?? dashCore?.construction_spending.value ?? null
+  const spendVal  = spendRaw != null ? parseFloat(String(spendRaw)) : null
+  const prevSpend = ttl12.at(-2)?.value    ?? null
+  const spendMom  = (spendVal != null && prevSpend != null && prevSpend > 0)
+    ? ((spendVal - prevSpend) / prevSpend) * 100
+    : dashCore?.construction_spending.mom_change ?? 0
 
-  const permitObs  = obsMap["PERMIT_12"] ?? []
-  const permitVal  = permitObs.slice(-1)[0]?.value  ?? 1482
-  const permitPrev = permitObs.slice(-2, -1)[0]?.value ?? permitVal
-  const permitMom  = permitPrev > 0 ? ((permitVal - permitPrev) / permitPrev) * 100 : 0
+  const empVal    = emp12.at(-1)?.value    ?? dashCore?.employment.value ?? null
+  const prevEmp   = emp12.at(-2)?.value    ?? null
+  const empMom    = (empVal != null && prevEmp != null && prevEmp > 0)
+    ? ((empVal - prevEmp) / prevEmp) * 100
+    : dashCore?.employment.mom_change ?? 0
 
-  const cshiScore  = cshi?.score        ?? 72.4
-  const cshiChange = cshi?.weeklyChange ?? 1.3
-  const cshiSpark  = (cshi?.history ?? []).slice(-12).map((h: { score: number }) => h.score)
+  const permitVal  = permit12.at(-1)?.value ?? dashCore?.permits.value ?? null
+  const prevPermit = permit12.at(-2)?.value ?? null
+  const permitMom  = (permitVal != null && prevPermit != null && prevPermit > 0)
+    ? ((permitVal - prevPermit) / prevPermit) * 100
+    : dashCore?.permits.mom_change ?? 0
 
-  const spendSpark  = obsSpark(obsMap["TTLCONS_12"],       12, spendVal)
-  const empSpark    = obsSpark(obsMap["CES2000000001_12"], 12, empVal)
-  const permitSpark = obsSpark(obsMap["PERMIT_12"],        12, permitVal)
+  const cshiScore  = dashCore?.cshi.score        ?? null
+  const cshiChange = dashCore?.cshi.weeklyChange  ?? null
+  const cshiSpark  = (dashCore?.cshi.history ?? []).slice(-12).map(h => h.score)
 
-  const sigList     = signals?.signals    ?? []
-  const commodities = prices?.commodities ?? []
+  const spendSpark  = obsSpark(ttl12,    12, spendVal)
+  const empSpark    = obsSpark(emp12,    12, empVal)
+  const permitSpark = obsSpark(permit12, 12, permitVal)
 
+  // ── Correlation chart obs ────────────────────────────────────────────────────
   const corrSpend: { date: string; value: number }[] =
-    obsMap["TTLCONS_24"]?.length
-      ? obsMap["TTLCONS_24"]
-      : Array.from({ length: 24 }, (_, i) => ({ date: `2024-${String(i % 12 + 1).padStart(2, "0")}-01`, value: 2100 + i * 4 }))
+    obs?.TTLCONS_24?.length
+      ? obs.TTLCONS_24
+      : Array.from({ length: 24 }, (_, i) => ({
+          date:  `2024-${String(i % 12 + 1).padStart(2, '0')}-01`,
+          value: 2100 + i * 4,
+        }))
 
   const corrMaterials: { date: string; value: number }[] =
-    obsMap["WPS081_24"]?.length
-      ? obsMap["WPS081_24"]
-      : Array.from({ length: 24 }, (_, i) => ({ date: `2024-${String(i % 12 + 1).padStart(2, "0")}-01`, value: 280 + i * 2 }))
+    obs?.WPS081_24?.length
+      ? obs.WPS081_24
+      : Array.from({ length: 24 }, (_, i) => ({
+          date:  `2024-${String(i % 12 + 1).padStart(2, '0')}-01`,
+          value: 280 + i * 2,
+        }))
 
-  const foreAccuracy  = fore?.metrics?.accuracy ?? 87.3
-  const foreMAPE      = fore?.metrics?.mape     ?? 4.2
+  // ── Shape adapters — bridge DashboardData to component prop types ────────────
+
+  // ForecastData expected by HeroForecast
+  const fore: ForecastData | null = dashCore?.forecast ? {
+    ensemble:  dashCore.forecast.ensemble,
+    models:    dashCore.forecast.models.map(m => ({
+      model:    m.model,
+      weight:   m.weight,
+      mape:     m.mape,
+      accuracy: m.accuracy,
+      forecast: dashCore.forecast!.ensemble,
+    })),
+    metrics: {
+      accuracy: dashCore.forecast.metrics.accuracy,
+      mape:     dashCore.forecast.metrics.mape,
+      models:   dashCore.forecast.metrics.models,
+    },
+    trainedOn: dashCore.forecast.trained_on,
+    runAt:     dashCore.forecast.run_at,
+    history:   dashCore.forecast.history,
+  } : null
+
+  const foreAccuracy = fore?.metrics?.accuracy ?? 87.3
+  const foreMAPE     = fore?.metrics?.mape     ?? 4.2
+
+  // SignalsResponse expected by SignalsSection
+  const sigList = dashCore?.signals ?? []
+  const signals: SignalsResponse | null = dashCore ? {
+    source:        'ConstructAIQ SignalDetect',
+    live:          true,
+    signals:       sigList,
+    count:         sigList.length,
+    updated:       dashCore.fetched_at,
+    signals_as_of: ttl12.at(-1)?.date ?? null,
+  } : null
+
+  // BriefResponse expected by SignalsSection → WeeklyBrief
+  const brief: BriefResponse | null = dashCore?.brief_excerpt ? {
+    brief:       dashCore.brief_excerpt,
+    generatedAt: dashCore.brief_as_of ?? undefined,
+    source:      'static',
+  } : null
+
+  // PricewatchResponse expected by MaterialsSection loading gate
+  const commodities: CommodityItem[] = dashCore?.commodities ?? []
+  const prices: PricewatchResponse | null = dashCore ? {
+    source:    'ConstructAIQ',
+    live:      false,
+    commodities,
+    compositeIndex: { avgMoM: 0, signal: 'HOLD', description: '' },
+    updated:   null,
+  } : null
+
   const procurementValue = commodities.length > 0
-    ? Math.round(commodities.reduce((s: number, c: AnyData) =>
-        s + (c.signal === "BUY" ? 72 : c.signal === "SELL" ? 32 : 54), 0) / commodities.length)
+    ? Math.round(commodities.reduce((s: number, c: CommodityItem) =>
+        s + (c.signal === 'BUY' ? 72 : c.signal === 'SELL' ? 32 : 54), 0) / commodities.length)
     : 61
 
-  // ── Section renderer ─────────────────────────────────────────────────────
+  // ── Freshness — derived from actual obs timestamps ───────────────────────────
+  const overviewFreshness  = formatFreshness(dashCore?.construction_spending.data_as_of ?? dashCore?.cshi.updatedAt)
+  const forecastFreshness  = formatFreshness(dashCore?.forecast?.run_at)
+  const pricesFreshness    = formatFreshness(null)
+  const signalsFreshness   = formatFreshness(ttl12.at(-1)?.date ?? null)
+
+  // ── Section renderer ─────────────────────────────────────────────────────────
   function renderSection() {
     switch (activeSection) {
 
@@ -246,7 +289,7 @@ export default function Dashboard() {
         return (
           <ErrorBoundary fallback={<SectionFallback title="Forecast" />}>
             <div style={{ padding: '32px 0' }}>
-              <HeroForecast fore={fore} foreAccuracy={foreAccuracy} foreMAPE={foreMAPE} />
+              <HeroForecast fore={fore} foreAccuracy={foreAccuracy} foreMAPE={foreMAPE} freshness={forecastFreshness} />
             </div>
           </ErrorBoundary>
         )
@@ -258,16 +301,17 @@ export default function Dashboard() {
               <MaterialsSection
                 commodities={commodities}
                 procurementValue={procurementValue}
-                heatmapData={commodities.slice(0, 6).map((c: AnyData) => ({
+                heatmapData={commodities.slice(0, 6).map((c: CommodityItem) => ({
                   commodity: c.name,
                   months: Array.from({ length: 12 }, (_, i) => ({
-                    month: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i],
+                    month: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i],
                     value: c.value, pctChange: c.mom || 0,
                   })),
                 }))}
                 corrMaterials={corrMaterials}
                 corrSpend={corrSpend}
                 loading={prices === null}
+                freshness={pricesFreshness}
               />
             </div>
           </ErrorBoundary>
@@ -277,7 +321,7 @@ export default function Dashboard() {
         return (
           <ErrorBoundary fallback={<SectionFallback title="Signals" />}>
             <div style={{ padding: '32px 0' }}>
-              <SignalsSection signals={signals} brief={brief} warn={warn} />
+              <SignalsSection signals={signals} brief={brief} warn={null} freshness={signalsFreshness} />
             </div>
           </ErrorBoundary>
         )
@@ -290,17 +334,21 @@ export default function Dashboard() {
               empVal={empVal}       empMom={empMom}        empSpark={empSpark}
               permitVal={permitVal} permitMom={permitMom}  permitSpark={permitSpark}
               cshiScore={cshiScore} cshiChange={cshiChange} cshiSpark={cshiSpark}
-              spendObs={obsMap["TTLCONS_12"] ?? []}
+              spendObs={ttl12}
               signals={sigList}
-              loading={spend === null && employ === null}
+              loading={dashCore === null}
+              freshness={overviewFreshness}
             />
           </ErrorBoundary>
         )
     }
   }
 
+  // Suppress unused import warning — fmtB is used in child components via theme
+  void fmtB
+
   return (
-    <div style={{ minHeight: "100vh", background: color.bg0, color: color.t1, fontFamily: SYS }}>
+    <div id="main-content" style={{ minHeight: "100vh", background: color.bg0, color: color.t1, fontFamily: SYS }}>
       <style>{`
         * { box-sizing: border-box; }
         @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }

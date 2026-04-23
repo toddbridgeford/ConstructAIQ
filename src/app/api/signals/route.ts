@@ -132,6 +132,16 @@ function staticSignals() {
   ]
 }
 
+async function getMaxObsDate(): Promise<string | null> {
+  try {
+    const { data } = await supabase.from('observations')
+      .select('obs_date')
+      .order('obs_date', { ascending: false })
+      .limit(1)
+    return data?.[0]?.obs_date ?? null
+  } catch { return null }
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const gen = url.searchParams.get('generate')==='1'
@@ -140,8 +150,10 @@ export async function GET(request: Request) {
     if(!gen) {
       const {data:existing} = await supabase.from('signals').select('*').eq('is_active',true)
         .order('created_at',{ascending:false}).limit(20)
-      if(existing&&existing.length>0)
-        return NextResponse.json({source:'ConstructAIQ SignalDetect',live:true,signals:existing,count:existing.length,updated:new Date().toISOString()})
+      if(existing&&existing.length>0) {
+        const signals_as_of = await getMaxObsDate()
+        return NextResponse.json({source:'ConstructAIQ SignalDetect',live:true,signals:existing,count:existing.length,signals_as_of,updated:new Date().toISOString()})
+      }
     }
     const ids=['TTLCONS','HOUST','PERMIT','CES2000000001','MORTGAGE30US','DGS10','PPI_LUMBER','PPI_STEEL']
     const map: Record<string,Obs[]>={}
@@ -156,7 +168,8 @@ export async function GET(request: Request) {
       await supabaseAdmin.from('signals').update({is_active:false}).eq('is_active',true)
       await supabaseAdmin.from('signals').insert(deduped)
     }
+    const signals_as_of = await getMaxObsDate()
     const out=deduped.length>0?deduped:staticSignals()
-    return NextResponse.json({source:'ConstructAIQ SignalDetect',live:deduped.length>0,generated:deduped.length,signals:out,count:out.length,updated:new Date().toISOString()},{headers:{'Cache-Control':'public, s-maxage=3600'}})
-  } catch(err) { return NextResponse.json({source:'SignalDetect-fallback',live:false,signals:staticSignals(),count:staticSignals().length,updated:new Date().toISOString()}) }
+    return NextResponse.json({source:'ConstructAIQ SignalDetect',live:deduped.length>0,generated:deduped.length,signals:out,count:out.length,signals_as_of,updated:new Date().toISOString()},{headers:{'Cache-Control':'public, s-maxage=3600'}})
+  } catch(err) { return NextResponse.json({source:'SignalDetect-fallback',live:false,signals:staticSignals(),count:staticSignals().length,signals_as_of:null,updated:new Date().toISOString()}) }
 }

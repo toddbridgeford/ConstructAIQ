@@ -1,262 +1,249 @@
-"use client"
-import Image from "next/image"
+import type { Metadata } from "next"
 import Link from "next/link"
+import Image from "next/image"
 import { font, color } from "@/lib/theme"
+
+export const metadata: Metadata = {
+  title: "ConstructAIQ is Free — Here's Why",
+  description:
+    "ConstructAIQ is free forever. No subscription. No credit card. Built on public data from the Census Bureau, BLS, FRED, and USASpending.gov — fully open methodology.",
+}
 
 const SYS  = font.sys
 const MONO = font.mono
-const AMBER = color.amber
-const GREEN = color.green
-const BLUE  = color.blue
-const BG0   = color.bg0
-const BG1   = color.bg1
-const BG2   = color.bg2
-const BD1   = color.bd1
-const BD2   = color.bd2
-const T1    = color.t1
-const T2    = color.t2
-const T3    = color.t3
-const T4    = color.t4
 
-interface Tier {
-  label:    string
-  badge:    string
-  badgeCol: string
-  tagline:  string
-  features: string[]
-  ctaLabel: string
-  ctaHref:  string
-  highlight: boolean
-}
+const SOURCES = [
+  { name: "U.S. Census Bureau",         desc: "Total construction spending, housing starts, building permits" },
+  { name: "Bureau of Labor Statistics", desc: "Construction employment, producer price indices, wages" },
+  { name: "FRED (St. Louis Fed)",        desc: "Macroeconomic series — rates, GDP, leading indicators" },
+  { name: "USASpending.gov",             desc: "Federal infrastructure awards and IIJA/IRA program execution" },
+  { name: "SAM.gov",                     desc: "Active federal solicitations — NAICS 236/237/238" },
+  { name: "U.S. DOL WARN Act",           desc: "Layoff notices as a leading contraction indicator" },
+]
 
-const TIERS: Tier[] = [
+const ACCESS_TIERS = [
   {
-    label:    "INDIVIDUAL",
-    badge:    "FREE",
-    badgeCol: GREEN,
-    tagline:  "Full access. No credit card. No expiry.",
-    features: [
-      "Full dashboard access",
-      "12-month AI ensemble forecast",
-      "All signals and anomaly detection",
-      "1,000 API requests / day",
-      "CSV export",
+    label:    "Dashboard",
+    badge:    "FREE · NO ACCOUNT",
+    badgeCol: color.green,
+    desc:     "Full dashboard access. No login, no credit card, no expiry.",
+    items: [
+      "12-month ensemble AI forecast",
+      "Anomaly and divergence signals",
+      "Materials BUY/SELL/HOLD intelligence",
+      "50-state construction activity map",
+      "Federal infrastructure tracker",
+      "Weekly AI brief",
     ],
-    ctaLabel:  "Get Free Access",
-    ctaHref:   "/api/keys/issue",
-    highlight: false,
+    cta: { label: "Open Dashboard", href: "/dashboard" },
   },
   {
-    label:    "RESEARCHER",
-    badge:    "FREE — .edu verified",
-    badgeCol: BLUE,
-    tagline:  "For academic and policy research.",
-    features: [
-      "Everything in Individual",
-      "10,000 API requests / day",
-      "Bulk historical data download",
-      "Priority data freshness",
+    label:    "API",
+    badge:    "FREE · 1,000 req/day",
+    badgeCol: color.blue,
+    desc:     "Open REST API for developers and analysts. Register for a key instantly.",
+    items: [
+      "All endpoints: forecast, signals, pricewatch, federal",
+      "1,000 requests per day",
+      "Researcher tier: 10,000 req/day with .edu email",
+      "Embeddable chart widgets",
     ],
-    ctaLabel:  "Apply for Research Access",
-    ctaHref:   "mailto:research@constructaiq.trade?subject=Research Access Request",
-    highlight: true,
+    cta: { label: "Get API Key", href: "/api-access" },
   },
   {
-    label:    "ENTERPRISE",
+    label:    "Enterprise",
     badge:    "CONTACT US",
-    badgeCol: AMBER,
-    tagline:  "White-label, custom feeds, SLA.",
-    features: [
-      "White-label embed",
-      "Custom data feeds",
-      "SLA and dedicated support",
-      "Data licensing",
+    badgeCol: color.amber,
+    desc:     "White-label, custom data feeds, and SLA support for large organizations.",
+    items: [
+      "White-label embed for your platform",
+      "Custom data feeds and frequency",
+      "Dedicated SLA and support",
+      "Data licensing agreements",
     ],
-    ctaLabel:  "Contact Us",
-    ctaHref:   "/contact",
-    highlight: false,
+    cta: { label: "Contact Us", href: "/contact" },
   },
 ]
 
-function TierCard({ tier }: { tier: Tier }) {
-  return (
-    <div style={{
-      flex: "1 1 280px",
-      maxWidth: 380,
-      background: tier.highlight ? BG2 : BG1,
-      border: `1px solid ${tier.highlight ? tier.badgeCol + "55" : BD1}`,
-      borderRadius: 20,
-      padding: "32px 28px",
-      display: "flex",
-      flexDirection: "column",
-      boxShadow: tier.highlight ? `0 0 48px ${tier.badgeCol}18` : "none",
-    }}>
-      {/* Badge */}
-      <div style={{ marginBottom: 16 }}>
-        <span style={{
-          fontFamily: MONO, fontSize: 11, fontWeight: 700,
-          letterSpacing: "0.12em", color: tier.badgeCol,
-          background: tier.badgeCol + "18",
-          padding: "4px 10px", borderRadius: 6,
-        }}>
-          {tier.badge}
-        </span>
-      </div>
-
-      <div style={{ fontFamily: MONO, fontSize: 13, color: T4, letterSpacing: "0.1em", marginBottom: 8 }}>
-        {tier.label}
-      </div>
-      <div style={{ fontFamily: SYS, fontSize: 15, color: T3, marginBottom: 28, lineHeight: 1.5 }}>
-        {tier.tagline}
-      </div>
-
-      <div style={{ flex: 1, marginBottom: 28 }}>
-        {tier.features.map((f, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
-            <span style={{ color: tier.badgeCol, fontFamily: MONO, fontSize: 13, flexShrink: 0, marginTop: 1 }}>✓</span>
-            <span style={{ fontFamily: SYS, fontSize: 14, color: T2, lineHeight: 1.5 }}>{f}</span>
-          </div>
-        ))}
-      </div>
-
-      <Link href={tier.ctaHref} style={{ display: "block" }}>
-        <button style={{
-          width: "100%", minHeight: 48,
-          background: tier.highlight ? tier.badgeCol : "transparent",
-          color: tier.highlight ? BG0 : tier.badgeCol,
-          border: `1px solid ${tier.badgeCol}`,
-          borderRadius: 12, fontFamily: MONO,
-          fontSize: 13, fontWeight: 700,
-          letterSpacing: "0.06em", cursor: "pointer",
-        }}>
-          {tier.ctaLabel} →
-        </button>
-      </Link>
-    </div>
-  )
-}
-
 export default function PricingPage() {
   return (
-    <div style={{ minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS, paddingBottom: "env(safe-area-inset-bottom,20px)" }}>
-      <style>{`
-        *{box-sizing:border-box;margin:0;padding:0}
-        a{color:inherit;text-decoration:none}
-        button{outline:none;font-family:inherit;cursor:pointer;border:none}
-        button:hover{opacity:0.85}
-      `}</style>
+    <div style={{ minHeight: "100vh", background: color.bg0, color: color.t1, fontFamily: SYS }}>
 
-      {/* NAV */}
+      {/* Nav */}
       <nav style={{
+        background: color.bg1 + "ee", backdropFilter: "blur(12px)",
+        borderBottom: `1px solid ${color.bd1}`,
+        padding: "0 32px", height: 64,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
         position: "sticky", top: 0, zIndex: 100,
-        background: BG1 + "ee", backdropFilter: "blur(12px)",
-        borderBottom: `1px solid ${BD1}`,
-        padding: "0 32px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", minHeight: 60,
-        paddingTop: "env(safe-area-inset-top,0px)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href="/">
-            <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ" style={{ height: 24, width: "auto" }} />
-          </Link>
-          <div style={{ width: 1, height: 24, background: BD1 }} />
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>FREE ACCESS</div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/dashboard">
-            <button style={{ background: "transparent", color: T3, fontFamily: MONO, fontSize: 13, padding: "8px 16px", borderRadius: 10, border: `1px solid ${BD1}`, minHeight: 44 }}>DASHBOARD</button>
-          </Link>
-          <Link href="/contact">
-            <button style={{ background: AMBER, color: BG0, fontFamily: MONO, fontSize: 13, fontWeight: 700, padding: "8px 20px", borderRadius: 10, letterSpacing: "0.06em", minHeight: 44 }}>ENTERPRISE →</button>
-          </Link>
-        </div>
+        <Link href="/">
+          <Image src="/ConstructAIQWhiteLogo.svg" width={128} height={24} alt="ConstructAIQ"
+            style={{ height: 24, width: "auto", display: "block" }} />
+        </Link>
+        <Link href="/dashboard" style={{
+          background: color.blue, color: color.t1,
+          fontFamily: SYS, fontSize: 14, fontWeight: 600,
+          padding: "8px 18px", borderRadius: 8, textDecoration: "none",
+        }}>
+          Dashboard →
+        </Link>
       </nav>
 
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 32px 80px" }}>
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: "64px 24px 96px" }}>
 
-        {/* Header */}
+        {/* Hero */}
         <div style={{ textAlign: "center", marginBottom: 72 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: GREEN + "18", border: `1px solid ${GREEN}44`, borderRadius: 20, padding: "6px 18px", marginBottom: 28 }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: GREEN, display: "inline-block" }} />
-            <span style={{ fontFamily: MONO, fontSize: 11, color: GREEN, letterSpacing: "0.08em" }}>FREE FOREVER</span>
+          <div style={{
+            display: "inline-block", fontFamily: MONO, fontSize: 11, fontWeight: 600,
+            color: color.green, background: color.green + "18",
+            border: `1px solid ${color.green}44`, borderRadius: 20,
+            padding: "5px 16px", marginBottom: 28, letterSpacing: "0.1em",
+          }}>
+            FREE FOREVER · NO CREDIT CARD · NO ACCOUNT REQUIRED
           </div>
 
-          <h1 style={{ fontFamily: SYS, fontSize: 56, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.05, color: T1, marginBottom: 20 }}>
-            Free. Forever.<br />No credit card.
+          <h1 style={{
+            fontFamily: SYS, fontSize: 52, fontWeight: 700, color: color.t1,
+            lineHeight: 1.1, marginBottom: 24, letterSpacing: "-0.03em",
+          }}>
+            ConstructAIQ is Free.<br />
+            <span style={{ color: color.amber }}>Here&apos;s Why.</span>
           </h1>
 
-          <p style={{ fontFamily: SYS, fontSize: 19, color: T3, lineHeight: 1.65, maxWidth: 600, margin: "0 auto 0" }}>
-            The FRED for the American construction economy. Every data point, every forecast,
-            every signal — free.
+          <p style={{
+            fontFamily: SYS, fontSize: 18, color: color.t3,
+            lineHeight: 1.7, maxWidth: 560, margin: "0 auto",
+          }}>
+            Every data source we use is public. Every model we run is open.
+            There is no moat to protect, so there is no reason to charge.
+            ConstructAIQ is the FRED for the American construction economy.
           </p>
         </div>
 
-        {/* Tier cards */}
-        <div style={{ display: "flex", gap: 20, flexWrap: "wrap", justifyContent: "center", marginBottom: 80 }}>
-          {TIERS.map(t => <TierCard key={t.label} tier={t} />)}
-        </div>
-
-        {/* What's always included */}
-        <div style={{ background: BG2, borderRadius: 20, padding: "44px 40px", border: `1px solid ${BD1}`, marginBottom: 48 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 28, textAlign: "center" }}>
-            ALWAYS INCLUDED — NO PAYWALL
+        {/* Data sources */}
+        <div style={{
+          background: color.bg1, border: `1px solid ${color.bd1}`,
+          borderRadius: 20, padding: "36px 40px", marginBottom: 64,
+        }}>
+          <div style={{
+            fontFamily: MONO, fontSize: 11, color: color.amber,
+            letterSpacing: "0.12em", marginBottom: 20,
+          }}>
+            THE DATA SOURCES
           </div>
-          <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "center" }}>
-            {[
-              { label: "AI Ensemble Forecast",  desc: "Holt-Winters + SARIMA + XGBoost" },
-              { label: "50-State Activity Map",  desc: "HOT / GROWING / COOLING by state" },
-              { label: "Materials Signals",      desc: "BUY / SELL / HOLD for 6 commodities" },
-              { label: "Anomaly Detection",      desc: "Z-score alerts across 10+ series" },
-              { label: "Weekly Intelligence Brief", desc: "AI-generated every Monday" },
-              { label: "Federal Pipeline",       desc: "IIJA/IRA program execution tracker" },
-            ].map(({ label, desc }) => (
-              <div key={label} style={{ textAlign: "center", minWidth: 160, flex: "1 1 160px" }}>
-                <div style={{ fontFamily: SYS, fontSize: 14, color: T1, fontWeight: 600, marginBottom: 4 }}>{label}</div>
-                <div style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>{desc}</div>
+          <p style={{ fontFamily: SYS, fontSize: 15, color: color.t3, lineHeight: 1.7, marginBottom: 28 }}>
+            The Census Bureau, BLS, Federal Reserve, and USASpending.gov publish
+            their data at public expense. We aggregate, normalize, and model it —
+            then give the output back to the industry that needs it most.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+            {SOURCES.map(s => (
+              <div key={s.name} style={{
+                background: color.bg2, borderRadius: 12, padding: "16px 20px",
+                border: `1px solid ${color.bd2}`,
+              }}>
+                <div style={{ fontFamily: MONO, fontSize: 12, color: color.t1, fontWeight: 600, marginBottom: 6 }}>
+                  {s.name}
+                </div>
+                <div style={{ fontFamily: SYS, fontSize: 13, color: color.t4, lineHeight: 1.5 }}>
+                  {s.desc}
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* API key section */}
-        <div style={{ background: BG1, borderRadius: 20, padding: "40px", border: `1px solid ${BD1}`, marginBottom: 48 }}>
-          <div style={{ display: "flex", gap: 40, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ flex: "1 1 320px" }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, color: AMBER, letterSpacing: "0.1em", marginBottom: 12 }}>REST API</div>
-              <h2 style={{ fontFamily: SYS, fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em", color: T1, marginBottom: 12 }}>
-                Free API access.<br />1,000 requests/day.
-              </h2>
-              <p style={{ fontFamily: SYS, fontSize: 15, color: T3, lineHeight: 1.6 }}>
-                Every data endpoint — forecasts, signals, observations, state maps — accessible
-                via API key. Build your own tools on public construction data.
-              </p>
-            </div>
-            <div style={{ flex: "0 0 auto" }}>
-              <div style={{ fontFamily: MONO, fontSize: 12, color: T4, marginBottom: 8 }}>EXAMPLE</div>
-              <div style={{ background: BG0, borderRadius: 10, padding: "16px 20px", border: `1px solid ${BD2}`, fontFamily: MONO, fontSize: 13, color: GREEN, letterSpacing: "0.02em", whiteSpace: "nowrap" }}>
-                curl constructaiq.trade/api/forecast<br />
-                <span style={{ color: T4 }}>  -H &quot;X-API-Key: caiq_...&quot;</span>
+        {/* Access tiers */}
+        <div style={{ marginBottom: 64 }}>
+          <div style={{
+            fontFamily: MONO, fontSize: 11, color: color.t4,
+            letterSpacing: "0.12em", marginBottom: 28, textAlign: "center",
+          }}>
+            ACCESS LEVELS
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 20 }}>
+            {ACCESS_TIERS.map(tier => (
+              <div key={tier.label} style={{
+                background: color.bg1, border: `1px solid ${color.bd1}`,
+                borderRadius: 20, padding: "28px 28px 24px",
+                display: "flex", flexDirection: "column",
+              }}>
+                <div style={{ marginBottom: 16 }}>
+                  <span style={{
+                    fontFamily: MONO, fontSize: 10, fontWeight: 700,
+                    color: tier.badgeCol, background: tier.badgeCol + "18",
+                    border: `1px solid ${tier.badgeCol}44`,
+                    borderRadius: 6, padding: "3px 8px", letterSpacing: "0.08em",
+                  }}>
+                    {tier.badge}
+                  </span>
+                </div>
+                <div style={{ fontFamily: SYS, fontSize: 18, fontWeight: 700, color: color.t1, marginBottom: 8 }}>
+                  {tier.label}
+                </div>
+                <div style={{ fontFamily: SYS, fontSize: 14, color: color.t3, marginBottom: 20, lineHeight: 1.5 }}>
+                  {tier.desc}
+                </div>
+                <ul style={{ margin: "0 0 24px", padding: "0 0 0 18px", listStyle: "disc" }}>
+                  {tier.items.map(item => (
+                    <li key={item} style={{ fontFamily: SYS, fontSize: 13, color: color.t4, marginBottom: 6, lineHeight: 1.5 }}>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div style={{ marginTop: "auto" }}>
+                  <Link href={tier.cta.href} style={{
+                    display: "block", textAlign: "center",
+                    background: color.bg2, border: `1px solid ${color.bd1}`,
+                    borderRadius: 10, padding: "10px 0",
+                    fontFamily: SYS, fontSize: 14, fontWeight: 600,
+                    color: color.t2, textDecoration: "none",
+                  }}>
+                    {tier.cta.label}
+                  </Link>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Back links */}
-        <div style={{ textAlign: "center", display: "flex", gap: 24, justifyContent: "center", flexWrap: "wrap" }}>
-          <Link href="/dashboard" style={{ fontFamily: SYS, fontSize: 15, color: T4, textDecoration: "underline" }}>
-            ← Open Dashboard
-          </Link>
-          <Link href="/" style={{ fontFamily: SYS, fontSize: 15, color: T4, textDecoration: "underline" }}>
-            Back to Home
-          </Link>
+        {/* Open methodology */}
+        <div style={{
+          background: color.bg1, border: `1px solid ${color.bd1}`,
+          borderRadius: 20, padding: "36px 40px",
+          display: "flex", gap: 40, flexWrap: "wrap", alignItems: "center",
+        }}>
+          <div style={{ flex: "1 1 300px" }}>
+            <div style={{
+              fontFamily: MONO, fontSize: 11, color: color.amber,
+              letterSpacing: "0.12em", marginBottom: 16,
+            }}>
+              OPEN METHODOLOGY
+            </div>
+            <h2 style={{ fontFamily: SYS, fontSize: 24, fontWeight: 700, color: color.t1, marginBottom: 14 }}>
+              Every model is documented.
+            </h2>
+            <p style={{ fontFamily: SYS, fontSize: 14, color: color.t3, lineHeight: 1.7, margin: 0 }}>
+              Our 3-model ensemble (Holt-Winters, SARIMA, XGBoost) is fully described
+              including weights, back-test results, and MAPE accuracy metrics.
+              No black box. No proprietary edge. Just honest data analysis.
+            </p>
+          </div>
+          <div style={{ flex: "0 0 auto" }}>
+            <Link href="/methodology" style={{
+              display: "inline-block",
+              background: color.amber, color: "#000",
+              fontFamily: MONO, fontSize: 12, fontWeight: 700,
+              padding: "12px 24px", borderRadius: 10,
+              textDecoration: "none", letterSpacing: "0.06em",
+            }}>
+              READ THE METHODOLOGY →
+            </Link>
+          </div>
         </div>
-      </div>
 
-      <footer style={{ borderTop: `1px solid ${BD1}`, padding: "32px", textAlign: "center" }}>
-        <Image src="/ConstructAIQWhiteLogo.svg" width={100} height={20} alt="ConstructAIQ" style={{ height: 20, width: "auto", marginBottom: 12 }} />
-        <div style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>Construction Intelligence Platform · constructaiq.trade</div>
-        <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 6 }}>Data: Census Bureau · BLS · FRED · BEA · EIA · USASpending.gov</div>
-      </footer>
+      </div>
     </div>
   )
 }

@@ -19,7 +19,7 @@ export async function GET() {
       units:        'Millions of Dollars, SAAR',
       latest:       data.observations?.[0] ?? null,
       observations: data.observations ?? [],
-      updated:      new Date().toISOString(),
+      data_as_of:   data.observations?.[0]?.date ?? null,
     }, { headers: { 'Cache-Control': 'public, s-maxage=3600' } })
   } catch (e) {
     console.error('[/api/census]', e)

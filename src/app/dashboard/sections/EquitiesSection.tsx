@@ -5,9 +5,7 @@ import { SectorRotation } from "../components/SectorRotation"
 import { ETFMonitor }     from "../components/ETFMonitor"
 import { SectionHeader }  from "../components/SectionHeader"
 import { color } from "@/lib/theme"
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
+import type { EquitiesResponse } from "@/lib/api-types"
 
 const BG1 = color.bg1, BD1 = color.bd1
 
@@ -16,7 +14,7 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 }
 
 interface EquitiesSectionProps {
-  equities:            AnyData | null
+  equities:            EquitiesResponse | null
   sectorRange:         "3M" | "6M" | "1Y" | "3Y"
   onSectorRangeChange: (v: "3M" | "6M" | "1Y" | "3Y") => void
 }
@@ -24,7 +22,7 @@ interface EquitiesSectionProps {
 export function EquitiesSection({ equities, sectorRange, onSectorRangeChange }: EquitiesSectionProps) {
   return (
     <section id="equities" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="07" title="Market Signals & Equities" badge="EQUITIES" live onExportCSV={() => {}} />
+      <SectionHeader sectionId="07" title="Market Signals & Equities" badge="EQUITIES" onExportCSV={() => {}} />
 
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
         <Card style={{ flex:"3 1 500px", minWidth:0 }}>

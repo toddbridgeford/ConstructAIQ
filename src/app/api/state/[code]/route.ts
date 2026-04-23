@@ -1,27 +1,9 @@
 import { NextResponse } from 'next/server'
+import { STATE_NAMES } from '@/lib/state-names'
 
 export const runtime     = 'nodejs'
 export const dynamic     = 'force-dynamic'
 export const maxDuration = 10
-
-// ── State name lookup ────────────────────────────────────────
-export const STATE_NAMES: Record<string, string> = {
-  AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas',
-  CA:'California', CO:'Colorado', CT:'Connecticut',
-  DE:'Delaware', FL:'Florida', GA:'Georgia', HI:'Hawaii',
-  ID:'Idaho', IL:'Illinois', IN:'Indiana', IA:'Iowa',
-  KS:'Kansas', KY:'Kentucky', LA:'Louisiana', ME:'Maine',
-  MD:'Maryland', MA:'Massachusetts', MI:'Michigan',
-  MN:'Minnesota', MS:'Mississippi', MO:'Missouri',
-  MT:'Montana', NE:'Nebraska', NV:'Nevada', NH:'New Hampshire',
-  NJ:'New Jersey', NM:'New Mexico', NY:'New York',
-  NC:'North Carolina', ND:'North Dakota', OH:'Ohio',
-  OK:'Oklahoma', OR:'Oregon', PA:'Pennsylvania',
-  RI:'Rhode Island', SC:'South Carolina', SD:'South Dakota',
-  TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont',
-  VA:'Virginia', WA:'Washington', WV:'West Virginia',
-  WI:'Wisconsin', WY:'Wyoming', DC:'Washington DC',
-}
 
 // ── City → State mapping for permit filtering ────────────────
 // Maps permit city_code to its 2-letter state code
@@ -49,9 +31,10 @@ const MSA_STATE: Record<string, string[]> = {
 
 export async function GET(
   _request: Request,
-  { params }: { params: { code: string } },
+  { params }: { params: Promise<{ code: string }> },
 ) {
-  const code = params.code.toUpperCase()
+  const { code: rawCode } = await params
+  const code = rawCode.toUpperCase()
   const stateName = STATE_NAMES[code]
   if (!stateName) {
     return NextResponse.json(

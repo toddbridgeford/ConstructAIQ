@@ -5,9 +5,7 @@ import { PredictiveOverlay } from "../components/PredictiveOverlay"
 import { CycleComparison }   from "../components/CycleComparison"
 import { SectionHeader }     from "../components/SectionHeader"
 import { color } from "@/lib/theme"
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
+import type { PipelineResponse, PipelineStage, CascadeAlert } from "@/lib/api-types"
 
 const BG1 = color.bg1, BD1 = color.bd1
 const GREEN = color.green, AMBER = color.amber
@@ -16,27 +14,27 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
   return <div style={{ background:BG1, borderRadius:20, border:`1px solid ${BD1}`, padding:"24px 28px", ...style }}>{children}</div>
 }
 
-const DEFAULT_STAGES = [
+const DEFAULT_STAGES: PipelineStage[] = [
   { id:"permits",    label:"BUILDING PERMITS",    value:"1,482", unit:"K/mo", mom:2.1,  trend:"UP",   trendColor:GREEN, lagToNext:6    },
   { id:"starts",     label:"HOUSING STARTS",      value:"1,394", unit:"K/mo", mom:1.4,  trend:"UP",   trendColor:GREEN, lagToNext:4    },
   { id:"employment", label:"CONSTRUCTION EMPLOY", value:"8,330", unit:"K",    mom:0.3,  trend:"UP",   trendColor:GREEN, lagToNext:8    },
   { id:"spending",   label:"CONSTR. SPENDING",    value:"$2.19", unit:"T",    mom:0.31, trend:"UP",   trendColor:GREEN, lagToNext:12   },
   { id:"gdp",        label:"GDP CONTRIBUTION",    value:"4.8",   unit:"%",    mom:-0.1, trend:"FLAT", trendColor:AMBER, lagToNext:null },
 ]
-const DEFAULT_ALERTS = [
-  { id:"a1", severity:"WATCH",   title:"Permit-to-Start Gap Widening", description:"Permits outpacing starts by 6.2% — labor capacity constraint signal", timestamp:"2h ago" },
-  { id:"a2", severity:"INFO",    title:"Employment Momentum Positive", description:"3-month employment trend: +0.9% — above 5yr average of +0.4%",         timestamp:"4h ago" },
-  { id:"a3", severity:"ANOMALY", title:"Lumber Futures Spike +8.4%",  description:"Price breakout above 2σ band — cost pressure building",                 timestamp:"1d ago" },
+const DEFAULT_ALERTS: CascadeAlert[] = [
+  { id:"a1", severity:"WATCH",   icon:"⚠️", title:"Permit-to-Start Gap Widening", message:"Permits outpacing starts by 6.2% — labor capacity constraint signal", type:"Divergence",     timestamp:"2h ago",  seriesId:"PERMIT" },
+  { id:"a2", severity:"INFO",    icon:"📈", title:"Employment Momentum Positive", message:"3-month employment trend: +0.9% — above 5yr average of +0.4%",         type:"Acceleration",   timestamp:"4h ago",  seriesId:"CES2000000001" },
+  { id:"a3", severity:"ANOMALY", icon:"🔴", title:"Lumber Futures Spike +8.4%",  message:"Price breakout above 2σ band — cost pressure building",                 type:"Trend Reversal", timestamp:"1d ago",  seriesId:"PPI_LUMBER" },
 ]
 
 interface PipelineSectionProps {
-  pipeline: AnyData | null
+  pipeline: PipelineResponse | null
 }
 
 export function PipelineSection({ pipeline }: PipelineSectionProps) {
   return (
     <section id="pipeline" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="05" title="Lead / Lag Pipeline" badge="PREDICTIVE" live onExportCSV={() => {}} />
+      <SectionHeader sectionId="05" title="Lead / Lag Pipeline" badge="PREDICTIVE" onExportCSV={() => {}} />
 
       <Card style={{ marginBottom:20 }}>
         <PipelineTimeline stages={pipeline?.stages ?? DEFAULT_STAGES} onStageClick={() => {}} activeStage={null} />

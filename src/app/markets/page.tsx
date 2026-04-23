@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { color, font } from '@/lib/theme'
-import { STATE_NAMES } from '@/app/api/state/[code]/route'
+import { STATE_NAMES } from '@/lib/state-names'
 
 // ── Types ────────────────────────────────────────────────────
 interface StateRow {
@@ -105,7 +105,7 @@ export default function MarketsPage() {
   const loaded = rows.length
 
   return (
-    <div style={{ minHeight:'100vh', background:color.bg0,
+    <div id="main-content" style={{ minHeight:'100vh', background:color.bg0,
       color:color.t1 }}>
       <div style={{ maxWidth:960, margin:'0 auto',
         padding:'48px 40px 80px' }}>
@@ -284,7 +284,7 @@ export default function MarketsPage() {
           {!loading && sorted.length === 0 && (
             <div style={{ padding:'40px', textAlign:'center',
               fontFamily:font.sys, fontSize:14, color:color.t4 }}>
-              No states match "{search}"
+              No states match &quot;{search}&quot;
             </div>
           )}
 

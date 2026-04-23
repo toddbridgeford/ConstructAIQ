@@ -1,15 +1,11 @@
 import { type Metadata } from 'next'
-import { STATE_NAMES } from '@/app/api/state/[code]/route'
-
-interface Props {
-  params: { state: string }
-  children: React.ReactNode
-}
+import { STATE_NAMES } from '@/lib/state-names'
 
 export async function generateMetadata(
-  { params }: { params: { state: string } }
+  { params }: { params: Promise<{ state: string }> }
 ): Promise<Metadata> {
-  const code  = params.state.toUpperCase()
+  const { state } = await params
+  const code  = state.toUpperCase()
   const name  = STATE_NAMES[code] ?? code
 
   return {
@@ -26,11 +22,11 @@ export async function generateMetadata(
       type: 'website',
     },
     alternates: {
-      canonical: `/markets/${params.state.toLowerCase()}`,
+      canonical: `/markets/${state.toLowerCase()}`,
     },
   }
 }
 
-export default function StateLayout({ children }: Props) {
+export default function StateLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }

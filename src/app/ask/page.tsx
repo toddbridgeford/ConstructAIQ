@@ -181,7 +181,7 @@ export default function AskPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: BG0, color: T1, fontFamily: SYS }}>
+    <div id="main-content" style={{ minHeight: '100vh', background: BG0, color: T1, fontFamily: SYS }}>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         a { color: inherit; text-decoration: none; }

@@ -8,9 +8,7 @@ import { ErrorState }         from "@/app/components/ui/ErrorState"
 import { FreshnessIndicator } from "@/app/components/ui/FreshnessIndicator"
 import { Skeleton }           from "@/app/components/Skeleton"
 import { color } from "@/lib/theme"
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
+import type { FederalResponse } from "@/lib/api-types"
 
 const BG1 = color.bg1, BD1 = color.bd1
 
@@ -19,19 +17,19 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 }
 
 interface FederalSectionProps {
-  federal: AnyData | null
+  federal: FederalResponse | null
 }
 
 export function FederalSection({ federal }: FederalSectionProps) {
   if (!federal) return (
     <section id="federal" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="06" title="Federal Infrastructure Tracker" badge="IIJA · IRA" live onExportCSV={() => {}} shareSection="federal" />
+      <SectionHeader sectionId="06" title="Federal Infrastructure Tracker" badge="IIJA · IRA" onExportCSV={() => {}} shareSection="federal" />
       <Skeleton height={300} borderRadius={20} />
     </section>
   )
   return (
     <section id="federal" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="06" title="Federal Infrastructure Tracker" badge="IIJA · IRA" live onExportCSV={() => {}} shareSection="federal" />
+      <SectionHeader sectionId="06" title="Federal Infrastructure Tracker" badge="IIJA · IRA" onExportCSV={() => {}} shareSection="federal" />
 
       {federal?.error && (
         <div style={{ marginBottom: 20 }}>

@@ -14,6 +14,7 @@ import { BottomSheet }     from "@/app/components/BottomSheet"
 import { Skeleton }       from "@/app/components/Skeleton"
 import { color, font } from "@/lib/theme"
 import type { ForecastData } from "../types"
+import type { FreshnessInfo } from "@/lib/freshness"
 
 function forecastContext(fore: ForecastData): string | null {
   const yoy  = fore?.metrics?.yoy_implied ?? 0
@@ -24,9 +25,6 @@ function forecastContext(fore: ForecastData): string | null {
   return null
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
-
 const BG1 = color.bg1, BG2 = color.bg2, BD1 = color.bd1
 const AMBER = color.amber
 
@@ -35,12 +33,13 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 }
 
 interface HeroForecastProps {
-  fore:         AnyData | null
+  fore:         ForecastData | null
   foreAccuracy: number
   foreMAPE:     number
+  freshness?:   FreshnessInfo
 }
 
-export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps) {
+export function HeroForecast({ fore, foreAccuracy, foreMAPE, freshness }: HeroForecastProps) {
   const [activeSeries, setActiveSeries] = useState("TTLCONS")
   const [scenarioLine, setScenarioLine] = useState<number[] | null>(null)
   const [sheetOpen,    setSheetOpen]    = useState(false)
@@ -54,7 +53,7 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
     return () => mq.removeEventListener("change", handler)
   }, [])
 
-  const lastHistVal: number = fore?.history?.[fore.history.length - 1] ?? 2190
+  const lastHistVal = fore?.history?.[fore.history.length - 1] ?? null
 
   // Compute forecast verdict sentence
   const forecastVerdictText = (() => {
@@ -72,19 +71,19 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
 
   return (
     <section id="forecast" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="02" title="Forecast Intelligence Panel" subtitle="12-month ensemble AI forecast with confidence intervals" />
+      <SectionHeader sectionId="02" title="Forecast Intelligence Panel" subtitle="12-month ensemble AI forecast with confidence intervals" freshness={freshness} />
 
       {/* Hero: ForecastChart + ScenarioBuilder */}
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
         <Card style={{ flex:"3 1 480px", minWidth:0 }}>
           <ForecastChart
-            foreData={fore as ForecastData | null}
+            foreData={fore}
             scenarioLine={scenarioLine}
             onSeriesChange={setActiveSeries}
           />
           {/* Contextual footnote */}
           {fore && (() => {
-            const ctx = forecastContext(fore as ForecastData)
+            const ctx = forecastContext(fore)
             return ctx ? (
               <p style={{
                 marginTop:  14,
@@ -121,7 +120,7 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
           <Card style={{ flex:"1 1 280px", minWidth:0 }}>
             <ScenarioBuilder
               spendVal={lastHistVal}
-              foreData={fore as ForecastData | null}
+              foreData={fore}
               onScenarioChange={setScenarioLine}
             />
           </Card>
@@ -132,7 +131,7 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
       <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Scenario Builder">
         <ScenarioBuilder
           spendVal={lastHistVal}
-          foreData={fore as ForecastData | null}
+          foreData={fore}
           onScenarioChange={(line) => { setScenarioLine(line); setSheetOpen(false) }}
         />
       </BottomSheet>

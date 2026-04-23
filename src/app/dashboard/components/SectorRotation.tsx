@@ -16,10 +16,10 @@ import { font, color } from "@/lib/theme"
 const MONO = font.mono
 const SYS = font.sys
 
-interface SubsectorPoint {
+export interface SubsectorPoint {
   subsector: string
-  momentum: number
-  level: number
+  momentum:  number
+  level:     number
 }
 
 interface SectorRotationProps {

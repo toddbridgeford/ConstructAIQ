@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
             // Tight policy: self + CDN sources used in the product
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' unpkg.com",
+              "script-src 'self' 'unsafe-inline' unpkg.com cdn.jsdelivr.net",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: raw.githubusercontent.com unpkg.com",
               "connect-src 'self' https://*.supabase.co https://api.weather.gov https://earthquake.usgs.gov https://api.stlouisfed.org https://api.eia.gov https://api.bls.gov https://apps.bea.gov https://api.usaspending.gov https://api.sam.gov https://data.sec.gov https://api.census.gov https://sentry.io https://*.sentry.io https://unpkg.com",
@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
             key:   "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "connect-src 'self' https://*.supabase.co https://api.stlouisfed.org https://api.eia.gov https://api.bls.gov https://apps.bea.gov https://api.usaspending.gov https://api.sam.gov https://api.census.gov https://sentry.io https://*.sentry.io",

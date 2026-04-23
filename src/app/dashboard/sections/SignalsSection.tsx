@@ -6,16 +6,16 @@ import { WeeklyBrief } from "../components/WeeklyBrief"
 import { NLQInterface } from "../components/NLQInterface"
 import { WarnFeed } from "../components/WarnFeed"
 import { SectionHeader } from "../components/SectionHeader"
+import type { SignalsResponse, BriefResponse, WarnData } from "@/lib/api-types"
+import type { FreshnessInfo } from "@/lib/freshness"
 
 const MONO = font.mono
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
-
 interface Props {
-  signals: AnyData
-  brief:   AnyData
-  warn:    AnyData
+  signals:   SignalsResponse | null
+  brief:     BriefResponse | null
+  warn:      WarnData | null
+  freshness?: FreshnessInfo
 }
 
 function Divider({ label }: { label: string }) {
@@ -36,7 +36,7 @@ function Divider({ label }: { label: string }) {
   )
 }
 
-export function SignalsSection({ signals, brief, warn }: Props) {
+export function SignalsSection({ signals, brief, warn, freshness }: Props) {
   return (
     <section id="signals" style={{ paddingTop: 48, paddingBottom: 8 }}>
       <SectionHeader
@@ -44,6 +44,7 @@ export function SignalsSection({ signals, brief, warn }: Props) {
         title="Market Signals"
         subtitle="Anomalies, divergences, WARN Act alerts, and AI weekly brief"
         shareSection="signals"
+        freshness={freshness}
       />
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
