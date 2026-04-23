@@ -229,3 +229,54 @@ export interface EquitiesResponse {
   companies?:      EarningsCompany[]
   sectorRotation?: SubsectorPoint[]
 }
+
+// ── /api/dashboard — aggregated dashboard payload ─────────────────────────────
+
+export interface DashboardKPI {
+  value:      number | null
+  mom_change: number | null
+  data_as_of: string | null
+  spark?:     number[]
+}
+
+export interface DashboardCshi {
+  score:          number
+  classification: string
+  classColor:     string
+  weeklyChange:   number
+  subScores:      Record<string, { score: number; weight: number; label: string }>
+  history:        { week: string; score: number; classification: string }[]
+  momentumLine:   { week: string; momentum: number }[]
+  updatedAt:      string
+}
+
+export interface DashboardForecast {
+  ensemble:   { base: number; lo80: number; hi80: number; lo95: number; hi95: number }[]
+  models:     { model: string; weight: number; mape: number; accuracy: number }[]
+  metrics:    { accuracy: number; mape: number; models: number }
+  history:    number[]
+  run_at:     string
+  trained_on: number
+}
+
+export interface DashboardObs {
+  TTLCONS_12:       { date: string; value: number }[]
+  CES2000000001_12: { date: string; value: number }[]
+  PERMIT_12:        { date: string; value: number }[]
+  TTLCONS_24:       { date: string; value: number }[]
+  WPS081_24:        { date: string; value: number }[]
+}
+
+export interface DashboardData {
+  construction_spending: DashboardKPI
+  employment:            DashboardKPI
+  permits:               DashboardKPI
+  cshi:                  DashboardCshi
+  forecast:              DashboardForecast | null
+  signals:               SignalItem[]
+  commodities:           CommodityItem[]
+  brief_excerpt:         string | null
+  brief_as_of:           string | null
+  obs:                   DashboardObs
+  fetched_at:            string
+}
