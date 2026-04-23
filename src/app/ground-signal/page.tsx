@@ -50,15 +50,23 @@ export default function GroundSignalPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: color.bg0, color: color.t1, fontFamily: font.sys }}>
-      <style>{`*{box-sizing:border-box;margin:0;padding:0} a{color:inherit;text-decoration:none}`}</style>
+      <style>{`
+        *{box-sizing:border-box;margin:0;padding:0} a{color:inherit;text-decoration:none}
+        @media(max-width:600px){
+          .gs-header{padding:20px 16px 0!important;flex-wrap:wrap!important}
+          .gs-subtitle{display:none}
+          .gs-map{margin:16px!important;height:50vh!important;min-height:320px!important}
+          .gs-table{padding:0 16px 32px!important}
+        }
+      `}</style>
 
       {/* Section 1: Header row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '32px 40px 0' }}>
+      <div className="gs-header" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '32px 40px 0' }}>
         <h1 style={{ fontFamily: font.sys, fontSize: 22, fontWeight: 700, color: color.t1, margin: 0 }}>
           Ground Signal Intelligence
         </h1>
 
-        <span style={{ fontFamily: font.sys, fontSize: 14, color: color.t3 }}>
+        <span className="gs-subtitle" style={{ fontFamily: font.sys, fontSize: 14, color: color.t3 }}>
           Sentinel-2 Satellite · 20 US Markets
         </span>
 
@@ -91,7 +99,7 @@ export default function GroundSignalPage() {
       </div>
 
       {/* Section 2: Map placeholder */}
-      <div style={{
+      <div className="gs-map" style={{
         height: '70vh',
         minHeight: 480,
         margin: '24px 40px',
@@ -119,7 +127,7 @@ export default function GroundSignalPage() {
       </div>
 
       {/* Section 3: Ranked table */}
-      <div style={{ padding: '0 40px 48px' }}>
+      <div className="gs-table" style={{ padding: '0 40px 48px' }}>
         {loading ? (
           <Skeleton height={300} />
         ) : data?.processing_status === 'pending_first_run' ? (

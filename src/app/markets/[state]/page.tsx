@@ -58,7 +58,7 @@ function Nav({ state }: { state: string }) {
           </Link>
         ))}
         <Link href="/dashboard">
-          <button style={{ background: AMBER, color: "#000", fontFamily: MONO, fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 10, letterSpacing: "0.06em", minHeight: 36, border: "none", cursor: "pointer" }}>
+          <button style={{ background: AMBER, color: "#000", fontFamily: MONO, fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 10, letterSpacing: "0.06em", minHeight: 44, border: "none", cursor: "pointer" }}>
             DASHBOARD →
           </button>
         </Link>

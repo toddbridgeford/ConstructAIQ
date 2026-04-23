@@ -189,7 +189,7 @@ export default function CostEstimatePage() {
           <button style={{
             background: color.blue, color: color.t1,
             fontFamily: SYS, fontSize: 13, fontWeight: 600,
-            padding: "7px 16px", borderRadius: radius.sm, minHeight: 36, border: "none", cursor: "pointer",
+            padding: "7px 16px", borderRadius: radius.sm, minHeight: 44, border: "none", cursor: "pointer",
           }}>
             Dashboard →
           </button>

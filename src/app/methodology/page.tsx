@@ -64,16 +64,23 @@ export default function MethodologyPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#ffffff', color: '#111111' }}>
-      <style>{`*{box-sizing:border-box;margin:0;padding:0} a{color:inherit;text-decoration:none}`}</style>
+      <style>{`
+        *{box-sizing:border-box;margin:0;padding:0} a{color:inherit;text-decoration:none}
+        @media(max-width:700px){
+          .meth-shell{flex-direction:column!important;padding:24px 20px!important}
+          .meth-nav{display:none!important}
+          .meth-content{max-width:100%!important}
+        }
+      `}</style>
 
-      <div style={{
+      <div className="meth-shell" style={{
         maxWidth: 1100, margin: '0 auto',
         display: 'flex', flexDirection: 'row',
         gap: 48, padding: '48px 40px',
       }}>
 
         {/* Left nav */}
-        <nav style={{
+        <nav className="meth-nav" style={{
           width: 200, flexShrink: 0,
           position: 'sticky', top: 32,
           alignSelf: 'flex-start', height: 'fit-content',
@@ -106,7 +113,7 @@ export default function MethodologyPage() {
         </nav>
 
         {/* Right content column */}
-        <div style={{ flex: 1, maxWidth: 700 }}>
+        <div className="meth-content" style={{ flex: 1, maxWidth: 700 }}>
 
           {/* ── Overview ── */}
           <section id="overview" style={{ marginBottom: 64 }}>

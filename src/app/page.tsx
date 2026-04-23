@@ -222,7 +222,7 @@ export default function HomePage() {
             display:        'inline-flex', alignItems: 'center', justifyContent: 'center',
             background:     color.blue, color: WHITE,
             fontSize:       14, fontWeight: 600,
-            padding:        '8px 20px', borderRadius: 10, minHeight: 40,
+            padding:        '8px 20px', borderRadius: 10, minHeight: 44,
             textDecoration: 'none', letterSpacing: '-0.01em',
           }}>
             Open Dashboard
