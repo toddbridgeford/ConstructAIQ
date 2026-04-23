@@ -8,6 +8,7 @@ import { InsightChip } from "@/app/components/ui/InsightChip"
 import { getPrefs } from "@/lib/preferences"
 import { RecommendationsCard } from '@/app/dashboard/components/RecommendationsCard'
 import type { Signal } from "../types"
+import type { FreshnessInfo } from "@/lib/freshness"
 
 const ROLE_ORDER: Record<string, string[]> = {
   lender:     ['cshi',   'spend',  'permit', 'emp'],
@@ -41,6 +42,7 @@ interface OverviewProps {
   spendObs:    { date: string; value: number }[]
   signals:     Signal[]
   loading:     boolean
+  freshness?:  FreshnessInfo
 }
 
 // ── Anomaly detection ──────────────────────────────────────────────────────
@@ -175,7 +177,7 @@ export function OverviewSection({
   empVal,   empMom,   empSpark,
   permitVal, permitMom, permitSpark,
   cshiScore, cshiChange, cshiSpark,
-  spendObs, signals, loading,
+  spendObs, signals, loading, freshness,
 }: OverviewProps) {
 
   const [spendBench,  setSpendBench]  = useState<BenchmarkResult | null>(null)
@@ -305,6 +307,12 @@ export function OverviewSection({
         @media (max-width: 900px)  { .ov-row2  { grid-template-columns: 1fr; } }
         @media (max-width: 480px)  { .ov-cards { grid-template-columns: 1fr; } }
       `}</style>
+
+      {freshness && (
+        <div style={{ fontFamily: font.mono, fontSize: 10, color: freshness.isStale ? color.amber : color.t4 }}>
+          {freshness.label}{freshness.isStale && ' ⚠ Data may be stale'}
+        </div>
+      )}
 
       {/* ── Row 1: KPI cards ── */}
       {roleNote && !loading && (

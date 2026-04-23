@@ -14,6 +14,7 @@ import { BottomSheet }     from "@/app/components/BottomSheet"
 import { Skeleton }       from "@/app/components/Skeleton"
 import { color, font } from "@/lib/theme"
 import type { ForecastData } from "../types"
+import type { FreshnessInfo } from "@/lib/freshness"
 
 function forecastContext(fore: ForecastData): string | null {
   const yoy  = fore?.metrics?.yoy_implied ?? 0
@@ -35,9 +36,10 @@ interface HeroForecastProps {
   fore:         ForecastData | null
   foreAccuracy: number
   foreMAPE:     number
+  freshness?:   FreshnessInfo
 }
 
-export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps) {
+export function HeroForecast({ fore, foreAccuracy, foreMAPE, freshness }: HeroForecastProps) {
   const [activeSeries, setActiveSeries] = useState("TTLCONS")
   const [scenarioLine, setScenarioLine] = useState<number[] | null>(null)
   const [sheetOpen,    setSheetOpen]    = useState(false)
@@ -69,7 +71,7 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
 
   return (
     <section id="forecast" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="02" title="Forecast Intelligence Panel" subtitle="12-month ensemble AI forecast with confidence intervals" />
+      <SectionHeader sectionId="02" title="Forecast Intelligence Panel" subtitle="12-month ensemble AI forecast with confidence intervals" freshness={freshness} />
 
       {/* Hero: ForecastChart + ScenarioBuilder */}
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>

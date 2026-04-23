@@ -79,7 +79,6 @@ export function PermitsSection({ data }: Props) {
         title="City Permit Intelligence"
         subtitle="Building permit activity across 40 major US cities"
         badge="40 CITIES"
-        live
         shareSection="permits"
       />
 

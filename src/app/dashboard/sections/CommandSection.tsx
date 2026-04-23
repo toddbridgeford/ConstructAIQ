@@ -29,7 +29,7 @@ export function CommandSection({ cshi, foreData, corrSpend }: CommandSectionProp
 
   return (
     <section id="command" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="04" title="Sector Command Center" subtitle="The pulse of the entire US construction sector" live />
+      <SectionHeader sectionId="04" title="Sector Command Center" subtitle="The pulse of the entire US construction sector" />
 
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
         <Card style={{ flex:"0 0 auto", minWidth:300 }}>

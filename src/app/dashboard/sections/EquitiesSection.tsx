@@ -22,7 +22,7 @@ interface EquitiesSectionProps {
 export function EquitiesSection({ equities, sectorRange, onSectorRangeChange }: EquitiesSectionProps) {
   return (
     <section id="equities" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="07" title="Market Signals & Equities" badge="EQUITIES" live onExportCSV={() => {}} />
+      <SectionHeader sectionId="07" title="Market Signals & Equities" badge="EQUITIES" onExportCSV={() => {}} />
 
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
         <Card style={{ flex:"3 1 500px", minWidth:0 }}>

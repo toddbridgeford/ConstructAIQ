@@ -42,14 +42,16 @@ export interface CensusResponse {
   latest?:       { value: number; date: string; mom?: number }
   series?:       { date: string; value: number }[]
   observations?: { date: string; value: string }[]
+  data_as_of?:   string | null
 }
 
 // ── /api/bls ──────────────────────────────────────────────────────────────────
 
 export interface BlsResponse {
-  value?:  number
-  mom?:    number
-  latest?: { value: number; date: string; mom?: number }
+  value?:      number
+  mom?:        number
+  latest?:     { value: number; date: string; mom?: number }
+  data_as_of?: string | null
 }
 
 // ── /api/signals ──────────────────────────────────────────────────────────────
@@ -71,14 +73,15 @@ export interface SignalItem {
 }
 
 export interface SignalsResponse {
-  source:       string
-  live:         boolean
-  signals:      SignalItem[]
-  count:        number
-  updated:      string
-  generated?:   number
-  anomalies?:   AnomalyAlert[]
-  divergences?: DivergencePair[]
+  source:          string
+  live:            boolean
+  signals:         SignalItem[]
+  count:           number
+  updated:         string
+  generated?:      number
+  signals_as_of?:  string | null
+  anomalies?:      AnomalyAlert[]
+  divergences?:    DivergencePair[]
 }
 
 // ── /api/federal ──────────────────────────────────────────────────────────────
@@ -173,7 +176,7 @@ export interface PricewatchResponse {
     signal:      'BUY' | 'SELL' | 'HOLD'
     description: string
   }
-  updated:        string
+  updated:        string | null
 }
 
 // ── /api/weekly-brief ─────────────────────────────────────────────────────────

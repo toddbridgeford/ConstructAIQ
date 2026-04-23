@@ -25,6 +25,7 @@ import type {
   CommodityItem,
 } from "@/lib/api-types"
 import type { ForecastData } from "./types"
+import { formatFreshness } from "@/lib/freshness"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -245,6 +246,13 @@ export default function Dashboard() {
 
   const foreAccuracy  = fore?.metrics?.accuracy ?? 87.3
   const foreMAPE      = fore?.metrics?.mape     ?? 4.2
+
+  // ── Freshness — derived from actual API response timestamps ──────────────
+  const overviewFreshness  = formatFreshness(spend?.data_as_of ?? cshi?.updatedAt)
+  const forecastFreshness  = formatFreshness(fore?.runAt)
+  const pricesFreshness    = formatFreshness(prices?.live ? prices.updated : null)
+  const signalsFreshness   = formatFreshness(signals?.signals_as_of)
+
   const procurementValue = commodities.length > 0
     ? Math.round(commodities.reduce((s: number, c: CommodityItem) =>
         s + (c.signal === "BUY" ? 72 : c.signal === "SELL" ? 32 : 54), 0) / commodities.length)
@@ -258,7 +266,7 @@ export default function Dashboard() {
         return (
           <ErrorBoundary fallback={<SectionFallback title="Forecast" />}>
             <div style={{ padding: '32px 0' }}>
-              <HeroForecast fore={fore} foreAccuracy={foreAccuracy} foreMAPE={foreMAPE} />
+              <HeroForecast fore={fore} foreAccuracy={foreAccuracy} foreMAPE={foreMAPE} freshness={forecastFreshness} />
             </div>
           </ErrorBoundary>
         )
@@ -280,6 +288,7 @@ export default function Dashboard() {
                 corrMaterials={corrMaterials}
                 corrSpend={corrSpend}
                 loading={prices === null}
+                freshness={pricesFreshness}
               />
             </div>
           </ErrorBoundary>
@@ -289,7 +298,7 @@ export default function Dashboard() {
         return (
           <ErrorBoundary fallback={<SectionFallback title="Signals" />}>
             <div style={{ padding: '32px 0' }}>
-              <SignalsSection signals={signals} brief={brief} warn={warn} />
+              <SignalsSection signals={signals} brief={brief} warn={warn} freshness={signalsFreshness} />
             </div>
           </ErrorBoundary>
         )
@@ -305,6 +314,7 @@ export default function Dashboard() {
               spendObs={obsMap["TTLCONS_12"] ?? []}
               signals={sigList}
               loading={spend === null && employ === null}
+              freshness={overviewFreshness}
             />
           </ErrorBoundary>
         )

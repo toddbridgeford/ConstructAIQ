@@ -7,6 +7,7 @@ import { SectionHeader }        from "../components/SectionHeader"
 import { color, font } from "@/lib/theme"
 import Link from "next/link"
 import type { CommodityItem } from "@/lib/api-types"
+import type { FreshnessInfo } from "@/lib/freshness"
 
 const BG1 = color.bg1, BG2 = color.bg2, BD1 = color.bd1
 const SYS = font.sys
@@ -42,13 +43,14 @@ interface MaterialsSectionProps {
   corrMaterials:    { date: string; value: number }[]
   corrSpend:        { date: string; value: number }[]
   loading:          boolean
+  freshness?:       FreshnessInfo
 }
 
-export function MaterialsSection({ commodities, procurementValue, heatmapData, corrMaterials, corrSpend, loading }: MaterialsSectionProps) {
+export function MaterialsSection({ commodities, procurementValue, heatmapData, corrMaterials, corrSpend, loading, freshness }: MaterialsSectionProps) {
   const items = (commodities.length > 0 ? commodities : FALLBACK_COMMODITIES).slice(0, 6)
   return (
     <section id="materials" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="04" title="Materials Intelligence" subtitle="BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI, and diesel" shareSection="materials" />
+      <SectionHeader sectionId="04" title="Materials Intelligence" subtitle="BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI, and diesel" shareSection="materials" freshness={freshness} />
 
       <div style={{ display:"flex", gap:14, flexWrap:"wrap", marginBottom:20 }}>
         {loading

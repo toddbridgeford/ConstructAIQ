@@ -23,13 +23,13 @@ interface FederalSectionProps {
 export function FederalSection({ federal }: FederalSectionProps) {
   if (!federal) return (
     <section id="federal" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="06" title="Federal Infrastructure Tracker" badge="IIJA · IRA" live onExportCSV={() => {}} shareSection="federal" />
+      <SectionHeader sectionId="06" title="Federal Infrastructure Tracker" badge="IIJA · IRA" onExportCSV={() => {}} shareSection="federal" />
       <Skeleton height={300} borderRadius={20} />
     </section>
   )
   return (
     <section id="federal" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="06" title="Federal Infrastructure Tracker" badge="IIJA · IRA" live onExportCSV={() => {}} shareSection="federal" />
+      <SectionHeader sectionId="06" title="Federal Infrastructure Tracker" badge="IIJA · IRA" onExportCSV={() => {}} shareSection="federal" />
 
       {federal?.error && (
         <div style={{ marginBottom: 20 }}>

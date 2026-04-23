@@ -18,8 +18,14 @@ export async function GET() {
     if (!res.ok) throw new Error(`BLS ${res.status}`)
     const data = await res.json()
 
+    // Derive data_as_of from the most recent observation period in the BLS response
+    const latestObs = data?.Results?.series?.[0]?.data?.[0]
+    const data_as_of = latestObs?.year && latestObs?.period
+      ? `${latestObs.year}-${latestObs.period.replace('M', '').padStart(2, '0')}-01`
+      : null
+
     return NextResponse.json(
-      { data, updated: new Date().toISOString() },
+      { data, data_as_of },
       { headers: { 'Cache-Control': 'public, s-maxage=3600' } }
     )
   } catch (e) {

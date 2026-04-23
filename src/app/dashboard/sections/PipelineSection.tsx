@@ -34,7 +34,7 @@ interface PipelineSectionProps {
 export function PipelineSection({ pipeline }: PipelineSectionProps) {
   return (
     <section id="pipeline" style={{ paddingTop:48, paddingBottom:8 }}>
-      <SectionHeader sectionId="05" title="Lead / Lag Pipeline" badge="PREDICTIVE" live onExportCSV={() => {}} />
+      <SectionHeader sectionId="05" title="Lead / Lag Pipeline" badge="PREDICTIVE" onExportCSV={() => {}} />
 
       <Card style={{ marginBottom:20 }}>
         <PipelineTimeline stages={pipeline?.stages ?? DEFAULT_STAGES} onStageClick={() => {}} activeStage={null} />
