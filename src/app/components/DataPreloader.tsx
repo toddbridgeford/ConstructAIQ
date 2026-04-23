@@ -15,6 +15,12 @@ export function DataPreloader() {
         fetch(url).catch(() => {})
       })
     }
+
+    // Register push-specific service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw-push.js', { scope: '/' })
+        .catch(err => console.warn('[sw-push] registration failed:', err))
+    }
   }, [])
   return null
 }
