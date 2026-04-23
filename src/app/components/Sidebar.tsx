@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, TrendingUp, Building2, MapPin, FolderOpen,
   Radio, BarChart2, AlertTriangle, MessageSquare,
-  BookOpen, Key, PieChart, type LucideIcon,
+  BookOpen, Key, PieChart, Newspaper, type LucideIcon,
 } from "lucide-react"
 import { color, font, layout as L, type as TS } from "@/lib/theme"
 import { getPrefs, removeMarket, PREF_EVENT, type UserPreferences } from "@/lib/preferences"
@@ -44,6 +44,7 @@ const NAV: NavItem[] = [
   { label: "Materials",        href: "/dashboard#materials", Icon: BarChart2       },
   { label: "WARN Act",         href: "/dashboard#signals",   Icon: AlertTriangle   },
   { label: "Ask the Market",   href: "/ask",                 Icon: MessageSquare   },
+  { label: "Research",         href: "/research",            Icon: Newspaper       },
 ]
 
 const BOTTOM: NavItem[] = [

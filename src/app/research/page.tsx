@@ -1,652 +1,561 @@
 "use client"
-import Image from "next/image"
-import Link from "next/link"
-import { useState } from "react"
-import { font, color } from '@/lib/theme'
-import { Nav } from '@/app/components/Nav'
+import { useState, useEffect } from "react"
+import { Nav } from "@/app/components/Nav"
+import { color, font, radius } from "@/lib/theme"
+import { Copy, Check, Download, Clock } from "lucide-react"
 
 const SYS  = font.sys
 const MONO = font.mono
-const AMBER = color.amber
-const GREEN = color.green
-const RED   = color.red
-const BLUE  = color.blue
-const BG0   = color.bg0
-const BG1   = color.bg1
-const BG2   = color.bg2
-const BG3   = color.bg3
-const BD1   = color.bd1
-const BD2   = color.bd2
-const T1    = color.t1
-const T2    = color.t2
-const T3    = color.t3
-const T4    = color.t4
 
-// ─── Footer ──────────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────
 
-function Footer() {
-  return (
-    <footer style={{
-      borderTop: `1px solid ${BD1}`,
-      padding: "40px 32px",
-      marginTop: 80,
-    }}>
-      <div style={{
-        maxWidth: 1140, margin: "0 auto",
-        display: "flex", flexDirection: "column", gap: 16,
-        alignItems: "center", textAlign: "center",
-      }}>
-        <Image
-          src="/ConstructAIQWhiteLogo.svg"
-          width={120}
-          height={24}
-          alt="ConstructAIQ"
-          style={{ height: 24, width: "auto", opacity: 0.7 }}
-        />
-        <div style={{ fontFamily: SYS, fontSize: 14, color: T4 }}>
-          Construction Intelligence Platform · constructaiq.trade
-        </div>
-        <div style={{ fontFamily: MONO, fontSize: 12, color: T4, opacity: 0.6 }}>
-          Data sources: U.S. Census Bureau · Bureau of Labor Statistics · Federal Reserve · IIJA Public Records
-        </div>
-      </div>
-    </footer>
-  )
+interface BriefData {
+  brief:       string
+  generatedAt: string
+  source:      string
+  error?:      string
 }
 
-// ─── Topic Chip ───────────────────────────────────────────────────────────────
-
-function TopicChip({ label }: { label: string }) {
-  return (
-    <div style={{
-      display: "inline-block",
-      background: BG2,
-      border: `1px solid ${BD1}`,
-      borderRadius: 20,
-      padding: "4px 12px",
-      fontFamily: MONO,
-      fontSize: 12,
-      color: T3,
-      whiteSpace: "nowrap",
-    }}>
-      {label}
-    </div>
-  )
+interface MetricRow {
+  label:   string
+  raw:     string
+  mom:     number | null
+  yoy:     number | null
+  momUnit: 'pct' | 'pp'
+  source:  string
+  loading: boolean
 }
 
-// ─── Section 1: Report Email Gate Form ───────────────────────────────────────
-
-interface ReportFormState {
-  name: string
-  email: string
-  org: string
+interface CalendarEvent {
+  id:          string
+  date:        string
+  name:        string
+  source:      string
+  importance:  string
+  description: string
+  impact:      string[]
 }
 
-function ReportGateForm() {
-  const [form, setForm] = useState<ReportFormState>({ name: "", email: "", org: "" })
-  const [submitting, setSubmitting] = useState(false)
-  const [status, setStatus] = useState<"idle" | "success" | "error">("idle")
+// ── Seed metrics (always-available fallback) ───────────────────────────────
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!form.email.trim()) return
-    setSubmitting(true)
-    setStatus("idle")
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, source: "research" }),
-      })
-      if (!res.ok) throw new Error("Failed")
-      setStatus("success")
-    } catch {
-      setStatus("error")
-    } finally {
-      setSubmitting(false)
-    }
-  }
+const SEED: Omit<MetricRow, 'loading'>[] = [
+  { label: 'Construction Spending',   raw: '$2,190B',     mom:  0.3, yoy: -1.4, momUnit: 'pct', source: 'Census C30'  },
+  { label: 'Construction Employment', raw: '8,330K',      mom:  0.4, yoy:  1.2, momUnit: 'pct', source: 'BLS CES'     },
+  { label: 'Building Permits',        raw: '1,386K ann.', mom: -2.1, yoy: -3.2, momUnit: 'pct', source: 'Census'      },
+  { label: 'Housing Starts',          raw: '1,394K ann.', mom:  1.2, yoy: -2.8, momUnit: 'pct', source: 'Census'      },
+  { label: '30yr Mortgage Rate',      raw: '6.82%',       mom:  0.12,yoy:  0.42,momUnit: 'pp',  source: 'Freddie Mac' },
+  { label: 'Lumber PPI',              raw: 'Index 312',   mom:  1.1, yoy: -4.2, momUnit: 'pct', source: 'BLS PPI'     },
+]
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    background: BG1,
-    border: `1px solid ${BD2}`,
-    borderRadius: 10,
-    padding: "12px 14px",
-    fontFamily: SYS,
-    fontSize: 15,
-    color: T1,
-    outline: "none",
-    boxSizing: "border-box",
-  }
+// ── Format helpers ─────────────────────────────────────────────────────────
 
+type Obs = { date: string; value: number }
+
+function obsMetric(
+  obs: Obs[],
+  fmt: (v: number) => string,
+  absolute = false,
+): { raw: string; mom: number | null; yoy: number | null } | null {
+  if (!obs || obs.length < 2) return null
+  const v0 = obs[0].value, v1 = obs[1].value
+  const v12 = obs.length >= 13 ? obs[12].value : null
+  const mom = absolute
+    ? +(v0 - v1).toFixed(4)
+    : v1 > 0 ? ((v0 - v1) / v1) * 100 : null
+  const yoy = v12 != null
+    ? absolute ? +(v0 - v12).toFixed(4) : v12 > 0 ? ((v0 - v12) / v12) * 100 : null
+    : null
+  return { raw: fmt(v0), mom, yoy }
+}
+
+function fmtChange(val: number | null, unit: 'pct' | 'pp'): string {
+  if (val == null) return '—'
+  const abs = Math.abs(val)
+  const sign = val >= 0 ? '+' : '-'
+  return unit === 'pp'
+    ? `${sign}${abs.toFixed(2)}pp`
+    : `${sign}${abs.toFixed(1)}%`
+}
+
+function changeColor(val: number | null): string {
+  if (val == null) return color.t4
+  return val > 0 ? color.green : val < 0 ? color.red : color.t3
+}
+
+function impColor(imp: string): string {
+  return imp === 'high' ? color.red : imp === 'medium' ? color.amber : color.t4
+}
+
+function relDate(iso: string): string {
+  const now = new Date(), d = new Date(iso)
+  const diff = Math.round((d.getTime() - now.getTime()) / 86400000)
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Tomorrow'
+  if (diff > 0 && diff <= 7) return `In ${diff} days`
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+// ── Skeleton ───────────────────────────────────────────────────────────────
+
+function Skel({ w = 80, h = 16 }: { w?: number; h?: number }) {
   return (
     <div style={{
-      background: BG2,
-      border: `1px solid ${BD1}`,
-      borderRadius: 16,
-      padding: 28,
-      display: "flex",
-      flexDirection: "column",
-      gap: 16,
-    }}>
-      <div style={{ fontFamily: MONO, fontSize: 11, color: AMBER, letterSpacing: "0.12em" }}>
-        GET THE FULL REPORT
-      </div>
-      <div style={{ fontFamily: SYS, fontSize: 14, color: T3, lineHeight: 1.6 }}>
-        Enter your details to receive the April 2026 report as a PDF.
-      </div>
-
-      {status === "success" ? (
-        <div style={{
-          background: color.greenDim,
-          border: `1px solid ${GREEN}44`,
-          borderRadius: 10,
-          padding: "16px 18px",
-          fontFamily: SYS,
-          fontSize: 15,
-          color: GREEN,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-        }}>
-          ✓ Check your inbox. Report on its way.
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <input
-            type="text"
-            placeholder="Full Name"
-            value={form.name}
-            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-            style={inputStyle}
-          />
-          <input
-            type="email"
-            placeholder="Email Address"
-            value={form.email}
-            onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-            required
-            style={inputStyle}
-          />
-          <input
-            type="text"
-            placeholder="Organization"
-            value={form.org}
-            onChange={e => setForm(f => ({ ...f, org: e.target.value }))}
-            style={inputStyle}
-          />
-
-          {status === "error" && (
-            <div style={{ fontFamily: SYS, fontSize: 13, color: RED }}>
-              Something went wrong. Please try again.
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            style={{
-              width: "100%",
-              background: AMBER,
-              color: BG0,
-              fontFamily: MONO,
-              fontSize: 14,
-              fontWeight: 700,
-              padding: "14px 24px",
-              borderRadius: 10,
-              border: "none",
-              cursor: submitting ? "not-allowed" : "pointer",
-              letterSpacing: "0.06em",
-              opacity: submitting ? 0.6 : 1,
-              transition: "opacity 0.15s",
-            }}
-          >
-            {submitting ? "Sending…" : "Send Me the Report →"}
-          </button>
-        </form>
-      )}
-    </div>
+      width: w, height: h, borderRadius: 4, display: 'inline-block',
+      background: `linear-gradient(90deg,${color.bg2} 25%,${color.bg3} 50%,${color.bg2} 75%)`,
+      backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite',
+    }} />
   )
 }
 
-// ─── Section 3: Quarterly Notify Form ────────────────────────────────────────
-
-function QuarterlyNotifyForm() {
-  const [email, setEmail] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-  const [status, setStatus] = useState<"idle" | "success" | "error">("idle")
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!email.trim()) return
-    setSubmitting(true)
-    setStatus("idle")
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, source: "quarterly-outlook" }),
-      })
-      if (!res.ok) throw new Error("Failed")
-      setStatus("success")
-    } catch {
-      setStatus("error")
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <div>
-      {status === "success" ? (
-        <div style={{ fontFamily: SYS, fontSize: 15, color: GREEN }}>
-          ✓ You&apos;re on the list. We&apos;ll notify you when the Q2 outlook is published.
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <input
-            type="email"
-            placeholder="your@email.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            style={{
-              flex: 1,
-              minWidth: 220,
-              background: BG2,
-              border: `1px solid ${BD2}`,
-              borderRadius: 10,
-              padding: "12px 14px",
-              fontFamily: SYS,
-              fontSize: 15,
-              color: T1,
-              outline: "none",
-            }}
-          />
-          <button
-            type="submit"
-            disabled={submitting}
-            style={{
-              background: "transparent",
-              color: AMBER,
-              fontFamily: MONO,
-              fontSize: 13,
-              fontWeight: 700,
-              padding: "12px 20px",
-              borderRadius: 10,
-              border: `1px solid ${AMBER}`,
-              cursor: submitting ? "not-allowed" : "pointer",
-              opacity: submitting ? 0.6 : 1,
-              whiteSpace: "nowrap",
-              transition: "opacity 0.15s",
-            }}
-          >
-            {submitting ? "Submitting…" : "Notify me when published →"}
-          </button>
-          {status === "error" && (
-            <div style={{ width: "100%", fontFamily: SYS, fontSize: 13, color: RED }}>
-              Something went wrong. Please try again.
-            </div>
-          )}
-        </form>
-      )}
-    </div>
-  )
-}
-
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ── Page ───────────────────────────────────────────────────────────────────
 
 export default function ResearchPage() {
-  const topics = [
-    "TTLCONS Spending",
-    "Permit Trends",
-    "Employment Surge",
-    "Material Cost Outlook",
-    "AI Forecast Update",
-  ]
+  const [brief,    setBrief]    = useState<BriefData | null>(null)
+  const [briefLoading, setBriefLoading] = useState(true)
+  const [metrics,  setMetrics]  = useState<MetricRow[]>(SEED.map(s => ({ ...s, loading: true })))
+  const [calendar, setCalendar] = useState<CalendarEvent[]>([])
+  const [calLoading, setCalLoading] = useState(true)
+  const [copied,   setCopied]   = useState(false)
 
-  const freeBriefings = [
-    {
-      date: "Apr 14, 2026",
-      title: "Week 15: IIJA Spend Hits 73% Execution Rate",
-      summary: "Federal construction contracts accelerating. State-level variance analysis inside.",
-    },
-    {
-      date: "Apr 7, 2026",
-      title: "Week 14: Permit Divergence Warning Activated",
-      summary: "Spending up 0.8% while permits fall 1.2%. Historical pattern signals margin compression.",
-    },
-    {
-      date: "Mar 31, 2026",
-      title: "Week 13: Employment Hits Cycle High — 8.33M Workers",
-      summary: "Construction employment highest on record. Labor cost implications for H1 2026.",
-    },
-  ]
+  useEffect(() => {
+    async function safe<T>(url: string): Promise<T | null> {
+      try { const r = await fetch(url); return r.ok ? (r.json() as Promise<T>) : null }
+      catch { return null }
+    }
 
-  const lockedBriefings = [
-    {
-      date: "Mar 24, 2026",
-      title: "Week 12: Steel Futures Break 3-Month High — Input Cost Watch",
-      summary: "Hot-rolled coil surged 8.4% in 10 days. Analysis of what this means for commercial project margins heading into Q2.",
-    },
-    {
-      date: "Mar 17, 2026",
-      title: "Week 11: Fed Holds — What Flat Rates Mean for Construction Finance",
-      summary: "No cut, no hike. We model three rate scenarios through December 2026 and their effect on residential starts and CRE pipeline.",
-    },
-  ]
+    safe<BriefData>('/api/weekly-brief').then(d => {
+      setBrief(d && !d.error ? d : null)
+      setBriefLoading(false)
+    })
 
-  const mediaMentions = [
-    "Media mention coming soon",
-    "Press inquiries welcome",
-    "Partnership citations available",
-  ]
+    safe<CalendarEvent[]>('/api/calendar').then(d => {
+      if (Array.isArray(d)) setCalendar(d)
+      setCalLoading(false)
+    })
+
+    Promise.all([
+      safe<{ obs: Obs[] }>('/api/obs?series=TTLCONS&n=14'),
+      safe<{ obs: Obs[] }>('/api/obs?series=CES2000000001&n=14'),
+      safe<{ obs: Obs[] }>('/api/obs?series=PERMIT&n=14'),
+      safe<{ obs: Obs[] }>('/api/obs?series=HOUST&n=14'),
+      safe<{ obs: Obs[] }>('/api/obs?series=MORTGAGE30US&n=14'),
+      safe<{ commodities: { name: string; value: number; mom: number; yoy: number }[] }>('/api/pricewatch'),
+    ]).then(([ttl, ces, pmt, hst, mtg, pw]) => {
+      setMetrics(prev => prev.map((m, i) => {
+        const done = { loading: false }
+        if (i === 0 && ttl?.obs?.length) {
+          const r = obsMetric(ttl.obs, v => `$${Math.round(v / 1000).toLocaleString()}B`)
+          return r ? { ...m, ...done, ...r } : { ...m, ...done }
+        }
+        if (i === 1 && ces?.obs?.length) {
+          const r = obsMetric(ces.obs, v => `${Math.round(v).toLocaleString()}K`)
+          return r ? { ...m, ...done, ...r } : { ...m, ...done }
+        }
+        if (i === 2 && pmt?.obs?.length) {
+          const r = obsMetric(pmt.obs, v => `${Math.round(v).toLocaleString()}K ann.`)
+          return r ? { ...m, ...done, ...r } : { ...m, ...done }
+        }
+        if (i === 3 && hst?.obs?.length) {
+          const r = obsMetric(hst.obs, v => `${Math.round(v).toLocaleString()}K ann.`)
+          return r ? { ...m, ...done, ...r } : { ...m, ...done }
+        }
+        if (i === 4 && mtg?.obs?.length) {
+          const r = obsMetric(mtg.obs, v => `${v.toFixed(2)}%`, true)
+          return r ? { ...m, ...done, ...r } : { ...m, ...done }
+        }
+        if (i === 5 && pw?.commodities?.length) {
+          const lb = pw.commodities.find(c => c.name.toLowerCase().includes('lumber'))
+          if (lb) return { ...m, ...done, raw: `Index ${Math.round(lb.value)}`, mom: lb.mom, yoy: lb.yoy }
+        }
+        return { ...m, ...done }
+      }))
+    })
+  }, [])
+
+  // ── Clipboard snapshot text ────────────────────────────────────────────────
+
+  function snapshotText(): string {
+    const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    const sep  = '─'.repeat(52)
+    const rows = metrics.map(m => {
+      const mom = m.mom != null ? ` (${fmtChange(m.mom, m.momUnit)} MoM, ${fmtChange(m.yoy, m.momUnit)} YoY)` : ''
+      return `${m.label}: ${m.raw}${mom} | ${m.source}`
+    })
+    return [`ConstructAIQ Market Snapshot — ${date}`, sep, ...rows, sep,
+      'Source: constructaiq.trade · Data: Census, BLS, FRED'].join('\n')
+  }
+
+  function handleCopy() {
+    navigator.clipboard.writeText(snapshotText()).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  function handleExportCSV() {
+    const date   = new Date().toISOString().split('T')[0]
+    const header = 'Metric,Current Value,MoM Change,YoY Change,Source,Date'
+    const rows   = metrics.map(m =>
+      [`"${m.label}"`, `"${m.raw}"`,
+       `"${fmtChange(m.mom, m.momUnit)}"`, `"${fmtChange(m.yoy, m.momUnit)}"`,
+       `"${m.source}"`, `"${date}"`].join(',')
+    )
+    const csv  = [header, ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href = url; a.download = `constructaiq-snapshot-${date}.csv`; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // ── Derived ────────────────────────────────────────────────────────────────
+
+  const today       = new Date().toISOString().split('T')[0]
+  const upcoming    = calendar
+    .filter(e => e.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 8)
+  const briefDate   = brief?.generatedAt
+    ? new Date(brief.generatedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : null
+  const briefParas  = brief?.brief
+    ? brief.brief.split(/\n{2,}/).filter(p => p.trim().length > 0)
+    : []
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: BG0,
-      color: T1,
-      fontFamily: SYS,
-      paddingBottom: "env(safe-area-inset-bottom, 20px)",
-    }}>
+    <div style={{ minHeight: '100vh', background: color.bg0, color: color.t1, fontFamily: SYS }}>
       <style>{`
-        *{box-sizing:border-box;margin:0;padding:0}
-        a{color:inherit;text-decoration:none}
-        button{outline:none;font-family:inherit}
-        button:hover{opacity:0.85}
-        input::placeholder{color:${T4}}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+        * { box-sizing: border-box; }
+        @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+        a { color: inherit; text-decoration: none; }
+        button { font-family: inherit; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
       `}</style>
-
       <Nav />
 
-      <div style={{ maxWidth: 1140, margin: "0 auto", padding: "72px 32px 0" }}>
+      <div style={{ maxWidth: 960, margin: '0 auto', padding: '52px 28px 80px' }}>
 
-        {/* ── Page Header ── */}
-        <div style={{ marginBottom: 56, textAlign: "center" }}>
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            background: BG2, border: `1px solid ${AMBER}44`,
-            borderRadius: 20, padding: "6px 18px", marginBottom: 24,
-          }}>
-            <span style={{ fontFamily: SYS, fontSize: 14, color: T2 }}>📊 Research &amp; Intelligence</span>
+        {/* ── Page header ───────────────────────────────────────────────── */}
+        <div style={{ marginBottom: 40 }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, letterSpacing: '0.1em', marginBottom: 12 }}>
+            CONSTRUCTAIQ · RESEARCH & INTELLIGENCE
           </div>
-
-          <h1 style={{
-            fontFamily: SYS, fontSize: 52, fontWeight: 700,
-            lineHeight: 1.08, color: T1, letterSpacing: "-0.03em",
-            marginBottom: 20,
-          }}>
-            Construction Intelligence Research
-          </h1>
-
-          <p style={{
-            fontFamily: SYS, fontSize: 18, color: T3, lineHeight: 1.7,
-            maxWidth: 660, margin: "0 auto",
-          }}>
-            Monthly reports, weekly briefings, and sector outlooks from the ConstructAIQ Intelligence team.
-            Used by economists, capital allocators, and government analysts.
-          </p>
-        </div>
-
-        {/* ── SECTION 1 — Monthly Construction Intelligence Report ── */}
-        <div style={{
-          background: BG1,
-          border: `1px solid ${AMBER}33`,
-          borderRadius: 20,
-          padding: 40,
-          boxShadow: `0 0 40px ${AMBER}11`,
-          marginBottom: 32,
-        }}>
           <div style={{
-            display: "flex",
-            gap: 40,
-            flexWrap: "wrap",
-            alignItems: "flex-start",
+            display: 'flex', alignItems: 'flex-end',
+            justifyContent: 'space-between', flexWrap: 'wrap', gap: 16,
           }}>
-            {/* Left: content ~55% */}
-            <div style={{ flex: "1 1 55%", minWidth: 280 }}>
-              <div style={{
-                fontFamily: MONO, fontSize: 11, color: AMBER,
-                letterSpacing: "0.12em", marginBottom: 16,
+            <div>
+              <h1 style={{
+                fontFamily: SYS, fontSize: 36, fontWeight: 700, color: color.t1,
+                letterSpacing: '-0.025em', lineHeight: 1.1, margin: 0,
               }}>
-                LATEST REPORT
-              </div>
-
-              <h2 style={{
-                fontFamily: SYS, fontSize: 28, fontWeight: 700,
-                color: T1, lineHeight: 1.25, marginBottom: 10,
-                letterSpacing: "-0.015em",
-              }}>
-                April 2026 — Construction Market Intelligence Report
-              </h2>
-
-              <div style={{
-                fontFamily: MONO, fontSize: 12, color: T4, marginBottom: 18,
-              }}>
-                Published April 20, 2026
-              </div>
-
+                Construction Market Intelligence
+              </h1>
               <p style={{
-                fontFamily: SYS, fontSize: 16, color: T3,
-                lineHeight: 1.7, marginBottom: 28,
+                fontFamily: SYS, fontSize: 15, color: color.t3, lineHeight: 1.6,
+                marginTop: 10, maxWidth: 560,
               }}>
-                This month&apos;s report covers the IIJA spending acceleration, the permit velocity divergence
-                from spending trends, and what the Q1 2026 employment surge means for material costs in H2 2026.
-                Includes 12-month AI ensemble forecasts for all major series.
+                Live market data, AI-generated weekly brief, and upcoming data release calendar.
+                Updated daily from Census, BLS, and FRED.
               </p>
-
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {topics.map(t => <TopicChip key={t} label={t} />)}
-              </div>
             </div>
 
-            {/* Right: email gate form ~40% */}
-            <div style={{ flex: "1 1 38%", minWidth: 280 }}>
-              <ReportGateForm />
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <button
+                onClick={handleCopy}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  fontFamily: MONO, fontSize: 11, fontWeight: 600,
+                  letterSpacing: '0.06em',
+                  color: copied ? color.green : color.t2,
+                  background: copied ? color.greenDim : color.bg2,
+                  border: `1px solid ${copied ? color.green + '44' : color.bd2}`,
+                  borderRadius: radius.sm, padding: '8px 14px', cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {copied ? <Check size={13} /> : <Copy size={13} />}
+                {copied ? 'COPIED' : 'COPY SNAPSHOT'}
+              </button>
+              <button
+                onClick={handleExportCSV}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  fontFamily: MONO, fontSize: 11, fontWeight: 600,
+                  letterSpacing: '0.06em', color: color.t2,
+                  background: color.bg2, border: `1px solid ${color.bd2}`,
+                  borderRadius: radius.sm, padding: '8px 14px', cursor: 'pointer',
+                }}
+              >
+                <Download size={13} />
+                EXPORT CSV
+              </button>
             </div>
           </div>
         </div>
 
-        {/* ── SECTION 2 — Weekly Briefing Archive ── */}
+        {/* ── SECTION 1: Weekly Brief ───────────────────────────────────── */}
+        {(briefLoading || brief) && (
+          <div style={{
+            background:   color.bg1,
+            border:       `1px solid ${color.bd1}`,
+            borderLeft:   `4px solid ${color.amber}`,
+            borderRadius: 12,
+            padding:      '28px 32px',
+            marginBottom: 32,
+          }}>
+            {briefLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <Skel w={180} h={14} />
+                <Skel w={320} h={20} />
+                <Skel w={620} h={14} />
+                <Skel w={580} h={14} />
+                <Skel w={540} h={14} />
+              </div>
+            ) : brief && (
+              <>
+                {/* Brief header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+                  <span style={{
+                    fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                    color: color.amber, background: color.amberDim,
+                    border: `1px solid ${color.amber}33`, borderRadius: 4, padding: '3px 8px',
+                  }}>
+                    WEEKLY BRIEF
+                  </span>
+                  {briefDate && (
+                    <span style={{ fontFamily: MONO, fontSize: 11, color: color.t4 }}>
+                      {briefDate}
+                    </span>
+                  )}
+                  <span style={{
+                    fontFamily: MONO, fontSize: 9, fontWeight: 600, letterSpacing: '0.08em',
+                    color: color.blue, background: color.blueDim,
+                    border: `1px solid ${color.blue}33`, borderRadius: 4, padding: '3px 8px',
+                  }}>
+                    AI GENERATED
+                  </span>
+                </div>
+
+                {/* Brief paragraphs */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {briefParas.map((para, i) => (
+                    <p key={i} style={{
+                      fontFamily: SYS, fontSize: 15, color: color.t2,
+                      lineHeight: 1.75, margin: 0,
+                    }}>
+                      {para.trim()}
+                    </p>
+                  ))}
+                </div>
+
+                {/* Attribution */}
+                <div style={{
+                  marginTop: 24, paddingTop: 16, borderTop: `1px solid ${color.bd1}`,
+                  fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: '0.06em',
+                }}>
+                  Generated by Claude · Anthropic · {brief.source ?? 'constructaiq.trade'}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── SECTION 2: Market Metrics Snapshot ───────────────────────── */}
         <div style={{
-          background: BG2,
-          border: `1px solid ${BD1}`,
-          borderRadius: 20,
-          padding: 32,
-          marginBottom: 32,
+          background: color.bg1, border: `1px solid ${color.bd1}`,
+          borderRadius: 12, overflow: 'hidden', marginBottom: 32,
+        }}>
+          {/* Table header */}
+          <div style={{
+            padding: '16px 24px 14px', borderBottom: `1px solid ${color.bd1}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10,
+          }}>
+            <div>
+              <div style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: color.t4, marginBottom: 4 }}>
+                MARKET METRICS SNAPSHOT
+              </div>
+              <div style={{ fontFamily: SYS, fontSize: 13, color: color.t3 }}>
+                Key indicators — updated daily from Census, BLS, and FRED
+              </div>
+            </div>
+            <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: '0.04em' }}>
+              {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+          </div>
+
+          {/* Table */}
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 580 }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${color.bd1}` }}>
+                  {['Metric', 'Current Value', 'MoM', 'YoY', 'Source'].map((h, i) => (
+                    <th key={h} style={{
+                      padding:       '10px 20px',
+                      fontFamily:    MONO,
+                      fontSize:      9,
+                      fontWeight:    700,
+                      letterSpacing: '0.1em',
+                      color:         color.t4,
+                      textAlign:     i > 0 ? 'right' : 'left',
+                      background:    color.bg2,
+                      whiteSpace:    'nowrap',
+                    }}>
+                      {h.toUpperCase()}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {metrics.map((m, i) => (
+                  <tr key={m.label} style={{ borderBottom: i < metrics.length - 1 ? `1px solid ${color.bd1}` : 'none' }}>
+                    {/* Metric label */}
+                    <td style={{ padding: '14px 20px', fontFamily: SYS, fontSize: 14, fontWeight: 500, color: color.t1, whiteSpace: 'nowrap' }}>
+                      {m.label}
+                    </td>
+                    {/* Current value */}
+                    <td style={{ padding: '14px 20px', fontFamily: MONO, fontSize: 15, fontWeight: 700, color: color.t1, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {m.loading ? <Skel w={80} h={18} /> : m.raw}
+                    </td>
+                    {/* MoM */}
+                    <td style={{ padding: '14px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {m.loading ? <Skel w={48} /> : (
+                        <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 600, color: changeColor(m.mom) }}>
+                          {fmtChange(m.mom, m.momUnit)}
+                        </span>
+                      )}
+                    </td>
+                    {/* YoY */}
+                    <td style={{ padding: '14px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {m.loading ? <Skel w={48} /> : (
+                        <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 600, color: changeColor(m.yoy) }}>
+                          {fmtChange(m.yoy, m.momUnit)}
+                        </span>
+                      )}
+                    </td>
+                    {/* Source */}
+                    <td style={{ padding: '14px 20px', fontFamily: MONO, fontSize: 10, color: color.t4, textAlign: 'right', whiteSpace: 'nowrap', letterSpacing: '0.04em' }}>
+                      {m.source}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Table footer */}
+          <div style={{
+            padding: '10px 20px', borderTop: `1px solid ${color.bd1}`,
+            fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: '0.04em',
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: color.green,
+              boxShadow: `0 0 6px ${color.green}`, display: 'inline-block',
+              animation: 'pulse 2s infinite', flexShrink: 0 }} />
+            LIVE · Updated daily · Source: U.S. Census Bureau, Bureau of Labor Statistics, FRED
+          </div>
+        </div>
+
+        {/* ── SECTION 3: Data Release Calendar ─────────────────────────── */}
+        <div style={{
+          background: color.bg1, border: `1px solid ${color.bd1}`,
+          borderRadius: 12, overflow: 'hidden',
         }}>
           <div style={{
-            fontFamily: MONO, fontSize: 11, color: T4,
-            letterSpacing: "0.12em", marginBottom: 24,
+            padding: '16px 24px 14px', borderBottom: `1px solid ${color.bd1}`,
+            display: 'flex', alignItems: 'center', gap: 8,
           }}>
-            WEEKLY BRIEFING ARCHIVE
-          </div>
-
-          {/* Free briefings */}
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {freeBriefings.map((b, i) => (
-              <div key={i} style={{
-                padding: "18px 0",
-                borderBottom: `1px solid ${BD1}`,
-                display: "flex",
-                gap: 20,
-                flexWrap: "wrap",
-                alignItems: "flex-start",
-              }}>
-                <div style={{
-                  fontFamily: MONO, fontSize: 12, color: T4,
-                  minWidth: 100, flexShrink: 0, paddingTop: 2,
-                }}>
-                  {b.date}
-                </div>
-                <div style={{ flex: 1, minWidth: 200 }}>
-                  <div style={{
-                    fontFamily: SYS, fontSize: 16, color: T1,
-                    fontWeight: 500, marginBottom: 4,
-                  }}>
-                    {b.title}
-                  </div>
-                  <div style={{ fontFamily: SYS, fontSize: 14, color: T3 }}>
-                    {b.summary}
-                  </div>
-                </div>
+            <Clock size={14} color={color.t4} />
+            <div>
+              <div style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: color.t4, marginBottom: 3 }}>
+                UPCOMING DATA RELEASES
               </div>
-            ))}
+              <div style={{ fontFamily: SYS, fontSize: 13, color: color.t3 }}>
+                Government construction data releases · next 60 days
+              </div>
+            </div>
           </div>
 
-          {/* Locked section */}
-          <div style={{
-            background: BG1,
-            border: `1px solid ${BD1}`,
-            borderRadius: 12,
-            padding: 20,
-            marginTop: 16,
-          }}>
-            {/* Blurred/dimmed locked rows */}
-            <div style={{ opacity: 0.3, pointerEvents: "none" }}>
-              {lockedBriefings.map((b, i) => (
-                <div key={i} style={{
-                  padding: "14px 0",
-                  borderBottom: i < lockedBriefings.length - 1 ? `1px solid ${BD1}` : "none",
-                  display: "flex",
-                  gap: 20,
-                  flexWrap: "wrap",
-                  alignItems: "flex-start",
+          {calLoading ? (
+            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {[0,1,2,3].map(i => <Skel key={i} w={400} h={18} />)}
+            </div>
+          ) : upcoming.length === 0 ? (
+            <div style={{ padding: '32px 24px', fontFamily: SYS, fontSize: 14, color: color.t4, textAlign: 'center' }}>
+              No upcoming releases in the next 60 days.
+            </div>
+          ) : (
+            <div>
+              {upcoming.map((evt, i) => (
+                <div key={evt.id} style={{
+                  padding: '16px 24px',
+                  borderBottom: i < upcoming.length - 1 ? `1px solid ${color.bd1}` : 'none',
+                  display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap',
                 }}>
-                  <div style={{
-                    fontFamily: MONO, fontSize: 12, color: T4,
-                    minWidth: 100, flexShrink: 0,
-                  }}>
-                    {b.date}
-                  </div>
-                  <div style={{ flex: 1 }}>
+                  {/* Date + importance */}
+                  <div style={{ minWidth: 100, flexShrink: 0 }}>
+                    <div style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: color.t1, marginBottom: 3 }}>
+                      {relDate(evt.date)}
+                    </div>
+                    <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4 }}>
+                      {new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </div>
                     <div style={{
-                      fontFamily: SYS, fontSize: 16, color: T1,
-                      fontWeight: 500, marginBottom: 4,
+                      display: 'inline-block', marginTop: 5,
+                      fontFamily: MONO, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em',
+                      color: impColor(evt.importance), padding: '2px 6px',
+                      border: `1px solid ${impColor(evt.importance)}44`,
+                      borderRadius: 3, textTransform: 'uppercase',
                     }}>
-                      {b.title}
+                      {evt.importance}
                     </div>
-                    <div style={{ fontFamily: SYS, fontSize: 14, color: T3 }}>
-                      {b.summary}
+                  </div>
+
+                  {/* Release info */}
+                  <div style={{ flex: 1, minWidth: 220 }}>
+                    <div style={{ fontFamily: SYS, fontSize: 14, fontWeight: 600, color: color.t1, marginBottom: 4 }}>
+                      {evt.name}
                     </div>
+                    <div style={{ fontFamily: SYS, fontSize: 13, color: color.t3, lineHeight: 1.5, marginBottom: 8 }}>
+                      {evt.description}
+                    </div>
+                    {evt.impact?.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {evt.impact.map(tag => (
+                          <span key={tag} style={{
+                            fontFamily:    MONO, fontSize: 9, fontWeight: 600,
+                            letterSpacing: '0.06em', color: color.t4,
+                            background:    color.bg2, border: `1px solid ${color.bd1}`,
+                            borderRadius:  4, padding: '2px 7px',
+                          }}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Source */}
+                  <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, flexShrink: 0, paddingTop: 2 }}>
+                    {evt.source}
                   </div>
                 </div>
               ))}
             </div>
-
-            {/* Lock badge */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 10,
-              marginTop: 16, paddingTop: 16,
-              borderTop: `1px solid ${BD1}`,
-            }}>
-              <span style={{ fontSize: 16 }}>🔒</span>
-              <span style={{ fontFamily: SYS, fontSize: 15, color: T3 }}>
-                Subscribe to unlock full archive —{" "}
-                <Link href="/pricing" style={{ color: AMBER }}>
-                  View plans →
-                </Link>
-              </span>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* ── SECTION 3 — Quarterly Outlook ── */}
+        {/* Source line */}
         <div style={{
-          background: BG1,
-          border: `1px solid ${BD1}`,
-          borderRadius: 20,
-          padding: 32,
-          marginBottom: 32,
+          marginTop: 28, fontFamily: MONO, fontSize: 10, color: color.t4,
+          letterSpacing: '0.06em', lineHeight: 1.6,
         }}>
-          <div style={{
-            display: "inline-block",
-            fontFamily: MONO, fontSize: 11, color: BD2,
-            letterSpacing: "0.12em", marginBottom: 20,
-            background: BG3, border: `1px solid ${BD2}`,
-            borderRadius: 8, padding: "4px 12px",
-          }}>
-            COMING SOON
-          </div>
-
-          <h2 style={{
-            fontFamily: SYS, fontSize: 26, fontWeight: 700,
-            color: T1, lineHeight: 1.25, marginBottom: 12,
-            letterSpacing: "-0.015em",
-          }}>
-            Q2 2026 Construction Sector Outlook
-          </h2>
-
-          <p style={{
-            fontFamily: SYS, fontSize: 16, color: T3, lineHeight: 1.7,
-            marginBottom: 28, maxWidth: 640,
-          }}>
-            Our Q2 2026 outlook covers residential recovery prospects, federal infrastructure pipeline,
-            materials cycle analysis, and employment forecasts through December 2026.
-          </p>
-
-          <QuarterlyNotifyForm />
-        </div>
-
-        {/* ── SECTION 4 — Press & Media ── */}
-        <div style={{
-          background: BG2,
-          border: `1px solid ${BD1}`,
-          borderRadius: 20,
-          padding: 32,
-          marginBottom: 32,
-        }}>
-          <div style={{
-            fontFamily: MONO, fontSize: 11, color: T4,
-            letterSpacing: "0.12em", marginBottom: 20,
-          }}>
-            IN THE PRESS
-          </div>
-
-          <p style={{
-            fontFamily: SYS, fontSize: 16, color: T3, lineHeight: 1.7,
-            marginBottom: 10, maxWidth: 660,
-          }}>
-            ConstructAIQ is building the construction sector&apos;s premier intelligence platform.
-            For press inquiries, data licensing, or research collaborations:
-          </p>
-
-          <a
-            href="mailto:press@constructaiq.trade"
-            style={{
-              fontFamily: SYS, fontSize: 17, color: AMBER,
-              display: "inline-block", marginBottom: 28,
-            }}
-          >
-            press@constructaiq.trade
-          </a>
-
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            {mediaMentions.map((text, i) => (
-              <div key={i} style={{
-                flex: "1 1 200px",
-                background: BG1,
-                border: `1px solid ${BD1}`,
-                borderRadius: 12,
-                padding: 20,
-                opacity: 0.6,
-                fontFamily: SYS,
-                fontSize: 14,
-                color: T4,
-                fontStyle: "italic",
-              }}>
-                {text}
-              </div>
-            ))}
-          </div>
+          Data sources: U.S. Census Bureau · Bureau of Labor Statistics · Federal Reserve FRED ·
+          Freddie Mac PMMS · BLS PPI · constructaiq.trade
         </div>
 
       </div>
-
-      <Footer />
     </div>
   )
 }
