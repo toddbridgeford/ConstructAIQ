@@ -10,19 +10,12 @@ const SYS  = font.sys
 const MONO = font.mono
 
 const BASE_LINKS = [
-  { label: "Intelligence", href: "/dashboard"    },
-  { label: "Portfolio",    href: "/portfolio"    },
-  { label: "Sectors",      href: "/sectors"      },
-  { label: "Research",     href: "/research"     },
-  { label: "Materials",   href: "/materials"    },
-  { label: "Projects",     href: "/projects"     },
-  { label: "Ask AI",       href: "/ask"          },
-  { label: "Cost Estimate",href: "/cost-estimate"},
-  { label: "Globe",        href: "/globe"        },
-  { label: "Markets",      href: "/markets"      },
-  { label: "Tools",        href: "/market-check" },
-  { label: "Pricing",      href: "/pricing"      },
-  { label: "About",        href: "/about"        },
+  { label: "Dashboard",  href: "/dashboard"  },
+  { label: "Markets",    href: "/markets"    },
+  { label: "Federal",    href: "/federal"    },
+  { label: "Materials",  href: "/materials"  },
+  { label: "Ask",        href: "/ask"        },
+  { label: "API Access", href: "/api-access" },
 ]
 
 interface NavProps {
