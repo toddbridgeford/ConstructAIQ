@@ -4,6 +4,8 @@ import { AgencyVelocity }     from "../components/AgencyVelocity"
 import { FederalLeaderboard } from "../components/FederalLeaderboard"
 import { FederalStateTable }  from "../components/FederalStateTable"
 import { SectionHeader }      from "../components/SectionHeader"
+import { ErrorState }         from "@/app/components/ui/ErrorState"
+import { FreshnessIndicator } from "@/app/components/ui/FreshnessIndicator"
 import { Skeleton }           from "@/app/components/Skeleton"
 import { color } from "@/lib/theme"
 
@@ -31,6 +33,16 @@ export function FederalSection({ federal }: FederalSectionProps) {
     <section id="federal" style={{ paddingTop:48, paddingBottom:8 }}>
       <SectionHeader sectionId="06" title="Federal Infrastructure Tracker" badge="IIJA · IRA" live onExportCSV={() => {}} />
 
+      {federal?.error && (
+        <div style={{ marginBottom: 20 }}>
+          <ErrorState
+            message="Federal data temporarily unavailable"
+            detail="USASpending.gov API returned an error. Showing most recently cached allocation data."
+            cached_at={federal?.cached_at}
+          />
+        </div>
+      )}
+
       <Card style={{ marginBottom:20 }}>
         <FederalPrograms programs={federal?.programs ?? []} />
       </Card>
@@ -47,6 +59,10 @@ export function FederalSection({ federal }: FederalSectionProps) {
       <Card>
         <FederalStateTable stateAllocations={federal?.stateAllocations ?? []} />
       </Card>
+
+      {federal?.cached_at && (
+        <FreshnessIndicator updated_at={federal.cached_at} label="Federal data cached" />
+      )}
     </section>
   )
 }

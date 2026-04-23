@@ -1,5 +1,9 @@
 "use client"
+import { AlertTriangle } from "lucide-react"
 import { color, font, radius } from "@/lib/theme"
+import { EmptyState } from "@/app/components/ui/EmptyState"
+import { FreshnessIndicator } from "@/app/components/ui/FreshnessIndicator"
+import { SectionVerdict } from "./SectionVerdict"
 import type { WarnData, WarnNotice } from "@/app/api/warn/route"
 
 const SYS  = font.sys
@@ -155,14 +159,12 @@ export function WarnFeed({ data }: Props) {
             <Skeleton />
           </div>
         ) : notices.length === 0 ? (
-          <div style={{
-            padding:    "24px 18px",
-            fontFamily: MONO,
-            fontSize:   12,
-            color:      color.t4,
-            textAlign:  "center",
-          }}>
-            No recent construction WARN Act filings found.
+          <div style={{ padding: "16px 18px" }}>
+            <EmptyState
+              icon={<AlertTriangle size={32} />}
+              title="No recent WARN Act filings"
+              description="No construction WARN Act notices in the current DOL dataset. This indicates low layoff activity — a positive signal for the labor market."
+            />
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
@@ -216,6 +218,19 @@ export function WarnFeed({ data }: Props) {
           {data.stale && <span style={{ color: color.amber }}>STALE DATA</span>}
         </div>
       )}
+
+      {data && (() => {
+        const MONTHLY_AVG = 25
+        const direction = data.total_count > MONTHLY_AVG ? 'above' : data.total_count < MONTHLY_AVG ? 'below' : 'in line with'
+        return (
+          <div style={{ padding: "0 18px 14px" }}>
+            {data.as_of && <FreshnessIndicator updated_at={data.as_of} label="WARN data updated" />}
+            <SectionVerdict
+              text={`${data.total_count} construction WARN Act notices in the last 30 days — ${direction} the prior 12-month average of ${MONTHLY_AVG}.`}
+            />
+          </div>
+        )
+      })()}
     </div>
   )
 }

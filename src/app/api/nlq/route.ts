@@ -74,6 +74,24 @@ function trimPayload(url: string, data: unknown): unknown {
     return { ...d, signals: signals.slice(0, 5) }
   }
 
+  if (url.includes('/api/benchmark')) {
+    // Return only the fields the LLM needs — omit raw percentile internals
+    return {
+      series:           d.series,
+      city:             d.city,
+      current_value:    d.current_value,
+      percentile:       d.percentile,
+      classification:   d.classification,
+      mean:             d.mean,
+      median:           d.median,
+      yoy_change_pct:   d.yoy_change_pct,
+      trend_5yr:        d.trend_5yr,
+      benchmark_period: d.benchmark_period,
+      label:            d.label,
+      as_of:            d.as_of,
+    }
+  }
+
   return data
 }
 
@@ -127,6 +145,13 @@ function selectDataSources(question: string): string[] {
 
   if (q.includes('recession') || q.includes('contraction') || q.includes('slowdown') || q.includes('decline'))
     sources.push('/api/cshi', '/api/signals', '/api/rates')
+
+  if (q.includes('average') || q.includes('normal') || q.includes('historical') ||
+      q.includes('compared') || q.includes(' vs ') || q.includes('benchmark') ||
+      q.includes('typical') || q.includes('unusual') ||
+      (q.includes('high') && (q.includes('spend') || q.includes('permit') || q.includes('employ'))) ||
+      (q.includes('low')  && (q.includes('spend') || q.includes('permit') || q.includes('employ'))))
+    sources.push('/api/benchmark?series=TTLCONS&value=2190', '/api/benchmark?series=PERMIT&value=1400')
 
   if (q.includes('compare') || q.includes('versus') || q.includes(' vs ') || q.includes('difference'))
     sources.push('/api/map', '/api/satellite')

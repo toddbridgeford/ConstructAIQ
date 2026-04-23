@@ -1,8 +1,24 @@
 "use client"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { color, font, type as TS, signal as SIG, layout as L, fmtB } from "@/lib/theme"
+import { BenchmarkBadge, type BenchmarkResult } from "@/app/components/ui/BenchmarkBadge"
+import { getPrefs } from "@/lib/preferences"
 import type { Signal } from "../types"
+
+const ROLE_ORDER: Record<string, string[]> = {
+  lender:     ['cshi',   'spend',  'permit', 'emp'],
+  contractor: ['emp',    'permit', 'spend',  'cshi'],
+  supplier:   ['permit', 'emp',    'spend',  'cshi'],
+}
+const DEFAULT_ORDER = ['spend', 'emp', 'permit', 'cshi']
+
+const ROLE_NOTES: Record<string, string> = {
+  lender:     'Optimized for lending decisions',
+  contractor: 'Optimized for contractor decisions',
+  supplier:   'Optimized for supplier decisions',
+}
 
 const MONO = font.mono
 const SYS  = font.sys
@@ -77,9 +93,10 @@ interface KpiCardProps {
   mom:    number
   spark:  number[]
   accent: string
+  bench?: BenchmarkResult | null
 }
 
-function KpiCard({ label, value, mom, spark, accent }: KpiCardProps) {
+function KpiCard({ label, value, mom, spark, accent, bench }: KpiCardProps) {
   return (
     <div style={{
       background:    color.bg1,
@@ -101,6 +118,13 @@ function KpiCard({ label, value, mom, spark, accent }: KpiCardProps) {
       }}>
         {value}
       </div>
+      {bench && (
+        <BenchmarkBadge
+          classification={bench.classification}
+          percentile={bench.percentile}
+          label={bench.label}
+        />
+      )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <ChangeBadge value={mom} />
         <Sparkline data={spark} stroke={accent} />
@@ -131,6 +155,34 @@ export function OverviewSection({
   spendObs, signals, loading,
 }: OverviewProps) {
 
+  const [spendBench,  setSpendBench]  = useState<BenchmarkResult | null>(null)
+  const [empBench,    setEmpBench]    = useState<BenchmarkResult | null>(null)
+  const [permitBench, setPermitBench] = useState<BenchmarkResult | null>(null)
+
+  useEffect(() => {
+    if (!spendVal || loading) return
+    fetch(`/api/benchmark?series=TTLCONS&value=${spendVal}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error) setSpendBench(d) })
+      .catch(() => {})
+  }, [spendVal, loading])
+
+  useEffect(() => {
+    if (!empVal || loading) return
+    fetch(`/api/benchmark?series=CES2000000001&value=${empVal}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error) setEmpBench(d) })
+      .catch(() => {})
+  }, [empVal, loading])
+
+  useEffect(() => {
+    if (!permitVal || loading) return
+    fetch(`/api/benchmark?series=PERMIT&value=${permitVal}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error) setPermitBench(d) })
+      .catch(() => {})
+  }, [permitVal, loading])
+
   const empDisplay    = empVal >= 1000  ? `${(empVal / 1000).toFixed(1)}M` : `${empVal.toFixed(0)}K`
   const permitDisplay = permitVal >= 1000 ? `${(permitVal / 1000).toFixed(1)}M` : `${permitVal.toFixed(0)}K`
 
@@ -140,7 +192,81 @@ export function OverviewSection({
     value: Number(o.value),
   }))
 
-  const topSignals = signals.slice(0, 3)
+  // Role-based ordering
+  const role       = getPrefs().role
+  const cardOrder  = ROLE_ORDER[role ?? ''] ?? DEFAULT_ORDER
+  const roleNote   = role ? ROLE_NOTES[role] : null
+
+  // For contractors, WARN-related signals surface first
+  const sortedSignals = role === 'contractor'
+    ? [
+        ...signals.filter(s => /warn/i.test(s.type ?? '')),
+        ...signals.filter(s => !/warn/i.test(s.type ?? '')),
+      ]
+    : signals
+  const topSignals = sortedSignals.slice(0, 3)
+
+  // Card descriptors — sorted by role preference
+  const CARD_DEFS = [
+    {
+      id: 'spend',
+      el: (
+        <KpiCard
+          key="spend"
+          label="Construction Spending"
+          value={fmtB(spendVal)}
+          mom={spendMom}
+          spark={spendSpark}
+          accent={color.amber}
+          bench={spendBench}
+        />
+      ),
+    },
+    {
+      id: 'emp',
+      el: (
+        <KpiCard
+          key="emp"
+          label="Employment"
+          value={empDisplay}
+          mom={empMom}
+          spark={empSpark}
+          accent={color.green}
+          bench={empBench}
+        />
+      ),
+    },
+    {
+      id: 'permit',
+      el: (
+        <KpiCard
+          key="permit"
+          label="Permits (annualized)"
+          value={permitDisplay}
+          mom={permitMom}
+          spark={permitSpark}
+          accent={color.blue}
+          bench={permitBench}
+        />
+      ),
+    },
+    {
+      id: 'cshi',
+      el: (
+        <KpiCard
+          key="cshi"
+          label="CSHI Score"
+          value={cshiScore.toFixed(1)}
+          mom={cshiChange}
+          spark={cshiSpark.length >= 2 ? cshiSpark : Array(12).fill(cshiScore)}
+          accent={color.purple}
+        />
+      ),
+    },
+  ]
+  const orderedCards = [...CARD_DEFS].sort(
+    (a, b) => cardOrder.indexOf(a.id) - cardOrder.indexOf(b.id)
+  )
 
   return (
     <div style={{ padding: '32px 0', display: 'flex', flexDirection: 'column', gap: L.sectionGap }}>
@@ -153,6 +279,17 @@ export function OverviewSection({
       `}</style>
 
       {/* ── Row 1: KPI cards ── */}
+      {roleNote && !loading && (
+        <div style={{
+          fontFamily:    font.mono,
+          fontSize:      10,
+          color:         color.t4,
+          letterSpacing: '0.06em',
+          marginBottom:  -L.sectionGap + 8,
+        }}>
+          {roleNote}
+        </div>
+      )}
       <div className="ov-cards">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
@@ -163,36 +300,7 @@ export function OverviewSection({
             }} />
           ))
         ) : (
-          <>
-            <KpiCard
-              label="Construction Spending"
-              value={fmtB(spendVal)}
-              mom={spendMom}
-              spark={spendSpark}
-              accent={color.amber}
-            />
-            <KpiCard
-              label="Employment"
-              value={empDisplay}
-              mom={empMom}
-              spark={empSpark}
-              accent={color.green}
-            />
-            <KpiCard
-              label="Permits (annualized)"
-              value={permitDisplay}
-              mom={permitMom}
-              spark={permitSpark}
-              accent={color.blue}
-            />
-            <KpiCard
-              label="CSHI Score"
-              value={cshiScore.toFixed(1)}
-              mom={cshiChange}
-              spark={cshiSpark.length >= 2 ? cshiSpark : Array(12).fill(cshiScore)}
-              accent={color.purple}
-            />
-          </>
+          orderedCards.map(({ el }) => el)
         )}
       </div>
 

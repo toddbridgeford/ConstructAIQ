@@ -2,7 +2,11 @@
 import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { font, color } from "@/lib/theme"
+import { Satellite } from "lucide-react"
 import { SectionHeader } from "../components/SectionHeader"
+import { SectionVerdict } from "../components/SectionVerdict"
+import { EmptyState } from "@/app/components/ui/EmptyState"
+import { FreshnessIndicator } from "@/app/components/ui/FreshnessIndicator"
 import { SatelliteHeatmap, type SatelliteMsa } from "../components/SatelliteHeatmap"
 import type { FusionMsa } from "../components/FusionMap"
 
@@ -123,12 +127,12 @@ export function SatelliteSection({ data }: Props) {
           <>
             {isLoading  && <Skeleton height={500} />}
             {!isLoading && isPending && (
-              <div style={{ height: 300, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
-                <div style={{ fontFamily: MONO, fontSize: 11, color: color.amber, letterSpacing: "0.1em" }}>PENDING FIRST RUN</div>
-                <div style={{ fontFamily: SYS, fontSize: 14, color: color.t3, textAlign: "center", maxWidth: 400 }}>
-                  The satellite pipeline has not run yet. BSI results will appear after the next weekly GitHub Actions run.
-                </div>
-              </div>
+              <EmptyState
+                icon={<Satellite size={32} />}
+                title="Satellite data pending"
+                description="Sentinel-2 imagery is processed every Sunday at 2am UTC via GitHub Actions. First results appear after the Sunday workflow completes."
+                action={{ label: "View satellite methodology", href: "/methodology#satellite" }}
+              />
             )}
             {!isLoading && !isPending && (
               <SatelliteHeatmap
@@ -144,17 +148,14 @@ export function SatelliteSection({ data }: Props) {
         {activeTab === "fusion" && (
           <>
             {!fusionReady && (
-              <div style={{ height: 400, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
-                {fusionData === null
-                  ? <Skeleton height={360} />
-                  : <>
-                      <div style={{ fontFamily: MONO, fontSize: 11, color: color.amber, letterSpacing: "0.1em" }}>PENDING FIRST RUN</div>
-                      <div style={{ fontFamily: SYS, fontSize: 14, color: color.t3, textAlign: "center", maxWidth: 400 }}>
-                        Signal fusion requires satellite data. Run the BSI pipeline first.
-                      </div>
-                    </>
-                }
-              </div>
+              fusionData === null
+                ? <Skeleton height={360} />
+                : <EmptyState
+                    icon={<Satellite size={32} />}
+                    title="Signal fusion pending"
+                    description="Signal fusion requires satellite data. Run the BSI pipeline first to generate results."
+                    action={{ label: "View satellite methodology", href: "/methodology#satellite" }}
+                  />
             )}
             {fusionReady && <FusionMap msas={fusionMsas} />}
           </>
@@ -170,6 +171,28 @@ export function SatelliteSection({ data }: Props) {
           Source: ESA Copernicus · constructaiq.trade/methodology
         </a>
       </div>
+
+      {!isLoading && data?.last_processed && (
+        <FreshnessIndicator updated_at={data.last_processed} label="Satellite data processed" />
+      )}
+
+      {!isLoading && !isPending && (() => {
+        const activeCount = msas.filter(m => m.classification !== 'LOW_ACTIVITY').length
+        const topTwo = [...msas]
+          .filter(m => m.bsi_mean !== null)
+          .sort((a, b) => (b.bsi_mean ?? 0) - (a.bsi_mean ?? 0))
+          .slice(0, 2)
+          .map(m => m.msa_name.split('-')[0].trim())
+        const topLabel = topTwo.length >= 2
+          ? `${topTwo[0]} and ${topTwo[1]}`
+          : topTwo[0] ?? 'top markets'
+        const total = msas.length || 20
+        return (
+          <SectionVerdict
+            text={`${activeCount} of ${total} tracked markets show active ground disturbance. Demand is concentrated in ${topLabel}.`}
+          />
+        )
+      })()}
     </section>
   )
 }
