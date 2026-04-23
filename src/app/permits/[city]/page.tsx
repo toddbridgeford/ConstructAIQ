@@ -6,8 +6,8 @@ import { CityPermitDetail, type CityPermitData } from '@/app/dashboard/component
 import { BenchmarkBadge } from '@/app/components/ui/BenchmarkBadge'
 import type { BenchmarkResult } from '@/app/components/ui/BenchmarkBadge'
 import { color, font, layout as L } from '@/lib/theme'
-import { getPrefs, addMarket, removeMarket } from '@/lib/preferences'
 import { ShareButton } from '@/app/components/ui/ShareButton'
+import { WatchButton } from '@/app/components/ui/WatchButton'
 
 const { bg0: BG0, bg1: BG1, bg2: BG2, bd1: BD1,
         t1: T1, t3: T3, t4: T4,
@@ -27,21 +27,6 @@ export default function CityPermitsPage({ params }: { params: Promise<{ city: st
   const [cityData,   setCityData]   = useState<CityPermitData | null>(null)
   const [bench,      setBench]      = useState<BenchmarkResult | null>(null)
   const [loading,    setLoading]    = useState(true)
-  const [following,  setFollowing]  = useState(false)
-
-  useEffect(() => {
-    setFollowing(getPrefs().markets.includes(cityCode))
-  }, [cityCode])
-
-  function toggleFollow() {
-    if (following) {
-      removeMarket(cityCode)
-      setFollowing(false)
-    } else {
-      addMarket(cityCode)
-      setFollowing(true)
-    }
-  }
 
   useEffect(() => {
     Promise.all([
@@ -113,26 +98,13 @@ export default function CityPermitsPage({ params }: { params: Promise<{ city: st
                   title={`${cityName} Construction Permits — ConstructAIQ`}
                   url={`https://constructaiq.trade/permits/${city.toLowerCase()}`}
                 />
-                <button
-                onClick={toggleFollow}
-                style={{
-                  fontFamily:   font.mono,
-                  fontSize:     12,
-                  fontWeight:   600,
-                  letterSpacing: '0.04em',
-                  padding:      '8px 16px',
-                  borderRadius:  8,
-                  cursor:       'pointer',
-                  flexShrink:   0,
-                  transition:   'all 0.15s',
-                  ...(following
-                    ? { background: 'transparent', border: `1px solid ${color.amber}`, color: color.amber }
-                    : { background: color.amber,   border: `1px solid ${color.amber}`, color: color.bg0 }
-                  ),
-                }}
-              >
-                {following ? 'Following ✓' : '+ Follow this market'}
-              </button>
+                <WatchButton
+                  entityType="metro"
+                  entityId={cityCode}
+                  entityLabel={cityName}
+                  size="md"
+                  labelWatch="+ Watch market"
+                />
               </div>
             </div>
           )}

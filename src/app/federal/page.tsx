@@ -6,6 +6,8 @@ import {
 import { Nav }     from "@/app/components/Nav"
 import { Skeleton } from "@/app/components/Skeleton"
 import { color, font, layout as L } from "@/lib/theme"
+import { WatchButton } from "@/app/components/ui/WatchButton"
+import { STATE_NAMES } from "@/lib/state-names"
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -530,6 +532,14 @@ export default function FederalPage() {
                     }}>
                       Status
                     </th>
+                    <th style={{
+                      padding: '0 16px', height: 40, background: BG2, fontFamily: MONO,
+                      fontSize: 10, color: T4, letterSpacing: '0.08em', textTransform: 'uppercase',
+                      textAlign: 'left', borderBottom: `1px solid ${BD2}`, fontWeight: 600,
+                      width: 112,
+                    }}>
+                      Watch
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -566,6 +576,13 @@ export default function FederalPage() {
                         </td>
                         <td style={{ padding: '0 16px', height: ROW, borderTop: `1px solid ${BD1}` }}>
                           <StatusBadge status={status} />
+                        </td>
+                        <td style={{ padding: '0 12px', height: ROW, borderTop: `1px solid ${BD1}`, whiteSpace: 'nowrap' }}>
+                          <WatchButton
+                            entityType="federal"
+                            entityId={s.state}
+                            entityLabel={`${STATE_NAMES[s.state] ?? s.state} — Federal`}
+                          />
                         </td>
                       </tr>
                     )

@@ -223,7 +223,9 @@ BEGIN
         'service_all_permit_sources', 'service_all_city_permits', 'service_all_permit_monthly_agg',
         'anon_read_projects', 'anon_read_project_events',
         'service_all_projects', 'service_all_project_events',
-        'service_all_push_subscriptions', 'service_all_push_notifications_log'
+        'service_all_push_subscriptions', 'service_all_push_notifications_log',
+        'anon_read_opportunity_scores', 'service_all_opportunity_scores',
+        'service_all_watchlists'
       )
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, pol.tablename);
@@ -750,3 +752,83 @@ ALTER TABLE webhook_subscriptions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "service_all_webhook_subscriptions"
   ON webhook_subscriptions FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: opportunity_scores
+-- Daily-computed metro-level Opportunity Truth Index scores (0–100).
+-- One row per (metro_code, computed_at) — the most recent row within its
+-- valid_through window is served to consumers of /api/opportunity-score.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS opportunity_scores (
+    id              BIGSERIAL    PRIMARY KEY,
+    metro_code      TEXT         NOT NULL,
+    score           INTEGER      NOT NULL,
+    classification  TEXT         NOT NULL,
+    driver_json     JSONB        NOT NULL,
+    confidence      TEXT         NOT NULL,
+    computed_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    valid_through   TIMESTAMPTZ  NOT NULL,
+
+    CONSTRAINT opportunity_scores_metro_computed_unique
+        UNIQUE (metro_code, computed_at)
+);
+
+COMMENT ON TABLE  opportunity_scores                IS 'Daily-computed metro Opportunity Truth Index scores (0–100) with driver attribution.';
+COMMENT ON COLUMN opportunity_scores.metro_code     IS 'Metro identifier — matches permit_sources.city_code (e.g. PHX, NYC, LAX).';
+COMMENT ON COLUMN opportunity_scores.score          IS 'Composite opportunity score, 0–100 integer.';
+COMMENT ON COLUMN opportunity_scores.classification IS 'FORMATION | BUILDING | STABLE | COOLING | CONTRACTING.';
+COMMENT ON COLUMN opportunity_scores.driver_json    IS 'Per-component driver breakdown, top 3 drivers, and metro metadata.';
+COMMENT ON COLUMN opportunity_scores.confidence     IS 'HIGH | MEDIUM | LOW — based on how many component signals are live vs fallback.';
+COMMENT ON COLUMN opportunity_scores.computed_at    IS 'Timestamp the score was computed.';
+COMMENT ON COLUMN opportunity_scores.valid_through  IS 'Serve-fresh cutoff — scores older than this should be recomputed.';
+
+CREATE INDEX IF NOT EXISTS idx_opportunity_scores_metro_latest
+    ON opportunity_scores (metro_code, computed_at DESC);
+
+ALTER TABLE opportunity_scores ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_read_opportunity_scores"
+    ON opportunity_scores FOR SELECT TO anon USING (true);
+
+CREATE POLICY "service_all_opportunity_scores"
+    ON opportunity_scores FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: watchlists
+-- Server-persisted user watchlists keyed by API-key hash. Each row is a single
+-- watched entity (metro, state, project, or federal state row). Unlike the
+-- earlier localStorage-only "My Markets" list, these persist across devices
+-- and power the WatchlistCard + daily signal digest.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS watchlists (
+    id            BIGSERIAL    PRIMARY KEY,
+    api_key_hash  TEXT         NOT NULL,
+    entity_type   TEXT         NOT NULL,          -- 'metro' | 'state' | 'project' | 'federal'
+    entity_id     TEXT         NOT NULL,          -- 'PHX' | 'TX' | project UUID | state code
+    entity_label  TEXT         NOT NULL,
+    added_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    last_signal   JSONB,                          -- cached last alert for this entity
+
+    CONSTRAINT watchlists_owner_entity_unique
+        UNIQUE (api_key_hash, entity_type, entity_id)
+);
+
+COMMENT ON TABLE  watchlists               IS 'Server-persisted per-API-key watchlists — one row per watched entity.';
+COMMENT ON COLUMN watchlists.api_key_hash  IS 'SHA-256 hash of the owning API key — links to api_keys.key_hash.';
+COMMENT ON COLUMN watchlists.entity_type   IS 'Entity category: metro, state, project, or federal.';
+COMMENT ON COLUMN watchlists.entity_id     IS 'Entity identifier within its type (e.g. PHX for metro, TX for state).';
+COMMENT ON COLUMN watchlists.entity_label  IS 'Human-readable label cached at add time (e.g. "Phoenix, AZ").';
+COMMENT ON COLUMN watchlists.last_signal   IS 'Most recent alert payload observed for this entity.';
+
+-- Hot path: list a user's watchlist ordered by recency
+CREATE INDEX IF NOT EXISTS idx_watchlists_owner_added
+    ON watchlists (api_key_hash, added_at DESC);
+
+ALTER TABLE watchlists ENABLE ROW LEVEL SECURITY;
+
+-- No anon policy — all access goes through the service role with the
+-- authenticated api_key_hash supplied by the route handler.
+CREATE POLICY "service_all_watchlists"
+    ON watchlists FOR ALL TO service_role USING (true) WITH CHECK (true);

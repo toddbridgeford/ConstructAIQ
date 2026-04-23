@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { color, font } from '@/lib/theme'
 import { RecommendationsCard } from '@/app/dashboard/components/RecommendationsCard'
+import { WatchButton } from '@/app/components/ui/WatchButton'
 import { STATE_NAMES } from '@/lib/state-names'
 
 // ── Types ────────────────────────────────────────────────────
@@ -180,6 +181,12 @@ export default function StatePage() {
             letterSpacing:'0.06em' }}>
             {data.verdict}
           </div>
+          <WatchButton
+            entityType="state"
+            entityId={stateCode}
+            entityLabel={data.state_name}
+            size="md"
+          />
         </div>
 
         {/* Section 1 — Vitals */}

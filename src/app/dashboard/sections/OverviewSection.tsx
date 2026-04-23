@@ -7,6 +7,7 @@ import { BenchmarkBadge, type BenchmarkResult } from "@/app/components/ui/Benchm
 import { InsightChip } from "@/app/components/ui/InsightChip"
 import { getPrefs } from "@/lib/preferences"
 import { RecommendationsCard } from '@/app/dashboard/components/RecommendationsCard'
+import { WatchlistCard } from '@/app/dashboard/components/WatchlistCard'
 import type { Signal } from "../types"
 import type { FreshnessInfo } from "@/lib/freshness"
 
@@ -462,6 +463,11 @@ export function OverviewSection({
           </Link>
         </div>
 
+      </div>
+
+      {/* Watchlist (server-persisted) */}
+      <div style={{ marginTop: 32 }}>
+        <WatchlistCard />
       </div>
 
       {/* Recommendations */}
