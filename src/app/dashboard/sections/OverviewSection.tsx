@@ -1,7 +1,9 @@
 "use client"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { color, font, type as TS, signal as SIG, layout as L, fmtB } from "@/lib/theme"
+import { BenchmarkBadge, type BenchmarkResult } from "@/app/components/ui/BenchmarkBadge"
 import type { Signal } from "../types"
 
 const MONO = font.mono
@@ -77,9 +79,10 @@ interface KpiCardProps {
   mom:    number
   spark:  number[]
   accent: string
+  bench?: BenchmarkResult | null
 }
 
-function KpiCard({ label, value, mom, spark, accent }: KpiCardProps) {
+function KpiCard({ label, value, mom, spark, accent, bench }: KpiCardProps) {
   return (
     <div style={{
       background:    color.bg1,
@@ -101,6 +104,13 @@ function KpiCard({ label, value, mom, spark, accent }: KpiCardProps) {
       }}>
         {value}
       </div>
+      {bench && (
+        <BenchmarkBadge
+          classification={bench.classification}
+          percentile={bench.percentile}
+          label={bench.label}
+        />
+      )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <ChangeBadge value={mom} />
         <Sparkline data={spark} stroke={accent} />
@@ -130,6 +140,34 @@ export function OverviewSection({
   cshiScore, cshiChange, cshiSpark,
   spendObs, signals, loading,
 }: OverviewProps) {
+
+  const [spendBench,  setSpendBench]  = useState<BenchmarkResult | null>(null)
+  const [empBench,    setEmpBench]    = useState<BenchmarkResult | null>(null)
+  const [permitBench, setPermitBench] = useState<BenchmarkResult | null>(null)
+
+  useEffect(() => {
+    if (!spendVal || loading) return
+    fetch(`/api/benchmark?series=TTLCONS&value=${spendVal}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error) setSpendBench(d) })
+      .catch(() => {})
+  }, [spendVal, loading])
+
+  useEffect(() => {
+    if (!empVal || loading) return
+    fetch(`/api/benchmark?series=CES2000000001&value=${empVal}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error) setEmpBench(d) })
+      .catch(() => {})
+  }, [empVal, loading])
+
+  useEffect(() => {
+    if (!permitVal || loading) return
+    fetch(`/api/benchmark?series=PERMIT&value=${permitVal}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error) setPermitBench(d) })
+      .catch(() => {})
+  }, [permitVal, loading])
 
   const empDisplay    = empVal >= 1000  ? `${(empVal / 1000).toFixed(1)}M` : `${empVal.toFixed(0)}K`
   const permitDisplay = permitVal >= 1000 ? `${(permitVal / 1000).toFixed(1)}M` : `${permitVal.toFixed(0)}K`
@@ -170,6 +208,7 @@ export function OverviewSection({
               mom={spendMom}
               spark={spendSpark}
               accent={color.amber}
+              bench={spendBench}
             />
             <KpiCard
               label="Employment"
@@ -177,6 +216,7 @@ export function OverviewSection({
               mom={empMom}
               spark={empSpark}
               accent={color.green}
+              bench={empBench}
             />
             <KpiCard
               label="Permits (annualized)"
@@ -184,6 +224,7 @@ export function OverviewSection({
               mom={permitMom}
               spark={permitSpark}
               accent={color.blue}
+              bench={permitBench}
             />
             <KpiCard
               label="CSHI Score"
