@@ -37,7 +37,6 @@ export function FreeModel() {
               fontFamily: font.sys,
               fontSize: bodySm.fontSize,
               fontWeight: bodySm.fontWeight,
-              letterSpacing: bodySm.letterSpacing,
               lineHeight: bodySm.lineHeight,
               color: T2,
               margin: 0,
