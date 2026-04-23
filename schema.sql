@@ -720,3 +720,33 @@ ALTER TABLE push_notifications_log ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "service_all_push_notifications_log"
   ON push_notifications_log FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: webhook_subscriptions
+-- Developer-registered webhook endpoints that receive POST callbacks when
+-- platform events fire (signal.fired, forecast.updated, etc.).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS webhook_subscriptions (
+  id           BIGSERIAL    PRIMARY KEY,
+  api_key_hash TEXT         NOT NULL,
+  url          TEXT         NOT NULL,
+  events       TEXT[]       NOT NULL,
+  created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  last_fired   TIMESTAMPTZ,
+  is_active    BOOLEAN      NOT NULL DEFAULT TRUE
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhooks_active
+  ON webhook_subscriptions (is_active);
+
+COMMENT ON TABLE  webhook_subscriptions              IS 'Developer-registered webhook endpoints for event-driven callbacks.';
+COMMENT ON COLUMN webhook_subscriptions.api_key_hash IS 'SHA-256 hash of the registering API key — links to api_keys.key_hash.';
+COMMENT ON COLUMN webhook_subscriptions.url          IS 'HTTPS endpoint that receives POST callbacks.';
+COMMENT ON COLUMN webhook_subscriptions.events       IS 'Array of subscribed event types (e.g. signal.fired, forecast.updated).';
+COMMENT ON COLUMN webhook_subscriptions.last_fired   IS 'Timestamp of the most recent successful delivery to this endpoint.';
+
+ALTER TABLE webhook_subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "service_all_webhook_subscriptions"
+  ON webhook_subscriptions FOR ALL TO service_role USING (true) WITH CHECK (true);
