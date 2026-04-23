@@ -72,6 +72,38 @@ function agencyStatus(pct: number): string {
   return 'LAGGING'
 }
 
+// executionPct > 68 is a proxy for above 5-year historical average
+function stateSignal(yoy: number, executionPct: number): 'SURGE' | 'GROWING' | 'STABLE' | 'DECLINING' {
+  if (yoy > 20 && executionPct > 68) return 'SURGE'
+  if (yoy > 10)                      return 'GROWING'
+  if (yoy < -5)                      return 'DECLINING'
+  return 'STABLE'
+}
+
+function SignalBadge({ signal }: { signal: ReturnType<typeof stateSignal> }) {
+  const { col, label } =
+    signal === 'SURGE'     ? { col: GREEN,  label: 'SURGE'     } :
+    signal === 'GROWING'   ? { col: GREEN,  label: 'GROWING'   } :
+    signal === 'DECLINING' ? { col: RED,    label: 'DECLINING' } :
+                             { col: AMBER,  label: 'STABLE'    }
+  return (
+    <span style={{
+      fontFamily:    MONO,
+      fontSize:      10,
+      fontWeight:    600,
+      color:         col,
+      background:    `${col}18`,
+      border:        `1px solid ${col}30`,
+      borderRadius:  5,
+      padding:       '2px 7px',
+      letterSpacing: '0.04em',
+      whiteSpace:    'nowrap',
+    }}>
+      {label}
+    </span>
+  )
+}
+
 // ── CSV export ──────────────────────────────────────────────────────────────
 
 function downloadStateCSV(rows: StateAlloc[]) {
@@ -482,6 +514,13 @@ export default function FederalPage() {
                     <ColHeader label="State"      sortKey="state"    currentKey={sortKey} currentDir={sortDir} onSort={handleSort} width={80} />
                     <ColHeader label="Awards ($M)" sortKey="obligated" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
                     <ColHeader label="YoY Change"  sortKey="yoy"      currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
+                    <th style={{
+                      padding: '0 16px', height: 40, background: BG2, fontFamily: MONO,
+                      fontSize: 10, color: T4, letterSpacing: '0.08em', textTransform: 'uppercase',
+                      textAlign: 'left', borderBottom: `1px solid ${BD2}`, fontWeight: 600,
+                    }}>
+                      Signal
+                    </th>
                     <ColHeader label="Top Agency"  sortKey="agency"   currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
                     <ColHeader label="Execution %"  sortKey="exec"    currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
                     <th style={{
@@ -513,6 +552,9 @@ export default function FederalPage() {
                                      color: yoy >= 0 ? GREEN : RED, fontWeight: 600,
                                      whiteSpace: 'nowrap', borderTop: `1px solid ${BD1}` }}>
                           {yoy > 0 ? '+' : ''}{yoy.toFixed(1)}%
+                        </td>
+                        <td style={{ padding: '0 16px', height: ROW, whiteSpace: 'nowrap', borderTop: `1px solid ${BD1}` }}>
+                          <SignalBadge signal={stateSignal(yoy, s.executionPct)} />
                         </td>
                         <td style={{ padding: '0 16px', height: ROW, fontFamily: SYS, fontSize: 13,
                                      color: T3, whiteSpace: 'nowrap', borderTop: `1px solid ${BD1}` }}>

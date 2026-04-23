@@ -11,8 +11,9 @@ interface SignalItem {
 }
 
 interface Props {
-  open:     boolean
-  onToggle: () => void
+  open:        boolean
+  onToggle:    () => void
+  activePage?: string
 }
 
 const SYS  = font.sys
@@ -30,12 +31,20 @@ function signalColor(type: string): string {
   return SIG.neutral
 }
 
-export function ContextPanel({ open, onToggle }: Props) {
-  const [topSignal, setTopSignal]       = useState<SignalItem | null>(null)
-  const [briefExcerpt, setBriefExcerpt] = useState<string | null>(null)
-  const [question, setQuestion]         = useState('')
-  const [answer, setAnswer]             = useState<string | null>(null)
-  const [asking, setAsking]             = useState(false)
+interface PageInsight {
+  label: string
+  title: string
+  body:  string
+  color: string
+}
+
+export function ContextPanel({ open, onToggle, activePage }: Props) {
+  const [topSignal, setTopSignal]         = useState<SignalItem | null>(null)
+  const [briefExcerpt, setBriefExcerpt]   = useState<string | null>(null)
+  const [pageInsight, setPageInsight]     = useState<PageInsight | null>(null)
+  const [question, setQuestion]           = useState('')
+  const [answer, setAnswer]               = useState<string | null>(null)
+  const [asking, setAsking]               = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -53,6 +62,86 @@ export function ContextPanel({ open, onToggle }: Props) {
       })
       .catch(() => null)
   }, [])
+
+  // Page-specific contextual insight
+  useEffect(() => {
+    setPageInsight(null)
+    if (!activePage) return
+
+    if (activePage.startsWith('/federal')) {
+      fetch('/api/federal')
+        .then(r => r.ok ? r.json() : null)
+        .then((data: { stateAllocations?: { state: string; obligated: number }[] } | null) => {
+          if (!data?.stateAllocations?.length) return
+          const top = [...data.stateAllocations].sort((a, b) => b.obligated - a.obligated)[0]
+          setPageInsight({
+            label: 'Top Award State',
+            title: top.state,
+            body:  `$${top.obligated >= 1000 ? (top.obligated / 1000).toFixed(1) + 'B' : top.obligated.toFixed(0) + 'M'} in federal construction awards`,
+            color: SIG.federal,
+          })
+        })
+        .catch(() => null)
+    } else if (activePage.startsWith('/permits')) {
+      fetch('/api/permits')
+        .then(r => r.ok ? r.json() : null)
+        .then((data: { cities?: { city_name: string; monthly: { permit_count: number }[] }[] } | null) => {
+          if (!data?.cities?.length) return
+          let best: { city_name: string; pct: number } | null = null
+          for (const c of data.cities) {
+            const m = c.monthly.slice(-2)
+            if (m.length < 2 || m[0].permit_count === 0) continue
+            const pct = ((m[1].permit_count - m[0].permit_count) / m[0].permit_count) * 100
+            if (!best || Math.abs(pct) > Math.abs(best.pct)) best = { city_name: c.city_name, pct }
+          }
+          if (!best) return
+          setPageInsight({
+            label: 'Largest MoM Move',
+            title: best.city_name,
+            body:  `${best.pct >= 0 ? '+' : ''}${best.pct.toFixed(1)}% month-over-month permit change`,
+            color: best.pct >= 0 ? SIG.expand : SIG.contract,
+          })
+        })
+        .catch(() => null)
+    } else if (activePage.startsWith('/materials')) {
+      fetch('/api/materials-intelligence')
+        .then(r => r.ok ? r.json() : null)
+        .then((data: { materials?: { name: string; ppi_change_pct?: number }[] } | null) => {
+          if (!data?.materials?.length) return
+          const sorted = [...data.materials]
+            .filter(m => m.ppi_change_pct != null)
+            .sort((a, b) => Math.abs(b.ppi_change_pct ?? 0) - Math.abs(a.ppi_change_pct ?? 0))
+          if (!sorted.length) return
+          const top = sorted[0]
+          const pct = top.ppi_change_pct ?? 0
+          setPageInsight({
+            label: 'Largest PPI Move',
+            title: top.name,
+            body:  `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}% PPI change this month`,
+            color: pct >= 0 ? SIG.watch : SIG.contract,
+          })
+        })
+        .catch(() => null)
+    } else if (activePage.startsWith('/dashboard')) {
+      fetch('/api/signals')
+        .then(r => r.ok ? r.json() : null)
+        .then((data: { signals?: (SignalItem & { type: string; date?: string })[] } | null) => {
+          if (!data?.signals) return
+          const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
+          const warn = data.signals.find(s =>
+            /warn/i.test(s.type) && (!s.date || new Date(s.date).getTime() > cutoff)
+          )
+          if (!warn) return
+          setPageInsight({
+            label: 'WARN Act Filing',
+            title: warn.title,
+            body:  firstSentence(warn.description),
+            color: SIG.contract,
+          })
+        })
+        .catch(() => null)
+    }
+  }, [activePage])
 
   async function handleAsk() {
     const q = question.trim()
@@ -126,6 +215,32 @@ export function ContextPanel({ open, onToggle }: Props) {
       >
         {open && (
           <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 0, minWidth: L.contextPanel }}>
+
+            {/* ── Page Context ─────────────────────────────── */}
+            {pageInsight && (
+              <>
+                <Section label={pageInsight.label}>
+                  <div style={{
+                    borderLeft:   `2px solid ${pageInsight.color}`,
+                    paddingLeft:  10,
+                  }}>
+                    <div style={{
+                      fontSize:     13,
+                      fontWeight:   600,
+                      color:        pageInsight.color,
+                      marginBottom: 4,
+                      lineHeight:   1.35,
+                    }}>
+                      {pageInsight.title}
+                    </div>
+                    <p style={{ fontSize: 12, color: color.t3, lineHeight: 1.5, margin: 0 }}>
+                      {pageInsight.body}
+                    </p>
+                  </div>
+                </Section>
+                <Divider />
+              </>
+            )}
 
             {/* ── Signal Alert ─────────────────────────────── */}
             <Section label="Signal Alert">

@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
+import { usePathname }                from "next/navigation"
 import { Sidebar, type SidebarMode } from "@/app/components/Sidebar"
 import { ContextPanel }               from "@/app/components/ContextPanel"
 import { BottomNav }                  from "@/app/dashboard/components/BottomNav"
@@ -37,6 +38,7 @@ interface Props {
 export function DashboardShell({ children, activeSection, onNavigate }: Props) {
   const [bp, setBp]                         = useState<Breakpoint>('wide')
   const [contextPanelOpen, setContextOpen]  = useState(true)
+  const pathname                            = usePathname()
 
   useEffect(() => {
     const update = () => {
@@ -75,6 +77,7 @@ export function DashboardShell({ children, activeSection, onNavigate }: Props) {
         <ContextPanel
           open={contextPanelOpen}
           onToggle={() => setContextOpen(o => !o)}
+          activePage={pathname}
         />
       )}
 
