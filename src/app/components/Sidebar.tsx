@@ -35,7 +35,15 @@ const BOTTOM: NavItem[] = [
   { label: "API Access",  href: "/api-access",  Icon: Key      },
 ]
 
-function isActive(href: string, pathname: string): boolean {
+function toSectionId(href: string): string | null {
+  if (href === '/dashboard') return 'overview'
+  const m = href.match(/^\/dashboard#(.+)$/)
+  return m ? m[1] : null
+}
+
+function itemIsActive(href: string, pathname: string, activeSection?: string): boolean {
+  const sec = toSectionId(href)
+  if (sec !== null && pathname === '/dashboard') return activeSection === sec
   if (href.includes('#')) return false
   return pathname === href || pathname.startsWith(href + '/')
 }
@@ -48,10 +56,12 @@ function computeMode(): SidebarMode {
 }
 
 interface Props {
-  mode?: SidebarMode
+  mode?:          SidebarMode
+  activeSection?: string
+  onNavigate?:    (section: string) => void
 }
 
-export function Sidebar({ mode: modeProp }: Props) {
+export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
   const pathname                  = usePathname()
   const [mode, setMode]           = useState<SidebarMode>('full')
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
@@ -133,7 +143,11 @@ export function Sidebar({ mode: modeProp }: Props) {
       {/* Primary nav */}
       <div style={{ flex: 1, padding: '8px 0', overflowY: 'auto' }}>
         {NAV.map(({ label, href, Icon }) => {
-          const active = isActive(href, pathname)
+          const sec    = toSectionId(href)
+          const active = itemIsActive(href, pathname, activeSection)
+          const click  = sec !== null && pathname === '/dashboard' && onNavigate
+            ? () => onNavigate(sec)
+            : undefined
           return (
             <NavRow
               key={href}
@@ -142,6 +156,7 @@ export function Sidebar({ mode: modeProp }: Props) {
               Icon={Icon}
               active={active}
               iconOnly={mode === 'icon'}
+              onClick={click}
             />
           )
         })}
@@ -229,18 +244,54 @@ interface NavRowProps {
   active:   boolean
   iconOnly: boolean
   muted?:   boolean
+  onClick?: () => void
 }
 
-function NavRow({ href, label, Icon, active, iconOnly, muted }: NavRowProps) {
+function NavRow({ href, label, Icon, active, iconOnly, muted, onClick }: NavRowProps) {
   const [hovered, setHovered] = useState(false)
 
-  const textColor = active
-    ? color.t1
-    : hovered
-    ? color.t1
-    : muted
-    ? color.t4
-    : color.t3
+  const textColor = active ? color.t1 : hovered ? color.t1 : muted ? color.t4 : color.t3
+
+  const sharedStyle: React.CSSProperties = {
+    display:        'flex',
+    alignItems:     'center',
+    gap:            10,
+    height:         44,
+    width:          '100%',
+    padding:        iconOnly ? '0' : '0 16px',
+    justifyContent: iconOnly ? 'center' : 'flex-start',
+    color:          textColor,
+    background:     active ? `rgba(255,255,255,0.06)` : hovered ? `rgba(255,255,255,0.03)` : 'transparent',
+    borderLeft:     active ? `3px solid ${color.blue}` : '3px solid transparent',
+    fontSize:       14,
+    fontWeight:     active ? 500 : 400,
+    transition:     'all 0.12s ease',
+    textDecoration: 'none',
+    cursor:         'pointer',
+    userSelect:     'none',
+    fontFamily:     font.sys,
+  }
+
+  const content = (
+    <>
+      <Icon size={16} strokeWidth={active ? 2.2 : 1.8} style={{ flexShrink: 0 }} />
+      {!iconOnly && <span style={{ fontSize: 14, lineHeight: 1 }}>{label}</span>}
+    </>
+  )
+
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        title={iconOnly ? label : undefined}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{ ...sharedStyle, border: 'none', background: sharedStyle.background as string }}
+      >
+        {content}
+      </button>
+    )
+  }
 
   return (
     <Link
@@ -248,33 +299,9 @@ function NavRow({ href, label, Icon, active, iconOnly, muted }: NavRowProps) {
       title={iconOnly ? label : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{
-        display:     'flex',
-        alignItems:  'center',
-        gap:         10,
-        height:      44,
-        padding:     iconOnly ? '0' : '0 16px',
-        justifyContent: iconOnly ? 'center' : 'flex-start',
-        color:       textColor,
-        background:  active
-          ? `rgba(255,255,255,0.06)`
-          : hovered
-          ? `rgba(255,255,255,0.03)`
-          : 'transparent',
-        borderLeft:  active ? `3px solid ${color.blue}` : '3px solid transparent',
-        fontSize:    14,
-        fontWeight:  active ? 500 : 400,
-        transition:  'all 0.12s ease',
-        textDecoration: 'none',
-        position:    'relative',
-        cursor:      'pointer',
-        userSelect:  'none',
-      }}
+      style={sharedStyle}
     >
-      <Icon size={16} strokeWidth={active ? 2.2 : 1.8} style={{ flexShrink: 0 }} />
-      {!iconOnly && (
-        <span style={{ fontSize: 14, lineHeight: 1 }}>{label}</span>
-      )}
+      {content}
     </Link>
   )
 }

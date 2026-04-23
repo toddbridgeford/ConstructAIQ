@@ -29,10 +29,12 @@ function sidebarWidthFor(bp: Breakpoint): number {
 }
 
 interface Props {
-  children: React.ReactNode
+  children:       React.ReactNode
+  activeSection?: string
+  onNavigate?:    (section: string) => void
 }
 
-export function DashboardShell({ children }: Props) {
+export function DashboardShell({ children, activeSection, onNavigate }: Props) {
   const [bp, setBp]                         = useState<Breakpoint>('wide')
   const [contextPanelOpen, setContextOpen]  = useState(true)
 
@@ -56,7 +58,7 @@ export function DashboardShell({ children }: Props) {
 
   return (
     <>
-      <Sidebar mode={sidebarMode} />
+      <Sidebar mode={sidebarMode} activeSection={activeSection} onNavigate={onNavigate} />
 
       <main
         style={{
