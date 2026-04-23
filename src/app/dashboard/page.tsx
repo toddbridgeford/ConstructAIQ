@@ -13,6 +13,7 @@ import { SectionFallback }      from "./components/SectionFallback"
 import { RolePrompt }           from "@/app/components/RolePrompt"
 import { VerdictBanner }        from "./components/VerdictBanner"
 import Link                     from "next/link"
+import { Calendar }             from "lucide-react"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -70,6 +71,57 @@ function DashboardFooter() {
         Subscribe to The Signal
       </Link>
     </div>
+  )
+}
+
+function UpcomingReleaseAlert() {
+  const [alert, setAlert] = useState<{ name: string; when: string } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/calendar')
+      .then(r => r.json())
+      .then(d => {
+        const events: { date: string; name: string; importance: string }[] = d.events ?? []
+        const now   = new Date(); now.setHours(0, 0, 0, 0)
+        const today = now.toISOString().slice(0, 10)
+        const tomD  = new Date(now); tomD.setDate(now.getDate() + 1)
+        const tom   = tomD.toISOString().slice(0, 10)
+        const d2D   = new Date(now); d2D.setDate(now.getDate() + 2)
+        const d2    = d2D.toISOString().slice(0, 10)
+        const high  = events.filter(e => e.importance === 'high')
+        const match = high.find(e => e.date === today) ?? high.find(e => e.date === tom) ?? high.find(e => e.date === d2)
+        if (match) {
+          const days = match.date === today ? 'today' : match.date === tom ? 'tomorrow' : 'in 2 days'
+          setAlert({ name: match.name, when: days })
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  if (!alert) return null
+
+  return (
+    <Link href="/calendar" style={{ textDecoration: 'none' }}>
+      <div style={{
+        display:     'flex',
+        alignItems:  'center',
+        gap:         8,
+        padding:     '8px 14px',
+        background:  color.amberDim,
+        border:      `1px solid ${color.amber}33`,
+        borderRadius: 8,
+        marginTop:   12,
+        cursor:      'pointer',
+      }}>
+        <Calendar size={13} color={color.amber} strokeWidth={2} style={{ flexShrink: 0 }} />
+        <span style={{ fontFamily: SYS, fontSize: 12, color: color.amber }}>
+          <strong>{alert.name}</strong> releases {alert.when}
+        </span>
+        <span style={{ fontFamily: font.mono, fontSize: 10, color: color.amber + '99', marginLeft: 'auto' }}>
+          calendar →
+        </span>
+      </div>
+    </Link>
   )
 }
 
@@ -262,6 +314,7 @@ export default function Dashboard() {
           <div style={{ padding: '0 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
             <div style={{ paddingTop: 24 }}>
               <VerdictBanner />
+              <UpcomingReleaseAlert />
             </div>
             {renderSection()}
             <DashboardFooter />

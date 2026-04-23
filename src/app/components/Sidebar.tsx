@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, TrendingUp, Building2, MapPin, FolderOpen,
   Radio, BarChart2, AlertTriangle, MessageSquare,
-  BookOpen, Key, PieChart, Newspaper, Mail, type LucideIcon,
+  BookOpen, Key, PieChart, Newspaper, Mail, Calendar, type LucideIcon,
 } from "lucide-react"
 import { color, font, layout as L, type as TS } from "@/lib/theme"
 import { getPrefs, removeMarket, PREF_EVENT, type UserPreferences } from "@/lib/preferences"
@@ -42,6 +42,7 @@ const NAV: NavItem[] = [
   { label: "Projects",         href: "/projects",            Icon: FolderOpen      },
   { label: "Satellite",        href: "/ground-signal",       Icon: Radio           },
   { label: "Material Costs",   href: "/materials",            Icon: BarChart2       },
+  { label: "Data Calendar",    href: "/calendar",            Icon: Calendar        },
   { label: "WARN Act",         href: "/dashboard#signals",   Icon: AlertTriangle   },
   { label: "Ask the Market",   href: "/ask",                 Icon: MessageSquare   },
   { label: "Research",         href: "/research",            Icon: Newspaper       },
@@ -84,6 +85,7 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
   const [dataAsOf, setDataAsOf]   = useState<string | null>(null)
   const [prefs, setPrefsState]    = useState<UserPreferences>(() => getPrefs())
+  const [calBadge, setCalBadge]   = useState<string | null>(null)
 
   useEffect(() => {
     const update = () => setMode(modeProp ?? computeMode())
@@ -109,6 +111,22 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
       window.removeEventListener(PREF_EVENT as keyof WindowEventMap, sync)
       window.removeEventListener('storage', sync)
     }
+  }, [])
+
+  // Check for releases today or tomorrow
+  useEffect(() => {
+    fetch('/api/calendar')
+      .then(r => r.json())
+      .then(d => {
+        const events: { date: string }[] = d.events ?? []
+        const now   = new Date(); now.setHours(0, 0, 0, 0)
+        const today = now.toISOString().slice(0, 10)
+        const tomD  = new Date(now); tomD.setDate(now.getDate() + 1)
+        const tom   = tomD.toISOString().slice(0, 10)
+        if (events.some(e => e.date === today))   setCalBadge('Today')
+        else if (events.some(e => e.date === tom)) setCalBadge('Tomorrow')
+      })
+      .catch(() => {})
   }, [])
 
   if (mode === 'hidden') return null
@@ -177,6 +195,7 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
           const click  = sec !== null && pathname === '/dashboard' && onNavigate
             ? () => onNavigate(sec)
             : undefined
+          const badge  = href === '/calendar' && calBadge ? calBadge : undefined
           return (
             <NavRow
               key={href}
@@ -186,6 +205,7 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
               active={active}
               iconOnly={mode === 'icon'}
               onClick={click}
+              badge={badge}
             />
           )
         })}
@@ -404,9 +424,10 @@ interface NavRowProps {
   iconOnly: boolean
   muted?:   boolean
   onClick?: () => void
+  badge?:   string
 }
 
-function NavRow({ href, label, Icon, active, iconOnly, muted, onClick }: NavRowProps) {
+function NavRow({ href, label, Icon, active, iconOnly, muted, onClick, badge }: NavRowProps) {
   const [hovered, setHovered] = useState(false)
 
   const textColor = active ? color.t1 : hovered ? color.t1 : muted ? color.t4 : color.t3
@@ -434,7 +455,23 @@ function NavRow({ href, label, Icon, active, iconOnly, muted, onClick }: NavRowP
   const content = (
     <>
       <Icon size={16} strokeWidth={active ? 2.2 : 1.8} style={{ flexShrink: 0 }} />
-      {!iconOnly && <span style={{ fontSize: 14, lineHeight: 1 }}>{label}</span>}
+      {!iconOnly && <span style={{ fontSize: 14, lineHeight: 1, flex: 1 }}>{label}</span>}
+      {!iconOnly && badge && (
+        <span style={{
+          fontFamily:    font.mono,
+          fontSize:      9,
+          fontWeight:    700,
+          letterSpacing: '0.06em',
+          color:         color.amber,
+          background:    color.amberDim,
+          border:        `1px solid ${color.amber}55`,
+          borderRadius:  5,
+          padding:       '2px 6px',
+          flexShrink:    0,
+        }}>
+          {badge.toUpperCase()}
+        </span>
+      )}
     </>
   )
 
