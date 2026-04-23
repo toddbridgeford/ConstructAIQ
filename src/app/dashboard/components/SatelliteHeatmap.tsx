@@ -1,6 +1,7 @@
 "use client"
 import { font, color, type as typeScale } from "@/lib/theme"
 import { SatelliteBadge } from "./SatelliteBadge"
+import { WatchButton } from "@/app/components/ui/WatchButton"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -75,6 +76,7 @@ export function SatelliteHeatmap({ msas, selectedMsa, onMsaClick }: Props) {
           <div style={{ flex: 1, fontFamily: MONO, fontSize: 9, color: color.t4, letterSpacing: "0.08em" }}>ACTIVITY</div>
           <div style={{ width: 6, flexShrink: 0 }} />
           <div style={{ width: 56, textAlign: "right", fontFamily: MONO, fontSize: 9, color: color.t4, letterSpacing: "0.08em" }}>90D CHG</div>
+          <div style={{ width: 92, textAlign: "right", fontFamily: MONO, fontSize: 9, color: color.t4, letterSpacing: "0.08em" }}>WATCH</div>
         </div>
 
         {msas.map(msa => {
@@ -132,6 +134,18 @@ export function SatelliteHeatmap({ msas, selectedMsa, onMsaClick }: Props) {
                 width: 56, textAlign: "right", flexShrink: 0,
               }}>
                 {fmtChg(msa.bsi_change_90d)}
+              </div>
+
+              {/* Watch toggle — stops propagation so clicks don't also select the row */}
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{ width: 92, display: "flex", justifyContent: "flex-end", flexShrink: 0 }}
+              >
+                <WatchButton
+                  entityType="metro"
+                  entityId={msa.msa_code}
+                  entityLabel={msa.msa_name}
+                />
               </div>
             </div>
           )
