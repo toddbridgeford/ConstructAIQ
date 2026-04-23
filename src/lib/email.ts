@@ -248,6 +248,66 @@ export async function sendWeeklySignal(params: WeeklySignalParams) {
     ${ctasHtml}
   </div>
 
+  <!-- Recommendations -->
+  <tr>
+    <td style="padding: 32px 40px 0;">
+      <p style="margin: 0 0 8px; font-family: monospace;
+        font-size: 10px; color: #666;
+        letter-spacing: 0.1em; text-transform: uppercase;">
+        RECOMMENDATIONS FOR CONTRACTORS
+      </p>
+
+      <!-- Rec 1: capacity / bidding based on verdict -->
+      <table width="100%" cellpadding="0" cellspacing="0"
+        style="margin-bottom: 12px; background: #111;
+          border-radius: 8px; border-left: 3px solid #ef4444;">
+        <tr>
+          <td style="padding: 14px 16px;">
+            <p style="margin: 0 0 4px; font-family: sans-serif;
+              font-size: 14px; font-weight: 600; color: #f5f5f5;">
+              Review backlog heading into Q3
+            </p>
+            <p style="margin: 0 0 6px; font-family: sans-serif;
+              font-size: 12px; color: #888; line-height: 1.6;">
+              Mixed signals suggest protecting current margins
+              over aggressive capacity expansion.
+            </p>
+            <p style="margin: 0; font-family: sans-serif;
+              font-size: 12px; color: #f59e0b; font-weight: 500;">
+              → Audit your top 5 projects for change order exposure
+              and schedule risk before next bid cycle.
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Rec 2: materials -->
+      <table width="100%" cellpadding="0" cellspacing="0"
+        style="margin-bottom: 12px; background: #111;
+          border-radius: 8px; border-left: 3px solid #f59e0b;">
+        <tr>
+          <td style="padding: 14px 16px;">
+            <p style="margin: 0 0 4px; font-family: sans-serif;
+              font-size: 14px; font-weight: 600; color: #f5f5f5;">
+              Monitor material cost index weekly
+            </p>
+            <p style="margin: 0 0 6px; font-family: sans-serif;
+              font-size: 12px; color: #888; line-height: 1.6;">
+              PPI readings for lumber and steel are above
+              their 5-year averages — escalation clauses
+              warranted on multi-month bids.
+            </p>
+            <p style="margin: 0; font-family: sans-serif;
+              font-size: 12px; color: #f59e0b; font-weight: 500;">
+              → View live material cost index at
+              constructaiq.trade/materials
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
   <!-- Footer -->
   <div style="padding:20px 28px;background:#000">
     <p style="margin:0 0 10px;font-size:12px;color:#6e6e73;line-height:1.6">
