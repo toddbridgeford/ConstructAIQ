@@ -1,11 +1,14 @@
 "use client"
 import { useState, useCallback, useEffect } from "react"
+import { Building2 } from "lucide-react"
 import { NationalPermitSummary } from "../components/NationalPermitSummary"
 import { CityPermitMap, type PermitApiResponse } from "../components/CityPermitMap"
 import { ProjectFeed, type Project } from "../components/ProjectFeed"
 import { ProjectMap } from "../components/ProjectMap"
 import { SectionHeader } from "../components/SectionHeader"
 import { SectionVerdict } from "../components/SectionVerdict"
+import { EmptyState } from "@/app/components/ui/EmptyState"
+import { FreshnessIndicator } from "@/app/components/ui/FreshnessIndicator"
 import { Skeleton } from "@/app/components/Skeleton"
 import { color, font, radius } from "@/lib/theme"
 
@@ -128,12 +131,22 @@ export function PermitsSection({ data }: Props) {
               )
             })()}
             <div style={{ marginTop: 20 }}>
-              <CityPermitMap
-                data={data}
-                selectedCity={selectedCity}
-                onCitySelect={setSelectedCity}
-              />
+              {data.cities.length === 0 ? (
+                <EmptyState
+                  icon={<Building2 size={32} />}
+                  title="Permit data loading"
+                  description="City permit data populates after the first daily data refresh (6am UTC). Run /api/cron/permits manually to populate immediately."
+                  action={{ label: "View permit sources", href: "/methodology#city-permits" }}
+                />
+              ) : (
+                <CityPermitMap
+                  data={data}
+                  selectedCity={selectedCity}
+                  onCitySelect={setSelectedCity}
+                />
+              )}
             </div>
+            {data.as_of && <FreshnessIndicator updated_at={data.as_of} label="Permit data updated" />}
           </>
         )
       )}
