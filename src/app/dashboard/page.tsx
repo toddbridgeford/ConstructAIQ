@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { color, font, fmtB }   from "@/lib/theme"
 import { obsSpark }             from "@/lib/sparkline"
+import { getPrefs }             from "@/lib/preferences"
 import { DashboardShell }       from "./DashboardShell"
 import { OverviewSection }      from "./sections/OverviewSection"
 import { HeroForecast }         from "./sections/HeroForecast"
@@ -9,6 +10,7 @@ import { MaterialsSection }     from "./sections/MaterialsSection"
 import { SignalsSection }        from "./sections/SignalsSection"
 import { ErrorBoundary }        from "./components/ErrorBoundary"
 import { SectionFallback }      from "./components/SectionFallback"
+import { RolePrompt }           from "@/app/components/RolePrompt"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -17,7 +19,12 @@ const MONO = font.mono
 type AnyData = any
 
 export default function Dashboard() {
-  const [activeSection, setSection] = useState('overview')
+  const [activeSection,   setSection]        = useState('overview')
+  const [showRolePrompt,  setShowRolePrompt]  = useState(false)
+
+  useEffect(() => {
+    if (!getPrefs().role) setShowRolePrompt(true)
+  }, [])
 
   // ── Data state ──────────────────────────────────────────────────────────
   const [cshi,     setCshi]     = useState<AnyData>(null)
@@ -192,6 +199,10 @@ export default function Dashboard() {
           </div>
         </DashboardShell>
       </ErrorBoundary>
+
+      {showRolePrompt && (
+        <RolePrompt onSelect={() => setShowRolePrompt(false)} />
+      )}
     </div>
   )
 }

@@ -8,7 +8,22 @@ import {
   Radio, BarChart2, AlertTriangle, MessageSquare,
   BookOpen, Key, type LucideIcon,
 } from "lucide-react"
-import { color, font, layout as L } from "@/lib/theme"
+import { color, font, layout as L, type as TS } from "@/lib/theme"
+import { getPrefs, removeMarket, PREF_EVENT, type UserPreferences } from "@/lib/preferences"
+
+// Simple display-name lookup for known city codes
+const CITY_LABELS: Record<string, string> = {
+  PHX: 'Phoenix, AZ',  DFW: 'Dallas-Ft Worth, TX', AUS: 'Austin, TX',
+  HOU: 'Houston, TX',  CHI: 'Chicago, IL',          NYC: 'New York, NY',
+  LAX: 'Los Angeles, CA', SEA: 'Seattle, WA',        DEN: 'Denver, CO',
+  ATL: 'Atlanta, GA',  MIA: 'Miami, FL',             BOS: 'Boston, MA',
+  SFO: 'San Francisco, CA', LAS: 'Las Vegas, NV',    PDX: 'Portland, OR',
+  SAN: 'San Diego, CA', MCO: 'Orlando, FL',          CLT: 'Charlotte, NC',
+  MSP: 'Minneapolis, MN', SLC: 'Salt Lake City, UT', SAC: 'Sacramento, CA',
+  SJC: 'San Jose, CA', TPA: 'Tampa, FL',             IND: 'Indianapolis, IN',
+  CMH: 'Columbus, OH', JAX: 'Jacksonville, FL',      ABQ: 'Albuquerque, NM',
+  OMA: 'Omaha, NE',    TUL: 'Tulsa, OK',             OKC: 'Oklahoma City, OK',
+}
 
 export type SidebarMode = 'full' | 'icon' | 'hidden'
 
@@ -66,6 +81,7 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
   const [mode, setMode]           = useState<SidebarMode>('full')
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
   const [dataAsOf, setDataAsOf]   = useState<string | null>(null)
+  const [prefs, setPrefsState]    = useState<UserPreferences>(() => getPrefs())
 
   useEffect(() => {
     const update = () => setMode(modeProp ?? computeMode())
@@ -80,6 +96,17 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
     const now = new Date()
     setLastUpdated(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
     setDataAsOf(now.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }))
+  }, [])
+
+  // Sync prefs from same-tab and cross-tab changes
+  useEffect(() => {
+    const sync = () => setPrefsState(getPrefs())
+    window.addEventListener(PREF_EVENT as keyof WindowEventMap, sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      window.removeEventListener(PREF_EVENT as keyof WindowEventMap, sync)
+      window.removeEventListener('storage', sync)
+    }
   }, [])
 
   if (mode === 'hidden') return null
@@ -167,6 +194,96 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
           margin:   '8px 12px',
           background: color.bd1,
         }} />
+
+        {/* ── My Markets ─────────────────────────────────────────────── */}
+        {mode === 'full' && (
+          <div style={{ padding: '10px 16px 4px' }}>
+            <div style={{
+              ...TS.label,
+              color:         color.t4,
+              marginBottom:  8,
+            }}>
+              My Markets
+            </div>
+
+            {prefs.markets.length === 0 ? (
+              <p style={{ fontFamily: font.sys, fontSize: 12, color: color.t4, lineHeight: 1.5, marginBottom: 8 }}>
+                Add markets from the{' '}
+                <Link href="/permits" style={{ color: color.blue, textDecoration: 'none' }}>Permits page</Link>.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 6 }}>
+                {prefs.markets.map(code => (
+                  <div
+                    key={code}
+                    style={{
+                      display:        'flex',
+                      alignItems:     'center',
+                      justifyContent: 'space-between',
+                      gap:            6,
+                      borderRadius:   6,
+                      padding:        '4px 6px 4px 2px',
+                    }}
+                  >
+                    <Link
+                      href={`/permits/${code.toLowerCase()}`}
+                      style={{
+                        fontFamily:   font.sys,
+                        fontSize:     13,
+                        color:        color.t2,
+                        textDecoration: 'none',
+                        minWidth:     0,
+                        overflow:     'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace:   'nowrap',
+                        flex:         1,
+                      }}
+                    >
+                      {CITY_LABELS[code] ?? code}
+                    </Link>
+                    <button
+                      onClick={() => { removeMarket(code); setPrefsState(getPrefs()) }}
+                      title={`Remove ${code}`}
+                      style={{
+                        background:  'none',
+                        border:      'none',
+                        color:       color.t4,
+                        cursor:      'pointer',
+                        fontSize:    12,
+                        lineHeight:  1,
+                        padding:     '2px 4px',
+                        borderRadius: 4,
+                        flexShrink:  0,
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <Link
+              href="/permits"
+              style={{
+                display:       'block',
+                fontFamily:    font.mono,
+                fontSize:      10,
+                color:         color.blue,
+                letterSpacing: '0.06em',
+                marginBottom:  8,
+                textDecoration: 'none',
+              }}
+            >
+              + Add market
+            </Link>
+          </div>
+        )}
+
+        {/* Second divider before bottom items */}
+        {mode === 'full' && (
+          <div style={{ height: 1, margin: '4px 12px 8px', background: color.bd1 }} />
+        )}
 
         {BOTTOM.map(({ label, href, Icon }) => (
           <NavRow

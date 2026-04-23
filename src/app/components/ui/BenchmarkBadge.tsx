@@ -6,6 +6,7 @@ export type BenchmarkClassification = 'ABOVE_AVERAGE' | 'AVERAGE' | 'BELOW_AVERA
 export interface BenchmarkResult {
   series?:          string
   city?:            string
+  city_name?:       string
   current_value:    number
   percentile:       number
   classification:   BenchmarkClassification
