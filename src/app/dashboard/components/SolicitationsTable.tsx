@@ -1,6 +1,7 @@
 "use client"
 import { useState, useMemo } from "react"
 import { font, color, radius } from "@/lib/theme"
+import { StatusBadge } from "@/app/components/ui/StatusBadge"
 
 const MONO = font.mono
 const SYS = font.sys
@@ -190,7 +191,10 @@ export function SolicitationsTable({ solicitations }: SolicitationsTableProps) {
                   <td style={{ ...tdBase, fontFamily: MONO, fontSize: 12, color: color.t4 }}>{fmtDate(s.postedDate)}</td>
                   <td style={{ ...tdBase, fontFamily: MONO, fontSize: 12 }}>{fmtDate(s.closeDate)}</td>
                   <td style={{ ...tdBase }}>
-                    <StatusBadge status={status} />
+                    {status === 'unknown'
+                      ? <span style={{ color: color.t4, fontFamily: MONO, fontSize: 11 }}>—</span>
+                      : <StatusBadge status={status === 'closing' ? 'CLOSING SOON' : 'ACTIVE'} size="sm" />
+                    }
                   </td>
                 </tr>
               )
@@ -216,27 +220,6 @@ export function SolicitationsTable({ solicitations }: SolicitationsTableProps) {
   )
 }
 
-function StatusBadge({ status }: { status: "open" | "closing" | "unknown" }) {
-  if (status === "unknown") return <span style={{ color: color.t4, fontFamily: MONO, fontSize: 11 }}>—</span>
-  const isClosing = status === "closing"
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        fontFamily: MONO,
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.06em",
-        padding: "2px 8px",
-        borderRadius: 4,
-        color: isClosing ? color.amber : color.green,
-        background: isClosing ? color.amberDim : color.greenDim,
-      }}
-    >
-      {isClosing ? "CLOSING SOON" : "OPEN"}
-    </span>
-  )
-}
 
 function Header({
   solicitations,

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { font, color } from '@/lib/theme'
 import { Skeleton } from '@/app/components/Skeleton'
+import { StatusBadge } from '@/app/components/ui/StatusBadge'
 
 const SatelliteMap = dynamic(
   () => import('./SatelliteMap').then(m => ({ default: m.SatelliteMap })),
@@ -25,13 +26,6 @@ interface SatelliteData {
   last_processed:    string
 }
 
-function classColor(c: string): string {
-  if (c === 'DEMAND_DRIVEN')      return color.green
-  if (c === 'FEDERAL_INVESTMENT') return '#0066CC'
-  if (c === 'RECONSTRUCTION')     return color.amber
-  if (c === 'ORGANIC_GROWTH')     return color.t2
-  return color.t4
-}
 
 export default function GroundSignalPage() {
   const [data, setData]           = useState<SatelliteData | null>(null)
@@ -173,18 +167,7 @@ export default function GroundSignalPage() {
                       {msa.msa_name}
                     </td>
                     <td style={{ padding: '14px 16px' }}>
-                      <span style={{
-                        borderRadius: 20,
-                        padding: '3px 10px',
-                        fontSize: 11,
-                        fontFamily: font.mono,
-                        fontWeight: 600,
-                        letterSpacing: '0.06em',
-                        background: classColor(msa.classification) + '22',
-                        color: classColor(msa.classification),
-                      }}>
-                        {msa.classification.replace(/_/g, ' ')}
-                      </span>
+                      <StatusBadge status={msa.classification} />
                     </td>
                     <td style={{
                       padding: '14px 16px',
