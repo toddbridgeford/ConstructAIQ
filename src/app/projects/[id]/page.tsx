@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { use, useState, useEffect } from "react"
 import Link from "next/link"
 import { Nav } from "@/app/components/Nav"
 import { color, font, radius } from "@/lib/theme"
@@ -118,13 +118,14 @@ function KeyFact({ label, value, highlight }: { label: string; value: string; hi
   )
 }
 
-export default function ProjectDetailPage({ params }: { params: { id: string } }) {
+export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [project, setProject] = useState<ProjectDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
-    fetch(`/api/projects/${params.id}`)
+    fetch(`/api/projects/${id}`)
       .then(r => {
         if (r.status === 404) { setNotFound(true); return null }
         return r.json()
@@ -132,7 +133,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
       .then(d => { if (d) setProject(d) })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false))
-  }, [params.id])
+  }, [id])
 
   return (
     <div style={{ minHeight: '100vh', background: color.bg0, color: color.t1, fontFamily: SYS }}>
@@ -359,7 +360,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
             }}>
               <p style={{ fontFamily: MONO, fontSize: 10, color: color.t4, margin: 0, lineHeight: 1.7 }}>
                 Source: {project.city ?? 'City'} open data portal
-                {project.ai_summary ? ' · Permit #' + params.id : ''}
+                {project.ai_summary ? ' · Permit #' + id : ''}
                 {project.applied_date ? ` · Applied ${fmtDate(project.applied_date)}` : ''}
                 {' · Data as of '}
                 {fmtDate(project.last_updated_at)}

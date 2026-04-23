@@ -8,9 +8,10 @@ interface ZipBucket { zip_code: string; count: number; total_valuation: number }
 
 export async function GET(
   _request: Request,
-  { params }: { params: { city: string } },
+  { params }: { params: Promise<{ city: string }> },
 ) {
-  const city = params.city.toUpperCase()
+  const { city: rawCity } = await params
+  const city = rawCity.toUpperCase()
 
   // Verify city exists
   const { data: source, error: srcErr } = await supabaseAdmin
