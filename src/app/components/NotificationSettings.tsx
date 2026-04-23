@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from 'react'
 import { color, font, radius } from '@/lib/theme'
+import { AlertSettings } from '@/app/components/AlertSettings'
 
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''
 
@@ -23,6 +24,7 @@ export function NotificationSettings({ onClose }: Props) {
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [subscribed, setSubscribed] = useState(false)
   const [loading,    setLoading]    = useState(false)
+  const [settingsTab, setSettingsTab] = useState<'signals' | 'custom'>('signals')
   const [prefs, setPrefs] = useState({
     warn: true, federal: true, satellite: true, forecast: false,
   })
@@ -116,15 +118,43 @@ export function NotificationSettings({ onClose }: Props) {
           borderRadius: 2, margin: '0 auto 20px',
         }} />
 
-        <div style={{ fontFamily: SYS, fontSize: 17, fontWeight: 700, color: color.t1, marginBottom: 6 }}>
-          Signal Alerts
-        </div>
-        <div style={{ fontFamily: SYS, fontSize: 14, color: color.t3, marginBottom: 24, lineHeight: 1.6 }}>
-          Get notified when major construction signals fire —
-          WARN Act filings, satellite surges, federal awards.
+        <div style={{ fontFamily: SYS, fontSize: 17, fontWeight: 700, color: color.t1, marginBottom: 16 }}>
+          Alerts
         </div>
 
-        {!supported && (
+        {/* Tab bar */}
+        <div style={{
+          display: 'flex', gap: 4, marginBottom: 20,
+          background: color.bg2, borderRadius: radius.md, padding: 4,
+        }}>
+          {(['signals', 'custom'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setSettingsTab(tab)}
+              style={{
+                flex: 1, padding: '7px 0', border: 'none', borderRadius: radius.sm,
+                fontFamily: SYS, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                background: settingsTab === tab ? color.bg1 : 'transparent',
+                color:      settingsTab === tab ? color.t1  : color.t3,
+                boxShadow:  settingsTab === tab ? `0 1px 3px rgba(0,0,0,0.2)` : 'none',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+            >
+              {tab === 'signals' ? 'Signal Alerts' : 'Custom Alerts'}
+            </button>
+          ))}
+        </div>
+
+        {settingsTab === 'signals' && (
+          <div style={{ fontFamily: SYS, fontSize: 14, color: color.t3, marginBottom: 24, lineHeight: 1.6 }}>
+            Get notified when major construction signals fire —
+            WARN Act filings, satellite surges, federal awards.
+          </div>
+        )}
+
+        {settingsTab === 'custom' && <AlertSettings />}
+
+        {settingsTab === 'signals' && !supported && (
           <div style={{
             fontFamily: SYS, fontSize: 14, color: color.amber,
             padding: '12px 16px', background: color.amberDim,
@@ -135,7 +165,7 @@ export function NotificationSettings({ onClose }: Props) {
           </div>
         )}
 
-        {supported && !subscribed && (
+        {settingsTab === 'signals' && supported && !subscribed && (
           <>
             {ALERT_TYPES.map(({ key, label, desc }) => (
               <div key={key} style={{
@@ -182,7 +212,7 @@ export function NotificationSettings({ onClose }: Props) {
           </>
         )}
 
-        {supported && subscribed && (
+        {settingsTab === 'signals' && supported && subscribed && (
           <div>
             <div style={{
               fontFamily: SYS, fontSize: 15, color: color.green,
@@ -206,7 +236,7 @@ export function NotificationSettings({ onClose }: Props) {
         )}
 
         {/* Blocked state */}
-        {supported && permission === 'denied' && (
+        {settingsTab === 'signals' && supported && permission === 'denied' && (
           <div style={{
             fontFamily: SYS, fontSize: 14, color: color.t3,
             padding: '12px 16px', background: color.bg2,

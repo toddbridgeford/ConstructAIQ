@@ -101,6 +101,13 @@ function MiniBar({ data }: { data: number[] }) {
 
 // ── City card ──────────────────────────────────────────────────────────────
 
+function momChange(monthly: { permit_count: number }[]): { pct: number; pos: boolean } | null {
+  const last = monthly.slice(-2)
+  if (last.length < 2 || last[0].permit_count === 0) return null
+  const pct = ((last[1].permit_count - last[0].permit_count) / last[0].permit_count) * 100
+  return { pct, pos: pct >= 0 }
+}
+
 function CityCard({
   city, selected, onClick,
 }: {
@@ -113,6 +120,7 @@ function CityCard({
   const spark = city.monthly.slice(-6).map(m => m.permit_count)
   const yoyCol = yoy == null ? T4 : yoy >= 0 ? GREEN : RED
   const yoyStr = yoy == null ? '—' : `${yoy > 0 ? '+' : ''}${yoy.toFixed(1)}%`
+  const mom    = momChange(city.monthly)
 
   return (
     <button
@@ -158,9 +166,16 @@ function CityCard({
 
       {/* YoY + sparkline */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 4 }}>
-        <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 600, color: yoyCol }}>
-          {yoyStr}
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 600, color: yoyCol }}>
+            {yoyStr} YoY
+          </span>
+          {mom && (
+            <span style={{ fontFamily: MONO, fontSize: 10, color: mom.pos ? GREEN : RED }}>
+              MoM: {mom.pos ? '▲' : '▼'} {mom.pos ? '+' : ''}{mom.pct.toFixed(1)}%
+            </span>
+          )}
+        </div>
         <MiniBar data={spark} />
       </div>
     </button>

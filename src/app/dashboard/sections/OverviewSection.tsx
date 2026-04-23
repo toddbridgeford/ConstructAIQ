@@ -4,6 +4,7 @@ import Link from "next/link"
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { color, font, type as TS, signal as SIG, layout as L, fmtB } from "@/lib/theme"
 import { BenchmarkBadge, type BenchmarkResult } from "@/app/components/ui/BenchmarkBadge"
+import { InsightChip } from "@/app/components/ui/InsightChip"
 import { getPrefs } from "@/lib/preferences"
 import type { Signal } from "../types"
 
@@ -39,6 +40,21 @@ interface OverviewProps {
   spendObs:    { date: string; value: number }[]
   signals:     Signal[]
   loading:     boolean
+}
+
+// ── Anomaly detection ──────────────────────────────────────────────────────
+
+function detectAnomaly(bench: BenchmarkResult): { type: 'anomaly' | 'trend'; text: string; detail?: string } | null {
+  if (bench.percentile > 90)
+    return { type: 'anomaly', text: 'Unusually high — P90+', detail: `Current value is at the ${bench.percentile}th percentile of the historical range` }
+  if (bench.percentile < 10)
+    return { type: 'anomaly', text: 'Unusually low — P10 or below', detail: `Current value is at the ${bench.percentile}th percentile of the historical range` }
+  const yoy = bench.yoy_change_pct ?? 0
+  if (yoy < -5)
+    return { type: 'trend', text: `${Math.abs(yoy).toFixed(1)}% below year-ago`, detail: `YoY: ${yoy.toFixed(1)}%` }
+  if (yoy > 5)
+    return { type: 'trend', text: `${yoy.toFixed(1)}% above year-ago`, detail: `YoY: +${yoy.toFixed(1)}%` }
+  return null
 }
 
 // ── Inline helpers ─────────────────────────────────────────────────────────
@@ -125,6 +141,12 @@ function KpiCard({ label, value, mom, spark, accent, bench }: KpiCardProps) {
           label={bench.label}
         />
       )}
+      {bench && (() => {
+        const chip = detectAnomaly(bench)
+        return chip
+          ? <InsightChip type={chip.type} text={chip.text} detail={chip.detail} size="sm" />
+          : null
+      })()}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <ChangeBadge value={mom} />
         <Sparkline data={spark} stroke={accent} />

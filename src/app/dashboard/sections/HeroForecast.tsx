@@ -15,6 +15,15 @@ import { Skeleton }       from "@/app/components/Skeleton"
 import { color, font } from "@/lib/theme"
 import type { ForecastData } from "../types"
 
+function forecastContext(fore: ForecastData): string | null {
+  const yoy  = fore?.metrics?.yoy_implied ?? 0
+  const mape = fore?.metrics?.mape ?? 0
+  if (yoy < -3) return `Forecast implies contraction — the last period of comparable decline was 2020.`
+  if (mape > 6) return `Elevated forecast uncertainty (MAPE ${mape.toFixed(1)}%) — wider confidence bands apply.`
+  if (yoy > 5)  return `Above-trend growth forecast — tracking federal infrastructure cycle.`
+  return null
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyData = any
 
@@ -73,6 +82,24 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE }: HeroForecastProps
             scenarioLine={scenarioLine}
             onSeriesChange={setActiveSeries}
           />
+          {/* Contextual footnote */}
+          {fore && (() => {
+            const ctx = forecastContext(fore as ForecastData)
+            return ctx ? (
+              <p style={{
+                marginTop:  14,
+                fontSize:   12,
+                fontFamily: font.sys,
+                color:      color.t3,
+                lineHeight: 1.55,
+                borderTop:  `1px solid ${color.bd1}`,
+                paddingTop: 10,
+              }}>
+                {ctx}
+              </p>
+            ) : null
+          })()}
+
           {/* Scenario trigger — mobile only */}
           {isMobile && (
             <button
