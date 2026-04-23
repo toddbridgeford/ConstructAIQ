@@ -46,6 +46,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="fa">
       <body className="fa">
+        {/* Skip navigation — for keyboard and screen reader users */}
+        <a href="#main-content" className="skip-nav">
+          Skip to main content
+        </a>
         {children}
         <DataPreloader />
         <NetworkStatus />
