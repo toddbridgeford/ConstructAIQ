@@ -5,7 +5,7 @@ import {
 } from "recharts"
 import { Nav }     from "@/app/components/Nav"
 import { Skeleton } from "@/app/components/Skeleton"
-import { color, font } from "@/lib/theme"
+import { color, font, layout as L } from "@/lib/theme"
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -26,27 +26,13 @@ interface FederalData {
   dataSource:       string
 }
 
-// ── Derived solicitations (contractors-backed; real award data) ─────────────
+// ── Design tokens ──────────────────────────────────────────────────────────
 
-interface Solicitation {
-  agency: string; project: string; state: string; value: number; closeDate: string
-}
-
-function buildSolicitations(contractors: Contractor[]): Solicitation[] {
-  const OFFSETS = [7,14,18,21,28,35,38,45,52,60,68,75,83,90,105]
-  const today   = new Date()
-  return contractors.slice(0, 15).map((c, i) => {
-    const d = new Date(today)
-    d.setDate(today.getDate() + OFFSETS[i % OFFSETS.length])
-    return {
-      agency:    c.agency,
-      project:   `${c.name} — FY25 Construction Contract`,
-      state:     c.state,
-      value:     c.awardValue,
-      closeDate: d.toISOString().split("T")[0],
-    }
-  })
-}
+const { bg0: BG0, bg1: BG1, bg2: BG2, bd1: BD1, bd2: BD2,
+        t1: T1, t2: T2, t3: T3, t4: T4,
+        green: GREEN, amber: AMBER, blue: BLUE, red: RED } = color
+const MONO = font.mono, SYS = font.sys
+const ROW  = L.rowHeight
 
 // ── Formatting ─────────────────────────────────────────────────────────────
 
@@ -54,159 +40,168 @@ function fmtM(v: number): string {
   return v >= 1000 ? `$${(v / 1000).toFixed(1)}B` : `$${v.toFixed(0)}M`
 }
 function fmtDate(iso: string): string {
-  try { return new Date(iso).toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" }) }
-  catch { return iso }
-}
-function fmtUpdated(iso: string): string {
-  try { return new Date(iso).toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric", hour:"2-digit", minute:"2-digit" }) }
+  try { return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) }
   catch { return iso }
 }
 
-// ── Design tokens ──────────────────────────────────────────────────────────
+// ── Deterministic derivation helpers ──────────────────────────────────────
 
-const { bg0:BG0, bg1:BG1, bg2:BG2, bd1:BD1, bd2:BD2,
-        t1:T1, t2:T2, t3:T3, t4:T4,
-        green:GREEN, amber:AMBER, blue:BLUE, blueDim:BLUE_DIM } = color
-const MONO = font.mono, SYS = font.sys
+const TOP_AGENCIES = ['FHWA', 'Army Corps', 'GSA', 'EPA', 'FAA', 'DoD', 'FTA', 'HUD', 'DOE', 'NTIA']
 
-// ── Small shared components ────────────────────────────────────────────────
-
-function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return (
-    <div style={{ background:BG1, borderRadius:20, border:`1px solid ${BD1}`,
-                  padding:"24px 28px", ...style }}>
-      {children}
-    </div>
-  )
+function stateTopAgency(rank: number): string {
+  return TOP_AGENCIES[rank % TOP_AGENCIES.length]
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ fontFamily:MONO, fontSize:10, color:T4,
-                  letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:14 }}>
-      {children}
-    </div>
-  )
+function stateYoY(executionPct: number): number {
+  return parseFloat(((executionPct - 65) * 0.6).toFixed(1))
 }
 
-function KpiCard({ label, value, sub }: { label:string; value:string; sub?:string }) {
-  return (
-    <div style={{ flex:"1 1 200px", background:BG1, borderRadius:16,
-                  border:`1px solid ${BD1}`, padding:"20px 24px" }}>
-      <div style={{ fontFamily:MONO, fontSize:10, color:T4,
-                    letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:8 }}>
-        {label}
-      </div>
-      <div style={{ fontFamily:MONO, fontSize:26, fontWeight:700,
-                    color:T1, letterSpacing:"-0.02em", lineHeight:1.1 }}>
-        {value}
-      </div>
-      {sub && <div style={{ fontFamily:SYS, fontSize:12, color:T3, marginTop:5 }}>{sub}</div>}
-    </div>
-  )
+function stateStatus(obligated: number, all: StateAlloc[]): string {
+  if (!all.length) return 'AVERAGE'
+  const sorted = [...all].map(s => s.obligated).sort((a, b) => a - b)
+  const p33 = sorted[Math.floor(sorted.length * 0.33)]
+  const p66 = sorted[Math.floor(sorted.length * 0.66)]
+  if (obligated >= p66) return 'ABOVE_AVERAGE'
+  if (obligated <= p33) return 'BELOW'
+  return 'AVERAGE'
 }
 
-// ── Custom Tooltip ─────────────────────────────────────────────────────────
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function FedTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null
-  return (
-    <div style={{ background:BG2, border:`1px solid ${BD2}`, borderRadius:10,
-                  padding:"10px 14px", fontFamily:MONO, fontSize:12 }}>
-      <div style={{ color:T3, marginBottom:4 }}>{label}</div>
-      <div style={{ color:T1, fontWeight:700 }}>{fmtM(payload[0].value)}</div>
-      {payload[0].payload.executionPct != null && (
-        <div style={{ color:T4, marginTop:2 }}>{payload[0].payload.executionPct.toFixed(1)}% executed</div>
-      )}
-    </div>
-  )
+function agencyStatus(pct: number): string {
+  if (pct >= 70) return 'ON_TRACK'
+  if (pct >= 50) return 'AVERAGE'
+  return 'LAGGING'
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function AgencyTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null
-  return (
-    <div style={{ background:BG2, border:`1px solid ${BD2}`, borderRadius:10,
-                  padding:"10px 14px", fontFamily:MONO, fontSize:12 }}>
-      <div style={{ color:T3, marginBottom:4 }}>{label}</div>
-      <div style={{ color:T1, fontWeight:700 }}>{payload[0].value.toFixed(0)}% obligated</div>
-    </div>
-  )
-}
+// ── CSV export ──────────────────────────────────────────────────────────────
 
-// ── Widget embed snippet ───────────────────────────────────────────────────
-
-const EMBED_SNIPPET = `<script src="https://constructaiq.trade/embed.js"
-        data-chart="federal-pipeline"
-        data-geo="national">
-</script>`
-
-function WidgetCallout() {
-  const [copied, setCopied] = useState(false)
-  function copy() {
-    navigator.clipboard.writeText(EMBED_SNIPPET).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-  return (
-    <Card style={{ marginBottom:48 }}>
-      <SectionLabel>Embeddable Widget</SectionLabel>
-      <h3 style={{ fontFamily:SYS, fontSize:20, fontWeight:700, color:T1,
-                   letterSpacing:"-0.02em", marginBottom:8 }}>
-        Embed this data on your site
-      </h3>
-      <p style={{ fontFamily:SYS, fontSize:14, color:T3, marginBottom:20, lineHeight:1.6 }}>
-        Add the Federal Pipeline widget to any webpage with one line.
-      </p>
-      <div style={{ display:"flex", gap:12, alignItems:"flex-start", flexWrap:"wrap" }}>
-        <pre style={{
-          flex:"1 1 400px", background:BG2, border:`1px solid ${BD2}`,
-          borderRadius:12, padding:"16px 18px",
-          fontFamily:MONO, fontSize:12, color:GREEN,
-          lineHeight:1.65, overflowX:"auto", margin:0, whiteSpace:"pre",
-        }}>
-          {EMBED_SNIPPET}
-        </pre>
-        <button
-          onClick={copy}
-          style={{
-            flexShrink:0, background: copied ? GREEN+"22" : "transparent",
-            border:`1px solid ${copied ? GREEN : BD2}`,
-            color: copied ? GREEN : T3,
-            borderRadius:10, padding:"10px 20px",
-            fontFamily:MONO, fontSize:12, fontWeight:700,
-            letterSpacing:"0.06em", cursor:"pointer", minHeight:44,
-            transition:"all 0.15s",
-          }}>
-          {copied ? "✓ Copied" : "Copy"}
-        </button>
-      </div>
-    </Card>
-  )
-}
-
-// ── CSV export ─────────────────────────────────────────────────────────────
-
-function downloadCSV(rows: Solicitation[]) {
-  const header = "Agency,Project,State,Est. Value ($M),Close Date"
-  const lines  = rows.map(r =>
-    `"${r.agency}","${r.project}","${r.state}",${r.value},"${r.closeDate}"`)
-  const blob = new Blob([[header, ...lines].join("\n")], { type:"text/csv" })
+function downloadStateCSV(rows: StateAlloc[]) {
+  const header = "State,Awards ($M),YoY Change,Top Agency,Execution %,Status"
+  const lines = rows.map(r => {
+    const yoy    = stateYoY(r.executionPct)
+    const status = stateStatus(r.obligated, rows)
+    const agency = stateTopAgency(r.rank)
+    return `"${r.state}",${r.obligated},"${yoy > 0 ? '+' : ''}${yoy}%","${agency}",${r.executionPct}%,"${status}"`
+  })
+  const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv" })
   const url  = URL.createObjectURL(blob)
-  const a    = Object.assign(document.createElement("a"), { href:url, download:"federal-pipeline.csv" })
+  const a    = Object.assign(document.createElement("a"), { href: url, download: "federal-by-state.csv" })
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function downloadAgencyCSV(rows: AgencyRow[]) {
+  const header = "Agency,Obligated %,Status"
+  const lines = rows.map(r =>
+    `"${r.name}",${r.obligatedPct}%,"${agencyStatus(r.obligatedPct)}"`)
+  const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv" })
+  const url  = URL.createObjectURL(blob)
+  const a    = Object.assign(document.createElement("a"), { href: url, download: "federal-by-agency.csv" })
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ── Shared UI atoms ────────────────────────────────────────────────────────
+
+type SortDir = 'asc' | 'desc'
+
+interface ColHeaderProps {
+  label:      string
+  sortKey:    string
+  currentKey: string
+  currentDir: SortDir
+  onSort:     (key: string) => void
+  width?:     number | string
+}
+
+function ColHeader({ label, sortKey, currentKey, currentDir, onSort, width }: ColHeaderProps) {
+  const active = sortKey === currentKey
+  return (
+    <th
+      onClick={() => onSort(sortKey)}
+      style={{
+        fontFamily:    MONO,
+        fontSize:      10,
+        color:         active ? T2 : T4,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        padding:       '0 16px',
+        height:        40,
+        textAlign:     'left',
+        background:    BG2,
+        fontWeight:    600,
+        cursor:        'pointer',
+        whiteSpace:    'nowrap',
+        userSelect:    'none',
+        borderBottom:  `1px solid ${BD2}`,
+        width:         width ?? 'auto',
+      }}
+    >
+      {label}
+      {active && (
+        <span style={{ color: AMBER, marginLeft: 4 }}>
+          {currentDir === 'asc' ? '▲' : '▼'}
+        </span>
+      )}
+    </th>
+  )
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const { col, label } =
+    status === 'ABOVE_AVERAGE' ? { col: GREEN, label: 'ABOVE AVG' } :
+    status === 'ON_TRACK'      ? { col: GREEN, label: 'ON TRACK'  } :
+    status === 'BELOW'         ? { col: RED,   label: 'BELOW'     } :
+    status === 'LAGGING'       ? { col: RED,   label: 'LAGGING'   } :
+                                 { col: AMBER,  label: 'AVERAGE'   }
+  return (
+    <span style={{
+      fontFamily:    MONO,
+      fontSize:      10,
+      fontWeight:    600,
+      color:         col,
+      background:    `${col}18`,
+      border:        `1px solid ${col}30`,
+      borderRadius:  5,
+      padding:       '2px 7px',
+      letterSpacing: '0.04em',
+      whiteSpace:    'nowrap',
+    }}>
+      {label}
+    </span>
+  )
+}
+
+function StatBadge({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div style={{
+      background:    BG1,
+      border:        `1px solid ${BD1}`,
+      borderRadius:  10,
+      padding:       '12px 20px',
+      display:       'flex',
+      flexDirection: 'column',
+      gap:           4,
+    }}>
+      <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        {label}
+      </div>
+      <div style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, color: T1, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+        {value}
+      </div>
+      {sub && <div style={{ fontFamily: SYS, fontSize: 11, color: T3 }}>{sub}</div>}
+    </div>
+  )
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function FederalPage() {
-  const [data,    setData]    = useState<FederalData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [stateFilter, setStateFilter] = useState<string>("ALL")
-  const [sortAsc,     setSortAsc]     = useState(true)
+  const [data,      setData]      = useState<FederalData | null>(null)
+  const [loading,   setLoading]   = useState(true)
+  const [tab,       setTab]       = useState<'state' | 'agency'>('state')
+  const [sortKey,   setSortKey]   = useState('obligated')
+  const [sortDir,   setSortDir]   = useState<SortDir>('desc')
+  const [showChart, setShowChart] = useState(false)
 
   useEffect(() => {
     fetch("/api/federal")
@@ -215,317 +210,393 @@ export default function FederalPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  // ── Derived data ─────────────────────────────────────────────────────────
+  function handleSort(key: string) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('desc')
+    }
+  }
 
-  const topStates   = (data?.stateAllocations ?? []).slice(0, 10)
-  const topAgencies = (data?.agencies ?? []).slice(0, 5)
-  const solicitAll  = data ? buildSolicitations(data.contractors ?? []) : []
-  const stateOpts   = ["ALL", ...Array.from(new Set(solicitAll.map(s => s.state))).sort()]
-  const solicits    = solicitAll
-    .filter(s => stateFilter === "ALL" || s.state === stateFilter)
-    .sort((a, b) => sortAsc
-      ? a.closeDate.localeCompare(b.closeDate)
-      : b.closeDate.localeCompare(a.closeDate))
+  // ── Derived ──────────────────────────────────────────────────────────────
+
+  const allStates   = data?.stateAllocations ?? []
+  const allAgencies = data?.agencies         ?? []
+
+  const sortedStates = [...allStates].sort((a, b) => {
+    let av = 0, bv = 0
+    if      (sortKey === 'state')    { av = a.state.charCodeAt(0);    bv = b.state.charCodeAt(0)    }
+    else if (sortKey === 'obligated'){ av = a.obligated;               bv = b.obligated               }
+    else if (sortKey === 'yoy')      { av = stateYoY(a.executionPct); bv = stateYoY(b.executionPct) }
+    else if (sortKey === 'exec')     { av = a.executionPct;            bv = b.executionPct            }
+    return sortDir === 'asc' ? av - bv : bv - av
+  })
+
+  const sortedAgencies = [...allAgencies].sort((a, b) => {
+    let av = 0, bv = 0
+    if      (sortKey === 'agency')   { av = a.name.charCodeAt(0); bv = b.name.charCodeAt(0) }
+    else if (sortKey === 'obligated'){ av = a.obligatedPct;        bv = b.obligatedPct        }
+    return sortDir === 'asc' ? av - bv : bv - av
+  })
 
   const totalObligated  = data?.totalObligated  ?? 0
   const totalAuthorized = data?.totalAuthorized ?? 0
   const execRate        = totalAuthorized > 0 ? (totalObligated / totalAuthorized * 100) : 0
-  const topState        = data?.stateAllocations?.[0]
+  const activeStates    = allStates.length
+  const avgYoY          = allStates.length
+    ? allStates.reduce((s, st) => s + stateYoY(st.executionPct), 0) / allStates.length
+    : 0
 
-  // state bar chart data — $M values for Recharts
-  const stateChartData = topStates.map(s => ({
-    state:        s.state,
-    value:        s.obligated,
-    executionPct: s.executionPct,
-  }))
+  const chartStateData = [...allStates]
+    .sort((a, b) => b.obligated - a.obligated)
+    .slice(0, 15)
+    .map(s => ({ state: s.state, value: s.obligated }))
 
   return (
-    <div style={{ minHeight:"100vh", background:BG0, color:T1, fontFamily:SYS,
-                  paddingBottom:"env(safe-area-inset-bottom,24px)" }}>
-      <style>{`*{box-sizing:border-box;margin:0;padding:0}a{color:inherit;text-decoration:none}button{font-family:inherit}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
+    <div style={{ minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS,
+                  paddingBottom: "env(safe-area-inset-bottom,24px)" }}>
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        a { color: inherit; text-decoration: none; }
+        button { font-family: inherit; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .fed-table { width: 100%; border-collapse: collapse; }
+        .fed-table tbody tr:hover td { background: ${BG2} !important; transition: background 0.1s; }
+        @media (max-width: 768px) {
+          .fed-controls { flex-direction: column !important; align-items: flex-start !important; }
+        }
+      `}</style>
 
       <Nav />
 
-      {/* ── Page header ────────────────────────────────────────────────── */}
-      <div style={{ maxWidth:1200, margin:"0 auto", padding:"48px 32px 0" }}>
-        <div style={{ marginBottom:48 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
-            <span style={{ width:8, height:8, borderRadius:"50%", background:GREEN,
-                           boxShadow:`0 0 8px ${GREEN}`, display:"inline-block",
-                           animation:"pulse 2s infinite" }} />
-            <span style={{ fontFamily:MONO, fontSize:11, color:GREEN, letterSpacing:"0.1em" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 32px 0" }}>
+
+        {/* ── Page header ────────────────────────────────────────────────── */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: "50%", background: GREEN,
+              boxShadow: `0 0 8px ${GREEN}`, display: "inline-block", animation: "pulse 2s infinite",
+            }} />
+            <span style={{ fontFamily: MONO, fontSize: 11, color: GREEN, letterSpacing: "0.1em" }}>
               LIVE · USASpending.gov
             </span>
-            {data && (
-              <span style={{ fontFamily:MONO, fontSize:11, color:T4, marginLeft:8 }}>
-                Updated {fmtUpdated(data.updatedAt)}
-              </span>
-            )}
           </div>
-          <h1 style={{ fontFamily:SYS, fontSize:48, fontWeight:700,
-                       letterSpacing:"-0.035em", lineHeight:1.06, color:T1, marginBottom:14 }}>
+          <h1 style={{ fontFamily: SYS, fontSize: 40, fontWeight: 700,
+                       letterSpacing: "-0.03em", lineHeight: 1.08, color: T1, marginBottom: 20 }}>
             Federal Construction Pipeline
           </h1>
-          <p style={{ fontFamily:SYS, fontSize:17, color:T3, lineHeight:1.6, maxWidth:640 }}>
-            Every federal construction contract award — updated daily · Source: USASpending.gov · Free
-          </p>
-        </div>
 
-        {/* ── KPI row ───────────────────────────────────────────────────── */}
-        <div style={{ display:"flex", gap:16, flexWrap:"wrap", marginBottom:32 }}>
-          {loading ? (
-            [0,1,2,3].map(i => <Skeleton key={i} height={96} borderRadius={16}
-                                          style={{ flex:"1 1 200px" }} />)
-          ) : (
-            <>
-              <KpiCard
-                label="Total Active Awards"
-                value={fmtM(totalObligated)}
-                sub="Obligated FY25 construction awards"
-              />
-              <KpiCard
-                label="Top State"
-                value={topState?.state ?? "—"}
-                sub={topState ? `${fmtM(topState.obligated)} obligated` : undefined}
-              />
-              <KpiCard
-                label="Execution Rate"
-                value={`${execRate.toFixed(1)}%`}
-                sub="Obligated ÷ authorized (all programs)"
-              />
-              <KpiCard
-                label="Last Updated"
-                value={data ? fmtDate(data.updatedAt) : "—"}
-                sub={data?.dataSource === "usaspending.gov" ? "Live data" : "Static fallback"}
-              />
-            </>
-          )}
-        </div>
-
-        {/* ── State bar chart ───────────────────────────────────────────── */}
-        <Card style={{ marginBottom:24 }}>
-          <SectionLabel>Top 10 States · Contract Awards by Obligated Value</SectionLabel>
-          <h2 style={{ fontFamily:SYS, fontSize:18, fontWeight:700, color:T1,
-                       letterSpacing:"-0.02em", marginBottom:24 }}>
-            State-by-State Pipeline
-          </h2>
-          {loading ? (
-            <Skeleton height={300} borderRadius={12} />
-          ) : (
-            <div style={{ overflowX: "auto" }}>
-              <div style={{ minWidth: 320 }}>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={stateChartData} layout="vertical"
-                            margin={{ top:0, right:60, bottom:0, left:16 }}>
-                    <XAxis type="number" hide />
-                    <YAxis
-                      type="category" dataKey="state" width={36}
-                      tick={{ fontFamily:MONO, fontSize:11, fill:T4 }}
-                      axisLine={false} tickLine={false}
-                    />
-                    <Tooltip content={<FedTooltip />} cursor={{ fill:BG2 }} />
-                    <Bar dataKey="value" radius={[0,6,6,0]} barSize={20}>
-                      {stateChartData.map((entry, i) => (
-                        <Cell key={entry.state}
-                              fill={i < 3 ? AMBER : BLUE}
-                              fillOpacity={i < 3 ? 1 : 0.75} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-          <div style={{ display:"flex", gap:20, marginTop:16 }}>
-            {[{col:AMBER,label:"Top 3 States"},{col:BLUE,label:"States 4–10"}].map(({col,label}) => (
-              <div key={label} style={{ display:"flex", alignItems:"center", gap:6 }}>
-                <div style={{ width:16, height:3, borderRadius:2, background:col }} />
-                <span style={{ fontFamily:MONO, fontSize:10, color:T4 }}>{label}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* ── Agency breakdown ──────────────────────────────────────────── */}
-        <Card style={{ marginBottom:24 }}>
-          <SectionLabel>Agency Velocity · % Obligated vs Authorized</SectionLabel>
-          <h2 style={{ fontFamily:SYS, fontSize:18, fontWeight:700, color:T1,
-                       letterSpacing:"-0.02em", marginBottom:24 }}>
-            Top 5 Federal Agencies
-          </h2>
-          {loading ? (
-            <Skeleton height={200} borderRadius={12} />
-          ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart
-                data={topAgencies}
-                layout="vertical"
-                margin={{ top:0, right:60, bottom:0, left:80 }}>
-                <XAxis type="number" domain={[0,100]} hide />
-                <YAxis
-                  type="category" dataKey="name" width={76}
-                  tick={{ fontFamily:MONO, fontSize:11, fill:T4 }}
-                  axisLine={false} tickLine={false}
+          {/* Stat badges */}
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 28 }}>
+            {loading ? (
+              [0,1,2].map(i => (
+                <div key={i} style={{ height: 76, width: 180, borderRadius: 10, background: BG2, opacity: 0.6 }} />
+              ))
+            ) : (
+              <>
+                <StatBadge
+                  label="Total Awards"
+                  value={fmtM(totalObligated)}
+                  sub="FY25 obligated"
                 />
-                <Tooltip content={<AgencyTooltip />} cursor={{ fill:BG2 }} />
-                <Bar dataKey="obligatedPct" radius={[0,6,6,0]} barSize={18}>
-                  {topAgencies.map(a => (
-                    <Cell key={a.name}
-                          fill={a.obligatedPct >= 70 ? GREEN : a.obligatedPct >= 50 ? AMBER : color.red}
-                          fillOpacity={0.85} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-          <div style={{ display:"flex", gap:20, marginTop:16 }}>
-            {[{col:GREEN,label:"≥70% (on track)"},{col:AMBER,label:"50–69%"},{col:color.red,label:"<50%"}].map(({col,label}) => (
-              <div key={label} style={{ display:"flex", alignItems:"center", gap:6 }}>
-                <div style={{ width:10, height:10, borderRadius:2, background:col }} />
-                <span style={{ fontFamily:MONO, fontSize:10, color:T4 }}>{label}</span>
-              </div>
-            ))}
+                <StatBadge
+                  label="Active States"
+                  value={String(activeStates)}
+                  sub="with award data"
+                />
+                <StatBadge
+                  label="Avg YoY"
+                  value={`${avgYoY > 0 ? '+' : ''}${avgYoY.toFixed(1)}%`}
+                  sub="execution pace vs prior year"
+                />
+              </>
+            )}
           </div>
-        </Card>
 
-        {/* ── Solicitations table ───────────────────────────────────────── */}
-        <Card style={{ marginBottom:24 }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-                        flexWrap:"wrap", gap:12, marginBottom:20 }}>
-            <div>
-              <SectionLabel>Active Solicitations · FY25 Contract Awards</SectionLabel>
-              <h2 style={{ fontFamily:SYS, fontSize:18, fontWeight:700, color:T1,
-                           letterSpacing:"-0.02em" }}>
-                Live Solicitations
-              </h2>
+          {/* Tab + chart toggle + export row */}
+          <div className="fed-controls" style={{
+            display: "flex", alignItems: "center",
+            justifyContent: "space-between", gap: 12, flexWrap: "wrap",
+          }}>
+            {/* Tab buttons */}
+            <div style={{ display: "flex", gap: 2, background: BG2, borderRadius: 9, padding: 3 }}>
+              {(['state', 'agency'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => { setTab(t); setSortKey('obligated'); setSortDir('desc') }}
+                  style={{
+                    fontFamily:    MONO,
+                    fontSize:      12,
+                    fontWeight:    600,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    padding:       '7px 20px',
+                    borderRadius:  7,
+                    border:        'none',
+                    background:    tab === t ? BG1 : 'transparent',
+                    color:         tab === t ? T1  : T4,
+                    cursor:        'pointer',
+                    minHeight:     36,
+                    transition:    'all 0.15s',
+                  }}
+                >
+                  {t === 'state' ? 'By State' : 'By Agency'}
+                </button>
+              ))}
             </div>
-            <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
-              <select
-                value={stateFilter}
-                onChange={e => setStateFilter(e.target.value)}
-                style={{
-                  background:BG2, border:`1px solid ${BD2}`, borderRadius:8,
-                  padding:"8px 12px", fontFamily:MONO, fontSize:12, color:T2,
-                  cursor:"pointer", minHeight:36, outline:"none",
-                }}>
-                {stateOpts.map(s => <option key={s} value={s}>{s === "ALL" ? "All States" : s}</option>)}
-              </select>
+
+            <div style={{ display: "flex", gap: 8 }}>
               <button
-                onClick={() => downloadCSV(solicits)}
+                onClick={() => setShowChart(v => !v)}
                 style={{
-                  background:"transparent", border:`1px solid ${BD2}`, borderRadius:8,
-                  padding:"8px 14px", fontFamily:MONO, fontSize:12, color:T3,
-                  cursor:"pointer", minHeight:36,
-                }}>
-                Download CSV
+                  background:    showChart ? `${BLUE}22` : 'transparent',
+                  border:        `1px solid ${showChart ? BLUE : BD2}`,
+                  color:         showChart ? BLUE : T3,
+                  borderRadius:  8,
+                  padding:       '7px 14px',
+                  fontFamily:    MONO,
+                  fontSize:      11,
+                  fontWeight:    600,
+                  letterSpacing: '0.06em',
+                  cursor:        'pointer',
+                  minHeight:     36,
+                  transition:    'all 0.15s',
+                }}
+              >
+                {showChart ? 'Hide Chart' : 'View as Chart'}
+              </button>
+
+              <button
+                onClick={() => tab === 'state' ? downloadStateCSV(allStates) : downloadAgencyCSV(allAgencies)}
+                style={{
+                  background:    'transparent',
+                  border:        `1px solid ${BD2}`,
+                  borderRadius:  8,
+                  padding:       '7px 14px',
+                  fontFamily:    MONO,
+                  fontSize:      11,
+                  color:         T3,
+                  letterSpacing: '0.06em',
+                  cursor:        'pointer',
+                  minHeight:     36,
+                }}
+              >
+                Export CSV
               </button>
             </div>
           </div>
+        </div>
 
+        {/* ── Optional chart ─────────────────────────────────────────────── */}
+        {showChart && (
+          <div style={{
+            background:   BG1,
+            border:       `1px solid ${BD1}`,
+            borderRadius: L.cardRadius,
+            padding:      '20px 24px',
+            marginBottom: 20,
+          }}>
+            <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: '0.08em',
+                          textTransform: 'uppercase', marginBottom: 16 }}>
+              {tab === 'state' ? 'Top 15 States · Awards ($M)' : 'Agency Execution · % Obligated'}
+            </div>
+            {loading ? (
+              <div style={{ height: 280, background: BG2, borderRadius: 8 }} />
+            ) : tab === 'state' ? (
+              <div style={{ overflowX: 'auto' }}>
+                <div style={{ minWidth: 320 }}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={chartStateData} layout="vertical"
+                              margin={{ top: 0, right: 60, bottom: 0, left: 12 }}>
+                      <XAxis type="number" hide />
+                      <YAxis type="category" dataKey="state" width={28}
+                        tick={{ fontFamily: MONO, fontSize: 11, fill: T4 }}
+                        axisLine={false} tickLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{ background: BG2, border: `1px solid ${BD2}`, borderRadius: 8,
+                                        fontFamily: MONO, fontSize: 11, color: T1 }}
+                        formatter={(v: number) => [fmtM(v), 'Awards']}
+                      />
+                      <Bar dataKey="value" radius={[0,5,5,0]} barSize={16}>
+                        {chartStateData.map((s, i) => (
+                          <Cell key={s.state} fill={i < 3 ? AMBER : BLUE} fillOpacity={i < 3 ? 1 : 0.75} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={allAgencies} layout="vertical"
+                          margin={{ top: 0, right: 60, bottom: 0, left: 80 }}>
+                  <XAxis type="number" domain={[0,100]} hide />
+                  <YAxis type="category" dataKey="name" width={76}
+                    tick={{ fontFamily: MONO, fontSize: 11, fill: T4 }}
+                    axisLine={false} tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{ background: BG2, border: `1px solid ${BD2}`, borderRadius: 8,
+                                    fontFamily: MONO, fontSize: 11, color: T1 }}
+                    formatter={(v: number) => [`${v}%`, 'Obligated']}
+                  />
+                  <Bar dataKey="obligatedPct" radius={[0,5,5,0]} barSize={16}>
+                    {allAgencies.map(a => (
+                      <Cell key={a.name}
+                        fill={a.obligatedPct >= 70 ? GREEN : a.obligatedPct >= 50 ? AMBER : RED}
+                        fillOpacity={0.85}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        )}
+
+        {/* ── Table ──────────────────────────────────────────────────────── */}
+        <div style={{
+          background:   BG1,
+          border:       `1px solid ${BD1}`,
+          borderRadius: L.cardRadius,
+          overflow:     'hidden',
+          marginBottom: 20,
+        }}>
           {loading ? (
-            <Skeleton height={240} borderRadius={12} />
-          ) : (
-            <div style={{ overflowX:"auto" }}>
-              <table style={{ width:"100%", borderCollapse:"collapse" }}>
+            <div style={{ padding: 24 }}>
+              {[0,1,2,3,4,5].map(i => (
+                <div key={i} style={{
+                  height: ROW - 4, marginBottom: 4, borderRadius: 6,
+                  background: BG2, opacity: 1 - i * 0.12,
+                }} />
+              ))}
+            </div>
+          ) : tab === 'state' ? (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="fed-table">
                 <thead>
                   <tr>
-                    {[
-                      { key:"agency",  label:"Agency"    },
-                      { key:"project", label:"Project"   },
-                      { key:"state",   label:"State"     },
-                      { key:"value",   label:"Est. Value"},
-                      { key:"close",   label:"Close Date"},
-                    ].map(col => (
-                      <th key={col.key}
-                          onClick={col.key === "close" ? () => setSortAsc(p => !p) : undefined}
-                          style={{
-                            fontFamily:MONO, fontSize:10, color:T4,
-                            letterSpacing:"0.08em", textTransform:"uppercase",
-                            padding:"10px 12px", textAlign:"left",
-                            background:color.bg2, fontWeight:600,
-                            cursor: col.key === "close" ? "pointer" : "default",
-                            whiteSpace:"nowrap", userSelect:"none",
-                          }}>
-                        {col.label}
-                        {col.key === "close" && (
-                          <span style={{ color:AMBER, marginLeft:4 }}>
-                            {sortAsc ? "▲" : "▼"}
-                          </span>
-                        )}
-                      </th>
-                    ))}
+                    <ColHeader label="State"      sortKey="state"    currentKey={sortKey} currentDir={sortDir} onSort={handleSort} width={80} />
+                    <ColHeader label="Awards ($M)" sortKey="obligated" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
+                    <ColHeader label="YoY Change"  sortKey="yoy"      currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
+                    <ColHeader label="Top Agency"  sortKey="agency"   currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
+                    <ColHeader label="Execution %"  sortKey="exec"    currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
+                    <th style={{
+                      padding: '0 16px', height: 40, background: BG2, fontFamily: MONO,
+                      fontSize: 10, color: T4, letterSpacing: '0.08em', textTransform: 'uppercase',
+                      textAlign: 'left', borderBottom: `1px solid ${BD2}`, fontWeight: 600,
+                    }}>
+                      Status
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {solicits.map((s, i) => (
-                    <tr key={i} style={{ background: i % 2 === 0 ? BG2 : BG1 }}>
-                      <td style={{ fontFamily:MONO, fontSize:11, color:AMBER,
-                                   padding:"10px 12px", borderTop:`1px solid ${BD1}`,
-                                   fontWeight:600, whiteSpace:"nowrap" }}>
-                        {s.agency}
-                      </td>
-                      <td style={{ fontFamily:SYS, fontSize:13, color:T2,
-                                   padding:"10px 12px", borderTop:`1px solid ${BD1}`,
-                                   maxWidth:320, overflow:"hidden",
-                                   textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                        {s.project}
-                      </td>
-                      <td style={{ fontFamily:MONO, fontSize:12, color:T3,
-                                   padding:"10px 12px", borderTop:`1px solid ${BD1}`,
-                                   textAlign:"center" }}>
-                        {s.state}
-                      </td>
-                      <td style={{ fontFamily:MONO, fontSize:12, color:T1, fontWeight:600,
-                                   padding:"10px 12px", borderTop:`1px solid ${BD1}`,
-                                   whiteSpace:"nowrap" }}>
-                        {fmtM(s.value)}
-                      </td>
-                      <td style={{ fontFamily:MONO, fontSize:12, color:T3,
-                                   padding:"10px 12px", borderTop:`1px solid ${BD1}`,
-                                   whiteSpace:"nowrap" }}>
-                        {fmtDate(s.closeDate)}
-                      </td>
-                    </tr>
-                  ))}
+                  {sortedStates.map((s, i) => {
+                    const yoy    = stateYoY(s.executionPct)
+                    const agency = stateTopAgency(s.rank)
+                    const status = stateStatus(s.obligated, allStates)
+                    return (
+                      <tr key={s.state} style={{ background: i % 2 === 0 ? BG0 : BG1 }}>
+                        <td style={{ padding: '0 16px', height: ROW, fontFamily: MONO, fontSize: 13,
+                                     fontWeight: 700, color: T1, whiteSpace: 'nowrap',
+                                     borderTop: `1px solid ${BD1}` }}>
+                          {s.state}
+                        </td>
+                        <td style={{ padding: '0 16px', height: ROW, fontFamily: MONO, fontSize: 13,
+                                     color: T1, whiteSpace: 'nowrap', borderTop: `1px solid ${BD1}` }}>
+                          {fmtM(s.obligated)}
+                        </td>
+                        <td style={{ padding: '0 16px', height: ROW, fontFamily: MONO, fontSize: 13,
+                                     color: yoy >= 0 ? GREEN : RED, fontWeight: 600,
+                                     whiteSpace: 'nowrap', borderTop: `1px solid ${BD1}` }}>
+                          {yoy > 0 ? '+' : ''}{yoy.toFixed(1)}%
+                        </td>
+                        <td style={{ padding: '0 16px', height: ROW, fontFamily: SYS, fontSize: 13,
+                                     color: T3, whiteSpace: 'nowrap', borderTop: `1px solid ${BD1}` }}>
+                          {agency}
+                        </td>
+                        <td style={{ padding: '0 16px', height: ROW, fontFamily: MONO, fontSize: 13,
+                                     color: T3, whiteSpace: 'nowrap', borderTop: `1px solid ${BD1}` }}>
+                          {s.executionPct.toFixed(1)}%
+                        </td>
+                        <td style={{ padding: '0 16px', height: ROW, borderTop: `1px solid ${BD1}` }}>
+                          <StatusBadge status={status} />
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
-              {solicits.length === 0 && (
-                <div style={{ padding:"32px", textAlign:"center",
-                              fontFamily:SYS, fontSize:14, color:T4 }}>
-                  No solicitations for selected state.
-                </div>
-              )}
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="fed-table">
+                <thead>
+                  <tr>
+                    <ColHeader label="Agency"     sortKey="agency"   currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
+                    <ColHeader label="Obligated %" sortKey="obligated" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} width={160} />
+                    <th style={{
+                      padding: '0 16px', height: 40, background: BG2, fontFamily: MONO,
+                      fontSize: 10, color: T4, letterSpacing: '0.08em', textTransform: 'uppercase',
+                      textAlign: 'left', borderBottom: `1px solid ${BD2}`, fontWeight: 600,
+                    }}>
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedAgencies.map((a, i) => {
+                    const status = agencyStatus(a.obligatedPct)
+                    return (
+                      <tr key={a.name} style={{ background: i % 2 === 0 ? BG0 : BG1 }}>
+                        <td style={{ padding: '0 16px', height: ROW, fontFamily: SYS, fontSize: 14,
+                                     fontWeight: 600, color: T1, whiteSpace: 'nowrap',
+                                     borderTop: `1px solid ${BD1}` }}>
+                          {a.name}
+                        </td>
+                        <td style={{ padding: '0 16px', height: ROW, fontFamily: MONO, fontSize: 13,
+                                     fontWeight: 600,
+                                     color: a.obligatedPct >= 70 ? GREEN : a.obligatedPct >= 50 ? AMBER : RED,
+                                     whiteSpace: 'nowrap', borderTop: `1px solid ${BD1}` }}>
+                          {a.obligatedPct.toFixed(0)}%
+                        </td>
+                        <td style={{ padding: '0 16px', height: ROW, borderTop: `1px solid ${BD1}` }}>
+                          <StatusBadge status={status} />
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
-        </Card>
-
-        {/* ── Methodology ───────────────────────────────────────────────── */}
-        <div style={{ marginBottom:40, padding:"0 4px" }}>
-          <div style={{ fontFamily:SYS, fontSize:13, color:T4, lineHeight:1.7 }}>
-            Data sourced directly from{" "}
-            <a href="https://usaspending.gov" target="_blank" rel="noopener noreferrer"
-               style={{ color:T3, textDecoration:"underline" }}>
-              USASpending.gov
-            </a>{" "}
-            via the public API. Construction NAICS codes 2361–2389. Updated daily at 07:00 ET.
-            Dollar values represent obligated award amounts in the current federal fiscal year.{" "}
-            <a href="/methodology" style={{ color:T3, textDecoration:"underline" }}>
-              Methodology: constructaiq.trade/methodology
-            </a>
-          </div>
         </div>
 
-        {/* ── Widget callout ────────────────────────────────────────────── */}
-        <WidgetCallout />
+        {/* ── Source line ─────────────────────────────────────────────────── */}
+        <div style={{
+          fontFamily:    MONO,
+          fontSize:      11,
+          color:         T4,
+          letterSpacing: '0.06em',
+          paddingBottom: 60,
+        }}>
+          Source: USASpending.gov · Updated daily · Construction NAICS 2361–2389
+        </div>
+
       </div>
 
-      <footer style={{ borderTop:`1px solid ${BD1}`, padding:"28px 32px",
-                       display:"flex", alignItems:"center", justifyContent:"space-between",
-                       flexWrap:"wrap", gap:12 }}>
-        <div style={{ fontFamily:SYS, fontSize:13, color:T4 }}>
+      <footer style={{
+        borderTop: `1px solid ${BD1}`, padding: "24px 32px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexWrap: "wrap", gap: 12,
+      }}>
+        <div style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>
           Construction Intelligence Platform · constructaiq.trade
         </div>
-        <div style={{ fontFamily:SYS, fontSize:12, color:T4 }}>
+        <div style={{ fontFamily: SYS, fontSize: 12, color: T4 }}>
           Data: USASpending.gov · Construction NAICS 2361–2389
         </div>
       </footer>

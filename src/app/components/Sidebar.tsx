@@ -174,7 +174,7 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
             href={href}
             label={label}
             Icon={Icon}
-            active={isActive(href, pathname)}
+            active={itemIsActive(href, pathname)}
             iconOnly={mode === 'icon'}
             muted
           />
