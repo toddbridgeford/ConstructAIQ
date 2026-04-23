@@ -28,6 +28,8 @@ const AMBER = color.amber    // #f5a623
 const BD1   = color.lightBd  // #e5e5e5 — alias used in banner
 const T2    = color.bg1      // #0d0d0d — readable on light banner backgrounds
 const T4    = color.t4       // #6e6e73 — muted, used in banner link
+const BLUE  = color.blue     // #0a84ff
+const BG1   = color.lightBg  // #f8f8f8 — live stats strip background
 
 async function safeFetch(url: string) {
   try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
@@ -282,6 +284,10 @@ export default function HomePage() {
   // ── Federal pipeline ──
   const fedObl  = federal?.totalObligated ?? 0
   const fedDisp = fedObl > 0 ? fmtMillions(fedObl) : '—'
+
+  // ── Live stats strip values (null when data not yet loaded) ──
+  const spendVal = census ? obs0 : null
+  const empVal   = bls    ? empK : null
 
   // ── Map states ──
   const mapStates = mapData?.states ?? []
@@ -539,6 +545,83 @@ export default function HomePage() {
           <div className="hp-cards">{cards.map(c => <StatusCard key={c.label} {...c} />)}</div>
         </div>
       </section>
+
+      {/* ── LIVE STATS STRIP ── */}
+      {(spendVal !== null || empVal !== null) && (
+        <div style={{
+          maxWidth: 1100, margin: '0 auto',
+          padding: '0 40px',
+        }}>
+          <div style={{
+            background: BG1,
+            borderRadius: 20,
+            border: `1px solid ${BD1}`,
+            padding: '28px 32px',
+            display: 'flex',
+            gap: 40,
+            flexWrap: 'wrap',
+            alignItems: 'center',
+          }}>
+            {spendVal !== null && (
+              <div>
+                <div style={{ fontFamily: SYS, fontSize: 10,
+                  color: T4, fontWeight: 600, letterSpacing: '0.06em',
+                  textTransform: 'uppercase', marginBottom: 6 }}>
+                  Construction Spending
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 28,
+                  fontWeight: 700, color: AMBER, lineHeight: 1 }}>
+                  ${(spendVal / 1000).toFixed(1)}B
+                </div>
+                {spendMom !== null && spendMom !== undefined && (
+                  <div style={{ fontFamily: MONO, fontSize: 12,
+                    color: spendMom >= 0 ? GREEN : RED,
+                    marginTop: 4 }}>
+                    {spendMom >= 0 ? '+' : ''}{spendMom?.toFixed(2)}% MoM
+                  </div>
+                )}
+              </div>
+            )}
+
+            {spendVal !== null && empVal !== null && (
+              <div style={{ width: 1, height: 48, background: BD1 }} />
+            )}
+
+            {empVal !== null && (
+              <div>
+                <div style={{ fontFamily: SYS, fontSize: 10,
+                  color: T4, fontWeight: 600, letterSpacing: '0.06em',
+                  textTransform: 'uppercase', marginBottom: 6 }}>
+                  Construction Employment
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 28,
+                  fontWeight: 700, color: GREEN, lineHeight: 1 }}>
+                  {empVal >= 1000
+                    ? `${(empVal / 1000).toFixed(1)}M`
+                    : `${empVal}K`}
+                </div>
+                {empMom !== null && empMom !== undefined && (
+                  <div style={{ fontFamily: MONO, fontSize: 12,
+                    color: empMom >= 0 ? GREEN : RED,
+                    marginTop: 4 }}>
+                    {empMom >= 0 ? '+' : ''}{empMom?.toFixed(2)}% MoM
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ marginLeft: 'auto', display: 'flex',
+              alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <Link href="/dashboard"
+                style={{ fontFamily: SYS, fontSize: 14,
+                  fontWeight: 600, color: BLUE,
+                  textDecoration: 'none' }}>
+                Open full dashboard →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── TRUST SIGNALS ── */}
       <section style={{ background: BG, borderTop: `1px solid ${BD}`, padding: '64px 40px' }}>
