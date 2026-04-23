@@ -22,6 +22,12 @@ const BG    = color.lightBg  // #f8f8f8
 const BD    = color.lightBd  // #e5e5e5
 const T1    = color.bg1      // #0d0d0d  — primary text on white
 const T3    = color.t4       // #6e6e73  — muted text
+const GREEN = color.green    // #30d158
+const RED   = color.red      // #ff453a
+const AMBER = color.amber    // #f5a623
+const BD1   = color.lightBd  // #e5e5e5 — alias used in banner
+const T2    = color.bg1      // #0d0d0d — readable on light banner backgrounds
+const T4    = color.t4       // #6e6e73 — muted, used in banner link
 
 async function safeFetch(url: string) {
   try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
@@ -222,6 +228,12 @@ export default function HomePage() {
   const [mapData, setMapData] = useState<AnyStats>(null)
   const [mapDate, setMapDate] = useState('')
   const [stats,   setStats]   = useState<AnyStats>(null)
+  const [verdict,        setVerdict]        = useState<{
+    overall:    string
+    confidence: string
+    headline:   string
+  } | null>(null)
+  const [verdictLoading, setVerdictLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
@@ -237,6 +249,13 @@ export default function HomePage() {
       if (m) setMapData(m)
       if (s) setStats(s)
     })
+    // Fire verdict fetch independently so it doesn't block the main data load
+    safeFetch('/api/verdict')
+      .then(d => {
+        setVerdict(d)
+        setVerdictLoading(false)
+      })
+      .catch(() => setVerdictLoading(false))
     setMapDate(new Date().toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' }))
   }, [])
 
@@ -291,6 +310,19 @@ export default function HomePage() {
     },
   ]
 
+  /*
+   * HOMEPAGE SECTIONS (in render order):
+   *   1. VERDICT BANNER    — PRIMARY   market signal: EXPAND / HOLD / CONTRACT
+   *   2. NAV               — PRIMARY   sticky nav with logo + links
+   *   3. HERO              — PRIMARY   h1, subhead, spending KPI, CTAs
+   *   4. NEWSLETTER        — SECONDARY inline subscribe form
+   *   5. STATUS CARDS      — SECONDARY labor, materials, pipeline KPI cards
+   *   6. TRUST SIGNALS     — SECONDARY data provenance + methodology + free forever
+   *   7. LIVE MAP          — SECONDARY state-level activity heatmap
+   *   8. FINAL CTA         — TERTIARY  duplicate dashboard CTA — candidate for removal
+   *   9. FOOTER            — PRIMARY
+   */
+
   return (
     <div style={{ background: WHITE, color: T1, fontFamily: SYS, minHeight: '100vh' }}>
       <style>{`
@@ -309,6 +341,75 @@ export default function HomePage() {
           .hp-kpi { font-size: 52px !important; }
         }
       `}</style>
+
+      {/* ── VERDICT BANNER ── */}
+      {!verdictLoading && verdict && (
+        <div style={{
+          width: '100%',
+          background:
+            verdict.overall === 'EXPAND'   ? `${GREEN}18` :
+            verdict.overall === 'CONTRACT' ? `${RED}18`   :
+            `${AMBER}18`,
+          borderBottom: `1px solid ${
+            verdict.overall === 'EXPAND'   ? `${GREEN}44` :
+            verdict.overall === 'CONTRACT' ? `${RED}44`   :
+            `${AMBER}44`
+          }`,
+          padding: '12px 40px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 16,
+          minHeight: 48,
+        }}>
+          <span style={{
+            fontFamily: MONO,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            color:
+              verdict.overall === 'EXPAND'   ? GREEN :
+              verdict.overall === 'CONTRACT' ? RED   :
+              AMBER,
+          }}>
+            MARKET SIGNAL: {verdict.overall}
+          </span>
+          <span style={{
+            width: 1, height: 14,
+            background: BD1,
+            display: 'inline-block',
+          }} />
+          <span style={{
+            fontFamily: SYS,
+            fontSize: 13,
+            color: T2,
+            lineHeight: 1.5,
+          }}>
+            {verdict.headline}
+          </span>
+          <Link href="/dashboard"
+            style={{
+              marginLeft: 'auto',
+              fontFamily: SYS,
+              fontSize: 12,
+              color: T4,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}>
+            Full analysis →
+          </Link>
+        </div>
+      )}
+
+      {/* Verdict skeleton while loading */}
+      {verdictLoading && (
+        <div style={{
+          width: '100%',
+          height: 48,
+          background: BG,
+          borderBottom: `1px solid ${BD}`,
+        }} />
+      )}
 
       {/* ── NAV ── */}
       <nav style={{

@@ -6,7 +6,7 @@ import {
   PRIORITY_WEIGHT,
   runRules,
   type Signals,
-} from '../route'
+} from '@/lib/recommendations'
 
 // ── Baseline neutral signal object ───────────────────────────────────────────
 function baseSignals(overrides: Partial<Signals> = {}): Signals {
