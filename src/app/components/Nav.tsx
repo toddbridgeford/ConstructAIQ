@@ -21,11 +21,6 @@ const BASE_LINKS = [
   { label: "About",        href: "/about"        },
 ]
 
-interface SurveyStatus {
-  quarter: string
-  collecting: boolean
-}
-
 interface NavProps {
   /** If true the nav background starts transparent and frosts on scroll. Default: false (always frosted). */
   transparent?: boolean
@@ -36,7 +31,6 @@ interface NavProps {
 export function Nav({ transparent = false, ctaLabel = "Dashboard →", ctaHref = "/dashboard" }: NavProps) {
   const [menuOpen,    setMenuOpen]    = useState(false)
   const [scrolled,    setScrolled]    = useState(false)
-  const [survey,      setSurvey]      = useState<SurveyStatus | null>(null)
   const [showNotif,   setShowNotif]   = useState(false)
   const [bellBadge,   setBellBadge]   = useState(false)
 
@@ -51,40 +45,14 @@ export function Nav({ transparent = false, ctaLabel = "Dashboard →", ctaHref =
     return () => window.removeEventListener("scroll", handler)
   }, [transparent])
 
-  useEffect(() => {
-    fetch("/api/survey/current")
-      .then(r => r.json())
-      .then(d => setSurvey({ quarter: d.quarter ?? "Q2 2025", collecting: true }))
-      .catch(() => {/* leave null — no survey link shown on error */})
-
-    // Check if results are published (overrides collecting state)
-    fetch("/api/survey/results")
-      .then(r => r.json())
-      .then(d => setSurvey({ quarter: d.quarter ?? "Q2 2025", collecting: d.collecting !== false }))
-      .catch(() => {/* keep current */})
-  }, [])
-
   const navBg = transparent && !scrolled && !menuOpen
     ? "transparent"
     : color.bg1 + "ee"
-
-  const surveyLabel = survey
-    ? survey.collecting
-      ? `Take ${survey.quarter} Survey`
-      : "Survey Results"
-    : null
-  const surveyHref = survey
-    ? survey.collecting
-      ? "/survey"
-      : "/survey/results"
-    : "/survey"
 
   return (
     <>
       <style>{`
         .nav-link:hover{color:${color.t1}!important}
-        @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
-        .survey-dot{animation:pulse-dot 2s ease-in-out infinite}
         @media(max-width:768px){
           .nav-desktop{display:none!important}
           .nav-hamburger{display:flex!important}
@@ -126,28 +94,6 @@ export function Nav({ transparent = false, ctaLabel = "Dashboard →", ctaHref =
             </Link>
           ))}
 
-          {/* Survey link — shown once status loads */}
-          {survey && (
-            <Link href={surveyHref}
-              style={{
-                display: "flex", alignItems: "center", gap: 7,
-                fontFamily: SYS, fontSize: 14,
-                color: survey.collecting ? color.amber : color.t3,
-                padding: "6px 10px", borderRadius: radius.sm,
-                transition: "color 0.15s",
-              }}
-            >
-              {survey.collecting && (
-                <span className="survey-dot" style={{
-                  width: 6, height: 6,
-                  borderRadius: "50%",
-                  background: color.amber,
-                  flexShrink: 0,
-                }} />
-              )}
-              {surveyLabel}
-            </Link>
-          )}
         </div>
 
         {/* Desktop CTA + bell + hamburger */}
@@ -236,19 +182,6 @@ export function Nav({ transparent = false, ctaLabel = "Dashboard →", ctaHref =
                 {label}
               </Link>
             ))}
-            {survey && (
-              <Link href={surveyHref} onClick={() => setMenuOpen(false)}
-                style={{ fontFamily: SYS, fontSize: 16, color: survey.collecting ? color.amber : color.t2, padding: "10px 0", borderBottom: `1px solid ${color.bd1}`, display: "flex", alignItems: "center", gap: 8 }}
-              >
-                {survey.collecting && <span className="survey-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: color.amber }} />}
-                {surveyLabel}
-              </Link>
-            )}
-            <Link href="/survey/about" onClick={() => setMenuOpen(false)}
-              style={{ fontFamily: SYS, fontSize: 14, color: color.t4, padding: "8px 0", borderBottom: `1px solid ${color.bd1}` }}
-            >
-              About the Survey
-            </Link>
             <div style={{ paddingTop: 12 }}>
               <Link href={ctaHref} onClick={() => setMenuOpen(false)}>
                 <button style={{

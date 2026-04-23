@@ -70,8 +70,6 @@ function classificationStyle(cls: string): { bg: string; color: string } {
 export default function MarketCheckPage() {
   const [query, setQuery]                   = useState("")
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [surveyData, setSurveyData]         = useState<any>(null)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [results, setResults]               = useState<any>(null)
   const [loading, setLoading]               = useState(false)
   const [suggestions, setSuggestions]       = useState<string[]>([])
@@ -99,10 +97,6 @@ export default function MarketCheckPage() {
     }
     document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
-  }, [])
-
-  useEffect(() => {
-    fetch("/api/survey/results").then(r => r.json()).then(setSurveyData).catch(() => {})
   }, [])
 
   const fetchSuggestions = useCallback((val: string) => {
@@ -413,37 +407,6 @@ export default function MarketCheckPage() {
                 )
               })}
             </div>
-
-            {/* B2) GC Survey snapshot */}
-            {surveyData && !surveyData.collecting && surveyData.backlog_net !== null && (
-              <div style={{ background: BG1, border: `1px solid ${BD1}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-                  <div style={{ fontFamily: MONO, fontSize: 10, color: AMBER, letterSpacing: "0.08em" }}>
-                    GC SURVEY — {surveyData.quarter}
-                  </div>
-                  <Link href="/survey/results" style={{ fontFamily: MONO, fontSize: 11, color: AMBER, textDecoration: "none" }}>
-                    Full results →
-                  </Link>
-                </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {[
-                    { abbr: "BOI", value: surveyData.backlog_net },
-                    { abbr: "MEI", value: surveyData.margin_net },
-                    { abbr: "LAI", value: surveyData.labor_net },
-                    { abbr: "MOI", value: surveyData.market_net },
-                  ].map(({ abbr, value }) => {
-                    const col = value > 15 ? GREEN : value < -5 ? RED : AMBER
-                    const bg  = value > 15 ? color.greenDim : value < -5 ? color.redDim : color.amberDim
-                    return (
-                      <div key={abbr} style={{ background: bg, border: `1px solid ${col}44`, borderRadius: 8, padding: "6px 12px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                        <span style={{ fontFamily: MONO, fontSize: 9, color: col, letterSpacing: "0.08em" }}>{abbr}</span>
-                        <span style={{ fontFamily: MONO, fontSize: 16, fontWeight: 700, color: col }}>{value > 0 ? "+" : ""}{value}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
 
             {/* C) 24-month permit chart */}
             {results.history && results.history.length > 0 && (

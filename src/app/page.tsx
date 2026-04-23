@@ -144,27 +144,20 @@ export default function HomePage() {
   const [foreD,    setForeD]    = useState<any>(null)
   const [signals,  setSignals]  = useState<Signal[]>([])
   const [menuOpen, setMenuOpen] = useState(false)
-  const [surveyOpen, setSurveyOpen]       = useState(true)
-  const [surveyQuarter, setSurveyQuarter] = useState("Q2 2025")
 
   useEffect(() => {
     async function safeFetch(url: string) {
       try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
     }
     async function load() {
-      const [sd, ed, sigd, fd, surveyD] = await Promise.all([
+      const [sd, ed, sigd, fd] = await Promise.all([
         safeFetch("/api/census"), safeFetch("/api/bls"),
         safeFetch("/api/signals"), safeFetch("/api/forecast?series=TTLCONS"),
-        safeFetch("/api/survey/results"),
       ])
       if (sd)      setSpend(sd)
       if (ed)      setEmploy(ed)
       if (sigd)    setSignals(sigd.signals ?? [])
       if (fd)      setForeD(fd)
-      if (surveyD) {
-        setSurveyQuarter(surveyD.quarter ?? "Q2 2025")
-        setSurveyOpen(surveyD.collecting !== false)
-      }
     }
     load()
   }, [])
@@ -241,15 +234,6 @@ export default function HomePage() {
                 {label}
               </Link>
             ))}
-            <Link
-              href={surveyOpen ? "/survey" : "/survey/results"}
-              style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: SYS, fontSize: 14, color: surveyOpen ? AMBER : T3, padding: "6px 10px", borderRadius: 8, transition: "color 0.15s" }}
-            >
-              {surveyOpen && (
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: AMBER, boxShadow: `0 0 5px ${AMBER}`, flexShrink: 0 }} />
-              )}
-              {surveyOpen ? `Take ${surveyQuarter} Survey` : "Survey Results"}
-            </Link>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -282,15 +266,6 @@ export default function HomePage() {
             {label}
           </Link>
         ))}
-        <Link
-          href={surveyOpen ? "/survey" : "/survey/results"}
-          className="hp-mob-a"
-          onClick={() => setMenuOpen(false)}
-          style={{ display: "flex", alignItems: "center", gap: 8, color: surveyOpen ? AMBER : T3 }}
-        >
-          {surveyOpen && <span style={{ width: 6, height: 6, borderRadius: "50%", background: AMBER, flexShrink: 0 }} />}
-          {surveyOpen ? `Take ${surveyQuarter} Survey` : "Survey Results"}
-        </Link>
         <div className="hp-mob-ctas">
           <Link href="/dashboard" onClick={() => setMenuOpen(false)}
             style={{ display: "flex", alignItems: "center", justifyContent: "center",
@@ -692,7 +667,7 @@ export default function HomePage() {
         <Image src="/ConstructAIQWhiteLogo.svg" width={100} height={20} alt="ConstructAIQ"
                style={{ height: 18, width: "auto" }} />
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          {[...NAV_LINKS, { label: "Survey", href: "/survey/about" }, { label: "Contact", href: "/contact" }].map(({ label, href }) => (
+          {[...NAV_LINKS, { label: "Contact", href: "/contact" }].map(({ label, href }) => (
             <Link key={label} href={href} style={{ fontSize: 13, color: T4 }}>{label}</Link>
           ))}
         </div>

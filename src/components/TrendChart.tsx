@@ -16,7 +16,6 @@ import {
   type TooltipProps,
 } from "recharts"
 import { color, font } from "@/lib/theme"
-import { ExportBar } from "./ExportBar"
 
 interface DataPoint {
   label: string
@@ -286,7 +285,7 @@ export function TrendChart({
           ) : (
             <span />
           )}
-          {showExport && <ExportBar onCSV={onCSVExport} />}
+          {showExport && null}
         </div>
       )}
 

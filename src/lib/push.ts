@@ -1,12 +1,6 @@
 import webpush from 'web-push'
 import { supabaseAdmin } from './supabase'
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT ?? 'mailto:hello@constructaiq.trade',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '',
-  process.env.VAPID_PRIVATE_KEY ?? '',
-)
-
 export interface PushPayload {
   title:  string
   body:   string
@@ -27,6 +21,12 @@ export async function sendPushNotification(payload: PushPayload): Promise<{
     console.warn('[push] VAPID keys not configured — skipping')
     return { sent: 0, failed: 0, deactivated: 0 }
   }
+
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT ?? 'mailto:hello@constructaiq.trade',
+    vapidPublic,
+    vapidPrivate,
+  )
 
   // Fetch active subscriptions that want this alert type
   const column = `alert_${payload.type}` as const
