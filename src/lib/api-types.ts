@@ -271,7 +271,7 @@ export interface DashboardData {
   construction_spending: DashboardKPI
   employment:            DashboardKPI
   permits:               DashboardKPI
-  cshi:                  DashboardCshi
+  cshi:                  DashboardCshi | null
   forecast:              DashboardForecast | null
   signals:               SignalItem[]
   commodities:           CommodityItem[]

@@ -1,6 +1,8 @@
 import { NextResponse }                       from 'next/server'
 import { supabase, supabaseAdmin, getLatestObs } from '@/lib/supabase'
 import { runEnsemble }                          from '@/lib/models/ensemble'
+import { computeCshi }                          from '@/lib/cshi'
+import type { CshiResult }                      from '@/lib/cshi'
 
 export const runtime     = 'nodejs'
 export const dynamic     = 'force-dynamic'
@@ -67,7 +69,7 @@ export async function GET() {
 
   const [
     ttl12raw, emp12raw, permit12raw, ttl24raw, wps24raw,
-    forecastRows, signalRows, briefRow,
+    forecastRows, signalRows, briefRow, cshiData,
   ] = await Promise.all([
     tryQuery(getLatestObs('TTLCONS',       12)),
     tryQuery(getLatestObs('CES2000000001', 12)),
@@ -107,6 +109,10 @@ export async function GET() {
         .single()
       return r.data
     })()),
+    // CSHI composite score — null on failure; dashboard degrades gracefully
+    (async (): Promise<CshiResult | null> => {
+      try { return await computeCshi() } catch { return null }
+    })(),
   ])
 
   // ── Obs arrays with seed fallback ─────────────────────────────────────────
@@ -206,6 +212,7 @@ export async function GET() {
         data_as_of: permit12.at(-1)?.obs_date ?? null,
         spark:      permit12.map(r => r.value),
       },
+      cshi:     cshiData ?? null,
       forecast,
       signals,
       commodities,
