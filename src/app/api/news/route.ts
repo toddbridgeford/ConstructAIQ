@@ -59,22 +59,20 @@ export async function GET() {
     results.forEach(r=>{ if(r.status==='fulfilled') all.push(...r.value) })
     all.sort((a,b)=>b.relevance-a.relevance)
     const seen=new Set<string>()
-    const unique=all.filter(i=>{ const k=i.title.toLowerCase().slice(0,40); if(seen.has(k)) return false; seen.add(k); return true }).slice(0,20)
-    const items=unique.length>0?unique:fallback()
+    const items=all.filter(i=>{ const k=i.title.toLowerCase().slice(0,40); if(seen.has(k)) return false; seen.add(k); return true }).slice(0,20)
     const bull=items.filter(i=>i.sentiment==='BULLISH').length
     const bear=items.filter(i=>i.sentiment==='BEARISH').length
-    return NextResponse.json({source:'ConstructAIQ NewsIntel',live:unique.length>0,items,count:items.length,
-      marketSentiment:bull>bear?'CAUTIOUSLY BULLISH':bear>bull?'CAUTIOUSLY BEARISH':'MIXED',updated:new Date().toISOString()},
+    const marketSentiment=items.length===0?'UNAVAILABLE':bull>bear?'CAUTIOUSLY BULLISH':bear>bull?'CAUTIOUSLY BEARISH':'MIXED'
+    return NextResponse.json({source:'ConstructAIQ NewsIntel',live:items.length>0,items,count:items.length,
+      marketSentiment,updated:new Date().toISOString()},
       {headers:{'Cache-Control':'public, s-maxage=1800'}})
-  } catch(err) { return NextResponse.json({source:'NewsIntel-fallback',live:false,items:fallback()}) }
-}
-
-function fallback() {
-  return [
-    {id:'n1',source:'Engineering News-Record',category:'contracts',title:'Federal Highway Awards Hit Record in FY2026 Q1',summary:'IIJA-funded contracts continue at record pace as transportation agencies accelerate infrastructure spending.',url:'https://www.enr.com',sentiment:'BULLISH',tags:['federal'],publishedAt:new Date(Date.now()-7200000).toISOString(),relevance:8},
-    {id:'n2',source:'Construction Dive',category:'labor',title:'Craft Labor Vacancy Rate at 12-Year High',summary:'JOLTS data confirms construction job openings outpaced hires for the fifth consecutive month.',url:'https://www.constructiondive.com',sentiment:'WARNING',tags:['labor'],publishedAt:new Date(Date.now()-14400000).toISOString(),relevance:9},
-    {id:'n3',source:'NAHB Now',category:'housing',title:'Builder Confidence Rises 4 Points on Easing Rate Expectations',summary:'HMI improved for the third straight month as mortgage rates declined from 7.1% to 6.85%.',url:'https://nahbnow.com',sentiment:'BULLISH',tags:['rates'],publishedAt:new Date(Date.now()-21600000).toISOString(),relevance:7},
-    {id:'n4',source:'AGC Constructor',category:'materials',title:'Steel Tariff Uncertainty Driving Bid Escalation Clauses',summary:'67% of contractors now including material escalation clauses as Section 232 tariffs add 8-12% to steel costs.',url:'https://www.agc.org',sentiment:'WARNING',tags:['materials'],publishedAt:new Date(Date.now()-28800000).toISOString(),relevance:8},
-    {id:'n5',source:'Engineering News-Record',category:'industry',title:'Data Center Boom Offsets Multifamily Weakness',summary:'AI-driven data center investment added $34B in new starts in Q1 2026, offsetting 18% YoY decline in multifamily.',url:'https://www.enr.com',sentiment:'BULLISH',tags:['federal'],publishedAt:new Date(Date.now()-36000000).toISOString(),relevance:7},
-  ]
+  } catch {
+    return NextResponse.json({
+      source: 'NewsIntel',
+      live: false,
+      items: [],
+      error: 'Feed temporarily unavailable',
+      count: 0,
+    })
+  }
 }

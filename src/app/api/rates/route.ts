@@ -26,6 +26,15 @@ async function fetchSeries(seriesId: string, limit = 24) {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+const UNAVAILABLE = {
+  source: 'FRED',
+  live: false,
+  error: 'Rate data temporarily unavailable',
+  monthly: [],
+  summary: null,
+  updated: null,
+}
+
 export async function GET() {
   try {
     const results = await Promise.allSettled(
@@ -45,7 +54,7 @@ export async function GET() {
     })
 
     if (!anyLive) {
-      return NextResponse.json(getSyntheticRates(), {
+      return NextResponse.json(UNAVAILABLE, {
         headers: { 'Cache-Control': 'public, s-maxage=3600' },
       })
     }
@@ -74,29 +83,8 @@ export async function GET() {
     })
   } catch (err) {
     console.error('[/api/rates]', err)
-    return NextResponse.json(getSyntheticRates(), {
+    return NextResponse.json(UNAVAILABLE, {
       headers: { 'Cache-Control': 'public, s-maxage=3600' },
     })
-  }
-}
-
-function getSyntheticRates() {
-  const months = ['Jan\'24','Feb\'24','Mar\'24','Apr\'24','May\'24','Jun\'24','Jul\'24','Aug\'24','Sep\'24','Oct\'24','Nov\'24','Dec\'24','Jan\'25','Feb\'25','Mar\'25','Apr\'25','May\'25','Jun\'25','Jul\'25','Aug\'25','Sep\'25','Oct\'25','Nov\'25','Dec\'25','Jan\'26','Feb\'26','Mar\'26']
-  const tenYr  = [3.97,4.21,4.20,4.56,4.47,4.36,4.25,3.84,3.77,4.20,4.41,4.26,4.53,4.49,4.28,4.34,4.48,4.40,4.26,4.24,3.78,4.22,4.41,4.56,4.40,4.29,4.32]
-  const mortg  = [6.62,6.78,6.87,6.99,7.09,6.92,6.82,6.49,6.20,6.72,6.84,6.72,6.96,6.89,6.76,6.81,6.93,6.82,6.75,6.63,6.18,6.72,6.84,6.95,6.88,6.82,6.85]
-
-  return {
-    source:   'Federal Reserve FRED — synthetic fallback',
-    live:     false,
-    monthly:  months.map((m, i) => ({ m, tenYr: tenYr[i], mortgage: mortg[i] })),
-    summary: {
-      treasury10yr:     4.32,
-      mortgage30yr:     6.85,
-      mortgageChg1wk:   0.03,
-      constructionLoan: 6.57,
-      rateEnvironment:  'MODERATE',
-      affordabilityNote:'Rate environment constraining multifamily starts',
-    },
-    updated: new Date().toISOString(),
   }
 }
