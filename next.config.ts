@@ -135,5 +135,4 @@ export default withSentryConfig(pwaConfig, {
   sourcemaps: { disable: false },
   disableLogger: true,
   automaticVercelMonitors: true,
-  suppressClientSideRenderingWarning: true,
 })
