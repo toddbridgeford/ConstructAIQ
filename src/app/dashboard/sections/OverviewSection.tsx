@@ -315,6 +315,37 @@ export function OverviewSection({
         </div>
       )}
 
+      {/* ── Top signal driver ── */}
+      {!loading && signals[0] && (
+        <div style={{
+          background:   color.bg1,
+          border:       `1px solid ${color.bd1}`,
+          borderRadius: 10,
+          padding:      '12px 20px',
+          marginBottom: 20,
+          fontFamily:   font.sys,
+          fontSize:     14,
+          color:        color.t2,
+          lineHeight:   1.6,
+        }}>
+          <span style={{
+            fontFamily:    font.mono,
+            fontSize:      10,
+            color:         color.amber,
+            letterSpacing: '0.08em',
+            marginRight:   10,
+          }}>
+            TOP SIGNAL
+          </span>
+          {signals[0].title}
+          {signals[0].description && (
+            <span style={{ color: color.t4 }}>
+              {' — '}{signals[0].description}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* ── Row 1: KPI cards ── */}
       {roleNote && !loading && (
         <div style={{
