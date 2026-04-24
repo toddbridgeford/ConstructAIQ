@@ -18,7 +18,7 @@ export interface Signals {
   steelPctile:        number
   demandDrivenMsas:   number
   federalYoy:         number
-  mortgageRate:       number
+  mortgageRate:       number | null
 }
 
 export type RuleSet = Array<{
@@ -158,11 +158,11 @@ export const LENDER_RULES: RuleSet = [
     }),
   },
   {
-    test: s => s.mortgageRate > 6.5 && s.verdict !== 'EXPAND',
+    test: s => s.mortgageRate !== null && s.mortgageRate > 6.5 && s.verdict !== 'EXPAND',
     rec:  s => ({
       priority: 'HIGH',
       category: 'risk',
-      title:    `Rate environment (${s.mortgageRate.toFixed(2)}%) compressing residential demand`,
+      title:    `Rate environment (${s.mortgageRate!.toFixed(2)}%) compressing residential demand`,
       rationale:
         'Mortgage rates above 6.5% historically suppress ' +
         'residential starts within 6–9 months.',

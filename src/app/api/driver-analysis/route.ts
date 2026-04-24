@@ -24,51 +24,9 @@ export interface DriverAnalysis {
   as_of:          string
 }
 
-// ── Seed fallbacks (last 24 months, anchored Dec 2025) ────────────────────────
-
-const TTLCONS_SEED = [
-  2184.6, 2174.9, 2206.5, 2215.4, 2199.8, 2200.7, 2205.3, 2197.9, 2197.1,
-  2192.9, 2176.6, 2169.6, 2165.4, 2150.8, 2153.4, 2149.1, 2160.7, 2168.5,
-  2177.2, 2169.5, 2167.9, 2181.2, 2197.6, 2190.4,
-]
-
-// Residential: ~41% of TTLCONS, gently declining (rate sensitivity)
-const TLRESCONS_SEED = [
-  895.7, 891.7, 904.7, 908.3, 901.9, 902.3, 904.2, 901.1, 900.8,
-  899.1, 892.4, 889.5, 887.8, 881.8, 882.9, 881.1, 885.9, 888.7,
-  892.6, 889.5, 889.0, 894.3, 900.5, 897.9,
-]
-
-const PERMIT_SEED = [
-  1577, 1476, 1459, 1407, 1461, 1436, 1476, 1434, 1428, 1508, 1480, 1460,
-  1454, 1481, 1422, 1394, 1393, 1362, 1330, 1415, 1411, 1388, 1455, 1386,
-]
-
-// PERMIT1 (single-family): ~62% of PERMIT
-const PERMIT1_SEED = [
-  978, 915, 904, 872, 905, 890, 915, 889, 885, 935, 917, 905,
-  901, 918, 881, 864, 864, 844, 825, 877, 875, 861, 902, 859,
-]
-
-// PERMIT5 (5+ unit multifamily): ~30% of PERMIT
-const PERMIT5_SEED = [
-  473, 443, 438, 422, 438, 431, 443, 430, 428, 452, 444, 438,
-  436, 444, 427, 418, 418, 409, 399, 425, 423, 416, 437, 416,
-]
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 type ObsRow = { obs_date: string; value: number }
-
-function seedToObs(seed: number[]): ObsRow[] {
-  return seed.map((v, i) => {
-    const monthsFromDec2025 = seed.length - 1 - i
-    let m = 11 - monthsFromDec2025
-    let y = 2025
-    while (m < 0) { m += 12; y-- }
-    return { obs_date: `${y}-${String(m + 1).padStart(2, "0")}-01`, value: v }
-  })
-}
 
 function yoy(obs: ObsRow[]): number {
   if (obs.length < 13) return 0
@@ -91,7 +49,7 @@ function impact(pct: number, positive: boolean): "POSITIVE" | "NEGATIVE" | "NEUT
 
 // ── TTLCONS analysis ──────────────────────────────────────────────────────────
 
-async function analyzeTTLCONS(): Promise<DriverAnalysis> {
+async function analyzeTTLCONS(): Promise<DriverAnalysis | NextResponse> {
   const [ttlRaw, resRaw, mortRaw, permitRaw] = await Promise.all([
     getLatestObs("TTLCONS",      14) as Promise<ObsRow[]>,
     getLatestObs("TLRESCONS",    14) as Promise<ObsRow[]>,
@@ -99,8 +57,16 @@ async function analyzeTTLCONS(): Promise<DriverAnalysis> {
     getLatestObs("PERMIT",        3) as Promise<ObsRow[]>,
   ])
 
-  const ttl  = ttlRaw.length  >= 13 ? ttlRaw  : seedToObs(TTLCONS_SEED).slice(-14)
-  const res  = resRaw.length  >= 13 ? resRaw  : seedToObs(TLRESCONS_SEED).slice(-14)
+  if (!ttlRaw || ttlRaw.length < 2) {
+    return NextResponse.json({
+      error: 'Insufficient data for driver analysis',
+      series: 'TTLCONS',
+      available_points: ttlRaw?.length ?? 0,
+    }, { status: 503 })
+  }
+
+  const ttl = ttlRaw  // use whatever the DB has
+  const res = resRaw
 
   const ttlLatest    = ttl[ttl.length - 1].value
   const resLatest    = res[res.length - 1].value
@@ -196,7 +162,7 @@ async function analyzeTTLCONS(): Promise<DriverAnalysis> {
 
 // ── PERMIT analysis ───────────────────────────────────────────────────────────
 
-async function analyzePERMIT(origin: string): Promise<DriverAnalysis> {
+async function analyzePERMIT(origin: string): Promise<DriverAnalysis | NextResponse> {
   const [permRaw, perm1Raw, perm5Raw, mortRaw] = await Promise.all([
     getLatestObs("PERMIT",       14) as Promise<ObsRow[]>,
     getLatestObs("PERMIT1",      14) as Promise<ObsRow[]>,
@@ -204,9 +170,17 @@ async function analyzePERMIT(origin: string): Promise<DriverAnalysis> {
     getLatestObs("MORTGAGE30US",  2) as Promise<ObsRow[]>,
   ])
 
-  const perm  = permRaw.length  >= 13 ? permRaw  : seedToObs(PERMIT_SEED).slice(-14)
-  const perm1 = perm1Raw.length >= 13 ? perm1Raw : seedToObs(PERMIT1_SEED).slice(-14)
-  const perm5 = perm5Raw.length >= 13 ? perm5Raw : seedToObs(PERMIT5_SEED).slice(-14)
+  if (!permRaw || permRaw.length < 2) {
+    return NextResponse.json({
+      error: 'Insufficient data for driver analysis',
+      series: 'PERMIT',
+      available_points: permRaw?.length ?? 0,
+    }, { status: 503 })
+  }
+
+  const perm  = permRaw  // use whatever the DB has
+  const perm1 = perm1Raw
+  const perm5 = perm5Raw
 
   const permLatest  = perm[perm.length - 1].value
   const perm1Latest = perm1[perm1.length - 1].value
@@ -312,9 +286,13 @@ export async function GET(request: Request) {
     let analysis: DriverAnalysis
 
     if (series === "TTLCONS") {
-      analysis = await analyzeTTLCONS()
+      const result = await analyzeTTLCONS()
+      if (result instanceof NextResponse) return result
+      analysis = result
     } else if (series === "PERMIT") {
-      analysis = await analyzePERMIT(origin)
+      const result = await analyzePERMIT(origin)
+      if (result instanceof NextResponse) return result
+      analysis = result
     } else {
       return NextResponse.json({ error: `Unsupported series: ${series}` }, { status: 400 })
     }
