@@ -1,194 +1,77 @@
 import { NextResponse } from "next/server"
+import { getLatestObs } from "@/lib/supabase"
 
-const WATCHLIST = [
-  {
-    rank: 1,
-    market: "Chicago, IL",
-    cdi: 74.2,
-    classification: "HIGH",
-    drivers: ["Permit decline -18% YoY", "Employment -3.2% YoY"],
-    change: 6.3,
-    components: {
-      materials_cost_spike: 82,
-      permit_deceleration: 78,
-      employment_decline: 61,
-      federal_award_slowdown: 71,
-      absorption_pressure: 45,
-    },
-    lender_note: "Chicago's CDI has risen 3 consecutive months. Construction lenders should review covenant compliance on active loans and stress-test completion guarantees against a 15–20% cost overrun scenario.",
-  },
-  {
-    rank: 2,
-    market: "Detroit, MI",
-    cdi: 68.8,
-    classification: "HIGH",
-    drivers: ["Federal awards -22% YoY", "Materials +31% above avg"],
-    change: 2.1,
-    components: {
-      materials_cost_spike: 88,
-      permit_deceleration: 54,
-      employment_decline: 58,
-      federal_award_slowdown: 84,
-      absorption_pressure: 38,
-    },
-    lender_note: "Detroit's distress is driven by loss of federal construction dollars. Projects relying on public funding should be reassessed for completion risk.",
-  },
-  {
-    rank: 3,
-    market: "St. Louis, MO",
-    cdi: 62.1,
-    classification: "ELEVATED",
-    drivers: ["Permit deceleration 3 consecutive months"],
-    change: 4.2,
-    components: {
-      materials_cost_spike: 48,
-      permit_deceleration: 76,
-      employment_decline: 42,
-      federal_award_slowdown: 61,
-      absorption_pressure: 52,
-    },
-    lender_note: "Permit deceleration for 3 consecutive months signals pipeline contraction. Monitor for completion delays on vertical construction.",
-  },
-  {
-    rank: 4,
-    market: "Baltimore, MD",
-    cdi: 58.4,
-    classification: "ELEVATED",
-    drivers: ["Employment -1.8% YoY", "Permit value down"],
-    change: 1.8,
-    components: {
-      materials_cost_spike: 41,
-      permit_deceleration: 63,
-      employment_decline: 68,
-      federal_award_slowdown: 55,
-      absorption_pressure: 44,
-    },
-    lender_note: "Labor contraction is the primary driver. Construction timelines at risk of extension; lenders should review draw schedules.",
-  },
-  {
-    rank: 5,
-    market: "Cleveland, OH",
-    cdi: 55.7,
-    classification: "ELEVATED",
-    drivers: ["Permit volume -12% YoY"],
-    change: 3.1,
-    components: {
-      materials_cost_spike: 38,
-      permit_deceleration: 72,
-      employment_decline: 44,
-      federal_award_slowdown: 48,
-      absorption_pressure: 51,
-    },
-    lender_note: "Moderate risk profile but permit trend is deteriorating. Watch for Q2 employment data as a leading confirmation signal.",
-  },
-  {
-    rank: 6,
-    market: "Memphis, TN",
-    cdi: 51.3,
-    classification: "ELEVATED",
-    drivers: ["Federal award slowdown", "Employment plateau"],
-    change: -0.4,
-    components: {
-      materials_cost_spike: 32,
-      permit_deceleration: 55,
-      employment_decline: 48,
-      federal_award_slowdown: 66,
-      absorption_pressure: 42,
-    },
-    lender_note: "CDI is stable but elevated. Federal award pipeline shrinkage is the key watch item going into H2 2026.",
-  },
-  {
-    rank: 7,
-    market: "Hartford, CT",
-    cdi: 48.9,
-    classification: "ELEVATED",
-    drivers: ["Materials +18% above avg"],
-    change: 2.2,
-    components: {
-      materials_cost_spike: 74,
-      permit_deceleration: 42,
-      employment_decline: 36,
-      federal_award_slowdown: 38,
-      absorption_pressure: 44,
-    },
-    lender_note: "Cost-driven distress. Hard cost overruns are the primary risk for active construction loans in this market.",
-  },
-  {
-    rank: 8,
-    market: "Milwaukee, WI",
-    cdi: 46.2,
-    classification: "ELEVATED",
-    drivers: ["Permit deceleration"],
-    change: 0.8,
-    components: {
-      materials_cost_spike: 28,
-      permit_deceleration: 58,
-      employment_decline: 40,
-      federal_award_slowdown: 44,
-      absorption_pressure: 46,
-    },
-    lender_note: "Early-stage deceleration. No immediate action required but flag for monthly monitoring.",
-  },
-  {
-    rank: 9,
-    market: "Rochester, NY",
-    cdi: 43.1,
-    classification: "ELEVATED",
-    drivers: ["Employment -0.9% YoY"],
-    change: 1.4,
-    components: {
-      materials_cost_spike: 22,
-      permit_deceleration: 46,
-      employment_decline: 54,
-      federal_award_slowdown: 38,
-      absorption_pressure: 40,
-    },
-    lender_note: "Low-to-moderate risk. Employment trend bears watching over next 60 days.",
-  },
-  {
-    rank: 10,
-    market: "Louisville, KY",
-    cdi: 41.8,
-    classification: "ELEVATED",
-    drivers: ["Federal awards -8% YoY"],
-    change: -1.2,
-    components: {
-      materials_cost_spike: 18,
-      permit_deceleration: 44,
-      employment_decline: 38,
-      federal_award_slowdown: 62,
-      absorption_pressure: 36,
-    },
-    lender_note: "CDI is improving slightly. Federal award contraction is the primary drag — watch for any reversals in public spending.",
-  },
-]
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
-const RECOVERY_MARKETS = [
-  { market: "Las Vegas, NV",      cdi: 38.1, delta: -12.4, status: "Moving to LOW RISK" },
-  { market: "Denver, CO",         cdi: 41.2, delta:  -9.7, status: "Elevated → Low" },
-  { market: "Salt Lake City, UT", cdi: 29.8, delta:  -8.1, status: "Stabilizing" },
-  { market: "Nashville, TN",      cdi: 32.4, delta:  -6.2, status: "Improving" },
-]
+function toPeriod(obsDate: string): string { return obsDate.slice(0, 7) }
 
-const NATIONAL_OVERVIEW = {
-  high_distress: 3,
-  elevated_risk: 11,
-  low_risk: 31,
-  stable: 5,
-  national_avg_cdi: 28.4,
-  national_classification: "LOW RISK",
-  mom_change_high: 1,
-  mom_change_elevated: -2,
-  period: "2026-04",
+function nationalCDI(permitYoy: number | null, empYoy: number | null): number {
+  const pPenalty = permitYoy !== null ? Math.max(-20, Math.min(20, -permitYoy * 1.5)) : 0
+  const ePenalty = empYoy    !== null ? Math.max(-15, Math.min(15, -empYoy    * 8.0)) : 0
+  return Math.max(0, Math.min(100, Math.round(28 + pPenalty + ePenalty)))
+}
+
+function classify(cdi: number): string {
+  if (cdi >= 60) return 'HIGH'
+  if (cdi >= 40) return 'ELEVATED'
+  return 'LOW RISK'
 }
 
 export async function GET() {
-  return NextResponse.json({
-    overview: NATIONAL_OVERVIEW,
-    watchlist: WATCHLIST,
-    recovery: RECOVERY_MARKETS,
-    generated_at: new Date().toISOString(),
-  }, {
-    headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200" }
-  })
+  try {
+    const [permit, labor] = await Promise.all([
+      getLatestObs('PERMIT', 72),
+      getLatestObs('CES2000000001', 72),
+    ])
+
+    if (!permit.length && !labor.length) {
+      return NextResponse.json(
+        { error: 'No construction indicator data in database' },
+        { status: 503 }
+      )
+    }
+
+    const permitMap = new Map(permit.map(r => [toPeriod(r.obs_date), Number(r.value)]))
+    const laborMap  = new Map(labor.map(r  => [toPeriod(r.obs_date), Number(r.value)]))
+
+    const allPeriods = new Set([...permitMap.keys(), ...laborMap.keys()])
+    const periods    = Array.from(allPeriods).sort()
+
+    // Build CDI history for each period that has a 12-period lag
+    const histData: { month: string; cdi: number }[] = []
+    for (let i = 12; i < periods.length; i++) {
+      const p   = periods[i]
+      const p12 = periods[i - 12]
+      const pCur  = permitMap.get(p)   ?? null
+      const p12v  = permitMap.get(p12) ?? null
+      const eCur  = laborMap.get(p)    ?? null
+      const e12v  = laborMap.get(p12)  ?? null
+      const permitYoy = pCur && p12v ? (pCur - p12v) / p12v * 100 : null
+      const empYoy    = eCur && e12v  ? (eCur - e12v) / e12v * 100 : null
+      const cdi = nationalCDI(permitYoy, empYoy)
+      const d   = new Date(p + '-01')
+      const month = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+      histData.push({ month, cdi })
+    }
+
+    const hist_data = histData.slice(-36)
+    const latest    = hist_data[hist_data.length - 1]
+    const national_avg_cdi          = latest?.cdi ?? 28
+    const national_classification   = classify(national_avg_cdi)
+
+    return NextResponse.json({
+      national_avg_cdi,
+      national_classification,
+      watchlist: [],
+      recovery:  [],
+      hist_data,
+      generated_at: new Date().toISOString(),
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200' },
+    })
+  } catch (err) {
+    console.error('[/api/distress]', err)
+    return NextResponse.json({ error: 'Failed to compute distress index' }, { status: 500 })
+  }
 }

@@ -1,9 +1,5 @@
 "use client"
 import { useEffect, useState } from "react"
-import {
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-} from "recharts"
 import { font, color } from "@/lib/theme"
 import { Nav } from "@/app/components/Nav"
 
@@ -13,13 +9,8 @@ const MONO = font.mono
 const ALL_SECTORS = [
   { id: "residential",    label: "Residential" },
   { id: "commercial",     label: "Commercial" },
-  { id: "industrial",     label: "Industrial" },
   { id: "infrastructure", label: "Infrastructure" },
-  { id: "healthcare",     label: "Healthcare" },
-  { id: "education",      label: "Education" },
-  { id: "energy",         label: "Energy / Utilities" },
-  { id: "multifamily",    label: "Multifamily" },
-  { id: "data_centers",   label: "Data Centers" },
+  { id: "industrial",     label: "Industrial" },
 ]
 
 const SECTOR_COLORS = [
@@ -31,84 +22,38 @@ function classColor(c: string) {
   if (c === "EXPANDING")   return color.green
   if (c === "CONTRACTING") return color.red
   if (c === "SLOWING")     return color.amber
-  return color.blue
+  if (c === "STABLE")      return color.blue
+  return color.t4
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function RadarCard({ sectors }: { sectors: any[] }) {
-  const metrics = ["cshi", "mom_change", "yoy_change", "backlog_months", "employment_mom"]
-  const labels: Record<string, string> = {
-    cshi: "Momentum",
-    mom_change: "MoM Growth",
-    yoy_change: "YoY Growth",
-    backlog_months: "Backlog",
-    employment_mom: "Employment",
-  }
-
-  const maxes: Record<string, number> = {
-    cshi: 100, mom_change: 8, yoy_change: 25, backlog_months: 20, employment_mom: 4,
-  }
-
-  const radarData = metrics.map(m => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const entry: Record<string, any> = { metric: labels[m] }
-    for (const s of sectors) {
-      entry[s.label] = Math.max(0, Math.min(100, ((s[m] ?? 0) / maxes[m]) * 100))
-    }
-    return entry
-  })
-
+function SignalsCard({ sectors }: { sectors: any[] }) {
   return (
-    <div style={{ background: color.bg2, borderRadius: 16, padding: 24, border: `1px solid ${color.bd1}` }}>
-      <div style={{ fontFamily: MONO, fontSize: 12, color: color.amber, letterSpacing: "0.08em", marginBottom: 16 }}>RADAR COMPARISON</div>
-      <ResponsiveContainer width="100%" height={280}>
-        <RadarChart data={radarData}>
-          <PolarGrid stroke={color.bd2} />
-          <PolarAngleAxis dataKey="metric" tick={{ fontFamily: MONO, fontSize: 10, fill: color.t4 }} />
-          {sectors.map((s, i) => (
-            <Radar key={s.id} name={s.label} dataKey={s.label} stroke={SECTOR_COLORS[i]} fill={SECTOR_COLORS[i]} fillOpacity={0.15} />
-          ))}
-          <Legend iconType="circle" wrapperStyle={{ fontFamily: MONO, fontSize: 10 }} />
-        </RadarChart>
-      </ResponsiveContainer>
-    </div>
-  )
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function TrendCard({ sectors }: { sectors: any[] }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allPeriods: string[] = sectors[0]?.history?.map((h: any) => h.period) ?? []
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const chartData = allPeriods.map(p => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const row: Record<string, any> = { period: p.slice(5) }
-    for (const s of sectors) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const point = s.history?.find((h: any) => h.period === p)
-      row[s.label] = point?.value
-    }
-    return row
-  })
-
-  const recent = chartData.slice(-12)
-
-  return (
-    <div style={{ background: color.bg2, borderRadius: 16, padding: 24, border: `1px solid ${color.bd1}` }}>
-      <div style={{ fontFamily: MONO, fontSize: 12, color: color.amber, letterSpacing: "0.08em", marginBottom: 16 }}>12-MONTH MOMENTUM TREND</div>
-      <ResponsiveContainer width="100%" height={240}>
-        <LineChart data={recent}>
-          <CartesianGrid stroke={color.bd1} strokeDasharray="3 3" />
-          <XAxis dataKey="period" tick={{ fontFamily: MONO, fontSize: 9, fill: color.t4 }} tickLine={false} />
-          <YAxis tick={{ fontFamily: MONO, fontSize: 9, fill: color.t4 }} tickLine={false} axisLine={false} />
-          <Tooltip contentStyle={{ background: color.bg3, border: `1px solid ${color.bd2}`, borderRadius: 8, fontFamily: MONO, fontSize: 11 }} />
-          <Legend iconType="circle" wrapperStyle={{ fontFamily: MONO, fontSize: 10 }} />
-          {sectors.map((s, i) => (
-            <Line key={s.id} type="monotone" dataKey={s.label} stroke={SECTOR_COLORS[i]} strokeWidth={2} dot={false} />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+    <div style={{ background: color.bg2, borderRadius: 16, padding: 24, border: `1px solid ${color.bd1}`, gridColumn: "1 / -1" }}>
+      <div style={{ fontFamily: MONO, fontSize: 12, color: color.amber, letterSpacing: "0.08em", marginBottom: 16 }}>PRIMARY SIGNALS COMPARISON</div>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${sectors.length}, 1fr)`, gap: 16 }}>
+        {sectors.map((s, i) => (
+          <div key={s.id}>
+            <div style={{ fontFamily: MONO, fontSize: 10, color: SECTOR_COLORS[i], letterSpacing: "0.08em", marginBottom: 10 }}>
+              {s.label?.toUpperCase()}
+            </div>
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {(s.primary_signals ?? []).map((sig: any) => (
+              <div key={sig.id} style={{ marginBottom: 8, padding: "8px 10px", background: color.bg3, borderRadius: 6 }}>
+                <div style={{ fontFamily: MONO, fontSize: 9, color: color.t4, marginBottom: 2 }}>{sig.label}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontFamily: MONO, fontSize: 12, color: color.t1 }}>{sig.value}</span>
+                  {sig.yoy !== null && (
+                    <span style={{ fontFamily: MONO, fontSize: 10, color: sig.direction === 'UP' ? color.green : sig.direction === 'DOWN' ? color.red : color.t4 }}>
+                      {sig.yoy > 0 ? '+' : ''}{sig.yoy.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -118,7 +63,7 @@ export default function ComparePage() {
   const [data, setData] = useState<any>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [satData, setSatData] = useState<any>(null)
-  const [selected, setSelected] = useState<string[]>(["residential", "industrial", "multifamily"])
+  const [selected, setSelected] = useState<string[]>(["residential", "industrial", "infrastructure"])
 
   useEffect(() => {
     fetch("/api/compare")
@@ -199,25 +144,13 @@ export default function ComparePage() {
                 const sectorBsi = satData?.sectors?.[s.id]
                 return (
                   <div key={s.id} style={{ background: color.bg2, borderRadius: 16, padding: 20, border: `1px solid ${SECTOR_COLORS[i]}44` }}>
-                    <div style={{ fontFamily: MONO, fontSize: 10, color: SECTOR_COLORS[i], letterSpacing: "0.08em", marginBottom: 8 }}>{s.label.toUpperCase()}</div>
-                    <div style={{ fontFamily: MONO, fontSize: 28, color: color.t1, fontWeight: 700 }}>{s.cshi?.toFixed(1)}</div>
-                    <div style={{ fontFamily: MONO, fontSize: 10, color: classColor(s.classification), marginBottom: 12 }}>{s.classification}</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      {[
-                        { label: "MoM", value: `${s.mom_change > 0 ? "+" : ""}${s.mom_change?.toFixed(1)}%` },
-                        { label: "YoY", value: `${s.yoy_change > 0 ? "+" : ""}${s.yoy_change?.toFixed(1)}%` },
-                        { label: "Backlog", value: `${s.backlog_months?.toFixed(1)}mo` },
-                        { label: "Risk", value: s.risk_score },
-                      ].map(m => (
-                        <div key={m.label} style={{ background: color.bg3, borderRadius: 6, padding: "6px 10px" }}>
-                          <div style={{ fontFamily: MONO, fontSize: 9, color: color.t4 }}>{m.label}</div>
-                          <div style={{ fontFamily: MONO, fontSize: 13, color: color.t2 }}>{m.value}</div>
-                        </div>
-                      ))}
-                    </div>
+                    <div style={{ fontFamily: MONO, fontSize: 10, color: SECTOR_COLORS[i], letterSpacing: "0.08em", marginBottom: 8 }}>{s.label?.toUpperCase()}</div>
+                    <div style={{ fontFamily: MONO, fontSize: 22, color: classColor(s.verdict), fontWeight: 700, marginBottom: 2 }}>{s.verdict ?? '—'}</div>
+                    <div style={{ fontFamily: MONO, fontSize: 9, color: color.t4, marginBottom: 10, letterSpacing: "0.06em" }}>{s.verdict_confidence} CONFIDENCE</div>
+                    <div style={{ fontFamily: SYS, fontSize: 12, color: color.t3, lineHeight: 1.5, marginBottom: 12 }}>{s.headline}</div>
                     {/* Satellite BSI metric */}
                     {satData && (
-                      <div style={{ marginTop: 8, background: color.bg3, borderRadius: 6, padding: "6px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ marginTop: 4, background: color.bg3, borderRadius: 6, padding: "6px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
                           <div style={{ fontFamily: MONO, fontSize: 9, color: color.t4 }}>BSI Δ</div>
                           <div style={{ fontFamily: MONO, fontSize: 13, color: sectorBsi?.bsi_change != null ? (sectorBsi.bsi_change >= 0 ? color.green : color.red) : color.t4 }}>
@@ -229,21 +162,14 @@ export default function ComparePage() {
                         <div style={{ fontFamily: MONO, fontSize: 8, color: color.t4, textAlign: "right" }}>SENTINEL-2<br />WEEKLY</div>
                       </div>
                     )}
-                    {s.etf && (
-                      <div style={{ marginTop: 10, background: color.bg3, borderRadius: 6, padding: "6px 10px", display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, color: color.t4 }}>ETF: {s.etf}</span>
-                        <span style={{ fontFamily: MONO, fontSize: 10, color: s.etf_ytd >= 0 ? color.green : color.red }}>{s.etf_ytd > 0 ? "+" : ""}{s.etf_ytd?.toFixed(1)}% YTD</span>
-                      </div>
-                    )}
                   </div>
                 )
               })}
             </div>
 
-            {/* Charts */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 12 }}>
-              <TrendCard sectors={activeSectors} />
-              <RadarCard sectors={activeSectors} />
+            {/* Primary signals comparison */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 20, marginBottom: 12 }}>
+              <SignalsCard sectors={activeSectors} />
             </div>
 
             {/* Satellite attribution */}

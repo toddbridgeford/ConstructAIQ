@@ -36,43 +36,6 @@ interface WatchItem {
   change: number
 }
 
-const HARDCODED_WATCHLIST: WatchItem[] = [
-  { rank: 1,  market: "Chicago, IL",       cdi: 74.2, classification: "HIGH",     drivers: ["Permit decline -18% YoY", "Employment -3.2% YoY"],                    change:  6.3 },
-  { rank: 2,  market: "Detroit, MI",        cdi: 68.8, classification: "HIGH",     drivers: ["Federal awards -22% YoY", "Materials +31% above avg"],                change:  2.1 },
-  { rank: 3,  market: "St. Louis, MO",      cdi: 62.1, classification: "ELEVATED", drivers: ["Permit deceleration 3 consecutive months"],                           change:  4.2 },
-  { rank: 4,  market: "Baltimore, MD",      cdi: 58.4, classification: "ELEVATED", drivers: ["Employment -1.8% YoY", "Permit value down"],                          change:  1.8 },
-  { rank: 5,  market: "Cleveland, OH",      cdi: 55.7, classification: "ELEVATED", drivers: ["Permit volume -12% YoY"],                                             change:  3.1 },
-  { rank: 6,  market: "Memphis, TN",        cdi: 51.3, classification: "ELEVATED", drivers: ["Federal award slowdown", "Employment plateau"],                       change: -0.4 },
-  { rank: 7,  market: "Hartford, CT",       cdi: 48.9, classification: "ELEVATED", drivers: ["Materials +18% above avg"],                                           change:  2.2 },
-  { rank: 8,  market: "Milwaukee, WI",      cdi: 46.2, classification: "ELEVATED", drivers: ["Permit deceleration"],                                                change:  0.8 },
-  { rank: 9,  market: "Rochester, NY",      cdi: 43.1, classification: "ELEVATED", drivers: ["Employment -0.9% YoY"],                                              change:  1.4 },
-  { rank: 10, market: "Louisville, KY",     cdi: 41.8, classification: "ELEVATED", drivers: ["Federal awards -8% YoY"],                                            change: -1.2 },
-]
-
-const RECOVERY_MARKETS = [
-  { market: "Las Vegas, NV",     cdi: 38.1, delta: -12.4 },
-  { market: "Denver, CO",        cdi: 41.2, delta:  -9.7 },
-  { market: "Salt Lake City, UT", cdi: 29.8, delta:  -8.1 },
-]
-
-// 36 months of CDI history: start ~20, rise to ~45 peak mid-2022, decline to ~28 by Apr 2026
-function buildHistoricalData() {
-  const months = [
-    "May 23","Jun 23","Jul 23","Aug 23","Sep 23","Oct 23","Nov 23","Dec 23",
-    "Jan 24","Feb 24","Mar 24","Apr 24","May 24","Jun 24","Jul 24","Aug 24","Sep 24","Oct 24","Nov 24","Dec 24",
-    "Jan 25","Feb 25","Mar 25","Apr 25","May 25","Jun 25","Jul 25","Aug 25","Sep 25","Oct 25","Nov 25","Dec 25",
-    "Jan 26","Feb 26","Mar 26","Apr 26",
-  ]
-  const vals = [
-    20, 21, 23, 25, 27, 29, 31, 34,
-    36, 38, 40, 42, 44, 45, 44, 43, 42, 41, 40, 39,
-    38, 37, 36, 35, 34, 33, 32, 31, 31, 30, 30, 29,
-    29, 28, 28, 28,
-  ]
-  return months.map((m, i) => ({ month: m, cdi: vals[i] }))
-}
-
-const HIST_DATA = buildHistoricalData()
 
 function classColor(c: string) {
   if (c === "HIGH")     return RED
@@ -116,7 +79,7 @@ export default function DistressPage() {
       .catch(() => setLoading(false))
   }, [])
 
-  const watchlist: WatchItem[] = data?.watchlist ?? HARDCODED_WATCHLIST
+  const watchlist: WatchItem[] = data?.watchlist ?? []
 
   return (
     <div style={{ minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS }}>
@@ -168,49 +131,59 @@ export default function DistressPage() {
             {/* HIGH DISTRESS */}
             <div style={{ flex: 1, minWidth: 180, background: BG1, border: `1px solid ${BD1}`, borderRadius: 14, padding: "20px 24px" }}>
               <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.1em", marginBottom: 8 }}>HIGH DISTRESS</div>
-              <div style={{ fontFamily: SYS, fontSize: 40, fontWeight: 700, color: RED, lineHeight: 1 }}>{data?.highDistress ?? 3}</div>
+              <div style={{ fontFamily: SYS, fontSize: 40, fontWeight: 700, color: RED, lineHeight: 1 }}>
+                {watchlist.filter((w: WatchItem) => w.classification === 'HIGH').length || '—'}
+              </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-                <span style={{ fontFamily: MONO, fontSize: 11, color: RED, background: RED_DIM, borderRadius: 6, padding: "2px 8px" }}>▲ +1</span>
-                <span style={{ fontFamily: SYS, fontSize: 12, color: T4 }}>vs last month</span>
+                <span style={{ fontFamily: SYS, fontSize: 12, color: T4 }}>markets monitored</span>
               </div>
             </div>
             {/* ELEVATED RISK */}
             <div style={{ flex: 1, minWidth: 180, background: BG1, border: `1px solid ${BD1}`, borderRadius: 14, padding: "20px 24px" }}>
               <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.1em", marginBottom: 8 }}>ELEVATED RISK</div>
-              <div style={{ fontFamily: SYS, fontSize: 40, fontWeight: 700, color: AMBER, lineHeight: 1 }}>{data?.elevatedRisk ?? 11}</div>
+              <div style={{ fontFamily: SYS, fontSize: 40, fontWeight: 700, color: AMBER, lineHeight: 1 }}>
+                {watchlist.filter((w: WatchItem) => w.classification === 'ELEVATED').length || '—'}
+              </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-                <span style={{ fontFamily: MONO, fontSize: 11, color: AMBER, background: AMBER_DIM, borderRadius: 6, padding: "2px 8px" }}>▼ -2</span>
-                <span style={{ fontFamily: SYS, fontSize: 12, color: T4 }}>vs last month</span>
+                <span style={{ fontFamily: SYS, fontSize: 12, color: T4 }}>markets monitored</span>
               </div>
             </div>
             {/* LOW RISK */}
             <div style={{ flex: 1, minWidth: 180, background: BG1, border: `1px solid ${BD1}`, borderRadius: 14, padding: "20px 24px" }}>
               <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.1em", marginBottom: 8 }}>LOW RISK</div>
-              <div style={{ fontFamily: SYS, fontSize: 40, fontWeight: 700, color: GREEN, lineHeight: 1 }}>{data?.lowRisk ?? 31}</div>
+              <div style={{ fontFamily: SYS, fontSize: 40, fontWeight: 700, color: GREEN, lineHeight: 1 }}>
+                {watchlist.filter((w: WatchItem) => w.classification === 'LOW').length || '—'}
+              </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-                <span style={{ fontFamily: MONO, fontSize: 11, color: GREEN, background: GREEN_DIM, borderRadius: 6, padding: "2px 8px" }}>→ 0</span>
-                <span style={{ fontFamily: SYS, fontSize: 12, color: T4 }}>stable</span>
+                <span style={{ fontFamily: SYS, fontSize: 12, color: T4 }}>markets monitored</span>
               </div>
             </div>
             {/* STABLE */}
             <div style={{ flex: 1, minWidth: 180, background: BG1, border: `1px solid ${BD1}`, borderRadius: 14, padding: "20px 24px" }}>
-              <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.1em", marginBottom: 8 }}>STABLE</div>
-              <div style={{ fontFamily: SYS, fontSize: 40, fontWeight: 700, color: T4, lineHeight: 1 }}>{data?.stable ?? 5}</div>
+              <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: "0.1em", marginBottom: 8 }}>NATIONAL CDI</div>
+              <div style={{ fontFamily: SYS, fontSize: 40, fontWeight: 700, color: T4, lineHeight: 1 }}>
+                {data?.national_avg_cdi?.toFixed(0) ?? '—'}
+              </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-                <span style={{ fontFamily: MONO, fontSize: 11, color: T4, background: BD1, borderRadius: 6, padding: "2px 8px" }}>→ unchanged</span>
+                <span style={{ fontFamily: SYS, fontSize: 12, color: T4 }}>national CDI avg</span>
               </div>
             </div>
           </div>
           <div style={{ textAlign: "center", fontFamily: MONO, fontSize: 13, color: T3, letterSpacing: "0.06em" }}>
-            National CDI Average: 28.4 &nbsp;🟢&nbsp; LOW RISK
+            National CDI Average: {data?.national_avg_cdi?.toFixed(1) ?? '—'} &nbsp;·&nbsp; {data?.national_classification ?? 'PENDING DATA'}
           </div>
         </div>
 
         {/* SECTION 2 — Distress Watch List */}
         <div style={{ marginBottom: 56 }}>
           <h2 style={{ fontFamily: SYS, fontSize: 24, fontWeight: 700, color: T1, marginBottom: 24 }}>
-            April 2026 — Distress Watch List
+            Distress Watch List
           </h2>
+          {watchlist.length === 0 && (
+            <div style={{ fontFamily: MONO, fontSize: 13, color: T4, padding: "24px 0", textAlign: "center" }}>
+              No market-level distress data available — MSA-level data integration pending.
+            </div>
+          )}
           {watchlist.map((item) => {
             const isExpanded = expanded === item.market
             const cc = classColor(item.classification)
@@ -304,7 +277,11 @@ export default function DistressPage() {
             Markets Improving
           </h2>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            {RECOVERY_MARKETS.map((m) => (
+            {(data?.recovery ?? []).length === 0 ? (
+              <div style={{ fontFamily: MONO, fontSize: 13, color: T4, padding: "24px 0", textAlign: "center" }}>
+                No recovery market data available — MSA-level integration pending.
+              </div>
+            ) : (data?.recovery ?? []).map((m: { market: string; cdi: number; delta: number }) => (
               <div key={m.market} style={{
                 flex: 1, minWidth: 200,
                 background: BG1, border: `1px solid ${BD1}`,
@@ -331,7 +308,7 @@ export default function DistressPage() {
           </h2>
           <div style={{ background: BG1, border: `1px solid ${BD1}`, borderRadius: 14, padding: "24px 20px 16px" }}>
             <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={HIST_DATA} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+              <AreaChart data={data?.hist_data ?? []} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
                 <defs>
                   <linearGradient id="cdiGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%"  stopColor={RED} stopOpacity={0.35} />

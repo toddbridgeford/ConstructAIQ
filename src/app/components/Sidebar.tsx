@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, TrendingUp, Building2, MapPin, FolderOpen,
   Radio, BarChart2, AlertTriangle, MessageSquare,
-  BookOpen, Key, PieChart, Newspaper, Mail, Calendar, Layers, ScanSearch, Globe2, FileText, type LucideIcon,
+  BookOpen, Key, PieChart, Newspaper, Mail, Calendar, Layers, ScanSearch, Globe2, FileText,
+  DollarSign, Activity, ArrowLeftRight, type LucideIcon,
 } from "lucide-react"
 import { color, font, layout as L, type as TS } from "@/lib/theme"
 import { getPrefs, removeMarket, PREF_EVENT, type UserPreferences } from "@/lib/preferences"
@@ -366,6 +367,31 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
         )}
 
         {BOTTOM.map(({ label, href, Icon }) => (
+          <NavRow
+            key={href}
+            href={href}
+            label={label}
+            Icon={Icon}
+            active={itemIsActive(href, pathname)}
+            iconOnly={mode === 'icon'}
+            muted
+          />
+        ))}
+
+        {/* ── More Tools ─────────────────────────────────────────────── */}
+        {mode === 'full' && (
+          <div style={{ height: 1, margin: '4px 12px 0', background: color.bd1 }} />
+        )}
+        {mode === 'full' && (
+          <div style={{ padding: '10px 16px 4px' }}>
+            <div style={{ ...TS.label, color: color.t4, marginBottom: 4 }}>More Tools</div>
+          </div>
+        )}
+        {[
+          { label: 'Cost Index',     href: '/ccci',     Icon: DollarSign    },
+          { label: 'Distress Index', href: '/distress', Icon: Activity      },
+          { label: 'Sector Compare', href: '/compare',  Icon: ArrowLeftRight },
+        ].map(({ label, href, Icon }) => (
           <NavRow
             key={href}
             href={href}

@@ -3,11 +3,10 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import {
-  AreaChart, Area, BarChart, Bar, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend,
+  AreaChart, Area, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts"
 import { font, color } from "@/lib/theme"
-import { seeded } from "@/lib/seeded"
 
 const SYS = font.sys, MONO = font.mono
 const AMBER = color.amber, GREEN = color.green, RED = color.red, BLUE = color.blue
@@ -86,11 +85,9 @@ export default function CCCIPage() {
     return history
   })()
 
-  const histWithBenchmarks = filteredHistory.map((p: { period: string; value: number }, i: number) => ({
+  const histWithBenchmarks = filteredHistory.map((p: { period: string; value: number }) => ({
     ...p,
     label: p.period,
-    cpi: +(100 + i * 0.38 + (seeded(i * 2) - 0.5) * 0.4).toFixed(1),
-    ppi: +(100 + i * 0.29 + (seeded(i * 2 + 1) - 0.5) * 0.3).toFixed(1),
   }))
 
   const forecastData = (() => {
@@ -106,14 +103,11 @@ export default function CCCIPage() {
     return pts
   })()
 
-  const compData = COMPONENTS.map((c, ci) => ({
+  const compData = COMPONENTS.map((c) => ({
     ...c,
-    current: data?.components?.[c.key]?.value ?? (100 + c.weight * 24 * (seeded(ci) + 0.5)),
-    mom: data?.components?.[c.key]?.mom_change ?? ((seeded(ci + 10) - 0.3) * 3),
-    history: Array.from({ length: 24 }, (_, i) => ({
-      label: `M${i + 1}`,
-      value: +(100 + i * c.weight * 0.8 + (seeded(ci * 24 + i) - 0.5) * 2).toFixed(1),
-    })),
+    current: (data?.components?.[c.key]?.value as number | null) ?? null,
+    mom:     (data?.components?.[c.key]?.mom_change as number | null) ?? null,
+    history: [] as { label: string; value: number }[],
   }))
 
   return (
@@ -163,8 +157,10 @@ export default function CCCIPage() {
                     <span style={{ fontFamily: MONO, fontSize: 10, color: T4 }}>{(c.weight * 100).toFixed(0)}% weight</span>
                   </div>
                   <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <span style={{ fontFamily: MONO, fontSize: 13, color: T1, fontWeight: 700 }}>{c.current.toFixed(1)}</span>
-                    <span style={{ fontFamily: MONO, fontSize: 11, color: c.mom >= 0 ? GREEN : RED }}>{c.mom >= 0 ? "▲" : "▼"} {Math.abs(c.mom).toFixed(1)}% MoM</span>
+                    <span style={{ fontFamily: MONO, fontSize: 13, color: T1, fontWeight: 700 }}>{c.current !== null ? c.current.toFixed(1) : '—'}</span>
+                    {c.mom !== null && (
+                      <span style={{ fontFamily: MONO, fontSize: 11, color: c.mom >= 0 ? GREEN : RED }}>{c.mom >= 0 ? "▲" : "▼"} {Math.abs(c.mom).toFixed(1)}% MoM</span>
+                    )}
                   </div>
                 </div>
                 <div style={{ height: 6, background: BG3, borderRadius: 3, overflow: "hidden" }}>
@@ -217,21 +213,16 @@ export default function CCCIPage() {
             {compData.map(c => (
               <div key={c.key} style={{ background: BG1, border: `1px solid ${BD1}`, borderRadius: 12, padding: 16 }}>
                 <div style={{ fontFamily: MONO, fontSize: 10, color: c.color, letterSpacing: "0.08em", marginBottom: 4 }}>{c.label.toUpperCase()}</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 10 }}>
-                  <span style={{ fontFamily: MONO, fontSize: 20, color: T1, fontWeight: 700 }}>{c.current.toFixed(1)}</span>
-                  <span style={{ fontFamily: MONO, fontSize: 10, color: c.mom >= 0 ? GREEN : RED }}>{c.mom >= 0 ? "▲" : "▼"} {Math.abs(c.mom).toFixed(1)}%</span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 20, color: T1, fontWeight: 700 }}>
+                    {c.current !== null ? c.current.toFixed(1) : '—'}
+                  </span>
+                  {c.mom !== null && (
+                    <span style={{ fontFamily: MONO, fontSize: 10, color: c.mom >= 0 ? GREEN : RED }}>
+                      {c.mom >= 0 ? "▲" : "▼"} {Math.abs(c.mom).toFixed(1)}%
+                    </span>
+                  )}
                 </div>
-                <ResponsiveContainer width="100%" height={70}>
-                  <AreaChart data={c.history} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
-                    <defs>
-                      <linearGradient id={`grad-${c.key}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={c.color} stopOpacity={0.3} />
-                        <stop offset="100%" stopColor={c.color} stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <Area type="monotone" dataKey="value" stroke={c.color} strokeWidth={1.5} fill={`url(#grad-${c.key})`} dot={false} isAnimationActive={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
               </div>
             ))}
           </div>
@@ -240,17 +231,9 @@ export default function CCCIPage() {
         {/* CCCI vs Benchmarks */}
         <div style={{ marginBottom: 48 }}>
           <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 6 }}>SECTION 4</div>
-          <h2 style={{ fontFamily: SYS, fontSize: 26, fontWeight: 700, color: T1, marginBottom: 8 }}>Construction vs. Broader Inflation</h2>
-          <p style={{ fontFamily: SYS, fontSize: 15, color: T3, marginBottom: 16 }}>How construction cost inflation compares to broader price trends</p>
+          <h2 style={{ fontFamily: SYS, fontSize: 26, fontWeight: 700, color: T1, marginBottom: 8 }}>CCCI Historical Trend</h2>
+          <p style={{ fontFamily: SYS, fontSize: 15, color: T3, marginBottom: 16 }}>Construction cost inflation over the selected period (base 100 = first available period)</p>
           <div style={{ background: BG1, border: `1px solid ${BD1}`, borderRadius: 16, padding: 20 }}>
-            <div style={{ display: "flex", gap: 20, marginBottom: 16, flexWrap: "wrap" }}>
-              {[{ label: "CCCI", color: AMBER }, { label: "CPI", color: T3 }, { label: "PPI All", color: BD2 }].map(l => (
-                <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 18, height: 3, background: l.color, borderRadius: 2 }} />
-                  <span style={{ fontFamily: MONO, fontSize: 10, color: T4 }}>{l.label}</span>
-                </div>
-              ))}
-            </div>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={histWithBenchmarks} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
                 <CartesianGrid vertical={false} stroke={BD1} strokeDasharray="3 3" />
@@ -258,8 +241,6 @@ export default function CCCIPage() {
                 <YAxis tick={{ fontFamily: MONO, fontSize: 9, fill: T4 }} tickLine={false} axisLine={false} domain={[95, "auto"]} />
                 <Tooltip content={<CCCITooltip />} />
                 <Line type="monotone" dataKey="value" stroke={AMBER} strokeWidth={2} dot={false} name="CCCI" isAnimationActive={false} />
-                <Line type="monotone" dataKey="cpi" stroke={T3} strokeWidth={1.5} dot={false} name="CPI" isAnimationActive={false} />
-                <Line type="monotone" dataKey="ppi" stroke={BD2} strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="PPI All" isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
