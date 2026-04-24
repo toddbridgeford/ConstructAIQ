@@ -154,12 +154,15 @@ interface WeeklySignalParams {
   verdictText: string
   verdictType: "EXPAND" | "HOLD" | "CONTRACT"
   weekOf:      string
+  agentBrief?: string   // personalized AI briefing — replaces generic brief for watchlist users
+  role?:       string   // user role for personalized header copy
 }
 
 export async function sendWeeklySignal(params: WeeklySignalParams) {
   const {
     to, brief, spendVal, spendMom, permitVal, permitMom,
     employVal, employMom, topSignal, verdictText, verdictType, weekOf,
+    agentBrief, role,
   } = params
 
   const subject = `The Signal — ${weekOf} Construction Market Update`
@@ -232,9 +235,16 @@ export async function sendWeeklySignal(params: WeeklySignalParams) {
 
   <!-- Market Intelligence -->
   <div style="padding:28px;background:#000;border-bottom:1px solid #2a2a2a">
+    ${agentBrief ? `
+    <div style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:10px;color:#0a84ff;letter-spacing:0.14em;margin-bottom:6px;text-transform:uppercase">Your Personalized Brief</div>
+    <div style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:9px;color:#6e6e73;letter-spacing:0.1em;margin-bottom:18px;text-transform:uppercase">${role ? `For ${role.charAt(0).toUpperCase() + role.slice(1)}` : 'Based on your watchlist'} · AI-generated from live data</div>
+    ${agentBrief.split(/\n\n+/).map(p => `<p style="margin:0 0 14px;line-height:1.7;font-size:15px;color:#ebebf0">${p.replace(/\n/g, '<br>')}</p>`).join('')}
+    <a href="${BASE}/my-brief" style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12px;color:#0a84ff;text-decoration:none;letter-spacing:0.04em">View full brief on dashboard &#8594;</a>
+    ` : `
     <div style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:10px;color:#6e6e73;letter-spacing:0.14em;margin-bottom:18px;text-transform:uppercase">This Week&#39;s Market Intelligence</div>
     ${briefParas}
     <a href="${BASE}/dashboard" style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12px;color:#0a84ff;text-decoration:none;letter-spacing:0.04em">Read full analysis on the dashboard &#8594;</a>
+    `}
   </div>
 
   <!-- Signal Alert -->
