@@ -68,10 +68,11 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // www must also be configured as a Vercel project domain and DNS CNAME for this redirect to execute.
       {
-        source: "/",
+        source: "/:path*",
         has: [{ type: "host", value: "www.constructaiq.trade" }],
-        destination: "https://constructaiq.trade",
+        destination: "https://constructaiq.trade/:path*",
         permanent: true,
       },
     ];
