@@ -1,123 +1,116 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-interface ServiceStatus {
-  name:      string
-  status:    'up' | 'degraded' | 'down'
-  latencyMs: number | null
-  detail:    string
+type SeriesRow = { source: string; last_updated: string | null }
+
+const SOURCE_LABELS: Record<string, string> = {
+  FRED:         'FRED / Federal Reserve',
+  Census:       'Census Bureau',
+  BLS:          'BLS',
+  'Freddie Mac':'Freddie Mac',
+  USASpending:  'USASpending.gov',
+  Copernicus:   'ESA Copernicus (Satellite)',
+  SAM:          'SAM.gov Solicitations',
+  Socrata:      '40-City Permit Portals',
+  WARN:         'DOL WARN Act',
 }
 
-async function checkSupabase(): Promise<ServiceStatus> {
-  const t = Date.now()
-  try {
-    const { data, error } = await supabase
-      .from('observations')
-      .select('count', { count: 'exact', head: true })
-    const ms = Date.now() - t
-    if (error) return { name: 'Supabase', status: 'degraded', latencyMs: ms, detail: error.message }
-    return { name: 'Supabase', status: 'up', latencyMs: ms, detail: 'Connected' }
-  } catch (e) {
-    return { name: 'Supabase', status: 'down', latencyMs: null, detail: String(e) }
-  }
-}
-
-async function checkAPI(name: string, path: string): Promise<ServiceStatus> {
-  const t = Date.now()
-  try {
-    const base = process.env.NEXT_PUBLIC_APP_URL || 'https://constructaiq.trade'
-    const r = await fetch(`${base}${path}`, { signal: AbortSignal.timeout(5000) })
-    const ms = Date.now() - t
-    if (r.ok) return { name, status: 'up', latencyMs: ms, detail: `HTTP ${r.status}` }
-    return { name, status: 'degraded', latencyMs: ms, detail: `HTTP ${r.status}` }
-  } catch (e) {
-    return { name, status: 'down', latencyMs: null, detail: String(e) }
-  }
+function staleness(lastUpdated: string | null): 'ok' | 'warn' | 'stale' {
+  if (!lastUpdated) return 'stale'
+  const ageDays = (Date.now() - new Date(lastUpdated).getTime()) / 86_400_000
+  if (ageDays <= 2) return 'ok'
+  if (ageDays <= 7) return 'warn'
+  return 'stale'
 }
 
 export async function GET() {
-  const start = Date.now()
+  const now      = new Date()
+  const day7ago  = new Date(now); day7ago.setDate(now.getDate() - 7)
+  const day30ago = new Date(now); day30ago.setDate(now.getDate() - 30)
 
-  // Check Supabase data freshness
-  let lastHarvest: string | null = null
-  let totalObservations = 0
-  let totalForecasts = 0
-
-  try {
-    const [obsRes, fcstRes, logRes] = await Promise.allSettled([
-      supabase.from('observations').select('count', { count: 'exact', head: true }),
-      supabase.from('forecasts').select('count', { count: 'exact', head: true }),
-      supabase.from('harvest_log').select('completed_at').order('completed_at', { ascending: false }).limit(1),
-    ])
-
-    if (obsRes.status === 'fulfilled' && obsRes.value.count != null) {
-      totalObservations = obsRes.value.count
-    }
-    if (fcstRes.status === 'fulfilled' && fcstRes.value.count != null) {
-      totalForecasts = fcstRes.value.count
-    }
-    if (logRes.status === 'fulfilled' && logRes.value.data?.length) {
-      lastHarvest = logRes.value.data[0].completed_at
-    }
-  } catch {}
-
-  // Check core services (in parallel)
-  const [dbStatus] = await Promise.all([
-    checkSupabase(),
+  const [
+    seriesRes,
+    oppRes,
+    predMadeRes,
+    predDueRes,
+    predEvalRes,
+    predCorrectRes,
+    entityRes,
+    edgeRes,
+    eventRes,
+  ] = await Promise.allSettled([
+    supabaseAdmin.from('series').select('source, last_updated').order('source'),
+    supabaseAdmin.from('opportunity_scores').select('metro_code', { count: 'exact', head: true }),
+    supabaseAdmin.from('prediction_outcomes').select('*', { count: 'exact', head: true }).gte('predicted_at', day7ago.toISOString()),
+    supabaseAdmin.from('prediction_outcomes').select('*', { count: 'exact', head: true }).lte('outcome_due_at', now.toISOString()).is('outcome_correct', null),
+    supabaseAdmin.from('prediction_outcomes').select('*', { count: 'exact', head: true }).gte('outcome_checked_at', day7ago.toISOString()).not('outcome_correct', 'is', null),
+    supabaseAdmin.from('prediction_outcomes').select('*', { count: 'exact', head: true }).gte('outcome_checked_at', day7ago.toISOString()).eq('outcome_correct', true),
+    supabaseAdmin.from('entities').select('*', { count: 'exact', head: true }),
+    supabaseAdmin.from('entity_edges').select('*', { count: 'exact', head: true }),
+    supabaseAdmin.from('event_log').select('*', { count: 'exact', head: true }).gte('event_date', day30ago.toISOString().slice(0, 10)),
   ])
 
-  const services: ServiceStatus[] = [dbStatus]
+  // ── Data freshness ───────────────────────────────────────────────────────
+  const freshness: {
+    source: string
+    label: string
+    last_updated: string | null
+    status: 'ok' | 'warn' | 'stale'
+  }[] = []
 
-  // Determine overall health
-  const downCount     = services.filter(s => s.status === 'down').length
-  const degradedCount = services.filter(s => s.status === 'degraded').length
-  const overall       = downCount > 0 ? 'degraded' : degradedCount > 0 ? 'degraded' : 'operational'
-
-  // Data freshness
-  let dataFreshness = 'unknown'
-  if (lastHarvest) {
-    const ageHours = (Date.now() - new Date(lastHarvest).getTime()) / 3600000
-    dataFreshness = ageHours < 5 ? 'fresh' : ageHours < 12 ? 'recent' : 'stale'
+  if (seriesRes.status === 'fulfilled' && !seriesRes.value.error) {
+    const bySource: Record<string, string | null> = {}
+    for (const row of (seriesRes.value.data ?? []) as SeriesRow[]) {
+      const src = row.source ?? 'Unknown'
+      const cur = bySource[src]
+      if (!cur || (row.last_updated && row.last_updated > cur)) {
+        bySource[src] = row.last_updated
+      }
+    }
+    for (const [source, last_updated] of Object.entries(bySource)) {
+      freshness.push({
+        source,
+        label: SOURCE_LABELS[source] ?? source,
+        last_updated,
+        status: staleness(last_updated),
+      })
+    }
+    freshness.sort((a, b) => a.label.localeCompare(b.label))
   }
 
-  const now = new Date().toISOString()
+  const oppCount      = oppRes.status      === 'fulfilled' ? (oppRes.value.count      ?? 0) : 0
+  const madeLast7     = predMadeRes.status  === 'fulfilled' ? (predMadeRes.value.count  ?? 0) : 0
+  const dueUnresolved = predDueRes.status   === 'fulfilled' ? (predDueRes.value.count   ?? 0) : 0
+  const evalLast7     = predEvalRes.status  === 'fulfilled' ? (predEvalRes.value.count  ?? 0) : 0
+  const correctLast7  = predCorrectRes.status === 'fulfilled' ? (predCorrectRes.value.count ?? 0) : 0
+  const entityCount   = entityRes.status    === 'fulfilled' ? (entityRes.value.count    ?? 0) : 0
+  const edgeCount     = edgeRes.status      === 'fulfilled' ? (edgeRes.value.count      ?? 0) : 0
+  const eventCount    = eventRes.status     === 'fulfilled' ? (eventRes.value.count     ?? 0) : 0
+
+  const par7d = evalLast7 > 0
+    ? Math.round((correctLast7 / evalLast7) * 1000) / 10
+    : null
 
   return NextResponse.json({
-    status:    overall,
-    timestamp: now,
-    version:   'Phase 3',
-    uptime:    'Vercel Serverless',
-    data: {
-      observations:  totalObservations,
-      forecasts:     totalForecasts,
-      lastHarvest:   lastHarvest || 'unknown',
-      dataFreshness,
-      nextHarvest:   'Every 4 hours (cron: 0 */4 * * *)',
+    freshness,
+    opportunity_metros: oppCount,
+    predictions: {
+      made_last_7d:      madeLast7,
+      due_unresolved:    dueUnresolved,
+      evaluated_last_7d: evalLast7,
+      correct_last_7d:   correctLast7,
+      par_last_7d:       par7d,
     },
-    apis: {
-      total:    13,
-      healthy:  13,
-      routes: [
-        '/api/census', '/api/bls', '/api/fred', '/api/rates',
-        '/api/forecast',
-        '/api/bea', '/api/eia', '/api/signals', '/api/news',
-        '/api/map', '/api/pricewatch', '/api/subscribe', '/api/status',
-      ],
+    entity_graph: {
+      entities: entityCount,
+      edges:    edgeCount,
     },
-    models: {
-      ensemble:  '3-model accuracy-weighted',
-      models:    ['holt-winters', 'sarima', 'xgboost'],
-      accuracy:  '99.2% average (MAPE 0.76%)',
-    },
-    services,
-    responseMs: Date.now() - start,
+    events_last_30d: eventCount,
+    as_of: now.toISOString(),
   }, {
-    headers: {
-      'Cache-Control': 'public, s-maxage=60',
-      'X-ConstructAIQ-Status': overall,
-    },
+    headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
   })
 }

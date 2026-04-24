@@ -382,6 +382,62 @@ export default function MethodologyPage() {
               on a rolling 12-month out-of-sample window. The ensemble typically achieves
               3.5–5.5% MAPE on TTLCONS 6 months forward.
             </p>
+
+            {/* Live PAR summary pulled from /api/par */}
+            <div style={{
+              background: '#f7f9ff', border: '1px solid #dde5ff',
+              borderRadius: 10, padding: '20px 24px', marginBottom: 24,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ fontFamily: font.sys, fontSize: 15, fontWeight: 600, color: '#111' }}>
+                  Real-world prediction accuracy (PAR)
+                </div>
+                <div style={{ fontFamily: font.mono, fontSize: 12, color: '#888' }}>
+                  Live — updates weekly
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' as const }}>
+                <div>
+                  <div style={{ fontFamily: font.mono, fontSize: 10, color: '#6677aa', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 4 }}>
+                    Overall PAR
+                  </div>
+                  <div style={{ fontFamily: font.sys, fontSize: 36, fontWeight: 700, color: '#0033cc', lineHeight: 1 }}>
+                    {par === null
+                      ? '—'
+                      : par.overall_par === null
+                        ? '—'
+                        : `${par.overall_par}%`}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: font.mono, fontSize: 10, color: '#6677aa', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 4 }}>
+                    Sample size
+                  </div>
+                  <div style={{ fontFamily: font.sys, fontSize: 36, fontWeight: 700, color: '#111', lineHeight: 1 }}>
+                    {par === null ? '—' : par.sample_size}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: font.mono, fontSize: 10, color: '#6677aa', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 4 }}>
+                    As of
+                  </div>
+                  <div style={{ fontFamily: font.mono, fontSize: 14, color: '#555', lineHeight: 1, paddingTop: 8 }}>
+                    {par === null ? '—' : par.as_of}
+                  </div>
+                </div>
+              </div>
+
+              <p style={{ fontFamily: font.sys, fontSize: 13, color: '#555', marginTop: 14, lineHeight: 1.6 }}>
+                These numbers are live. They update weekly as predictions mature and outcomes are evaluated.
+                We do not adjust methodology retroactively.
+              </p>
+            </div>
+
+            {/* Static MAPE reference (time-series forecast, not PAR) */}
+            <p style={{ ...prose, fontSize: 13, color: '#555' }}>
+              Time-series forecast MAPE reference (rolling 12-month out-of-sample):
+            </p>
             <table style={tableStyle}>
               <thead>
                 <tr>
@@ -392,10 +448,10 @@ export default function MethodologyPage() {
               </thead>
               <tbody>
                 {[
-                  ['1 month',  '1.2%', 'Near-term, high data density'],
-                  ['3 months', '2.8%', 'Seasonal patterns dominant'],
-                  ['6 months', '4.1%', 'Policy and rate sensitivity increases'],
-                  ['12 months','6.3%', 'Long-range uncertainty'],
+                  ['1 month',   '1.2%', 'Near-term, high data density'],
+                  ['3 months',  '2.8%', 'Seasonal patterns dominant'],
+                  ['6 months',  '4.1%', 'Policy and rate sensitivity increases'],
+                  ['12 months', '6.3%', 'Long-range uncertainty'],
                 ].map(([horizon, mape, notes]) => (
                   <tr key={horizon}>
                     <td style={{ ...tdStyle, fontFamily: font.mono, fontSize: 13, fontWeight: 600 }}>{horizon}</td>
@@ -541,6 +597,19 @@ export default function MethodologyPage() {
               the re-computed classification matches the original HIGH classification.
               PAR accumulates as the platform ages — early figures reflect small sample sizes.
             </p>
+
+            <div style={{
+              marginTop: 20, padding: '14px 18px',
+              background: '#f0f4ff', borderRadius: 8,
+              border: '1px solid #ccd5f5',
+            }}>
+              <p style={{ fontFamily: font.sys, fontSize: 13, color: '#445', lineHeight: 1.65, margin: 0 }}>
+                <strong style={{ color: '#0033cc' }}>These numbers are live.</strong>{' '}
+                They update weekly as predictions mature and outcomes are evaluated.
+                We do not adjust methodology retroactively. View real-time platform health at{' '}
+                <a href="/status" style={{ color: '#0033cc', textDecoration: 'underline' }}>/status</a>.
+              </p>
+            </div>
           </section>
 
         </div>
