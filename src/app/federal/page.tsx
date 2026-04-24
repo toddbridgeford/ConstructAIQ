@@ -27,6 +27,18 @@ interface FederalData {
   updatedAt:        string
   dataSource:       string
 }
+interface Solicitation {
+  notice_id:       string
+  title:           string
+  agency:          string
+  office:          string | null
+  state_code:      string | null
+  naics:           string | null
+  posted_date:     string
+  response_due:    string | null
+  estimated_value: number | null
+  status:          string
+}
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 
@@ -227,15 +239,232 @@ function StatBadge({ label, value, sub }: { label: string; value: string; sub?: 
   )
 }
 
+// ── Solicitations panel ────────────────────────────────────────────────────
+
+const US_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
+  'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
+  'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
+  'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
+]
+
+function fmtValue(v: number | null): string {
+  if (v === null || v === undefined) return '—'
+  if (v >= 1_000_000_000) return `$${(v / 1_000_000_000).toFixed(1)}B`
+  if (v >= 1_000_000)     return `$${(v / 1_000_000).toFixed(1)}M`
+  if (v >= 1_000)         return `$${(v / 1_000).toFixed(0)}K`
+  return `$${v.toLocaleString()}`
+}
+
+function fmtShortDate(iso: string | null): string {
+  if (!iso) return '—'
+  try {
+    const [y, m, d] = iso.split('-')
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    return `${months[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y}`
+  } catch { return iso }
+}
+
+function daysUntil(iso: string | null): number | null {
+  if (!iso) return null
+  const diff = new Date(iso).getTime() - Date.now()
+  return Math.ceil(diff / 86_400_000)
+}
+
+function urgencyColor(days: number | null, green: string, amber: string, red: string): string {
+  if (days === null) return amber
+  if (days <= 7)  return red
+  if (days <= 21) return amber
+  return green
+}
+
+interface SolicitationsPanelProps {
+  sols:          Solicitation[]
+  total:         number
+  loading:       boolean
+  stateFilter:   string
+  onStateFilter: (s: string) => void
+}
+
+function SolicitationsPanel({ sols, total, loading, stateFilter, onStateFilter }: SolicitationsPanelProps) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      {/* Filter row */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        marginBottom: 16, flexWrap: 'wrap',
+      }}>
+        <div style={{ fontFamily: MONO, fontSize: 11, color: T3, letterSpacing: '0.06em' }}>
+          {loading ? 'Loading…' : `${total} open solicitation${total !== 1 ? 's' : ''}`}
+        </div>
+        <select
+          value={stateFilter}
+          onChange={e => onStateFilter(e.target.value)}
+          style={{
+            background:    BG2,
+            border:        `1px solid ${BD2}`,
+            borderRadius:  8,
+            color:         T2,
+            fontFamily:    MONO,
+            fontSize:      12,
+            padding:       '6px 12px',
+            cursor:        'pointer',
+            outline:       'none',
+          }}
+        >
+          <option value="">All States</option>
+          {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <div style={{ fontFamily: MONO, fontSize: 11, color: T4 }}>
+          Sorted by response due · most urgent first
+        </div>
+      </div>
+
+      <div style={{
+        background:   BG1,
+        border:       `1px solid ${BD1}`,
+        borderRadius: L.cardRadius,
+        overflow:     'hidden',
+      }}>
+        {loading ? (
+          <div style={{ padding: 24 }}>
+            {[0,1,2,3,4].map(i => (
+              <div key={i} style={{
+                height: 52, marginBottom: 4, borderRadius: 6,
+                background: BG2, opacity: 1 - i * 0.15,
+              }} />
+            ))}
+          </div>
+        ) : sols.length === 0 ? (
+          <div style={{
+            padding: '48px 32px', textAlign: 'center',
+            fontFamily: SYS, fontSize: 14, color: T4,
+          }}>
+            {stateFilter
+              ? `No open solicitations found for ${stateFilter}. Try another state or clear the filter.`
+              : 'No open solicitations in the database. The SAM.gov cron job populates this table daily.'}
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="fed-table" style={{ minWidth: 700 }}>
+              <thead>
+                <tr>
+                  {[
+                    ['Notice / Title',  undefined],
+                    ['Agency',          120],
+                    ['State',           60],
+                    ['Est. Value',      110],
+                    ['Posted',          100],
+                    ['Due',             120],
+                  ].map(([label, w]) => (
+                    <th key={String(label)} style={{
+                      fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: '0.08em',
+                      textTransform: 'uppercase', padding: '0 16px', height: 40,
+                      textAlign: 'left', background: BG2, fontWeight: 600,
+                      borderBottom: `1px solid ${BD2}`,
+                      width: w ?? 'auto', whiteSpace: 'nowrap',
+                    }}>
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sols.map((s, i) => {
+                  const days = daysUntil(s.response_due)
+                  const dueColor = urgencyColor(days, GREEN, AMBER, RED)
+                  return (
+                    <tr key={s.notice_id} style={{ background: i % 2 === 0 ? BG0 : BG1 }}>
+                      <td style={{ padding: '10px 16px', borderTop: `1px solid ${BD1}`, maxWidth: 360 }}>
+                        <div style={{
+                          fontFamily: SYS, fontSize: 13, fontWeight: 600,
+                          color: T1, lineHeight: 1.4,
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                          maxWidth: 340,
+                        }}>
+                          {s.title}
+                        </div>
+                        <div style={{ fontFamily: MONO, fontSize: 10, color: T4, marginTop: 2 }}>
+                          {s.notice_id}{s.naics ? ` · NAICS ${s.naics}` : ''}
+                        </div>
+                      </td>
+                      <td style={{
+                        padding: '0 16px', borderTop: `1px solid ${BD1}`,
+                        fontFamily: SYS, fontSize: 12, color: T3,
+                        whiteSpace: 'nowrap', maxWidth: 140,
+                        overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>
+                        {s.agency}
+                      </td>
+                      <td style={{
+                        padding: '0 16px', borderTop: `1px solid ${BD1}`,
+                        fontFamily: MONO, fontSize: 12, fontWeight: 700, color: T2,
+                      }}>
+                        {s.state_code ?? '—'}
+                      </td>
+                      <td style={{
+                        padding: '0 16px', borderTop: `1px solid ${BD1}`,
+                        fontFamily: MONO, fontSize: 12, color: T2,
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {fmtValue(s.estimated_value)}
+                      </td>
+                      <td style={{
+                        padding: '0 16px', borderTop: `1px solid ${BD1}`,
+                        fontFamily: MONO, fontSize: 11, color: T4,
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {fmtShortDate(s.posted_date)}
+                      </td>
+                      <td style={{
+                        padding: '0 16px', borderTop: `1px solid ${BD1}`,
+                        whiteSpace: 'nowrap',
+                      }}>
+                        <span style={{
+                          fontFamily: MONO, fontSize: 12, fontWeight: 600,
+                          color: dueColor,
+                        }}>
+                          {fmtShortDate(s.response_due)}
+                        </span>
+                        {days !== null && (
+                          <span style={{
+                            fontFamily: MONO, fontSize: 10, color: dueColor,
+                            marginLeft: 6, opacity: 0.75,
+                          }}>
+                            {days <= 0 ? 'Past due' : `${days}d`}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: '0.06em', marginTop: 12 }}>
+        Source: SAM.gov · NAICS 236x/237x/238x · Updated daily
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function FederalPage() {
-  const [data,      setData]      = useState<FederalData | null>(null)
-  const [loading,   setLoading]   = useState(true)
-  const [tab,       setTab]       = useState<'state' | 'agency'>('state')
-  const [sortKey,   setSortKey]   = useState('obligated')
-  const [sortDir,   setSortDir]   = useState<SortDir>('desc')
-  const [showChart, setShowChart] = useState(false)
+  const [data,         setData]         = useState<FederalData | null>(null)
+  const [loading,      setLoading]      = useState(true)
+  const [tab,          setTab]          = useState<'state' | 'agency' | 'solicitations'>('state')
+  const [sortKey,      setSortKey]      = useState('obligated')
+  const [sortDir,      setSortDir]      = useState<SortDir>('desc')
+  const [showChart,    setShowChart]    = useState(false)
+  const [sols,         setSols]         = useState<Solicitation[]>([])
+  const [solsTotal,    setSolsTotal]    = useState(0)
+  const [solsLoading,  setSolsLoading]  = useState(false)
+  const [solStateFilter, setSolStateFilter] = useState('')
 
   useEffect(() => {
     fetch("/api/federal")
@@ -243,6 +472,16 @@ export default function FederalPage() {
       .then(d => { if (d) setData(d) })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (tab !== 'solicitations') return
+    setSolsLoading(true)
+    const qs = solStateFilter ? `?state=${solStateFilter}&limit=50` : '?limit=50'
+    fetch(`/api/solicitations${qs}`)
+      .then(r => r.ok ? r.json() : { solicitations: [], total: 0 })
+      .then(d => { setSols(d.solicitations ?? []); setSolsTotal(d.total ?? 0) })
+      .finally(() => setSolsLoading(false))
+  }, [tab, solStateFilter])
 
   function handleSort(key: string) {
     if (sortKey === key) {
@@ -356,7 +595,11 @@ export default function FederalPage() {
           }}>
             {/* Tab buttons */}
             <div style={{ display: "flex", gap: 2, background: BG2, borderRadius: 9, padding: 3 }}>
-              {(['state', 'agency'] as const).map(t => (
+              {([
+                ['state',         'By State'],
+                ['agency',        'By Agency'],
+                ['solicitations', 'Solicitations'],
+              ] as const).map(([t, label]) => (
                 <button
                   key={t}
                   onClick={() => { setTab(t); setSortKey('obligated'); setSortDir('desc') }}
@@ -376,50 +619,52 @@ export default function FederalPage() {
                     transition:    'all 0.15s',
                   }}
                 >
-                  {t === 'state' ? 'By State' : 'By Agency'}
+                  {label}
                 </button>
               ))}
             </div>
 
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                onClick={() => setShowChart(v => !v)}
-                style={{
-                  background:    showChart ? `${BLUE}22` : 'transparent',
-                  border:        `1px solid ${showChart ? BLUE : BD2}`,
-                  color:         showChart ? BLUE : T3,
-                  borderRadius:  8,
-                  padding:       '7px 14px',
-                  fontFamily:    MONO,
-                  fontSize:      11,
-                  fontWeight:    600,
-                  letterSpacing: '0.06em',
-                  cursor:        'pointer',
-                  minHeight:     36,
-                  transition:    'all 0.15s',
-                }}
-              >
-                {showChart ? 'Hide Chart' : 'View as Chart'}
-              </button>
+            {tab !== 'solicitations' && (
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => setShowChart(v => !v)}
+                  style={{
+                    background:    showChart ? `${BLUE}22` : 'transparent',
+                    border:        `1px solid ${showChart ? BLUE : BD2}`,
+                    color:         showChart ? BLUE : T3,
+                    borderRadius:  8,
+                    padding:       '7px 14px',
+                    fontFamily:    MONO,
+                    fontSize:      11,
+                    fontWeight:    600,
+                    letterSpacing: '0.06em',
+                    cursor:        'pointer',
+                    minHeight:     36,
+                    transition:    'all 0.15s',
+                  }}
+                >
+                  {showChart ? 'Hide Chart' : 'View as Chart'}
+                </button>
 
-              <button
-                onClick={() => tab === 'state' ? downloadStateCSV(allStates) : downloadAgencyCSV(allAgencies)}
-                style={{
-                  background:    'transparent',
-                  border:        `1px solid ${BD2}`,
-                  borderRadius:  8,
-                  padding:       '7px 14px',
-                  fontFamily:    MONO,
-                  fontSize:      11,
-                  color:         T3,
-                  letterSpacing: '0.06em',
-                  cursor:        'pointer',
-                  minHeight:     36,
-                }}
-              >
-                Export CSV
-              </button>
-            </div>
+                <button
+                  onClick={() => tab === 'state' ? downloadStateCSV(allStates) : downloadAgencyCSV(allAgencies)}
+                  style={{
+                    background:    'transparent',
+                    border:        `1px solid ${BD2}`,
+                    borderRadius:  8,
+                    padding:       '7px 14px',
+                    fontFamily:    MONO,
+                    fontSize:      11,
+                    color:         T3,
+                    letterSpacing: '0.06em',
+                    cursor:        'pointer',
+                    minHeight:     36,
+                  }}
+                >
+                  Export CSV
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -491,8 +736,19 @@ export default function FederalPage() {
           </div>
         )}
 
+        {/* ── Solicitations tab ──────────────────────────────────────────── */}
+        {tab === 'solicitations' && (
+          <SolicitationsPanel
+            sols={sols}
+            total={solsTotal}
+            loading={solsLoading}
+            stateFilter={solStateFilter}
+            onStateFilter={setSolStateFilter}
+          />
+        )}
+
         {/* ── Table ──────────────────────────────────────────────────────── */}
-        <div style={{
+        {tab !== 'solicitations' && <div style={{
           background:   BG1,
           border:       `1px solid ${BD1}`,
           borderRadius: L.cardRadius,
@@ -632,7 +888,7 @@ export default function FederalPage() {
               </table>
             </div>
           )}
-        </div>
+        </div>}
 
         {/* ── Source line ─────────────────────────────────────────────────── */}
         <div style={{

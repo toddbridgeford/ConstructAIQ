@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       job:
-        description: 'Which job to run (all, harvest, forecast, federal, permits)'
+        description: 'Which job to run (all, harvest, forecast, federal, solicitations, permits)'
         required: false
         default: 'all'
 
@@ -85,7 +85,28 @@ jobs:
           " 2>/dev/null || cat federal.json
           [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || (echo "Non-2xx response: HTTP $HTTP" && exit 1)
 
-      - name: 4 — Fetch city permits
+      - name: 4 — Fetch SAM.gov solicitations
+        if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'solicitations' || github.event_name == 'schedule' }}
+        continue-on-error: true
+        run: |
+          echo "Fetching SAM.gov solicitations..."
+          HTTP=$(curl -s -o solicitations.json -w "%{http_code}" -X GET "$APP_URL/api/cron/solicitations" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          echo "HTTP $HTTP"
+          cat solicitations.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if d.get('status') == 'skipped':
+            print('Skipped:', d.get('message',''))
+          elif 'error' in d:
+            print('ERROR:', d['error'])
+            sys.exit(1)
+          else:
+            print(f'Fetched: {d.get(\"fetched\",0)} | Upserted: {d.get(\"upserted\",0)}')
+          " 2>/dev/null || cat solicitations.json
+          [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || (echo "Non-2xx response: HTTP $HTTP" && exit 1)
+
+      - name: 5 — Fetch city permits
         if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'permits' || github.event_name == 'schedule' }}
         continue-on-error: true
         run: |
@@ -109,7 +130,7 @@ jobs:
           " 2>/dev/null || cat permits.json
           [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || (echo "Non-2xx response: HTTP $HTTP" && exit 1)
 
-      - name: 5 — Weekly brief (Mondays only)
+      - name: 6 — Weekly brief (Mondays only)
         if: ${{ github.event_name == 'schedule' }}
         continue-on-error: true
         run: |
@@ -130,7 +151,7 @@ jobs:
             echo "Not Monday — skipping brief (day=$DAY)"
           fi
 
-      - name: 6 — Send newsletter (Mondays only)
+      - name: 7 — Send newsletter (Mondays only)
         if: ${{ github.event_name == 'schedule' }}
         continue-on-error: true
         run: |
@@ -162,7 +183,7 @@ jobs:
             echo "Not Monday — skipping newsletter (day=$DAY)"
           fi
 
-      - name: 7 — Project summaries (Sundays only)
+      - name: 8 — Project summaries (Sundays only)
         if: ${{ github.event_name == 'schedule' }}
         continue-on-error: true
         run: |
@@ -183,7 +204,7 @@ jobs:
             echo "Not Sunday — skipping project summaries (day=$DAY)"
           fi
 
-      - name: 8 — Evaluate predictions (Wednesdays only)
+      - name: 9 — Evaluate predictions (Wednesdays only)
         if: ${{ github.event_name == 'schedule' }}
         continue-on-error: true
         run: |
