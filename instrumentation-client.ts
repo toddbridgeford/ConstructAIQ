@@ -6,3 +6,6 @@ Sentry.init({
   debug: false,
   enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
 })
+
+// Required by @sentry/nextjs ≥ 9 / Next.js App Router for navigation tracing.
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
