@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { apiError, ERROR_CODES } from '@/lib/errors'
 import {
   parseWatchPayload,
   requireApiKeyHash,
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
 
   if (error) {
     console.error('[/api/watchlist GET]', error.message)
-    return NextResponse.json({ error: 'Failed to load watchlist.' }, { status: 500 })
+    return apiError('Failed to load watchlist.', 500, ERROR_CODES.INTERNAL)
   }
 
   const items = (data as WatchlistRow[] | null ?? []).map(toItem)
@@ -50,12 +51,12 @@ export async function POST(request: Request) {
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json({ error: 'Body must be valid JSON.' }, { status: 400 })
+    return apiError('Body must be valid JSON.', 400, ERROR_CODES.INVALID_PARAMS)
   }
 
   const parsed = parseWatchPayload(body)
   if (parsed.ok === false) {
-    return NextResponse.json({ error: parsed.error }, { status: 400 })
+    return apiError(parsed.error, 400, ERROR_CODES.INVALID_PARAMS)
   }
 
   const { entity_type, entity_id, entity_label } = parsed.payload
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
 
   if (error || !data) {
     console.error('[/api/watchlist POST]', error?.message)
-    return NextResponse.json({ error: 'Failed to save watchlist entry.' }, { status: 500 })
+    return apiError('Failed to save watchlist entry.', 500, ERROR_CODES.INTERNAL)
   }
 
   return NextResponse.json({ item: toItem(data as WatchlistRow) }, { status: 201 })

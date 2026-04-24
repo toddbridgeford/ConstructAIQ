@@ -49,7 +49,9 @@ export async function middleware(req: NextRequest) {
 
   // No key → dashboard/public access (product is intentionally open)
   if (key === null) {
-    return NextResponse.next()
+    const res = NextResponse.next()
+    res.headers.set('X-API-Mode', 'public')
+    return res
   }
 
   if (!key.startsWith('caiq_')) {

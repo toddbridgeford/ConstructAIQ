@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getLatestObs } from '@/lib/supabase'
+import { apiError, ERROR_CODES } from '@/lib/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -43,7 +44,7 @@ export async function GET(request: Request) {
   const n = Math.min(60, Math.max(1, parseInt(searchParams.get('n') || '24')))
 
   if (!seriesId || !/^[A-Z0-9_]{1,20}$/.test(seriesId)) {
-    return NextResponse.json({ error: 'Invalid series' }, { status: 400 })
+    return apiError('Invalid series', 400, ERROR_CODES.INVALID_PARAMS)
   }
 
   try {

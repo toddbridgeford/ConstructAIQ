@@ -1,0 +1,13 @@
+# ConstructAIQ — code owners
+# All PRs require at least one review from @toddbridgeford
+
+* @toddbridgeford
+
+# Schema changes require explicit review
+supabase/migrations/ @toddbridgeford
+schema.sql           @toddbridgeford
+
+# Security-sensitive files require review
+src/middleware.ts    @toddbridgeford
+.github/             @toddbridgeford
+next.config.ts       @toddbridgeford

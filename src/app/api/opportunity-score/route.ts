@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { apiError, ERROR_CODES } from '@/lib/errors'
 import {
   computeOpportunityScore,
   type Classification,
@@ -40,16 +41,10 @@ export async function GET(request: Request) {
   const force = searchParams.get('force') === 'true'
 
   if (type !== 'metro') {
-    return NextResponse.json(
-      { error: "Only type=metro is supported today." },
-      { status: 400 },
-    )
+    return apiError('Only type=metro is supported today.', 400, ERROR_CODES.INVALID_PARAMS)
   }
   if (!metro) {
-    return NextResponse.json(
-      { error: 'Metro code required. Use ?metro=PHX or ?id=PHX.' },
-      { status: 400 },
-    )
+    return apiError('Metro code required. Use ?metro=PHX or ?id=PHX.', 400, ERROR_CODES.INVALID_PARAMS)
   }
 
   // ── 1. Serve a fresh cached score if we have one ──────────────────────────
@@ -93,10 +88,7 @@ export async function GET(request: Request) {
   const result  = await computeOpportunityScore(metro, { baseUrl })
 
   if (!result) {
-    return NextResponse.json(
-      { error: `Metro "${metro}" is not tracked. Known metros come from permit_sources.` },
-      { status: 404 },
-    )
+    return apiError(`Metro "${metro}" is not tracked. Known metros come from permit_sources.`, 404, ERROR_CODES.NOT_FOUND)
   }
 
   // Best-effort persistence so the next read hits cache
