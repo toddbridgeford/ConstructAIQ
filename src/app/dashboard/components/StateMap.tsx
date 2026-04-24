@@ -167,7 +167,7 @@ export function StateMap({ states, onStateClick, selectedState }: StateMapProps)
             }}>{tooltip.signal}</div>
             <div style={{ fontFamily: MONO, fontSize: 11, color: color.t3 }}>
               YoY: <span style={{ color: tooltip.yoy >= 0 ? color.green : color.red }}>
-                {tooltip.yoy >= 0 ? "+" : ""}{tooltip.yoy.toFixed(1)}%
+                {tooltip.yoy >= 0 ? '↑' : '↓'} {Math.abs(tooltip.yoy).toFixed(1)}%
               </span>
             </div>
             <div style={{ fontFamily: MONO, fontSize: 11, color: color.t3 }}>

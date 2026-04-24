@@ -22,7 +22,7 @@ export function NationalPermitSummary({ national }: { national: NationalTotal | 
 
   const yoy      = national?.yoy_change_pct ?? null
   const yoyColor = yoy == null ? T4 : yoy >= 0 ? GREEN : RED
-  const yoyStr   = yoy == null ? '—' : `${yoy > 0 ? '+' : ''}${yoy.toFixed(1)}%`
+  const yoyStr   = yoy == null ? '—' : `${yoy >= 0 ? '↑' : '↓'} ${Math.abs(yoy).toFixed(1)}%`
 
   const metrics = [
     { label: 'Cities Covered',       value: String(national?.cities_covered ?? 12),                           color: T1  },

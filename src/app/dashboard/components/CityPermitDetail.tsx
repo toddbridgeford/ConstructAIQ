@@ -75,7 +75,7 @@ export function CityPermitDetail({ cityCode, cityData }: { cityCode: string; cit
   const latest   = cityData.latest_month
   const yoy      = cityData.yoy_change_pct
   const yoyColor = yoy == null ? T4 : yoy >= 0 ? GREEN : RED
-  const yoyStr   = yoy == null ? '—' : `${yoy > 0 ? '+' : ''}${yoy.toFixed(1)}%`
+  const yoyStr   = yoy == null ? '—' : `${yoy >= 0 ? '↑' : '↓'} ${Math.abs(yoy).toFixed(1)}%`
 
   const typeBreakdown  = detail?.type_breakdown ?? []
   const totalTypeCount = typeBreakdown.reduce((s, t) => s + t.permit_count, 0)
