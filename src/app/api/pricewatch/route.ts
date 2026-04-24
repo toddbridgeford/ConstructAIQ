@@ -143,10 +143,17 @@ export async function GET() {
     })
   }
 
-  // Fall back to synthetic data if no live data
   if (commodities.length === 0) {
-    return NextResponse.json(getSyntheticPriceData(), {
-      headers: { 'Cache-Control': 'public, s-maxage=3600' }
+    return NextResponse.json({
+      source:     'ConstructAIQ PriceWatch',
+      live:       false,
+      commodities: [],
+      compositeIndex: null,
+      error: 'Price data temporarily unavailable. Configure BLS_API_KEY and FRED_API_KEY.',
+      updated: null,
+    }, {
+      status: 503,
+      headers: { 'Cache-Control': 'no-store' }
     })
   }
 
@@ -171,26 +178,3 @@ export async function GET() {
   }, { headers: { 'Cache-Control': 'public, s-maxage=3600' } })
 }
 
-function getSyntheticPriceData() {
-  const commodities: Commodity[] = [
-    { id:'WPU0811',   name:'Lumber & Wood',      value:421.8, prevValue:438.2, mom:-3.74, yoy:-15.2, unit:'PPI Index', source:'BLS',  signal:'BUY',  trend:'DOWN', updated:'' },
-    { id:'WPU101',    name:'Iron & Steel',        value:318.4, prevValue:309.6, mom:2.84,  yoy:8.4,   unit:'PPI Index', source:'BLS',  signal:'SELL', trend:'UP',   updated:'' },
-    { id:'WPU132',    name:'Concrete Products',   value:284.6, prevValue:281.2, mom:1.21,  yoy:4.8,   unit:'PPI Index', source:'BLS',  signal:'HOLD', trend:'UP',   updated:'' },
-    { id:'WPU1021',   name:'Copper & Products',   value:342.1, prevValue:328.4, mom:4.17,  yoy:18.2,  unit:'PPI Index', source:'BLS',  signal:'SELL', trend:'UP',   updated:'' },
-    { id:'DCOILWTICO',name:'WTI Crude Oil',        value:74.82, prevValue:78.14, mom:-4.25, yoy:-8.6,  unit:'$/bbl',    source:'FRED', signal:'BUY',  trend:'DOWN', updated:'' },
-    { id:'PCOPPUSDM', name:'Copper Price',         value:9842,  prevValue:9420,  mom:4.48,  yoy:12.4,  unit:'$/tonne',  source:'FRED', signal:'SELL', trend:'UP',   updated:'' },
-    { id:'WPU0561',   name:'Diesel Fuel',          value:218.4, prevValue:224.8, mom:-2.85, yoy:-6.2,  unit:'PPI Index', source:'BLS',  signal:'BUY',  trend:'DOWN', updated:'' },
-  ]
-  const avgMom = commodities.reduce((s, c) => s + c.mom, 0) / commodities.length
-  return {
-    source: 'ConstructAIQ PriceWatch — synthetic fallback',
-    live: false,
-    commodities,
-    compositeIndex: {
-      avgMoM: parseFloat(avgMom.toFixed(2)),
-      signal: 'HOLD' as const,
-      description: 'Mixed signals: lumber softening offset by steel and copper strength.',
-    },
-    updated: null,
-  }
-}

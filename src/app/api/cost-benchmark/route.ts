@@ -38,14 +38,13 @@ const BASE_PPI_2020 = {
   labor:    100.0,  // normalized 2020 = 100
 }
 
-// ── Current PPI seed values (updated from BLS synthetic fallback in pricewatch) ─
-const CURRENT_PPI_SEED = {
-  lumber:   421.8,
-  steel:    318.4,
-  concrete: 284.6,
-  copper:   342.1,
-  diesel:   218.4,
-  labor:    122.4, // BLS OEWS construction wages ~+22.4% since 2020
+type PPIValues = {
+  lumber:   number
+  steel:    number
+  concrete: number
+  copper:   number
+  diesel:   number
+  labor:    number
 }
 
 // ── Region definitions ────────────────────────────────────────────────────────
@@ -84,9 +83,9 @@ function msaToRegion(msa: string): string {
 }
 
 // Try to fetch latest PPI from Supabase observations
-async function fetchCurrentPPI(): Promise<typeof CURRENT_PPI_SEED> {
+async function fetchCurrentPPI(): Promise<PPIValues | null> {
   try {
-    const seriesMap: Record<string, keyof typeof CURRENT_PPI_SEED> = {
+    const seriesMap: Record<string, keyof PPIValues> = {
       WPU0811: 'lumber',
       WPU101:  'steel',
       WPU132:  'concrete',
@@ -101,9 +100,9 @@ async function fetchCurrentPPI(): Promise<typeof CURRENT_PPI_SEED> {
       .order('obs_date', { ascending: false })
       .limit(ids.length * 3)
 
-    if (!data?.length) return CURRENT_PPI_SEED
+    if (!data?.length) return null
 
-    const ppi = { ...CURRENT_PPI_SEED }
+    const ppi: Partial<PPIValues> = { labor: 122.4 }
     const seen = new Set<string>()
     for (const row of data) {
       const key = seriesMap[row.series_id]
@@ -112,9 +111,10 @@ async function fetchCurrentPPI(): Promise<typeof CURRENT_PPI_SEED> {
         ppi[key] = row.value
       }
     }
-    return ppi
+    if (!ppi.lumber || !ppi.steel || !ppi.concrete || !ppi.copper || !ppi.diesel) return null
+    return ppi as PPIValues
   } catch {
-    return CURRENT_PPI_SEED
+    return null
   }
 }
 
@@ -126,7 +126,7 @@ interface InputRatio {
   pct:     number
 }
 
-function computeDrivers(current: typeof CURRENT_PPI_SEED): Record<string, InputRatio> {
+function computeDrivers(current: PPIValues): Record<string, InputRatio> {
   return {
     lumber:   { name: 'Lumber & Wood',      current: current.lumber,   base: BASE_PPI_2020.lumber,   ratio: current.lumber   / BASE_PPI_2020.lumber,   pct: (current.lumber   / BASE_PPI_2020.lumber   - 1) * 100 },
     steel:    { name: 'Steel Mill Products', current: current.steel,    base: BASE_PPI_2020.steel,    ratio: current.steel    / BASE_PPI_2020.steel,    pct: (current.steel    / BASE_PPI_2020.steel    - 1) * 100 },
@@ -155,6 +155,12 @@ export async function GET(request: Request) {
 
   // Fetch current PPI
   const currentPPI = await fetchCurrentPPI()
+  if (!currentPPI) {
+    return NextResponse.json({
+      error: 'Material price data unavailable',
+      note: 'Requires BLS_API_KEY to be configured and harvest cron to have run.',
+    }, { status: 503 })
+  }
   const drivers    = computeDrivers(currentPPI)
 
   // Weighted inflation factor across inputs

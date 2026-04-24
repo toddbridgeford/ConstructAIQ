@@ -11,8 +11,18 @@ type FreshnessRow = {
   status:       'ok' | 'warn' | 'stale'
 }
 
+type ApiHealth = {
+  pricewatch:    boolean
+  benchmark:     boolean
+  eia:           boolean
+  bea:           boolean
+  solicitations: boolean
+  equities:      boolean
+}
+
 type StatusData = {
   freshness:          FreshnessRow[]
+  api_health:         ApiHealth
   opportunity_metros: number
   predictions: {
     made_last_7d:       number
@@ -561,6 +571,70 @@ export default function StatusPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* ── API Configuration ── */}
+        <div style={{
+          background: color.bg1,
+          border: `1px solid ${color.bd1}`,
+          borderRadius: 12,
+          padding: `${space.md}px ${space.lg}px`,
+          marginBottom: space.xl,
+        }}>
+          <div style={{ fontFamily: font.sys, fontSize: 15, fontWeight: 600, color: color.t1, marginBottom: 4 }}>
+            API Configuration
+          </div>
+          <div style={{ fontFamily: font.mono, fontSize: 10, color: color.t4, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 16 }}>
+            Live data active per configured key
+          </div>
+
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} style={{ height: 36, marginBottom: 4, borderRadius: 6, background: color.bg3 }} />
+            ))
+          ) : (
+            ([
+              { key: 'pricewatch',    label: 'Materials PriceWatch',       desc: 'BLS_API_KEY / FRED_API_KEY' },
+              { key: 'benchmark',     label: 'Historical Benchmark',        desc: '≥ 24 TTLCONS observations in DB' },
+              { key: 'eia',           label: 'EIA Energy Data',             desc: 'EIA_API_KEY' },
+              { key: 'bea',           label: 'BEA State GDP',               desc: 'BEA_API_KEY' },
+              { key: 'solicitations', label: 'SAM.gov Solicitations',       desc: 'SAM_GOV_API_KEY' },
+              { key: 'equities',      label: 'Equities / ETF Prices',       desc: 'POLYGON_API_KEY' },
+            ] as { key: keyof ApiHealth; label: string; desc: string }[]).map(({ key, label, desc }) => {
+              const active = status?.api_health?.[key] ?? false
+              return (
+                <div key={key} style={{
+                  display:        'flex',
+                  alignItems:     'center',
+                  justifyContent: 'space-between',
+                  padding:        '10px 0',
+                  borderBottom:   `1px solid ${color.bd1}`,
+                }}>
+                  <div>
+                    <span style={{ fontFamily: font.sys, fontSize: 13, color: color.t2 }}>{label}</span>
+                    <span style={{ fontFamily: font.mono, fontSize: 11, color: color.t4, marginLeft: 10 }}>{desc}</span>
+                  </div>
+                  <span style={{
+                    display:      'inline-flex',
+                    alignItems:   'center',
+                    gap:          5,
+                    fontFamily:   font.mono,
+                    fontSize:     11,
+                    color:        active ? color.green : color.amber,
+                    whiteSpace:   'nowrap',
+                  }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: active ? color.green : color.amber, display: 'inline-block' }} />
+                    {active ? 'Live data active' : 'Key not configured — using empty state'}
+                  </span>
+                </div>
+              )
+            })
+          )}
+
+          <div style={{ fontFamily: font.sys, fontSize: 12, color: color.t4, marginTop: 14, lineHeight: 1.6 }}>
+            Configure missing keys in Vercel environment variables.
+            See <a href="/.env.example" style={{ color: color.amber, textDecoration: 'none' }}>.env.example</a> for registration links.
           </div>
         </div>
 
