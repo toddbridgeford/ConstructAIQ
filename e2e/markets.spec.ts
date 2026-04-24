@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test.describe('/markets/tx — Texas state page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/markets/tx')
-    await page.waitForLoadState('networkidle', { timeout: 30_000 })
+    await page.waitForLoadState('domcontentloaded')
   })
 
   test('page loads without error', async ({ page }) => {
