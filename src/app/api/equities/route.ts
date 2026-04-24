@@ -14,16 +14,14 @@ type RevenueSignal = 'BEAT_LIKELY' | 'IN_LINE' | 'MISS_RISK'
 type MarginSignal = 'EXPANDING' | 'STABLE' | 'COMPRESSING'
 type BacklogSignal = 'GROWING' | 'STABLE' | 'DECLINING'
 
-interface ETF {
+interface ETFMeta {
   ticker: string
   name: string
-  price: number
-  change1d: number
-  change1w: number
-  change1m: number
   signal: Signal
   signalColor: string
 }
+
+type ETFResult = ETFMeta & { live: boolean; price?: number | null; change1d?: number | null }
 
 interface SectorPoint {
   date: string
@@ -75,37 +73,10 @@ function backlogColor(signal: BacklogSignal): string {
   return AMBER
 }
 
-const ETFS: ETF[] = [
-  {
-    ticker: 'ITB',
-    name: 'iShares Home Construction ETF',
-    price: 84.32,
-    change1d: 0.84,
-    change1w: 2.14,
-    change1m: -1.84,
-    signal: 'BUY',
-    signalColor: signalColor('BUY'),
-  },
-  {
-    ticker: 'XHB',
-    name: 'SPDR S&P Homebuilders ETF',
-    price: 71.48,
-    change1d: 0.62,
-    change1w: 1.88,
-    change1m: -2.14,
-    signal: 'BUY',
-    signalColor: signalColor('BUY'),
-  },
-  {
-    ticker: 'PKB',
-    name: 'Invesco Dynamic Building & Construction',
-    price: 58.24,
-    change1d: 0.41,
-    change1w: 1.24,
-    change1m: -0.92,
-    signal: 'HOLD',
-    signalColor: signalColor('HOLD'),
-  },
+const ETF_META: ETFMeta[] = [
+  { ticker: 'ITB', name: 'iShares Home Construction ETF',              signal: 'BUY',  signalColor: signalColor('BUY')  },
+  { ticker: 'XHB', name: 'SPDR S&P Homebuilders ETF',                 signal: 'BUY',  signalColor: signalColor('BUY')  },
+  { ticker: 'PKB', name: 'Invesco Dynamic Building & Construction ETF',signal: 'HOLD', signalColor: signalColor('HOLD') },
 ]
 
 // 12 months of sector composite data, base 100 = April 2025
@@ -409,10 +380,6 @@ const EARNINGS_COMPANIES: EarningsCompany[] = [
 ]
 
 // Sector rotation: momentum = rate of change (>0 = accelerating), level = position vs trend (>0 = above trend)
-// Data Centers: top-right (strong + accelerating)
-// Residential, Infrastructure: top-right
-// Commercial: top-left (above trend, decelerating)
-// Industrial: bottom-right (below trend, accelerating)
 const SECTOR_ROTATION: SectorRotationPoint[] = [
   { subsector: 'Residential',    momentum: 0.8,  level: 0.6 },
   { subsector: 'Commercial',     momentum: 0.2,  level: 0.4 },
@@ -421,24 +388,55 @@ const SECTOR_ROTATION: SectorRotationPoint[] = [
   { subsector: 'Data Centers',   momentum: 1.2,  level: 1.1 },
 ]
 
-// Suppress unused variable warnings for colors used in future data sets
+// Suppress unused variable warnings for colors reserved for future datasets
 void BLUE
 void RED
 
 export async function GET() {
   try {
-    const etfs = ETFS
-    const sectorComposite = generateSectorComposite()
-    const earningsCompanies = EARNINGS_COMPANIES
-    const sectorRotation = SECTOR_ROTATION
+    const polygonKey = process.env.POLYGON_API_KEY
+    let etfs: ETFResult[]
+    let etfsLive = false
+
+    if (polygonKey) {
+      try {
+        const tickers = ETF_META.map(e => e.ticker).join(',')
+        const polyRes = await fetch(
+          `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${tickers}&apiKey=${polygonKey}`,
+          { next: { revalidate: 3600 } }
+        )
+        if (polyRes.ok) {
+          const polyData = await polyRes.json()
+          type PolyTicker = { ticker: string; day?: { c?: number }; todaysChangePerc?: number }
+          const snapMap = new Map<string, PolyTicker>(
+            (polyData.tickers || []).map((t: PolyTicker) => [t.ticker, t])
+          )
+          etfs = ETF_META.map(meta => {
+            const snap = snapMap.get(meta.ticker)
+            const price = snap?.day?.c ?? null
+            const change1d = snap?.todaysChangePerc ?? null
+            return { ...meta, price, change1d, live: price !== null }
+          })
+          etfsLive = true
+        } else {
+          etfs = ETF_META.map(meta => ({ ...meta, live: false }))
+        }
+      } catch {
+        etfs = ETF_META.map(meta => ({ ...meta, live: false }))
+      }
+    } else {
+      etfs = ETF_META.map(meta => ({ ...meta, live: false }))
+    }
 
     return NextResponse.json(
       {
         etfs,
-        sectorComposite,
-        earningsCompanies,
-        sectorRotation,
-        updatedAt: '2026-04-20T07:00:00Z',
+        live: etfsLive,
+        ...(polygonKey ? {} : { note: 'Configure POLYGON_API_KEY for live prices' }),
+        sectorComposite: generateSectorComposite(),
+        earningsCompanies: EARNINGS_COMPANIES,
+        sectorRotation: SECTOR_ROTATION,
+        updatedAt: new Date().toISOString(),
       },
       { headers: { 'Cache-Control': 'public, s-maxage=3600' } }
     )
