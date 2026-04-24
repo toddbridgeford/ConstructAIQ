@@ -34,16 +34,17 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 
 interface HeroForecastProps {
   fore:         ForecastData | null
-  foreAccuracy: number
-  foreMAPE:     number
+  foreAccuracy: number | null
+  foreMAPE:     number | null
   freshness?:   FreshnessInfo
 }
 
 export function HeroForecast({ fore, foreAccuracy, foreMAPE, freshness }: HeroForecastProps) {
-  const [activeSeries, setActiveSeries] = useState("TTLCONS")
-  const [scenarioLine, setScenarioLine] = useState<number[] | null>(null)
-  const [sheetOpen,    setSheetOpen]    = useState(false)
-  const [isMobile,     setIsMobile]     = useState(false)
+  const [activeSeries,  setActiveSeries]  = useState("TTLCONS")
+  const [scenarioLine,  setScenarioLine]  = useState<number[] | null>(null)
+  const [sheetOpen,     setSheetOpen]     = useState(false)
+  const [isMobile,      setIsMobile]      = useState(false)
+  const [showAdvanced,  setShowAdvanced]  = useState(false)
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 479px)")
@@ -144,22 +145,42 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE, freshness }: HeroFo
 
       <DriverPanel seriesId="TTLCONS" />
 
-      {/* Supporting metrics */}
-      <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
-        <Card style={{ flex:"2 1 360px", minWidth:0 }}>
-          {fore ? <ModelAccuracy accuracy={foreAccuracy} mape={foreMAPE} /> : <Skeleton height={200} />}
-        </Card>
-        <Card style={{ flex:"1 1 200px", minWidth:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:24 }}>
-          <ConfidenceRing value={91} label="Model Agreement" />
-          <RecessionGauge />
-        </Card>
-        <Card style={{ flex:"1 1 220px", minWidth:0 }}>
-          <CycleClock position={45} history={[30,34,38,42,43,45]} />
-        </Card>
-        <Card style={{ flex:"1 1 240px", minWidth:0 }}>
-          <LeadingIndicatorCard />
-        </Card>
-      </div>
+      <button
+        onClick={() => setShowAdvanced(s => !s)}
+        style={{
+          background:  'transparent',
+          border:      `1px solid ${color.bd1}`,
+          borderRadius: 8,
+          padding:     '6px 14px',
+          fontFamily:  font.sys,
+          fontSize:    13,
+          color:       color.t3,
+          cursor:      'pointer',
+          marginTop:   12,
+        }}
+      >
+        {showAdvanced ? '▲ Hide advanced analytics' : '▼ Advanced analytics'}
+      </button>
+
+      {showAdvanced && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>
+            <Card style={{ flex:"2 1 360px", minWidth:0 }}>
+              {fore ? <ModelAccuracy accuracy={foreAccuracy} mape={foreMAPE} /> : <Skeleton height={200} />}
+            </Card>
+            <Card style={{ flex:"1 1 200px", minWidth:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:24 }}>
+              <ConfidenceRing value={91} label="Model Agreement" />
+              <RecessionGauge />
+            </Card>
+            <Card style={{ flex:"1 1 220px", minWidth:0 }}>
+              <CycleClock position={45} history={[30,34,38,42,43,45]} />
+            </Card>
+            <Card style={{ flex:"1 1 240px", minWidth:0 }}>
+              <LeadingIndicatorCard />
+            </Card>
+          </div>
+        </div>
+      )}
 
       {fore && forecastVerdictText && <SectionVerdict text={forecastVerdictText} />}
     </section>

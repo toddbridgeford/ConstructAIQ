@@ -225,7 +225,7 @@ export default function PricingPage() {
               Every model is documented.
             </h2>
             <p style={{ fontFamily: SYS, fontSize: 14, color: color.t3, lineHeight: 1.7, margin: 0 }}>
-              Our 3-model ensemble (Holt-Winters, SARIMA, XGBoost) is fully described
+              Our 3-model ensemble (Holt-Winters, SARIMA, Gradient-Boosted Tree) is fully described
               including weights, back-test results, and MAPE accuracy metrics.
               No black box. No proprietary edge. Just honest data analysis.
             </p>

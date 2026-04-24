@@ -21,7 +21,7 @@ interface CommandSectionProps {
 
 export function CommandSection({ cshi, foreData, corrSpend }: CommandSectionProps) {
   const score     = cshi?.score          ?? null
-  const change    = cshi?.weeklyChange   ?? 1.3
+  const change    = cshi?.weeklyChange   ?? null
   const cls       = cshi?.classification ?? "EXPANDING"
   const subScores = cshi?.subScores      ?? {}
   const history   = cshi?.history        ?? []

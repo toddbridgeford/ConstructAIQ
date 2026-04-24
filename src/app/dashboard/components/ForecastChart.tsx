@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import { font, color } from "@/lib/theme"
 import { Skeleton } from "@/app/components/Skeleton"
+import { ChartFooter } from "./ChartFooter"
 import type { ForecastData } from "../types"
 
 const MONO  = font.mono
@@ -269,6 +270,14 @@ export function ForecastChart({ foreData, scenarioLine, onSeriesChange }: {
           HW {hwW}% · SARIMA {sarW}% · XGB {xgbW}% · MAPE {mapeV}% · {nV} months trained
         </div>
       )}
+
+      <ChartFooter
+        source="Census Bureau C30 + ConstructAIQ Ensemble"
+        unit="$B SAAR"
+        frequency="Monthly"
+        asOf={localData.runAt ?? null}
+        forecast={true}
+      />
     </div>
   )
 }

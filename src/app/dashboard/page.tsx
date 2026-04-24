@@ -202,20 +202,10 @@ export default function Dashboard() {
 
   // ── Correlation chart obs ────────────────────────────────────────────────────
   const corrSpend: { date: string; value: number }[] =
-    obs?.TTLCONS_24?.length
-      ? obs.TTLCONS_24
-      : Array.from({ length: 24 }, (_, i) => ({
-          date:  `2024-${String(i % 12 + 1).padStart(2, '0')}-01`,
-          value: 2100 + i * 4,
-        }))
+    obs?.TTLCONS_24 ?? []
 
   const corrMaterials: { date: string; value: number }[] =
-    obs?.WPS081_24?.length
-      ? obs.WPS081_24
-      : Array.from({ length: 24 }, (_, i) => ({
-          date:  `2024-${String(i % 12 + 1).padStart(2, '0')}-01`,
-          value: 280 + i * 2,
-        }))
+    obs?.WPS081_24 ?? []
 
   // ── Shape adapters — bridge DashboardData to component prop types ────────────
 
@@ -239,8 +229,8 @@ export default function Dashboard() {
     history:   dashCore.forecast.history,
   } : null
 
-  const foreAccuracy = fore?.metrics?.accuracy ?? 87.3
-  const foreMAPE     = fore?.metrics?.mape     ?? 4.2
+  const foreAccuracy = fore?.metrics?.accuracy ?? null
+  const foreMAPE     = fore?.metrics?.mape     ?? null
 
   // SignalsResponse expected by SignalsSection
   const sigList = dashCore?.signals ?? []

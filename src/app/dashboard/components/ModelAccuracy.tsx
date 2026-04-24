@@ -9,8 +9,8 @@ import { font, color } from "@/lib/theme"
 const MONO = font.mono
 
 interface ModelAccuracyProps {
-  accuracy: number
-  mape: number
+  accuracy: number | null
+  mape: number | null
 }
 
 interface TrackRecord {
@@ -132,7 +132,7 @@ export function ModelAccuracy({ accuracy, mape }: ModelAccuracyProps) {
             MODEL ACCURACY (LAST 12 MO)
           </div>
           <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color: color.green }}>
-            {displayAcc.toFixed(1)}%
+            {displayAcc != null ? displayAcc.toFixed(1) + '%' : '—'}
           </div>
         </div>
         <div>
@@ -140,7 +140,7 @@ export function ModelAccuracy({ accuracy, mape }: ModelAccuracyProps) {
             MAPE
           </div>
           <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color: color.amber }}>
-            {displayMape.toFixed(1)}%
+            {displayMape != null ? displayMape.toFixed(1) + '%' : '—'}
           </div>
         </div>
       </div>

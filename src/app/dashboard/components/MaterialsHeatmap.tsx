@@ -157,7 +157,7 @@ export function MaterialsHeatmap({ data }: MaterialsHeatmapProps) {
                     onMouseLeave={() => setTooltip(null)}
                   >
                     <span style={{ fontFamily: MONO, fontSize: 9, color: tc }}>
-                      {cell.pctChange > 0 ? "+" : ""}{cell.pctChange.toFixed(1)}%
+                      {cell.pctChange >= 0 ? '↑' : '↓'} {Math.abs(cell.pctChange).toFixed(1)}%
                     </span>
                   </div>
                 )
@@ -190,7 +190,7 @@ export function MaterialsHeatmap({ data }: MaterialsHeatmapProps) {
           <div style={{ fontFamily: MONO, fontSize: 11, color: color.t3 }}>
             Change:{" "}
             <span style={{ color: tooltip.pctChange > 0 ? color.red : color.green }}>
-              {tooltip.pctChange > 0 ? "+" : ""}{tooltip.pctChange.toFixed(1)}%
+              {tooltip.pctChange >= 0 ? '↑' : '↓'} {Math.abs(tooltip.pctChange).toFixed(1)}%
             </span>
           </div>
         </div>

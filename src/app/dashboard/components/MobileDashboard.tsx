@@ -360,7 +360,7 @@ export function MobileDashboard({
                   fontFamily: MONO, fontSize: 12, fontWeight: 700,
                   color: bsiColor(msa.bsi_change_90d ?? 0),
                 }}>
-                  {msa.bsi_change_90d > 0 ? "+" : ""}{Number(msa.bsi_change_90d ?? 0).toFixed(1)}%
+                  {(msa.bsi_change_90d ?? 0) >= 0 ? '↑' : '↓'} {Math.abs(Number(msa.bsi_change_90d ?? 0)).toFixed(1)}%
                 </span>
                 <span style={{
                   fontFamily:   MONO, fontSize: 9,

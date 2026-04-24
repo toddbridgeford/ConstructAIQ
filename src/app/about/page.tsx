@@ -42,7 +42,7 @@ const CAPABILITIES: CapabilityCard[] = [
   {
     icon: Brain,
     title: "3-Model AI Ensemble",
-    desc: "Holt-Winters + SARIMA + XGBoost accuracy-weighted ensemble. 12-month forecasts with 80% and 95% confidence intervals.",
+    desc: "Holt-Winters + SARIMA + Gradient-Boosted Tree accuracy-weighted ensemble. 12-month forecasts with 80% and 95% confidence intervals.",
   },
   {
     icon: Map,
@@ -308,7 +308,7 @@ export default function AboutPage() {
               { label: "Data Refresh", value: "Every 4 hours", note: "Core series updated at 06:00, 10:00, 14:00, 18:00 ET daily" },
               { label: "Historical Depth", value: "Back to 2000", note: "Full 25-year archive available via the free API" },
               { label: "Data Sources", value: "38+ official sources", note: "All U.S. government and recognized industry publishers — no scraped or unverified data" },
-              { label: "Forecast Model", value: "3-model ensemble", note: "Holt-Winters + SARIMA + XGBoost, accuracy-weighted, 12-month horizon" },
+              { label: "Forecast Model", value: "3-model ensemble", note: "Holt-Winters + SARIMA + Gradient-Boosted Tree, accuracy-weighted, 12-month horizon" },
               { label: "Uptime SLA", value: "99.9% — Enterprise", note: "SLA documentation available for procurement review upon request" },
               { label: "Data Privacy", value: "No resale", note: "User data and usage patterns are never shared with or sold to third parties" },
             ].map(({ label, value, note }) => (

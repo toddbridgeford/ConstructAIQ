@@ -148,7 +148,7 @@ export async function GET() {
     forecast = {
       ensemble:   rows.map(r => ({ base: r.base_value, lo80: r.lo80, hi80: r.hi80, lo95: r.lo95, hi95: r.hi95 })),
       models:     [],
-      metrics:    { accuracy: rows[0]?.accuracy ?? 87.3, mape: rows[0]?.mape ?? 4.2, models: 3 },
+      metrics:    { accuracy: rows[0]?.accuracy ?? null, mape: rows[0]?.mape ?? null, models: 3 },
       history:    ttl12.map(r => r.value),
       run_at:     rows[0]?.run_date ? `${rows[0].run_date}T00:00:00Z` : new Date().toISOString(),
       trained_on: 60,

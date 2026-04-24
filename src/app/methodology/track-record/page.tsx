@@ -177,7 +177,7 @@ export default function TrackRecordPage() {
               />
               <KpiCard
                 label="Best Model (last 12mo)"
-                value={bestModel.replace("holt-winters","Holt-Winters").replace("sarima","SARIMA").replace("xgboost","XGBoost")}
+                value={bestModel.replace("holt-winters","Holt-Winters").replace("sarima","SARIMA").replace("xgboost","Custom GBT")}
                 sub="Lowest recent MAPE"
               />
               <KpiCard

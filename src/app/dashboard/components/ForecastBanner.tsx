@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, ReferenceLine,
 } from "recharts"
 import { font, color } from "@/lib/theme"
+import { ChartFooter } from "./ChartFooter"
 
 const MONO = font.mono
 
@@ -50,18 +51,6 @@ function buildChartData(spendHistory: SpendPoint[], foreData: ForecastBannerProp
     })
   }
 
-  // If no forecast data, synthesize 12 months forward
-  if (forecasts.length === 0 && hist.length > 0) {
-    const lastVal = hist[hist.length - 1].hist
-    for (let i = 1; i <= 12; i++) {
-      const d = new Date(today)
-      d.setMonth(d.getMonth() + i)
-      const label = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" })
-      const fore = +(lastVal * (1 + 0.003 * i)).toFixed(2)
-      forecasts.push({ label, hist: undefined as unknown as number, fore, lo: +(fore * 0.97).toFixed(2), hi: +(fore * 1.03).toFixed(2) })
-    }
-  }
-
   return { rows: [...hist, ...forecasts], todayLabel }
 }
 
@@ -85,7 +74,7 @@ export function ForecastBanner({ foreData, spendHistory }: ForecastBannerProps) 
   return (
     <div style={{ background: color.bg2, borderRadius: 16, padding: 20, border: `1px solid ${color.bd1}` }}>
       <div style={{ fontFamily: MONO, fontSize: 11, color: color.amber, fontWeight: 600, letterSpacing: "0.08em", marginBottom: 14 }}>
-        AI ENSEMBLE FORECAST — 3-MODEL (HW + SARIMA + XGBoost)
+        AI ENSEMBLE FORECAST — 3-MODEL (HW + SARIMA + GBT)
       </div>
 
       {rows.length === 0 ? (
@@ -165,6 +154,13 @@ export function ForecastBanner({ foreData, spendHistory }: ForecastBannerProps) 
           </div>
         ))}
       </div>
+
+      <ChartFooter
+        source="Census Bureau C30"
+        unit="$B SAAR"
+        frequency="Monthly"
+        forecast={true}
+      />
     </div>
   )
 }
