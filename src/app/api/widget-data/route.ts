@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+export const maxDuration = 10
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getStateAllocations, type StateAllocation } from '@/lib/federal'
 
+export const maxDuration = 10
+
 export const runtime  = 'nodejs'
 export const dynamic  = 'force-dynamic'
 

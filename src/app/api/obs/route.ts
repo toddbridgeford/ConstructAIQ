@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { getLatestObs } from '@/lib/supabase'
 import { apiError, ERROR_CODES } from '@/lib/errors'
 
+export const maxDuration = 10
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

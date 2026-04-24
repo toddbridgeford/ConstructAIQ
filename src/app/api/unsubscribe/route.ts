@@ -2,6 +2,8 @@ import { NextResponse }          from "next/server"
 import { supabaseAdmin }          from "@/lib/supabase"
 import { verifyUnsubscribeToken } from "@/lib/email"
 
+export const maxDuration = 10
+
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 
 const EIA_KEY = process.env.EIA_API_KEY || ''
 
+export const maxDuration = 10
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { checkRateLimit } from '@/lib/ratelimit'
 
+export const maxDuration = 10
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

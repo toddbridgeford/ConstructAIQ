@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+export const maxDuration = 10
+
 export const dynamic = 'force-dynamic'
 
 type SignalType = 'BULLISH' | 'BEARISH' | 'CAUTION'

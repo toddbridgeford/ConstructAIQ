@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { runEnsemble } from '@/lib/models/ensemble'
 import { supabase } from '@/lib/supabase'
 
+export const maxDuration = 10
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

@@ -4,6 +4,8 @@ const FRED_KEY  = process.env.FRED_API_KEY  || ''
 const BLS_KEY   = process.env.BLS_API_KEY   || ''
 const EIA_KEY   = process.env.EIA_API_KEY   || ''
 
+export const maxDuration = 10
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
