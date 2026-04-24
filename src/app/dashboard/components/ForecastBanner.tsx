@@ -50,18 +50,6 @@ function buildChartData(spendHistory: SpendPoint[], foreData: ForecastBannerProp
     })
   }
 
-  // If no forecast data, synthesize 12 months forward
-  if (forecasts.length === 0 && hist.length > 0) {
-    const lastVal = hist[hist.length - 1].hist
-    for (let i = 1; i <= 12; i++) {
-      const d = new Date(today)
-      d.setMonth(d.getMonth() + i)
-      const label = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" })
-      const fore = +(lastVal * (1 + 0.003 * i)).toFixed(2)
-      forecasts.push({ label, hist: undefined as unknown as number, fore, lo: +(fore * 0.97).toFixed(2), hi: +(fore * 1.03).toFixed(2) })
-    }
-  }
-
   return { rows: [...hist, ...forecasts], todayLabel }
 }
 

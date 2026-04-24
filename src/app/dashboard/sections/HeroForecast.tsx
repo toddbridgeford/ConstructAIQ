@@ -34,8 +34,8 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 
 interface HeroForecastProps {
   fore:         ForecastData | null
-  foreAccuracy: number
-  foreMAPE:     number
+  foreAccuracy: number | null
+  foreMAPE:     number | null
   freshness?:   FreshnessInfo
 }
 

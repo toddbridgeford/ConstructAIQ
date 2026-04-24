@@ -6,7 +6,7 @@ const SYS  = font.sys
 
 interface CSHIGaugeProps {
   score: number
-  weeklyChange: number
+  weeklyChange: number | null
   classification: string
   subScores: Record<string, { score: number; weight: number; label: string }>
 }
@@ -54,7 +54,7 @@ export function CSHIGauge({ score, weeklyChange, classification, subScores }: CS
   const needleAngle = scoreAngle(Math.min(100, Math.max(0, score)))
   const needleTip = polarToXY(CX, CY, R - 8, needleAngle)
   const scoreCol = zoneColor(score)
-  const changePos = weeklyChange >= 0
+  const changePos = weeklyChange != null && weeklyChange >= 0
 
   const subList = Object.values(subScores ?? {})
 
@@ -68,7 +68,7 @@ export function CSHIGauge({ score, weeklyChange, classification, subScores }: CS
           borderRadius: 20, padding: "3px 12px",
           fontFamily: MONO, fontSize: 11, color: changePos ? color.green : color.red,
         }}>
-          {changePos ? "▲" : "▼"} {changePos ? "+" : ""}{weeklyChange.toFixed(1)} this week
+          {weeklyChange != null ? `${changePos ? '▲ +' : '▼ '}${weeklyChange.toFixed(1)} this week` : '— this week'}
         </div>
       </div>
 
