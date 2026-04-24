@@ -15,12 +15,6 @@ interface HistoryPoint {
   value: number
 }
 
-// Seeded deterministic noise
-function seededRand(seed: number): number {
-  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453
-  return x - Math.floor(x)
-}
-
 function generateHistory(): HistoryPoint[] {
   const history: HistoryPoint[] = []
 
@@ -118,9 +112,7 @@ function generateHistory(): HistoryPoint[] {
 
   for (let i = 0; i < monthlyDeltas.length; i++) {
     const period = `${year}-${String(month).padStart(2, '0')}`
-    // Add small deterministic noise to make it look organic
-    const noise = (seededRand(i * 13 + 7) - 0.5) * 0.15
-    value = parseFloat((value + monthlyDeltas[i] + noise).toFixed(2))
+    value = parseFloat((value + monthlyDeltas[i]).toFixed(2))
 
     history.push({ period, value })
 

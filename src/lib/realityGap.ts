@@ -355,12 +355,17 @@ interface ProjectRow {
   satellite_bsi_change: number | null
 }
 
-async function fetchEligibleProjects(): Promise<ProjectRow[]> {
-  const { data, error } = await supabaseAdmin
+async function fetchEligibleProjects(
+  opts?: { offset: number; limit: number },
+): Promise<ProjectRow[]> {
+  let q = supabaseAdmin
     .from('projects')
     .select('id, city_code, state_code, permit_number, valuation, federal_award_match, federal_award_id, satellite_bsi_change')
     .not('lifecycle_state', 'in', '("completed","inactive")')
 
+  if (opts) q = q.range(opts.offset, opts.offset + opts.limit - 1)
+
+  const { data, error } = await q
   if (error) throw new Error(`fetchEligibleProjects: ${error.message}`)
   return (data ?? []) as ProjectRow[]
 }
@@ -495,25 +500,31 @@ export interface BatchRealityGapResult {
   computed:   RealityGapResult[]
   errors:     string[]
   durationMs: number
+  hasMore:    boolean
 }
 
-export async function batchComputeRealityGaps(): Promise<BatchRealityGapResult> {
+export async function batchComputeRealityGaps(
+  opts?: { offset: number; limit: number },
+): Promise<BatchRealityGapResult> {
   const start  = Date.now()
   const errors: string[] = []
 
   let projects: ProjectRow[]
   try {
-    projects = await fetchEligibleProjects()
+    projects = await fetchEligibleProjects(opts)
   } catch (err) {
     return {
       computed:   [],
       errors:     [err instanceof Error ? err.message : String(err)],
       durationMs: Date.now() - start,
+      hasMore:    false,
     }
   }
 
+  const hasMore = opts != null && projects.length === opts.limit
+
   if (projects.length === 0) {
-    return { computed: [], errors: [], durationMs: Date.now() - start }
+    return { computed: [], errors: [], durationMs: Date.now() - start, hasMore: false }
   }
 
   const projectIds    = projects.map(p => p.id)
@@ -570,5 +581,5 @@ export async function batchComputeRealityGaps(): Promise<BatchRealityGapResult> 
     }
   }
 
-  return { computed, errors, durationMs: Date.now() - start }
+  return { computed, errors, durationMs: Date.now() - start, hasMore }
 }
