@@ -676,7 +676,7 @@ export default function HomePage() {
                 <br />Every source cited.
               </div>
               <div style={{ fontSize: 13, fontFamily: SYS, color: T3, lineHeight: 1.6, marginBottom: 16 }}>
-                3-model ensemble: Holt-Winters + SARIMA + XGBoost. Accuracy-weighted. Published confidence intervals.
+                3-model ensemble: Holt-Winters + SARIMA + Gradient-Boosted Tree. Accuracy-weighted. Published confidence intervals.
               </div>
               <Link href="/methodology" style={{
                 fontSize: 13, fontFamily: SYS, fontWeight: 500,

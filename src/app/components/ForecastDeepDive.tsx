@@ -16,7 +16,7 @@ const MODELS = [
     desc:  "Seasonal ARIMA handles autocorrelation and unit-root dynamics inherent in multi-year spending series.",
   },
   {
-    name:  "XGBoost",
+    name:  "Gradient-Boosted Tree",
     range: "~20–40%",
     desc:  "Gradient boosting adds non-linear regime detection and cross-series feature signals for break-point sensitivity.",
   },
@@ -33,7 +33,7 @@ export function ForecastDeepDive() {
             <p className="eyebrow-lbl">Ensemble methodology</p>
             <h2 className="h2">Three models,<br />one answer</h2>
             <p className="sub" style={{ maxWidth:420 }}>
-              Holt-Winters, SARIMA, and XGBoost run independently on the same
+              Holt-Winters, SARIMA, and Gradient-Boosted Tree run independently on the same
               input series. Model weights are determined by inverse MAPE — the
               most accurate model leads the ensemble.
             </p>

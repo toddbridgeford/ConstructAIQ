@@ -73,7 +73,7 @@ export function ForecastBanner({ foreData, spendHistory }: ForecastBannerProps) 
   return (
     <div style={{ background: color.bg2, borderRadius: 16, padding: 20, border: `1px solid ${color.bd1}` }}>
       <div style={{ fontFamily: MONO, fontSize: 11, color: color.amber, fontWeight: 600, letterSpacing: "0.08em", marginBottom: 14 }}>
-        AI ENSEMBLE FORECAST — 3-MODEL (HW + SARIMA + XGBoost)
+        AI ENSEMBLE FORECAST — 3-MODEL (HW + SARIMA + GBT)
       </div>
 
       {rows.length === 0 ? (

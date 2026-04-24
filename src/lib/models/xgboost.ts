@@ -4,6 +4,21 @@
  * Uses L2 loss, Newton boosting, and regularized leaf weights
  */
 
+/**
+ * Seeded pseudo-random number generator (mulberry32).
+ * Same seed always produces same sequence.
+ * Used for deterministic feature/row subsampling.
+ */
+function seededRng(seed: number): () => number {
+  let s = seed >>> 0
+  return function() {
+    s += 0x6D2B79F5
+    let t = Math.imul(s ^ (s >>> 15), 1 | s)
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
 interface GBNode {
   isLeaf:    boolean
   splitFeature?: number
@@ -26,6 +41,7 @@ interface XGBConfig {
   lambda?:        number   // L2 regularization (default: 1.0)
   gamma?:         number   // Min split gain (default: 0.0)
   minChildWeight?: number  // Min sum of hessians in child (default: 1)
+  seed?:          number   // RNG seed for deterministic subsampling (default: 42)
 }
 
 export interface ForecastResult {
@@ -79,7 +95,7 @@ function std(arr: number[]): number {
 // ── Decision tree node fitting ─────────────────────────────────────────────────
 function fitTree(
   X: number[][], gradients: number[], hessians: number[],
-  depth: number, config: Required<XGBConfig>
+  depth: number, config: Required<XGBConfig>, rng: () => number
 ): GBNode {
   const n = X.length
   const sumG = gradients.reduce((a, b) => a + b, 0)
@@ -101,7 +117,7 @@ function fitTree(
 
   // Feature subsampling
   const featureMask = Array.from({ length: nFeatures }, (_, i) => i)
-    .filter(() => Math.random() < config.colsample)
+    .filter(() => rng() < config.colsample)
 
   for (const f of featureMask) {
     const values = Array.from(new Set(X.map(x => x[f]))).sort((a, b) => a - b)
@@ -146,8 +162,8 @@ function fitTree(
     isLeaf:       false,
     splitFeature: bestFeature,
     splitValue:   bestValue,
-    left:         fitTree(leftX,  leftG,  leftH,  depth - 1, config),
-    right:        fitTree(rightX, rightG, rightH, depth - 1, config),
+    left:         fitTree(leftX,  leftG,  leftH,  depth - 1, config, rng),
+    right:        fitTree(rightX, rightG, rightH, depth - 1, config, rng),
     weight:       leafWeight,
   }
 }
@@ -165,6 +181,7 @@ export class XGBoost {
   private trees:     GBTree[] = []
   private basePred:  number   = 0
   private config:    Required<XGBConfig>
+  private rng:       () => number = seededRng(42)
 
   constructor(config: XGBConfig = {}) {
     this.config = {
@@ -176,10 +193,12 @@ export class XGBoost {
       lambda:         config.lambda        ?? 1.0,
       gamma:          config.gamma         ?? 0.0,
       minChildWeight: config.minChildWeight ?? 1,
+      seed:           config.seed          ?? 42,
     }
   }
 
   fit(X: number[][], y: number[]): void {
+    this.rng = seededRng(this.config.seed)
     this.basePred = mean(y)
     let preds = new Array(y.length).fill(this.basePred)
 
@@ -190,13 +209,13 @@ export class XGBoost {
 
       // Row subsampling
       const sampleIdx = Array.from({ length: X.length }, (_, i) => i)
-        .filter(() => Math.random() < this.config.subsample)
+        .filter(() => this.rng() < this.config.subsample)
 
       const sampledX = sampleIdx.map(i => X[i])
       const sampledG = sampleIdx.map(i => gradients[i])
       const sampledH = sampleIdx.map(i => hessians[i])
 
-      const tree = fitTree(sampledX, sampledG, sampledH, this.config.maxDepth, this.config)
+      const tree = fitTree(sampledX, sampledG, sampledH, this.config.maxDepth, this.config, this.rng)
       this.trees.push({ root: tree })
 
       // Update predictions
@@ -257,7 +276,7 @@ export function xgboostForecast(
     nEstimators:  ESTIMATORS,
     maxDepth:     MAX_DEPTH,
     learningRate: LEARNING_RATE,
-    subsample: 0.8, colsample: 0.8, lambda: 1.0,
+    subsample: 0.8, colsample: 0.8, lambda: 1.0, seed: 42,
   })
   model.fit(XTrain, yTrain)
 

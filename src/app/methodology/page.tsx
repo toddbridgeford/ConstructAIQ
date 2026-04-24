@@ -200,7 +200,7 @@ export default function MethodologyPage() {
             <p style={prose}>
               The forecast uses an accuracy-weighted ensemble of three time-series models:
               Holt-Winters exponential smoothing, SARIMA, and a gradient-boosted decision tree
-              (XGBoost). Each model generates a 12-month forward projection for TTLCONS (Total
+              (custom GBT). Each model generates a 12-month forward projection for TTLCONS (Total
               Construction Spending in billions of dollars). The ensemble weight for each model
               is updated monthly based on its MAPE (Mean Absolute Percentage Error) over the
               prior 12 months.
@@ -217,7 +217,7 @@ export default function MethodologyPage() {
                 {[
                   ['Holt-Winters', 'Triple exponential smoothing with trend and seasonality', '~35%', 'Captures seasonal cycles'],
                   ['SARIMA', 'Seasonal ARIMA (p,d,q)(P,D,Q)', '~35%', 'Strong trend extrapolation'],
-                  ['XGBoost', 'Gradient-boosted trees on lag features', '~30%', 'Captures nonlinear breaks'],
+                  ['Custom GBT', 'Gradient-boosted trees on lag features', '~30%', 'Captures nonlinear breaks'],
                 ].map(([model, desc, weight, strengths]) => (
                   <tr key={model}>
                     <td style={{ ...tdStyle, fontFamily: font.mono, fontSize: 13, fontWeight: 600 }}>{model}</td>
