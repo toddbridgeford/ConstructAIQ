@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -59,39 +60,6 @@ function computeComposite(sub: SubScores): number {
   )
 }
 
-// Seeded pseudo-random for deterministic history
-function seededRand(seed: number): number {
-  const x = Math.sin(seed + 1) * 10000
-  return x - Math.floor(x)
-}
-
-function generateHistory(finalScore: number): HistoryPoint[] {
-  const history: HistoryPoint[] = []
-  const weeks = 24
-  const startScore = 64.0
-
-  // Build a smooth trend from 64 → finalScore with weekly variance ±3
-  for (let i = 0; i < weeks; i++) {
-    const progress = i / (weeks - 1)
-    // Ease-in-out interpolation
-    const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2
-    const base = startScore + (finalScore - startScore) * eased
-    // Add ±3 volatility using deterministic seed
-    const noise = (seededRand(i * 7 + 3) - 0.5) * 6
-    const score = Math.max(30, Math.min(100, parseFloat((base + noise).toFixed(1))))
-    const weekDate = new Date('2025-10-27')
-    weekDate.setDate(weekDate.getDate() + (i - weeks + 1) * 7)
-    const weekStr = weekDate.toISOString().split('T')[0]
-    history.push({
-      week: weekStr,
-      score,
-      classification: classify(score).classification,
-    })
-  }
-
-  return history
-}
-
 function generateMomentumLine(history: HistoryPoint[]): MomentumPoint[] {
   // 4-week rate of change
   return history.map((point, idx) => {
@@ -106,49 +74,102 @@ function generateMomentumLine(history: HistoryPoint[]): MomentumPoint[] {
 
 export async function GET() {
   try {
-    // Current sub-scores derived from synthetic seed data (realistic April 2026 values)
+    const [spendRows, permitRows, empRows, lumberRows, steelRows, fedRows, briefRows] =
+      await Promise.all([
+        supabaseAdmin.from('observations')
+          .select('value,obs_date').eq('series_id', 'TTLCONS')
+          .order('obs_date', { ascending: false }).limit(13),
+        supabaseAdmin.from('observations')
+          .select('value,obs_date').eq('series_id', 'PERMIT')
+          .order('obs_date', { ascending: false }).limit(13),
+        supabaseAdmin.from('observations')
+          .select('value,obs_date').eq('series_id', 'CES2000000001')
+          .order('obs_date', { ascending: false }).limit(2),
+        supabaseAdmin.from('observations')
+          .select('value,obs_date').eq('series_id', 'PPI_LUMBER')
+          .order('obs_date', { ascending: false }).limit(13),
+        supabaseAdmin.from('observations')
+          .select('value,obs_date').eq('series_id', 'PPI_STEEL')
+          .order('obs_date', { ascending: false }).limit(13),
+        supabaseAdmin.from('federal_cache')
+          .select('payload').order('fetched_at', { ascending: false }).limit(1),
+        supabaseAdmin.from('weekly_briefs')
+          .select('generated_at').order('generated_at', { ascending: false }).limit(24),
+      ])
+
+    // spendGrowth: YoY growth in TTLCONS, normalized 0-100
+    // If TTLCONS grew > 5% YoY = 90, flat = 50, -5% = 20
+    const spendVals  = (spendRows.data ?? []).map(r => r.value)
+    const spendCur   = spendVals[0]  ?? null
+    const spendYrAgo = spendVals[12] ?? null
+    const spendYoy   = spendCur && spendYrAgo
+      ? ((spendCur - spendYrAgo) / spendYrAgo) * 100 : 0
+    const spendScore = Math.max(0, Math.min(100, 50 + spendYoy * 5))
+
+    // permitVelocity: YoY growth in PERMIT, normalized
+    const permVals   = (permitRows.data ?? []).map(r => r.value)
+    const permCur    = permVals[0]  ?? null
+    const permYrAgo  = permVals[12] ?? null
+    const permYoy    = permCur && permYrAgo
+      ? ((permCur - permYrAgo) / permYrAgo) * 100 : 0
+    const permitScore = Math.max(0, Math.min(100, 50 + permYoy * 4))
+
+    // employmentMomentum: MoM employment change normalized
+    const empVals  = (empRows.data ?? []).map(r => r.value)
+    const empMom   = empVals.length >= 2
+      ? ((empVals[0] - empVals[1]) / empVals[1]) * 100 : 0
+    const empScore = Math.max(0, Math.min(100, 50 + empMom * 20))
+
+    // materialsCostPressure: inverted — high PPI = lower score
+    const lbrVals   = (lumberRows.data ?? []).map(r => r.value)
+    const stlVals   = (steelRows.data ?? []).map(r => r.value)
+    const lbrYoy    = lbrVals.length >= 13
+      ? ((lbrVals[0] - lbrVals[12]) / lbrVals[12]) * 100 : 0
+    const stlYoy    = stlVals.length >= 13
+      ? ((stlVals[0] - stlVals[12]) / stlVals[12]) * 100 : 0
+    const avgMatYoy = (lbrYoy + stlYoy) / 2
+    // Inverted: rising materials = lower CSHI score
+    const matsScore = Math.max(0, Math.min(100, 70 - avgMatYoy * 3))
+
+    // regionalMomentum: use 70 as default (hard to compute
+    // from national data alone — placeholder until map data)
+    const regionalScore = 70
+
+    // federalAwardPace: parse from federal_cache
+    const fedPayload = fedRows.data?.[0]?.payload as
+      { national_total?: number; prior_year?: number } | null
+    const fedYoy = fedPayload?.national_total && fedPayload?.prior_year
+      ? ((fedPayload.national_total - fedPayload.prior_year)
+          / fedPayload.prior_year) * 100 : 0
+    const fedScore = Math.max(0, Math.min(100, 50 + fedYoy * 3))
+
     const subScores: SubScores = {
-      spendGrowth: {
-        score: 75,
-        weight: 0.20,
-        label: 'Spend Growth',
-      },
-      permitVelocity: {
-        score: 68,
-        weight: 0.20,
-        label: 'Permit Velocity',
-      },
-      employmentMomentum: {
-        score: 78,
-        weight: 0.15,
-        label: 'Employment Momentum',
-      },
-      materialsCostPressure: {
-        score: 62,
-        weight: 0.15,
-        label: 'Materials Cost (inverted)',
-      },
-      regionalMomentum: {
-        score: 80,
-        weight: 0.15,
-        label: 'Regional Momentum',
-      },
-      federalAwardPace: {
-        score: 71,
-        weight: 0.15,
-        label: 'Federal Award Pace',
-      },
+      spendGrowth:           { score: parseFloat(spendScore.toFixed(1)),  weight: 0.20, label: 'Spend Growth' },
+      permitVelocity:        { score: parseFloat(permitScore.toFixed(1)), weight: 0.20, label: 'Permit Velocity' },
+      employmentMomentum:    { score: parseFloat(empScore.toFixed(1)),    weight: 0.15, label: 'Employment Momentum' },
+      materialsCostPressure: { score: parseFloat(matsScore.toFixed(1)),   weight: 0.15, label: 'Materials Cost (inverted)' },
+      regionalMomentum:      { score: regionalScore,                      weight: 0.15, label: 'Regional Momentum' },
+      federalAwardPace:      { score: parseFloat(fedScore.toFixed(1)),    weight: 0.15, label: 'Federal Award Pace' },
     }
 
     const rawScore = computeComposite(subScores)
     const score = parseFloat(rawScore.toFixed(1))
     const { classification, classColor } = classify(score)
 
-    const history = generateHistory(score)
+    // Build history from weekly_briefs dates; return what's available
+    const history: HistoryPoint[] = ((briefRows.data ?? []) as { generated_at: string }[])
+      .slice()
+      .reverse()
+      .map(row => ({
+        week: row.generated_at.split('T')[0],
+        score,
+        classification: classify(score).classification,
+      }))
+
     const momentumLine = generateMomentumLine(history)
 
     // Weekly change = current score minus previous week's score
-    const prevScore = history[history.length - 2]?.score ?? score - 1.3
+    const prevScore = history[history.length - 2]?.score ?? score
     const weeklyChange = parseFloat((score - prevScore).toFixed(1))
 
     return NextResponse.json(
@@ -160,7 +181,7 @@ export async function GET() {
         subScores,
         history,
         momentumLine,
-        updatedAt: '2026-04-20T07:00:00Z',
+        updatedAt: new Date().toISOString(),
       },
       { headers: { 'Cache-Control': 'public, s-maxage=3600' } }
     )
