@@ -1,483 +1,531 @@
 "use client"
 import Image from "next/image"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { font, color } from "@/lib/theme"
 
 const SYS  = font.sys
 const MONO = font.mono
 
-const AMBER    = color.amber
-const GREEN    = color.green
-const RED      = color.red
-const BG0      = color.bg0
-const BG1      = color.bg1
-const BG2      = color.bg2
-const BD1      = color.bd1
-const BD2      = color.bd2
-const BD3      = color.bd3
-const T1       = color.t1
-const T3       = color.t3
-const T4       = color.t4
-const AMBER_DIM = color.amberDim
-const GREEN_DIM = color.greenDim
+// ── Widget catalogue ──────────────────────────────────────────────────────────
 
-type Variant = "compact" | "standard" | "full"
-type Theme   = "dark" | "light"
-
-// ─── Inline widget previews ───────────────────────────────────────────────────
-
-function CompactPreview() {
-  return (
-    <div style={{
-      background: BG2, border: "1px solid #383838", borderRadius: 8,
-      padding: "12px 16px", fontFamily: MONO, width: 280,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
-        <span style={{ fontSize: 10, color: AMBER }}>ConstructAIQ™</span>
-        <span style={{ fontSize: 9, color: GREEN, marginLeft: "auto" }}>● LIVE</span>
-      </div>
-      <div style={{ fontSize: 12, color: "#fff", marginBottom: 5 }}>
-        SECTOR HEALTH: 72.4 — EXPANDING
-      </div>
-      <div style={{ fontSize: 9, color: T4 }}>
-        Updated 4hrs ago ·{" "}
-        <span style={{ color: AMBER }}>constructaiq.trade →</span>
-      </div>
-    </div>
-  )
+interface WidgetDef {
+  id:      string
+  name:    string
+  desc:    string
+  path:    string
+  nativeW: number
+  nativeH: number
+  usedFor: string
+  hasMetro?: boolean
 }
 
-function StandardPreview() {
-  return (
-    <div style={{
-      background: BG2, border: "1px solid #383838", borderRadius: 8,
-      padding: 16, fontFamily: MONO, width: 280,
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <span style={{ fontSize: 11, color: AMBER }}>ConstructAIQ™</span>
-        <span style={{ fontSize: 9, color: GREEN }}>● LIVE</span>
-      </div>
-      <div style={{ marginBottom: 10 }}>
-        <span style={{ fontSize: 24, color: AMBER, fontWeight: 700 }}>72.4</span>
-        <span style={{ fontSize: 12, color: GREEN, marginLeft: 6 }}>▲ EXPANDING</span>
-      </div>
-      <div style={{ borderTop: "1px solid #383838", paddingTop: 8, marginBottom: 10 }}>
-        {[
-          { name: "Lumber", signal: "BUY",  color: GREEN },
-          { name: "Steel",  signal: "HOLD", color: AMBER },
-          { name: "Copper", signal: "SELL", color: RED },
-        ].map(m => (
-          <div key={m.name} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "3px 0" }}>
-            <span style={{ color: "#fff" }}>{m.name}</span>
-            <span style={{ color: m.color }}>{m.signal}</span>
-          </div>
-        ))}
-      </div>
-      <div style={{
-        textAlign: "center", background: AMBER, color: "#000",
-        borderRadius: 6, padding: "7px 0", fontSize: 11, fontWeight: 700, cursor: "pointer",
-      }}>
-        View Full Dashboard →
-      </div>
-    </div>
-  )
-}
+const WIDGETS: WidgetDef[] = [
+  {
+    id:      "opportunity",
+    name:    "Metro Opportunity Score",
+    desc:    "City name, score (0–100), classification, and top 2 market signals.",
+    path:    "/embed/opportunity",
+    nativeW: 320,
+    nativeH: 200,
+    usedFor: "Lender dashboards, EDO websites, broker newsletters",
+    hasMetro: true,
+  },
+  {
+    id:      "verdict",
+    name:    "National Market Verdict Banner",
+    desc:    "EXPAND / HOLD / CONTRACT verdict with a one-line AI-generated headline.",
+    path:    "/embed/verdict",
+    nativeW: 600,
+    nativeH: 80,
+    usedFor: "Trade publication articles, industry newsletters, association pages",
+  },
+  {
+    id:      "map",
+    name:    "US State Heat Map",
+    desc:    "Choropleth bubble map of permit growth YoY across all 50 states.",
+    path:    "/embed/map",
+    nativeW: 600,
+    nativeH: 400,
+    usedFor: "Research reports, supplier territory pages, economic development portals",
+  },
+  {
+    id:      "materials",
+    name:    "Material Cost Ticker",
+    desc:    "4 commodity prices with month-over-month change and BUY/SELL/HOLD signal.",
+    path:    "/embed/materials",
+    nativeW: 480,
+    nativeH: 120,
+    usedFor: "Supplier sidebars, procurement newsletters, contractor intranets",
+  },
+  {
+    id:      "leaderboard",
+    name:    "Top 5 Metro Leaderboard",
+    desc:    "Ranked list of the five highest-opportunity metros by composite score.",
+    path:    "/embed/leaderboard",
+    nativeW: 320,
+    nativeH: 280,
+    usedFor: "Real estate sidebars, regional development sites, bid-board platforms",
+  },
+]
 
-function FullPreview() {
-  return (
-    <div style={{
-      background: BG2, border: "1px solid #383838", borderRadius: 8,
-      padding: 16, fontFamily: MONO, width: 280,
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <span style={{ fontSize: 11, color: AMBER }}>ConstructAIQ™</span>
-        <span style={{ fontSize: 9, color: GREEN }}>● LIVE</span>
-      </div>
-      {/* Top states */}
-      <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 9, color: T4, marginBottom: 4, letterSpacing: "0.08em" }}>TOP MARKETS</div>
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {["TX", "FL", "AZ"].map(s => (
-            <span key={s} style={{
-              fontSize: 9, color: AMBER, border: `1px solid ${AMBER}44`,
-              borderRadius: 4, padding: "2px 6px",
-            }}>{s}</span>
-          ))}
-        </div>
-      </div>
-      {/* CSHI */}
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 9, color: T4, marginBottom: 2, letterSpacing: "0.08em" }}>SECTOR HEALTH INDEX</div>
-        <span style={{ fontSize: 24, color: AMBER, fontWeight: 700 }}>72.4</span>
-        <span style={{ fontSize: 12, color: GREEN, marginLeft: 6 }}>▲ EXPANDING</span>
-      </div>
-      {/* Materials */}
-      <div style={{ borderTop: "1px solid #383838", paddingTop: 8, marginBottom: 10 }}>
-        {[
-          { name: "Lumber", signal: "BUY",  clr: GREEN },
-          { name: "Steel",  signal: "HOLD", clr: AMBER },
-          { name: "Copper", signal: "SELL", clr: RED },
-        ].map(m => (
-          <div key={m.name} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "3px 0" }}>
-            <span style={{ color: "#fff" }}>{m.name}</span>
-            <span style={{ color: m.clr }}>{m.signal}</span>
-          </div>
-        ))}
-      </div>
-      {/* Forecast */}
-      <div style={{ borderTop: "1px solid #383838", paddingTop: 8, marginBottom: 10 }}>
-        <div style={{ fontSize: 9, color: T4, marginBottom: 2, letterSpacing: "0.08em" }}>12-MO FORECAST</div>
-        <div style={{ fontSize: 16, color: GREEN, fontWeight: 700 }}>+4.2% 12mo forecast</div>
-      </div>
-      <div style={{
-        textAlign: "center", background: AMBER, color: "#000",
-        borderRadius: 6, padding: "7px 0", fontSize: 11, fontWeight: 700, cursor: "pointer",
-      }}>
-        View Full Dashboard →
-      </div>
-    </div>
-  )
-}
+// ── Scaled iframe preview ─────────────────────────────────────────────────────
 
-// ─── Variant Card ─────────────────────────────────────────────────────────────
+const MAX_PREVIEW_W = 560
 
-function VariantCard({
-  id, label, size, selected, onClick, children,
+function ScaledIframe({
+  src, nativeW, nativeH,
 }: {
-  id: Variant; label: string; size: string; selected: boolean
-  onClick: () => void; children: React.ReactNode
+  src: string; nativeW: number; nativeH: number
 }) {
+  const scale    = Math.min(1, MAX_PREVIEW_W / nativeW)
+  const displayW = Math.round(nativeW * scale)
+  const displayH = Math.round(nativeH * scale)
+
   return (
-    <div
-      onClick={onClick}
-      style={{
-        background: BG1,
-        border: selected ? `2px solid ${AMBER}` : `1px solid ${BD1}`,
-        borderRadius: 16,
-        padding: 20,
-        cursor: "pointer",
-        flex: "1 1 260px",
-        boxShadow: selected ? `0 0 24px ${AMBER}22` : "none",
-        transition: "border 0.15s, box-shadow 0.15s",
-      }}
-    >
-      <div style={{ marginBottom: 14 }}>{children}</div>
-      <div style={{ fontFamily: MONO, fontSize: 10, color: T4, marginTop: 8 }}>{size}</div>
-      <div style={{
-        marginTop: 8, fontFamily: MONO, fontSize: 11,
-        color: selected ? AMBER : T4,
-        letterSpacing: "0.06em",
-      }}>
-        {selected ? "✓ SELECTED" : label.toUpperCase()}
-      </div>
+    <div style={{
+      width: displayW, height: displayH,
+      overflow: "hidden", position: "relative",
+      borderRadius: 10, flexShrink: 0,
+    }}>
+      <iframe
+        src={src}
+        width={nativeW}
+        height={nativeH}
+        frameBorder="0"
+        scrolling="no"
+        sandbox="allow-scripts allow-same-origin allow-popups"
+        style={{
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+          display: "block",
+          border: "none",
+        }}
+      />
     </div>
   )
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ── Single widget card ────────────────────────────────────────────────────────
 
-export default function EmbedPage() {
-  const [variant, setVariant]     = useState<Variant>("compact")
-  const [theme, setTheme]         = useState<Theme>("dark")
-  const [focusState, setFocus]    = useState("")
-  const [copied, setCopied]       = useState(false)
+function WidgetCard({ widget }: { widget: WidgetDef }) {
+  const [theme, setTheme]   = useState<"dark" | "light">("dark")
+  const [metro, setMetro]   = useState("PHX")
+  const [copied, setCopied] = useState(false)
+  const [origin, setOrigin] = useState("https://constructaiq.trade")
 
-  const embedCode = `<div id="constructaiq-widget"></div>
-<script>
-  window.ConstructAIQConfig = {
-    variant: "${variant}",
-    theme: "${theme}",${focusState ? `\n    focusState: "${focusState}",` : ""}
-  };
-</script>
-<script async src="https://constructaiq.trade/widget.js"></script>`
+  useEffect(() => { setOrigin(window.location.origin) }, [])
+
+  const params = new URLSearchParams({ theme })
+  if (widget.hasMetro) params.set("metro", metro)
+  const previewPath = `${widget.path}?${params}`
+  const embedSrc    = `${origin}${widget.path}?${params}`
+
+  const iframeCode = [
+    `<iframe`,
+    `  src="${embedSrc}"`,
+    `  width="${widget.nativeW}"`,
+    `  height="${widget.nativeH}"`,
+    `  frameborder="0"`,
+    `  scrolling="no"`,
+    `  style="border:none;overflow:hidden"`,
+    `  loading="lazy"`,
+    `></iframe>`,
+  ].join("\n")
 
   function handleCopy() {
-    navigator.clipboard.writeText(embedCode)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    navigator.clipboard.writeText(iframeCode).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
+  const isDark = theme === "dark"
+
   return (
-    <div style={{ minHeight: "100vh", background: BG0, color: T1, fontFamily: SYS, paddingBottom: "env(safe-area-inset-bottom,20px)" }}>
+    <div style={{
+      background: color.bg1, border: `1px solid ${color.bd1}`,
+      borderRadius: 16, overflow: "hidden",
+      marginBottom: 32,
+    }}>
+      {/* Preview panel */}
+      <div style={{
+        background: isDark ? color.bg0 : "#f0f0f0",
+        padding: "32px 24px",
+        display: "flex", justifyContent: "center", alignItems: "center",
+        minHeight: Math.min(widget.nativeH + 64, 300),
+        borderBottom: `1px solid ${color.bd1}`,
+      }}>
+        <ScaledIframe src={previewPath} nativeW={widget.nativeW} nativeH={widget.nativeH} />
+      </div>
+
+      {/* Info + controls */}
+      <div style={{ padding: "24px 28px 28px" }}>
+        {/* Title row */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <div style={{ fontFamily: SYS, fontSize: 17, fontWeight: 700, color: color.t1 }}>
+              {widget.name}
+            </div>
+            <div style={{ fontFamily: SYS, fontSize: 13, color: color.t3, marginTop: 4, lineHeight: 1.5 }}>
+              {widget.desc}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            <span style={{
+              fontFamily: MONO, fontSize: 10, color: color.t4,
+              background: color.bg3, borderRadius: 6,
+              padding: "4px 10px", whiteSpace: "nowrap",
+            }}>
+              {widget.nativeW} × {widget.nativeH}px
+            </span>
+          </div>
+        </div>
+
+        <div style={{ fontFamily: MONO, fontSize: 9, color: color.amber, letterSpacing: "0.08em", marginBottom: 18 }}>
+          USED FOR: {widget.usedFor.toUpperCase()}
+        </div>
+
+        {/* Controls */}
+        <div style={{ display: "flex", gap: 20, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 20 }}>
+
+          {/* Theme */}
+          <div>
+            <div style={{ fontFamily: MONO, fontSize: 9, color: color.t4, letterSpacing: "0.08em", marginBottom: 8 }}>THEME</div>
+            <div style={{ display: "flex", gap: 4 }}>
+              {(["dark", "light"] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTheme(t)}
+                  style={{
+                    fontFamily: MONO, fontSize: 11,
+                    background: theme === t ? color.amber : color.bg3,
+                    color: theme === t ? "#000" : color.t3,
+                    fontWeight: theme === t ? 700 : 400,
+                    border: "none", borderRadius: 20,
+                    padding: "5px 14px", cursor: "pointer",
+                    letterSpacing: "0.06em",
+                    minHeight: 34,
+                  }}
+                >
+                  {t === "dark" ? "Dark" : "Light"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Metro input (opportunity widget only) */}
+          {widget.hasMetro && (
+            <div>
+              <div style={{ fontFamily: MONO, fontSize: 9, color: color.t4, letterSpacing: "0.08em", marginBottom: 8 }}>METRO CODE</div>
+              <input
+                value={metro}
+                onChange={e => setMetro(e.target.value.toUpperCase().slice(0, 5))}
+                placeholder="PHX"
+                maxLength={5}
+                style={{
+                  background: color.bg3, border: `1px solid ${color.bd2}`,
+                  borderRadius: 8, padding: "5px 12px",
+                  fontFamily: MONO, fontSize: 13, color: color.t1,
+                  width: 90, letterSpacing: "0.1em",
+                  minHeight: 34, boxSizing: "border-box",
+                }}
+              />
+              <div style={{ fontFamily: MONO, fontSize: 9, color: color.t4, marginTop: 4 }}>
+                e.g. PHX · AUS · MIA · DEN · SEA
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Code block */}
+        <div style={{ position: "relative" }}>
+          <pre style={{
+            fontFamily: MONO, fontSize: 11, color: color.amber,
+            background: color.bg0, borderRadius: 10,
+            padding: "16px 20px", margin: 0,
+            overflowX: "auto", lineHeight: 1.7,
+            border: `1px solid ${color.bd1}`,
+            whiteSpace: "pre",
+          }}>
+            {iframeCode}
+          </pre>
+          <button
+            onClick={handleCopy}
+            style={{
+              position: "absolute", top: 10, right: 10,
+              background: color.bg3, border: `1px solid ${color.bd2}`,
+              fontFamily: MONO, fontSize: 11,
+              color: copied ? color.green : color.t3,
+              borderRadius: 6, padding: "5px 12px", cursor: "pointer",
+              minHeight: 32,
+            }}
+          >
+            {copied ? "✓ Copied" : "Copy"}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Embed stats ────────────────────────────────────────────────────────────────
+
+interface PlatformStats {
+  embed_impressions:       number
+  embed_impressions_label: string
+}
+
+function EmbedStats() {
+  const [stats, setStats] = useState<PlatformStats | null>(null)
+
+  useEffect(() => {
+    fetch("/api/platform-stats")
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => setStats(d))
+      .catch(() => {})
+  }, [])
+
+  return (
+    <div style={{
+      background: color.bg1, border: `1px solid ${color.bd1}`,
+      borderRadius: 16, padding: "28px 32px", marginBottom: 40,
+    }}>
+      <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.1em", marginBottom: 20 }}>
+        EMBED DISTRIBUTION
+      </div>
+      <div style={{ display: "flex", gap: 40, flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.08em", marginBottom: 6 }}>
+            TOTAL IMPRESSIONS
+          </div>
+          <div style={{ fontFamily: SYS, fontSize: 32, fontWeight: 700, color: color.t1, lineHeight: 1 }}>
+            {stats ? (stats.embed_impressions === 0 ? "—" : stats.embed_impressions_label) : "…"}
+          </div>
+          <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, marginTop: 4 }}>
+            across all embed types
+          </div>
+        </div>
+        <div>
+          <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.08em", marginBottom: 6 }}>
+            WIDGET TYPES
+          </div>
+          <div style={{ fontFamily: SYS, fontSize: 32, fontWeight: 700, color: color.t1, lineHeight: 1 }}>
+            5
+          </div>
+          <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, marginTop: 4 }}>
+            opportunity · verdict · map · materials · leaderboard
+          </div>
+        </div>
+        <div>
+          <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.08em", marginBottom: 6 }}>
+            COST
+          </div>
+          <div style={{ fontFamily: SYS, fontSize: 32, fontWeight: 700, color: color.green, lineHeight: 1 }}>
+            $0
+          </div>
+          <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, marginTop: 4 }}>
+            free forever · no attribution required
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Use case strip ────────────────────────────────────────────────────────────
+
+const USE_CASES = [
+  {
+    title: "Construction Lenders",
+    example: "Embed the Opportunity Score on your loan products page to show borrowers which markets ConstructAIQ rates as high-confidence.",
+  },
+  {
+    title: "Trade Publications",
+    example: "Drop the Verdict Banner into any article about housing starts or materials costs. It auto-refreshes — readers always see the current market call.",
+  },
+  {
+    title: "Economic Development Organizations",
+    example: "The Metro Leaderboard and State Map let EDOs show investors where construction activity is concentrating in real time.",
+  },
+  {
+    title: "Material Suppliers",
+    example: "The Materials Ticker gives procurement teams a live BUY/SELL/HOLD signal for lumber, steel, concrete, and copper in a sidebar-sized widget.",
+  },
+]
+
+function UseCases() {
+  return (
+    <div style={{ marginBottom: 48 }}>
+      <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.1em", marginBottom: 20 }}>
+        WHO EMBEDS CONSTRUCTAIQ
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+        {USE_CASES.map(uc => (
+          <div key={uc.title} style={{
+            background: color.bg1, border: `1px solid ${color.bd1}`,
+            borderRadius: 14, padding: "20px 22px",
+          }}>
+            <div style={{ fontFamily: SYS, fontSize: 14, fontWeight: 600, color: color.t1, marginBottom: 8 }}>
+              {uc.title}
+            </div>
+            <div style={{ fontFamily: SYS, fontSize: 13, color: color.t3, lineHeight: 1.55 }}>
+              {uc.example}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Notes ─────────────────────────────────────────────────────────────────────
+
+function Notes() {
+  return (
+    <div style={{
+      background: color.bg1, border: `1px solid ${color.bd1}`,
+      borderRadius: 14, padding: "22px 26px", marginBottom: 48,
+    }}>
+      <div style={{ fontFamily: MONO, fontSize: 10, color: color.amber, letterSpacing: "0.1em", marginBottom: 14 }}>
+        USAGE NOTES
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {[
+          "All embeds work on any site without CORS restrictions — paste the iframe and it works.",
+          "Add ?bg=transparent to remove the card background (useful for custom-styled containers).",
+          "Add ?theme=light for a white background suitable for light-mode publications.",
+          "Data refreshes every 4 hours client-side — no additional requests to your server.",
+          "The \"Powered by ConstructAIQ →\" link is always present and opens constructaiq.trade.",
+          "Opportunity widget requires a metro code (?metro=PHX). Supported codes match our permit-tracked markets.",
+        ].map((note, i) => (
+          <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span style={{ fontFamily: MONO, fontSize: 10, color: color.amber, flexShrink: 0, marginTop: 2 }}>
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <span style={{ fontFamily: SYS, fontSize: 13, color: color.t3, lineHeight: 1.55 }}>
+              {note}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
+export default function EmbedGalleryPage() {
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: color.bg0,
+      color: color.t1,
+      fontFamily: SYS,
+      paddingBottom: "env(safe-area-inset-bottom, 24px)",
+    }}>
       <style>{`
-        *{box-sizing:border-box;margin:0;padding:0}
-        a{color:inherit;text-decoration:none}
-        button{outline:none;font-family:inherit;cursor:pointer;border:none}
-        button:hover{opacity:0.85}
-        input:focus{outline:none}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        a { color: inherit; text-decoration: none; }
+        button { outline: none; font-family: inherit; cursor: pointer; border: none; }
+        button:hover { opacity: 0.85; }
+        input { color-scheme: dark; }
+        input:focus { outline: none; }
+        pre { tab-size: 2; }
       `}</style>
 
-      {/* ── NAV ── */}
+      {/* ── Nav ── */}
       <nav style={{
         position: "sticky", top: 0, zIndex: 100,
-        background: BG1 + "ee", backdropFilter: "blur(12px)",
-        borderBottom: `1px solid ${BD1}`,
+        background: color.bg1 + "ee", backdropFilter: "blur(12px)",
+        borderBottom: `1px solid ${color.bd1}`,
         padding: "0 32px", display: "flex", alignItems: "center",
         justifyContent: "space-between", height: 60,
-        paddingTop: "env(safe-area-inset-top,0px)",
+        paddingTop: "env(safe-area-inset-top, 0px)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <Link href="/">
             <Image src="/ConstructAIQWhiteLogo.svg" width={120} height={24} alt="ConstructAIQ" style={{ height: 24, width: "auto" }} />
           </Link>
-          <div style={{ width: 1, height: 24, background: BD1 }} />
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>EMBED</div>
+          <div style={{ width: 1, height: 24, background: color.bd1 }} />
+          <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, letterSpacing: "0.1em" }}>EMBED WIDGETS</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Link href="/dashboard">
-            <button style={{ background: "transparent", color: T3, fontFamily: MONO, fontSize: 13, padding: "8px 16px", borderRadius: 10, border: `1px solid ${BD1}`, minHeight: 44 }}>DASHBOARD</button>
+            <button style={{ background: "transparent", color: color.t3, fontFamily: MONO, fontSize: 12, padding: "8px 16px", borderRadius: 10, border: `1px solid ${color.bd1}`, minHeight: 40 }}>
+              DASHBOARD
+            </button>
           </Link>
-          <Link href="/contact">
-            <button style={{ background: AMBER, color: "#000", fontFamily: MONO, fontSize: 13, fontWeight: 700, padding: "8px 20px", borderRadius: 10, letterSpacing: "0.06em", minHeight: 44 }}>TALK TO US →</button>
+          <Link href="/api-access">
+            <button style={{ background: color.amber, color: "#000", fontFamily: MONO, fontSize: 12, fontWeight: 700, padding: "8px 18px", borderRadius: 10, letterSpacing: "0.06em", minHeight: 40 }}>
+              API ACCESS →
+            </button>
           </Link>
         </div>
       </nav>
 
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 32px 80px" }}>
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px 80px" }}>
 
-        {/* ── HERO ── */}
-        <div style={{ textAlign: "center", padding: "64px 32px 40px" }}>
+        {/* ── Hero ── */}
+        <div style={{ textAlign: "center", padding: "60px 24px 48px" }}>
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 8,
-            background: AMBER_DIM, border: `1px solid ${AMBER}44`,
-            borderRadius: 20, padding: "6px 16px", marginBottom: 24,
+            background: color.amberDim, border: `1px solid ${color.amber}44`,
+            borderRadius: 20, padding: "5px 14px", marginBottom: 22,
           }}>
-            <span style={{ fontFamily: MONO, fontSize: 11, color: AMBER, letterSpacing: "0.08em" }}>
-              FREE EMBEDS · BRAND DISTRIBUTION
+            <span style={{ fontFamily: MONO, fontSize: 10, color: color.amber, letterSpacing: "0.08em" }}>
+              FREE EMBEDS · WORKS ON ANY SITE
             </span>
           </div>
-          <h1 style={{ fontFamily: SYS, fontSize: 40, fontWeight: 700, color: T1, marginBottom: 16, lineHeight: 1.15, letterSpacing: "-0.02em" }}>
+          <h1 style={{ fontFamily: SYS, fontSize: 38, fontWeight: 700, color: color.t1, marginBottom: 14, lineHeight: 1.15, letterSpacing: "-0.02em" }}>
             Embed ConstructAIQ Intelligence
           </h1>
-          <p style={{ fontFamily: SYS, fontSize: 17, color: T3, lineHeight: 1.6, maxWidth: 520, margin: "0 auto" }}>
-            Add live construction intelligence to any website with one line of code. Free forever.
+          <p style={{ fontFamily: SYS, fontSize: 16, color: color.t3, lineHeight: 1.6, maxWidth: 500, margin: "0 auto 0" }}>
+            Live construction intelligence for lenders, suppliers, trade publications, and EDOs. Paste one iframe and it works — no API key, no setup.
           </p>
         </div>
 
-        {/* ── STEP 1 ── */}
-        <div style={{ marginBottom: 40 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 18 }}>
-            STEP 1 — CHOOSE YOUR WIDGET SIZE
-          </div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <VariantCard id="compact" label="Compact" size="300 × 120px" selected={variant === "compact"} onClick={() => setVariant("compact")}>
-              <CompactPreview />
-            </VariantCard>
-            <VariantCard id="standard" label="Standard" size="300 × 280px" selected={variant === "standard"} onClick={() => setVariant("standard")}>
-              <StandardPreview />
-            </VariantCard>
-            <VariantCard id="full" label="Full" size="300 × 480px" selected={variant === "full"} onClick={() => setVariant("full")}>
-              <FullPreview />
-            </VariantCard>
-          </div>
+        {/* ── Widget gallery ── */}
+        <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.1em", marginBottom: 20 }}>
+          AVAILABLE WIDGETS — LIVE PREVIEWS
         </div>
 
-        {/* ── STEP 2 ── */}
-        <div style={{ marginBottom: 40 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 18 }}>
-            STEP 2 — CUSTOMIZE (OPTIONAL)
-          </div>
-          <div style={{ background: BG1, border: `1px solid ${BD1}`, borderRadius: 16, padding: "24px 28px", display: "flex", flexDirection: "column", gap: 20 }}>
+        {WIDGETS.map(w => <WidgetCard key={w.id} widget={w} />)}
 
-            {/* Theme toggle */}
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <span style={{ fontFamily: MONO, fontSize: 11, color: T4, width: 80 }}>THEME</span>
-              <div style={{ display: "flex", gap: 8 }}>
-                {(["dark", "light"] as Theme[]).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setTheme(t)}
-                    style={{
-                      background: theme === t ? AMBER : "transparent",
-                      color: theme === t ? "#000" : T3,
-                      fontFamily: MONO, fontSize: 12, fontWeight: theme === t ? 700 : 400,
-                      padding: "6px 18px", borderRadius: 20,
-                      border: theme === t ? "none" : `1px solid ${BD2}`,
-                      cursor: "pointer", letterSpacing: "0.06em",
-                    }}
-                  >
-                    {t === "dark" ? "Dark" : "Light"}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* ── Embed stats ── */}
+        <EmbedStats />
 
-            {/* Focus state */}
-            <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-              <span style={{ fontFamily: MONO, fontSize: 11, color: T4, width: 80 }}>FOCUS STATE</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <span style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>
-                  Highlight a specific state (e.g. TX, CA)
-                </span>
-                <input
-                  value={focusState}
-                  onChange={e => setFocus(e.target.value.toUpperCase().slice(0, 2))}
-                  placeholder="e.g. TX"
-                  maxLength={2}
-                  style={{
-                    background: BG2, border: `1px solid ${BD1}`, borderRadius: 8,
-                    padding: "8px 12px", fontFamily: MONO, fontSize: 13, color: T1,
-                    width: 120, letterSpacing: "0.1em",
-                  }}
-                />
-              </div>
-            </div>
+        {/* ── Use cases ── */}
+        <UseCases />
 
-            {/* Data shown toggles */}
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
-              <span style={{ fontFamily: MONO, fontSize: 11, color: T4, width: 80, paddingTop: 2 }}>DATA SHOWN</span>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {[
-                  { label: "CSHI Score",        active: true  },
-                  { label: "Materials Signals", active: true  },
-                  { label: "State Rankings",    active: true  },
-                  { label: "Forecast",          active: true  },
-                ].map(item => (
-                  <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <div style={{
-                      width: 32, height: 18, borderRadius: 9,
-                      background: item.active ? GREEN_DIM : BG2,
-                      border: `1px solid ${item.active ? GREEN : BD2}`,
-                      position: "relative", cursor: "pointer",
-                    }}>
-                      <div style={{
-                        position: "absolute", top: 2,
-                        left: item.active ? 14 : 2,
-                        width: 12, height: 12, borderRadius: "50%",
-                        background: item.active ? GREEN : T4,
-                        transition: "left 0.15s",
-                      }} />
-                    </div>
-                    <span style={{ fontFamily: MONO, fontSize: 11, color: item.active ? T1 : T4 }}>
-                      {item.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* ── Notes ── */}
+        <Notes />
 
-        {/* ── STEP 3 ── */}
-        <div style={{ marginBottom: 40 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 18 }}>
-            STEP 3 — COPY YOUR EMBED CODE
-          </div>
-          <div style={{
-            background: BG0, borderRadius: 10, padding: 20,
-            border: `1px solid ${BD1}`, position: "relative",
-          }}>
-            <pre style={{
-              fontFamily: MONO, fontSize: 12, color: AMBER,
-              whiteSpace: "pre", overflowX: "auto", margin: 0,
-              lineHeight: 1.7,
-            }}>
-              {embedCode}
-            </pre>
-            <button
-              onClick={handleCopy}
-              style={{
-                position: "absolute", top: 12, right: 12,
-                background: BG2, border: `1px solid ${BD1}`,
-                fontFamily: MONO, fontSize: 11, padding: "6px 12px",
-                borderRadius: 6, cursor: "pointer",
-                color: copied ? GREEN : T3,
-              }}
-            >
-              {copied ? "✓ Copied" : "Copy"}
-            </button>
-          </div>
-        </div>
-
-        {/* ── DISTRIBUTION STATS ── */}
-        <div style={{ background: BG1, border: `1px solid ${BD1}`, borderRadius: 16, padding: "28px 32px", marginBottom: 40 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 20 }}>
-            DISTRIBUTION STATS
-          </div>
-          <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
-            {[
-              { label: "Active Embeds",  value: "0 domains", note: "launch day" },
-              { label: "Total Renders",  value: "—",         note: "" },
-              { label: "Total Clicks",   value: "—",         note: "" },
-            ].map(stat => (
-              <div key={stat.label} style={{ flex: "1 1 140px" }}>
-                <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.08em", marginBottom: 6 }}>
-                  {stat.label.toUpperCase()}
-                </div>
-                <div style={{ fontFamily: SYS, fontSize: 28, fontWeight: 700, color: T1, lineHeight: 1 }}>
-                  {stat.value}
-                </div>
-                {stat.note && (
-                  <div style={{ fontFamily: MONO, fontSize: 10, color: T4, marginTop: 4 }}>{stat.note}</div>
-                )}
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 20, padding: "10px 14px", background: BG2, borderRadius: 8, border: `1px solid ${BD2}` }}>
-            <span style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>
-              Analytics activate after your first embed is live
-            </span>
-          </div>
-        </div>
-
-        {/* ── USE CASES ── */}
-        <div style={{ marginBottom: 40 }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 20 }}>
-            USE CASES
-          </div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            {[
-              {
-                icon: "🏦",
-                title: "Banks",
-                desc: "Add a live CSHI badge to your construction lending page",
-              },
-              {
-                icon: "📰",
-                title: "Media",
-                desc: "Display live sector health data alongside construction industry coverage",
-              },
-              {
-                icon: "🏗",
-                title: "Associations",
-                desc: "Show member-facing market intelligence on your organization website",
-              },
-            ].map(c => (
-              <div key={c.title} style={{
-                flex: "1 1 220px", background: BG1, border: `1px solid ${BD1}`,
-                borderRadius: 16, padding: "24px 20px",
-              }}>
-                <div style={{ fontSize: 28, marginBottom: 10 }}>{c.icon}</div>
-                <div style={{ fontFamily: SYS, fontSize: 16, fontWeight: 600, color: T1, marginBottom: 8 }}>
-                  {c.title}
-                </div>
-                <div style={{ fontFamily: SYS, fontSize: 14, color: T3, lineHeight: 1.5 }}>
-                  {c.desc}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Back links */}
+        {/* ── Back links ── */}
         <div style={{ textAlign: "center" }}>
-          <Link href="/dashboard" style={{ fontFamily: SYS, fontSize: 15, color: T4, textDecoration: "underline" }}>
-            ← Back to Dashboard
+          <Link href="/api-access" style={{ fontFamily: SYS, fontSize: 14, color: color.t4, textDecoration: "underline" }}>
+            API Access & Documentation
           </Link>
-          <span style={{ fontFamily: SYS, fontSize: 15, color: T4, margin: "0 16px" }}>·</span>
-          <Link href="/" style={{ fontFamily: SYS, fontSize: 15, color: T4, textDecoration: "underline" }}>
-            Back to Home
+          <span style={{ fontFamily: SYS, fontSize: 14, color: color.t4, margin: "0 14px" }}>·</span>
+          <Link href="/dashboard" style={{ fontFamily: SYS, fontSize: 14, color: color.t4, textDecoration: "underline" }}>
+            Dashboard
+          </Link>
+          <span style={{ fontFamily: SYS, fontSize: 14, color: color.t4, margin: "0 14px" }}>·</span>
+          <Link href="/" style={{ fontFamily: SYS, fontSize: 14, color: color.t4, textDecoration: "underline" }}>
+            Home
           </Link>
         </div>
       </div>
 
-      {/* ── FOOTER ── */}
-      <footer style={{ borderTop: `1px solid ${BD1}`, padding: "32px", textAlign: "center" }}>
-        <Image src="/ConstructAIQWhiteLogo.svg" width={100} height={20} alt="ConstructAIQ" style={{ height: 20, width: "auto", marginBottom: 12 }} />
-        <div style={{ fontFamily: SYS, fontSize: 13, color: T4 }}>Construction Intelligence Platform · constructaiq.trade</div>
-        <div style={{ fontFamily: SYS, fontSize: 13, color: T4, marginTop: 6 }}>Data: Census Bureau · BLS · FRED · BEA · EIA · USASpending.gov</div>
+      {/* ── Footer ── */}
+      <footer style={{ borderTop: `1px solid ${color.bd1}`, padding: "28px 32px", textAlign: "center" }}>
+        <Image src="/ConstructAIQWhiteLogo.svg" width={100} height={20} alt="ConstructAIQ" style={{ height: 20, width: "auto", marginBottom: 10 }} />
+        <div style={{ fontFamily: SYS, fontSize: 12, color: color.t4 }}>
+          Construction Intelligence Platform · constructaiq.trade
+        </div>
+        <div style={{ fontFamily: SYS, fontSize: 12, color: color.t4, marginTop: 4 }}>
+          Data: Census Bureau · BLS · FRED · BEA · EIA · USASpending.gov
+        </div>
       </footer>
     </div>
   )
