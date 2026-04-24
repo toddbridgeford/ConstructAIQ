@@ -10,12 +10,12 @@ const SYS  = font.sys
 const MONO = font.mono
 
 const BASE_LINKS = [
-  { label: "Dashboard",  href: "/dashboard"  },
-  { label: "Markets",    href: "/markets"    },
-  { label: "Federal",    href: "/federal"    },
-  { label: "Materials",  href: "/materials"  },
-  { label: "Ask",        href: "/ask"        },
-  { label: "API Access", href: "/api-access" },
+  { label: "Dashboard",    href: "/dashboard"    },
+  { label: "Intelligence", href: "/intelligence" },
+  { label: "Federal",      href: "/federal"      },
+  { label: "Materials",    href: "/materials"    },
+  { label: "Ask",          href: "/ask"          },
+  { label: "API Access",   href: "/api-access"   },
 ]
 
 interface NavProps {
