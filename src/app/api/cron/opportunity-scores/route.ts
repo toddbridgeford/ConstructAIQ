@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { computeOpportunityScore } from '@/lib/opportunityScore'
+import { writeSourceHealth } from '@/lib/sourceHealth'
 
 function cronSecret() { return process.env.CRON_SECRET || '' }
 
@@ -99,6 +100,15 @@ export async function GET(request: Request) {
   }
 
   const nextBatch = (sources ?? []).length === BATCH_SIZE ? batch + 1 : null
+
+  await writeSourceHealth({
+    source_id:    'scores_opportunity',
+    source_label: 'Opportunity Scores',
+    category:     'scores',
+    status:       errors.length ? 'warn' : 'ok',
+    rows_written: computed.length,
+    duration_ms:  Date.now() - start,
+  })
 
   return NextResponse.json({
     status:     'ok',

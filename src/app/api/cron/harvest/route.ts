@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { upsertObservations, touchSeries, supabaseAdmin, type Observation } from '@/lib/supabase'
+import { writeSourceHealth } from '@/lib/sourceHealth'
 
 // Read per-request so env changes take effect without redeploying
 function cronSecret() { return process.env.CRON_SECRET || '' }
@@ -153,6 +154,14 @@ export async function GET(request: Request) {
     console.warn('[DataHarvest] Log write failed:', logErr)
   }
 
+  await writeSourceHealth({
+    source_id:    'harvest_TTLCONS',
+    source_label: 'FRED — Construction Spending',
+    category:     'government_data',
+    status:       errors.length ? 'warn' : 'ok',
+    rows_written: totalRows,
+    duration_ms:  duration,
+  })
 
   return NextResponse.json({
     status:           'ok',

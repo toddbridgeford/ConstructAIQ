@@ -19,6 +19,7 @@ Or use the Supabase CLI:
 | # | File | Applied | Description |
 |---|------|---------|-------------|
 | 0001 | 0001_initial_schema.sql | 2026-04-23 | Full initial schema — 30 tables |
+| 0002 | 0002_data_source_health.sql | 2026-04-24 | Per-source health tracking |
 
 ## Adding a migration
 

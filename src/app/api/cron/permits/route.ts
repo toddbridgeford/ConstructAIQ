@@ -4,6 +4,7 @@ import { fetchCityPermits } from '@/lib/permits'
 import { promotePermitsToProjects } from '@/lib/projects'
 import { upsertEntityBatch, writeEventLogBatch, type EntityRow, type EventRow } from '@/lib/entity'
 import type { NormalizedPermit } from '@/lib/permits'
+import { writeSourceHealth } from '@/lib/sourceHealth'
 
 function cronSecret() { return process.env.CRON_SECRET || '' }
 
@@ -96,6 +97,18 @@ export async function GET(request: Request) {
         .eq('city_code', source.city_code)
     }
   }
+
+  await Promise.all(
+    Object.entries(results).map(([city, result]) =>
+      writeSourceHealth({
+        source_id:    `permits_${city}`,
+        source_label: `Building Permits — ${city}`,
+        category:     'permits',
+        status:       result.errors > 0 ? 'warn' : result.skipped ? 'skipped' : 'ok',
+        rows_written: result.inserted,
+      })
+    )
+  )
 
   return NextResponse.json({
     ok:       true,

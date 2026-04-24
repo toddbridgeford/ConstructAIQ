@@ -20,6 +20,16 @@ type ApiHealth = {
   equities:      boolean
 }
 
+type SourceHealthRow = {
+  source_id:              string
+  source_label:           string
+  category:               string
+  status:                 string
+  rows_written:           number | null
+  run_at:                 string
+  expected_cadence_hours: number
+}
+
 type StatusData = {
   freshness:          FreshnessRow[]
   api_health:         ApiHealth
@@ -36,6 +46,7 @@ type StatusData = {
     edges:    number
   }
   events_last_30d: number
+  source_health:   SourceHealthRow[]
   as_of:           string
 }
 
@@ -79,6 +90,15 @@ const STATUS_DOT: Record<'ok' | 'warn' | 'stale', { bg: string; label: string }>
   ok:    { bg: color.green,  label: 'Current' },
   warn:  { bg: color.amber,  label: 'Aging'   },
   stale: { bg: color.red,    label: 'Stale'   },
+}
+
+const HEALTH_BADGE: Record<string, { bg: string; label: string }> = {
+  ok:             { bg: color.green,  label: 'Fresh'          },
+  warn:           { bg: color.amber,  label: 'Degraded'       },
+  failed:         { bg: color.red,    label: 'Failed'         },
+  skipped:        { bg: '#888',       label: 'Skipped'        },
+  not_configured: { bg: '#888',       label: 'Not configured' },
+  unknown:        { bg: '#888',       label: 'Unknown'        },
 }
 
 // ── PAR Trend Chart ───────────────────────────────────────────────────────
@@ -572,6 +592,87 @@ export default function StatusPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* ── Source Health ── */}
+        <div style={{
+          background: color.bg1,
+          border: `1px solid ${color.bd1}`,
+          borderRadius: 12,
+          padding: `${space.md}px ${space.lg}px`,
+          marginBottom: space.xl,
+        }}>
+          <div style={{ fontFamily: font.sys, fontSize: 15, fontWeight: 600, color: color.t1, marginBottom: 4 }}>
+            Source Health
+          </div>
+          <div style={{ fontFamily: font.mono, fontSize: 10, color: color.t4, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 16 }}>
+            Per-source ingestion status — latest run per source
+          </div>
+
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                {['Source', 'Category', 'Rows', 'Last run', 'Status'].map(h => (
+                  <th key={h} style={{
+                    textAlign: 'left', padding: '6px 0',
+                    fontFamily: font.mono, fontSize: 10, color: color.t4,
+                    letterSpacing: '0.08em', textTransform: 'uppercase',
+                    borderBottom: `1px solid ${color.bd2}`,
+                  }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i}>
+                    {[160, 90, 50, 70, 80].map((w, j) => (
+                      <td key={j} style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}` }}>
+                        <div style={{ width: w, height: 11, background: color.bg3, borderRadius: 3 }} />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : !status?.source_health?.length ? (
+                <tr>
+                  <td colSpan={5} style={{ padding: '16px 0', fontFamily: font.mono, fontSize: 12, color: color.t4 }}>
+                    No health records yet — records appear after the first cron run
+                  </td>
+                </tr>
+              ) : (
+                (status.source_health ?? []).map(row => {
+                  const badge = HEALTH_BADGE[row.status] ?? HEALTH_BADGE.unknown
+                  return (
+                    <tr key={row.source_id}>
+                      <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.sys, fontSize: 13, color: color.t2 }}>
+                        {row.source_label}
+                      </td>
+                      <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 11, color: color.t4 }}>
+                        {row.category}
+                      </td>
+                      <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 12, color: color.t3 }}>
+                        {row.rows_written != null ? row.rows_written.toLocaleString() : '—'}
+                      </td>
+                      <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 12, color: color.t3 }}>
+                        {fmtAge(row.run_at)}
+                      </td>
+                      <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}` }}>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          fontFamily: font.mono, fontSize: 11, color: badge.bg,
+                        }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: badge.bg, display: 'inline-block' }} />
+                          {badge.label}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
         </div>
 
         {/* ── API Configuration ── */}

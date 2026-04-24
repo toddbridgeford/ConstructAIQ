@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { getSourceHealthSummary } from '@/lib/sourceHealth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,7 +48,8 @@ export async function GET() {
     edgeRes,
     eventRes,
     ttlconsRes,
-  ] = await Promise.allSettled([
+    sourceHealth,
+  ] = await Promise.all([
     supabaseAdmin.from('series').select('source, last_updated').order('source'),
     supabaseAdmin.from('opportunity_scores').select('metro_code', { count: 'exact', head: true }),
     supabaseAdmin.from('prediction_outcomes').select('*', { count: 'exact', head: true }).gte('predicted_at', day7ago.toISOString()),
@@ -58,6 +60,7 @@ export async function GET() {
     supabaseAdmin.from('entity_edges').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('event_log').select('*', { count: 'exact', head: true }).gte('event_date', day30ago.toISOString().slice(0, 10)),
     supabaseAdmin.from('observations').select('*', { count: 'exact', head: true }).eq('series_id', 'TTLCONS'),
+    getSourceHealthSummary(),
   ])
 
   // ── Data freshness ───────────────────────────────────────────────────────
@@ -68,9 +71,9 @@ export async function GET() {
     status: 'ok' | 'warn' | 'stale'
   }[] = []
 
-  if (seriesRes.status === 'fulfilled' && !seriesRes.value.error) {
+  if (!seriesRes.error) {
     const bySource: Record<string, string | null> = {}
-    for (const row of (seriesRes.value.data ?? []) as SeriesRow[]) {
+    for (const row of (seriesRes.data ?? []) as SeriesRow[]) {
       const src = row.source ?? 'Unknown'
       const cur = bySource[src]
       if (!cur || (row.last_updated && row.last_updated > cur)) {
@@ -88,15 +91,15 @@ export async function GET() {
     freshness.sort((a, b) => a.label.localeCompare(b.label))
   }
 
-  const ttlconsCount  = ttlconsRes.status   === 'fulfilled' ? (ttlconsRes.value.count  ?? 0) : 0
-  const oppCount      = oppRes.status      === 'fulfilled' ? (oppRes.value.count      ?? 0) : 0
-  const madeLast7     = predMadeRes.status  === 'fulfilled' ? (predMadeRes.value.count  ?? 0) : 0
-  const dueUnresolved = predDueRes.status   === 'fulfilled' ? (predDueRes.value.count   ?? 0) : 0
-  const evalLast7     = predEvalRes.status  === 'fulfilled' ? (predEvalRes.value.count  ?? 0) : 0
-  const correctLast7  = predCorrectRes.status === 'fulfilled' ? (predCorrectRes.value.count ?? 0) : 0
-  const entityCount   = entityRes.status    === 'fulfilled' ? (entityRes.value.count    ?? 0) : 0
-  const edgeCount     = edgeRes.status      === 'fulfilled' ? (edgeRes.value.count      ?? 0) : 0
-  const eventCount    = eventRes.status     === 'fulfilled' ? (eventRes.value.count     ?? 0) : 0
+  const ttlconsCount  = ttlconsRes.count  ?? 0
+  const oppCount      = oppRes.count      ?? 0
+  const madeLast7     = predMadeRes.count  ?? 0
+  const dueUnresolved = predDueRes.count   ?? 0
+  const evalLast7     = predEvalRes.count  ?? 0
+  const correctLast7  = predCorrectRes.count ?? 0
+  const entityCount   = entityRes.count    ?? 0
+  const edgeCount     = edgeRes.count      ?? 0
+  const eventCount    = eventRes.count     ?? 0
 
   const par7d = evalLast7 > 0
     ? Math.round((correctLast7 / evalLast7) * 1000) / 10
@@ -125,6 +128,7 @@ export async function GET() {
       edges:    edgeCount,
     },
     events_last_30d: eventCount,
+    source_health:   sourceHealth,
     as_of: now.toISOString(),
   }, {
     headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
