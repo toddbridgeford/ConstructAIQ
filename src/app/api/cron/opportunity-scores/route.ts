@@ -6,7 +6,11 @@ function cronSecret() { return process.env.CRON_SECRET || '' }
 
 export const runtime     = 'nodejs'
 export const dynamic     = 'force-dynamic'
-export const maxDuration = 60
+// This route processes one batch of 20 metros per call to stay within
+// the 10s Hobby limit. Called by GitHub Actions with CRON_SECRET.
+export const maxDuration = 10
+
+const BATCH_SIZE = 20
 
 export async function GET(request: Request) {
   const auth   = request.headers.get('authorization')
@@ -14,6 +18,9 @@ export async function GET(request: Request) {
   if (secret && auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const url   = new URL(request.url)
+  const batch = Math.max(0, parseInt(url.searchParams.get('batch') ?? '0', 10))
 
   const start = Date.now()
   const { protocol, host } = new URL(request.url)
@@ -23,6 +30,7 @@ export async function GET(request: Request) {
     .from('permit_sources')
     .select('city_code')
     .eq('status', 'active')
+    .range(batch * BATCH_SIZE, batch * BATCH_SIZE + BATCH_SIZE - 1)
 
   if (sourcesErr) {
     return NextResponse.json(
@@ -69,9 +77,6 @@ export async function GET(request: Request) {
         continue
       }
 
-      // Record a prediction outcome row for HIGH-scored metros (score >= 70).
-      // ON CONFLICT DO NOTHING prevents duplicate rows if the cron re-runs
-      // within the same day — the unique check is on (entity_id, score_type, predicted_at).
       if (result.score >= 70) {
         const predictedAt   = new Date(result.computed_at)
         const outcomeDueAt  = new Date(predictedAt.getTime() + 90 * 24 * 60 * 60 * 1000)
@@ -85,7 +90,6 @@ export async function GET(request: Request) {
           horizon_days:    90,
           outcome_due_at:  outcomeDueAt.toISOString(),
         })
-        // Ignore conflict errors — a row for this metro+day may already exist
       }
 
       computed.push(result.metro_code)
@@ -94,8 +98,12 @@ export async function GET(request: Request) {
     }
   }
 
+  const nextBatch = (sources ?? []).length === BATCH_SIZE ? batch + 1 : null
+
   return NextResponse.json({
     status:     'ok',
+    processed:  computed.length,
+    nextBatch,
     computed,
     errors,
     durationMs: Date.now() - start,

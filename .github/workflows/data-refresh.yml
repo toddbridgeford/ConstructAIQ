@@ -230,6 +230,96 @@ jobs:
             echo "Not Wednesday — skipping prediction evaluation (day=$DAY)"
           fi
 
+      - name: 10 — Compute formation scores
+        if: ${{ github.event.inputs.job == 'all' || github.event_name == 'schedule' }}
+        continue-on-error: true
+        run: |
+          echo "Computing project formation scores..."
+          BATCH=0
+          while true; do
+            HTTP=$(curl -s -o formation.json -w "%{http_code}" \
+              -X GET "$APP_URL/api/cron/formation-scores?batch=$BATCH" \
+              -H "Authorization: Bearer $CRON_SECRET")
+            echo "HTTP $HTTP batch $BATCH"
+            cat formation.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if 'error' in d:
+            print('ERROR:', d['error'])
+            sys.exit(1)
+          print(f'Processed: {d.get(\"processed\",0)} | Errors: {d.get(\"errors\",[])} | nextBatch: {d.get(\"nextBatch\")}')
+          " 2>/dev/null || cat formation.json
+            NEXT=$(cat formation.json | python3 -c \
+              "import json,sys; d=json.load(sys.stdin); \
+               print(d.get('nextBatch','done'))" 2>/dev/null)
+            [ "$NEXT" = "None" ] || [ "$NEXT" = "done" ] \
+              || [ "$NEXT" = "null" ] && break
+            BATCH=$NEXT
+            sleep 2
+          done
+          [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] \
+            || (echo "Non-2xx: HTTP $HTTP" && exit 1)
+
+      - name: 11 — Compute reality gap scores
+        if: ${{ github.event.inputs.job == 'all' || github.event_name == 'schedule' }}
+        continue-on-error: true
+        run: |
+          echo "Computing project reality gap scores..."
+          BATCH=0
+          while true; do
+            HTTP=$(curl -s -o reality.json -w "%{http_code}" \
+              -X GET "$APP_URL/api/cron/reality-gaps?batch=$BATCH" \
+              -H "Authorization: Bearer $CRON_SECRET")
+            echo "HTTP $HTTP batch $BATCH"
+            cat reality.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if 'error' in d:
+            print('ERROR:', d['error'])
+            sys.exit(1)
+          print(f'Processed: {d.get(\"processed\",0)} | Errors: {d.get(\"errors\",[])} | nextBatch: {d.get(\"nextBatch\")}')
+          " 2>/dev/null || cat reality.json
+            NEXT=$(cat reality.json | python3 -c \
+              "import json,sys; d=json.load(sys.stdin); \
+               print(d.get('nextBatch','done'))" 2>/dev/null)
+            [ "$NEXT" = "None" ] || [ "$NEXT" = "done" ] \
+              || [ "$NEXT" = "null" ] && break
+            BATCH=$NEXT
+            sleep 2
+          done
+          [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] \
+            || (echo "Non-2xx: HTTP $HTTP" && exit 1)
+
+      - name: 12 — Compute opportunity scores
+        if: ${{ github.event.inputs.job == 'all' || github.event_name == 'schedule' }}
+        continue-on-error: true
+        run: |
+          echo "Computing metro opportunity scores..."
+          BATCH=0
+          while true; do
+            HTTP=$(curl -s -o opportunity.json -w "%{http_code}" \
+              -X GET "$APP_URL/api/cron/opportunity-scores?batch=$BATCH" \
+              -H "Authorization: Bearer $CRON_SECRET")
+            echo "HTTP $HTTP batch $BATCH"
+            cat opportunity.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if 'error' in d:
+            print('ERROR:', d['error'])
+            sys.exit(1)
+          print(f'Processed: {d.get(\"processed\",0)} | Errors: {d.get(\"errors\",[])} | nextBatch: {d.get(\"nextBatch\")}')
+          " 2>/dev/null || cat opportunity.json
+            NEXT=$(cat opportunity.json | python3 -c \
+              "import json,sys; d=json.load(sys.stdin); \
+               print(d.get('nextBatch','done'))" 2>/dev/null)
+            [ "$NEXT" = "None" ] || [ "$NEXT" = "done" ] \
+              || [ "$NEXT" = "null" ] && break
+            BATCH=$NEXT
+            sleep 2
+          done
+          [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] \
+            || (echo "Non-2xx: HTTP $HTTP" && exit 1)
+
       - name: Summary
         if: always()
         run: |

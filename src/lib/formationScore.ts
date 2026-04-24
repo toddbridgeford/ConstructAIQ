@@ -280,12 +280,17 @@ interface ContractorRow {
  * Fetch all active projects eligible for formation scoring.
  * "Active" means status applied, approved, or active (not completed/expired).
  */
-async function fetchActiveProjects(): Promise<ProjectRow[]> {
-  const { data, error } = await supabaseAdmin
+async function fetchActiveProjects(
+  opts?: { offset: number; limit: number },
+): Promise<ProjectRow[]> {
+  let q = supabaseAdmin
     .from('projects')
     .select('id, city_code, permit_number, applied_date, satellite_bsi_change, federal_award_match')
     .in('status', ['applied', 'approved', 'active'])
 
+  if (opts) q = q.range(opts.offset, opts.offset + opts.limit - 1)
+
+  const { data, error } = await q
   if (error) throw new Error(`fetchActiveProjects: ${error.message}`)
   return (data ?? []) as ProjectRow[]
 }
@@ -469,25 +474,31 @@ export interface BatchFormationResult {
   computed:   FormationScoreResult[]
   errors:     string[]
   durationMs: number
+  hasMore:    boolean
 }
 
-export async function batchComputeFormationScores(): Promise<BatchFormationResult> {
+export async function batchComputeFormationScores(
+  opts?: { offset: number; limit: number },
+): Promise<BatchFormationResult> {
   const start = Date.now()
   const errors: string[] = []
 
   let projects: ProjectRow[]
   try {
-    projects = await fetchActiveProjects()
+    projects = await fetchActiveProjects(opts)
   } catch (err) {
     return {
       computed:   [],
       errors:     [err instanceof Error ? err.message : String(err)],
       durationMs: Date.now() - start,
+      hasMore:    false,
     }
   }
 
+  const hasMore = opts != null && projects.length === opts.limit
+
   if (projects.length === 0) {
-    return { computed: [], errors: [], durationMs: Date.now() - start }
+    return { computed: [], errors: [], durationMs: Date.now() - start, hasMore: false }
   }
 
   const projectIds = projects.map(p => p.id)
@@ -528,5 +539,5 @@ export async function batchComputeFormationScores(): Promise<BatchFormationResul
     }
   }
 
-  return { computed, errors, durationMs: Date.now() - start }
+  return { computed, errors, durationMs: Date.now() - start, hasMore }
 }

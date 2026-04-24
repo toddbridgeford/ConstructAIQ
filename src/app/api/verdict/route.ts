@@ -36,14 +36,6 @@ async function getObs(seriesId: string, n: number): Promise<ObsRow[]> {
   } catch { return [] }
 }
 
-// ── Seed fallbacks (mirrors obs/route.ts) ────────────────────────────────────
-
-const PERMIT_SEED = [1577,1476,1459,1407,1461,1436,1476,1434,1428,1508,1480,1460,
-                     1454,1481,1422,1394,1393,1362,1330,1415,1411,1388,1455,1386]
-const TTLCONS_SEED = [2184.6,2174.9,2206.5,2215.4,2199.8,2200.7,2205.3,2197.9,2197.1,
-                      2192.9,2176.6,2169.6,2165.4,2150.8,2153.4,2149.1,2160.7,2168.5,
-                      2177.2,2169.5,2167.9,2181.2,2197.6,2190.4]
-
 // ── Headline templates ───────────────────────────────────────────────────────
 
 function buildHeadline(
@@ -108,7 +100,7 @@ export async function GET(request: Request) {
   // 1. Forecast direction (+2/-2/0)
   let forecastPct: number | null = null
   {
-    const hist = foreData?.history ?? TTLCONS_SEED
+    const hist = foreData?.history ?? []
     const ens  = foreData?.ensemble ?? []
     const lastHist = hist[hist.length - 1] ?? null
     const lastFcst = ens.length > 0 ? ens[ens.length - 1]?.base : null
@@ -129,7 +121,7 @@ export async function GET(request: Request) {
 
   // 2. Permits YoY (+1/-1/0)
   {
-    const rows = permitObs.length >= 13 ? permitObs : PERMIT_SEED.slice(-14).map((v, i) => ({ obs_date: '', value: v }))
+    const rows = permitObs
     const latest = rows[rows.length - 1]?.value ?? null
     const lyVal  = rows.length >= 13 ? rows[rows.length - 13]?.value ?? null : null
 

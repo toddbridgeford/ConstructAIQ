@@ -98,7 +98,6 @@ export default function GroundSignalPage() {
         </div>
       </div>
 
-      {/* Section 2: Map placeholder */}
       <div className="gs-map" style={{
         height: '70vh',
         minHeight: 480,
@@ -111,7 +110,6 @@ export default function GroundSignalPage() {
         justifyContent: 'center',
         position: 'relative',
       }}>
-        {/* MapComponent goes here — UI6-B */}
         {loading
           ? <span style={{ fontFamily: font.mono, fontSize: 12, color: color.t4 }}>Loading map...</span>
           : data && data.msas.length > 0
