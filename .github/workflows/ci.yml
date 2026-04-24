@@ -44,5 +44,16 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Build
+        run: npm run build
+        env:
+          # Minimal env for a successful Next.js build.
+          # These are public/non-secret values — sufficient
+          # to pass static analysis without real API calls.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder_anon_key
+          NEXT_PUBLIC_APP_URL: https://constructaiq.trade
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: placeholder_vapid_key
+
       - name: Audit (fail on critical)
         run: npm audit --audit-level=critical

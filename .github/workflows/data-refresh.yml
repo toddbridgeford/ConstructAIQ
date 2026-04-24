@@ -35,7 +35,6 @@ jobs:
 
       - name: 1 — Harvest government data (FRED/BLS/Census)
         if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'harvest' || github.event_name == 'schedule' }}
-        continue-on-error: true
         run: |
           echo "Fetching government data..."
           HTTP=$(curl -s -o harvest.json -w "%{http_code}" -X GET "$APP_URL/api/cron/harvest" \
@@ -58,7 +57,6 @@ jobs:
 
       - name: 2 — Run forecast models
         if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'forecast' || github.event_name == 'schedule' }}
-        continue-on-error: true
         run: |
           echo "Running forecast models..."
           HTTP=$(curl -s -o forecast.json -w "%{http_code}" -X GET "$APP_URL/api/cron/forecast" \
@@ -117,7 +115,6 @@ jobs:
 
       - name: 5 — Fetch city permits
         if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'permits' || github.event_name == 'schedule' }}
-        continue-on-error: true
         run: |
           echo "Fetching city permits..."
           HTTP=$(curl -s -o permits.json -w "%{http_code}" -X GET "$APP_URL/api/cron/permits" \
