@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getLatestObs } from '@/lib/supabase'
+import { apiError, ERROR_CODES } from '@/lib/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,10 +42,10 @@ export async function GET(request: Request) {
   const months       = Math.min(60, Math.max(6, parseInt(searchParams.get('months') || '60')))
 
   if (!seriesId || !/^[A-Z0-9_]{1,20}$/.test(seriesId)) {
-    return NextResponse.json({ error: 'Invalid series' }, { status: 400 })
+    return apiError('Invalid series', 400, ERROR_CODES.INVALID_PARAMS)
   }
   if (isNaN(currentValue)) {
-    return NextResponse.json({ error: 'value param required and must be numeric' }, { status: 400 })
+    return apiError('value param required and must be numeric', 400, ERROR_CODES.INVALID_PARAMS)
   }
 
   let obs: { date: string; value: number }[] = []
@@ -57,15 +58,11 @@ export async function GET(request: Request) {
   } catch { /* fall through */ }
 
   if (obs.length === 0) {
-    return NextResponse.json({
-      error: 'No historical data available for this series',
-      series: seriesId,
-      note: 'Data populates after the first harvest cron run.',
-    }, { status: 404 })
+    return apiError('No historical data available for this series', 404, ERROR_CODES.NOT_FOUND)
   }
 
   if (obs.length < 3) {
-    return NextResponse.json({ error: 'Insufficient historical data for this series' }, { status: 404 })
+    return apiError('Insufficient historical data for this series', 404, ERROR_CODES.INSUFFICIENT_DATA)
   }
 
   const values = obs.map(o => o.value)

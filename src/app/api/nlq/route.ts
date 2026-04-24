@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createHash } from 'crypto'
+import { apiError, ERROR_CODES } from '@/lib/errors'
 import Anthropic from '@anthropic-ai/sdk'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
@@ -211,10 +212,7 @@ export async function POST(request: Request) {
     try {
       const { success } = await limiter.limit(`ip:${ip}`)
       if (!success) {
-        return NextResponse.json(
-          { error: 'Rate limit exceeded. NLQ is limited to 10 questions per hour.' },
-          { status: 429 }
-        )
+        return apiError('Rate limit exceeded. NLQ is limited to 10 questions per hour.', 429, ERROR_CODES.RATE_LIMITED)
       }
     } catch { /* rate limit unavailable — allow request */ }
   }
@@ -224,10 +222,10 @@ export async function POST(request: Request) {
     const question = (body.question ?? '').trim()
 
     if (!question || question.length < 5) {
-      return NextResponse.json({ error: 'Question is required (minimum 5 characters)' }, { status: 400 })
+      return apiError('Question is required (minimum 5 characters)', 400, ERROR_CODES.INVALID_PARAMS)
     }
     if (question.length > 500) {
-      return NextResponse.json({ error: 'Question too long (max 500 characters)' }, { status: 400 })
+      return apiError('Question too long (max 500 characters)', 400, ERROR_CODES.INVALID_PARAMS)
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY
@@ -303,6 +301,6 @@ export async function POST(request: Request) {
 
   } catch (err) {
     console.error('[NLQ] error:', err)
-    return NextResponse.json({ error: 'Query failed' }, { status: 500 })
+    return apiError('Query failed', 500, ERROR_CODES.INTERNAL)
   }
 }
