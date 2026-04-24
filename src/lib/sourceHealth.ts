@@ -50,12 +50,17 @@ export async function writeSourceHealth(h: SourceHealthWrite): Promise<void> {
  * Used by /api/status.
  */
 export async function getSourceHealthSummary(): Promise<SourceHealthRow[]> {
-  const { data } = await supabaseAdmin
-    .from('data_source_health')
-    .select('source_id, source_label, category, status, rows_written, run_at, expected_cadence_hours')
-    .order('run_at', { ascending: false })
-    .limit(500)
-    .catch(() => ({ data: null }))
+  let data: SourceHealthRow[] | null = null
+  try {
+    const result = await supabaseAdmin
+      .from('data_source_health')
+      .select('source_id, source_label, category, status, rows_written, run_at, expected_cadence_hours')
+      .order('run_at', { ascending: false })
+      .limit(500)
+    data = result.data as SourceHealthRow[] | null
+  } catch {
+    // Returns [] on failure — never throws
+  }
 
   if (!data) return []
 
