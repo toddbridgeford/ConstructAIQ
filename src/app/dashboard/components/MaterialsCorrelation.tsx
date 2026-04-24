@@ -10,6 +10,7 @@ import {
   Legend,
 } from "recharts"
 import { font, color } from "@/lib/theme"
+import { ChartFooter } from "./ChartFooter"
 
 const MONO = font.mono
 const SYS = font.sys
@@ -165,6 +166,13 @@ export function MaterialsCorrelation({ materialsCostData, constructionSpendData 
           </ComposedChart>
         </ResponsiveContainer>
       )}
+
+      <ChartFooter
+        source="BLS Producer Price Index"
+        unit="Index 1982=100"
+        frequency="Monthly"
+        asOf={materialsCostData?.[materialsCostData.length - 1]?.date ?? null}
+      />
     </div>
   )
 }

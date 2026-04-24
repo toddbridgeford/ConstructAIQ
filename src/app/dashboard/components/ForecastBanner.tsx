@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, ReferenceLine,
 } from "recharts"
 import { font, color } from "@/lib/theme"
+import { ChartFooter } from "./ChartFooter"
 
 const MONO = font.mono
 
@@ -153,6 +154,13 @@ export function ForecastBanner({ foreData, spendHistory }: ForecastBannerProps) 
           </div>
         ))}
       </div>
+
+      <ChartFooter
+        source="Census Bureau C30"
+        unit="$B SAAR"
+        frequency="Monthly"
+        forecast={true}
+      />
     </div>
   )
 }

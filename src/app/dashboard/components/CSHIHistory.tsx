@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, ReferenceLine,
 } from "recharts"
 import { font, color } from "@/lib/theme"
+import { ChartFooter } from "./ChartFooter"
 
 const MONO = font.mono
 const SYS  = font.sys
@@ -134,6 +135,13 @@ export function CSHIHistory({ data }: CSHIHistoryProps) {
           </div>
         ))}
       </div>
+
+      <ChartFooter
+        source="ConstructAIQ CSHI (Census · BLS · FRED)"
+        unit="Score 0–100"
+        frequency="Weekly"
+        asOf={data?.[data.length - 1]?.week ?? null}
+      />
     </div>
   )
 }
