@@ -31,6 +31,11 @@ export async function GET() {
   const day7ago  = new Date(now); day7ago.setDate(now.getDate() - 7)
   const day30ago = new Date(now); day30ago.setDate(now.getDate() - 30)
 
+  const hasEiaKey  = !!process.env.EIA_API_KEY
+  const hasBEAKey  = !!process.env.BEA_API_KEY
+  const hasSamKey  = !!process.env.SAM_GOV_API_KEY
+  const hasPolyKey = !!process.env.POLYGON_API_KEY
+
   const [
     seriesRes,
     oppRes,
@@ -41,6 +46,7 @@ export async function GET() {
     entityRes,
     edgeRes,
     eventRes,
+    ttlconsRes,
   ] = await Promise.allSettled([
     supabaseAdmin.from('series').select('source, last_updated').order('source'),
     supabaseAdmin.from('opportunity_scores').select('metro_code', { count: 'exact', head: true }),
@@ -51,6 +57,7 @@ export async function GET() {
     supabaseAdmin.from('entities').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('entity_edges').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('event_log').select('*', { count: 'exact', head: true }).gte('event_date', day30ago.toISOString().slice(0, 10)),
+    supabaseAdmin.from('observations').select('*', { count: 'exact', head: true }).eq('series_id', 'TTLCONS'),
   ])
 
   // ── Data freshness ───────────────────────────────────────────────────────
@@ -81,6 +88,7 @@ export async function GET() {
     freshness.sort((a, b) => a.label.localeCompare(b.label))
   }
 
+  const ttlconsCount  = ttlconsRes.status   === 'fulfilled' ? (ttlconsRes.value.count  ?? 0) : 0
   const oppCount      = oppRes.status      === 'fulfilled' ? (oppRes.value.count      ?? 0) : 0
   const madeLast7     = predMadeRes.status  === 'fulfilled' ? (predMadeRes.value.count  ?? 0) : 0
   const dueUnresolved = predDueRes.status   === 'fulfilled' ? (predDueRes.value.count   ?? 0) : 0
@@ -96,6 +104,14 @@ export async function GET() {
 
   return NextResponse.json({
     freshness,
+    api_health: {
+      pricewatch:    ttlconsCount > 0,
+      benchmark:     ttlconsCount >= 24,
+      eia:           hasEiaKey,
+      bea:           hasBEAKey,
+      solicitations: hasSamKey,
+      equities:      hasPolyKey,
+    },
     opportunity_metros: oppCount,
     predictions: {
       made_last_7d:      madeLast7,

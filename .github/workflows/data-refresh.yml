@@ -19,10 +19,19 @@ jobs:
     env:
       APP_URL: https://constructaiq.trade
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      SAM_GOV_API_KEY: ${{ secrets.SAM_GOV_API_KEY }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: 0 — Validate environment
+        run: |
+          echo "Validating required secrets..."
+          MISSING=0
+          [ -z "$CRON_SECRET" ] && echo "MISSING: CRON_SECRET" && MISSING=1
+          [ "$MISSING" = "1" ] && echo "Critical secrets missing" && exit 1
+          echo "Environment OK"
 
       - name: 1 — Harvest government data (FRED/BLS/Census)
         if: ${{ github.event.inputs.job == 'all' || github.event.inputs.job == 'harvest' || github.event_name == 'schedule' }}
