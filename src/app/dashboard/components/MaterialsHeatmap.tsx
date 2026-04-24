@@ -1,7 +1,6 @@
 "use client"
 import { useState } from "react"
 import { font, color, heatmap } from "@/lib/theme"
-import { seeded } from "@/lib/seeded"
 
 const MONO = font.mono
 const SYS = font.sys
@@ -39,28 +38,6 @@ function cellTextColor(pct: number): string {
   return heatmap.veryLowTc
 }
 
-function generateSyntheticData(): CommodityRow[] {
-  const commodities = [
-    { name: "Lumber", base: 420, seasonality: [0, 2, 5, 8, 6, 3, 1, -1, -2, -1, -3, -4] },
-    { name: "Steel", base: 850, seasonality: [1, 2, 4, 3, 2, 1, 0, -1, 1, 2, 1, 0] },
-    { name: "Concrete", base: 130, seasonality: [-1, 0, 2, 3, 4, 3, 2, 1, 0, -1, -2, -3] },
-    { name: "Copper", base: 4.2, seasonality: [0, 1, 2, 1, 0, -1, -2, -1, 1, 2, 1, 0] },
-    { name: "WTI", base: 78, seasonality: [-1, -2, 0, 2, 4, 6, 5, 4, 2, 1, -1, -2] },
-    { name: "Diesel", base: 3.8, seasonality: [1, 0, 1, 2, 4, 6, 7, 6, 3, 1, 0, -1] },
-  ]
-
-  return commodities.map((c, ci) => {
-    let val = c.base
-    const months: MonthCell[] = MONTH_LABELS.map((month, i) => {
-      const noise = (seeded(ci * 12 + i) - 0.5) * 2
-      const pctChange = parseFloat((c.seasonality[i] + noise).toFixed(1))
-      val = val * (1 + pctChange / 100)
-      return { month, value: parseFloat(val.toFixed(2)), pctChange }
-    })
-    return { commodity: c.name, months }
-  })
-}
-
 interface TooltipInfo {
   x: number
   y: number
@@ -72,11 +49,39 @@ interface TooltipInfo {
 
 export function MaterialsHeatmap({ data }: MaterialsHeatmapProps) {
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
-  const rows = (data && data.length > 0) ? data : generateSyntheticData()
+  const rows = (data && data.length > 0) ? data : []
 
   const CELL_W = 44
   const CELL_H = 32
   const LABEL_W = 76
+
+  if (rows.length === 0) {
+    return (
+      <div style={{
+        background: color.bg1,
+        borderRadius: 12,
+        border: `1px solid ${color.bd1}`,
+        padding: '32px',
+        textAlign: 'center',
+        fontFamily: font.sys,
+        fontSize: 14,
+        color: color.t4,
+        lineHeight: 1.6,
+      }}>
+        <div style={{ marginBottom: 8, fontFamily: font.mono, fontSize: 11, letterSpacing: '0.08em' }}>
+          MATERIALS DATA
+        </div>
+        Material price data unavailable.
+        Configure BLS_API_KEY in Vercel to enable
+        live commodity price tracking.
+        <div style={{ marginTop: 12 }}>
+          <a href="/materials" style={{ color: color.amber, textDecoration: 'none', fontSize: 13 }}>
+            View materials page →
+          </a>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{
