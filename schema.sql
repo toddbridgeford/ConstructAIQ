@@ -229,7 +229,8 @@ BEGIN
         'anon_read_entities', 'service_all_entities',
         'anon_read_entity_edges', 'service_all_entity_edges',
         'anon_read_event_log', 'service_all_event_log',
-        'anon_read_project_state_history', 'service_all_project_state_history'
+        'anon_read_project_state_history', 'service_all_project_state_history',
+        'anon_read_federal_solicitations', 'service_all_federal_solicitations'
       )
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, pol.tablename);
@@ -1027,6 +1028,49 @@ CREATE POLICY "anon_read_project_state_history"
 
 CREATE POLICY "service_all_project_state_history"
   ON project_state_history FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: federal_solicitations
+-- SAM.gov federal solicitations in construction NAICS codes (236x/237x/238x).
+-- Written by /api/cron/solicitations — upserted daily on notice_id.
+-- This table is a 3–12 month leading indicator for federal construction spend.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS federal_solicitations (
+  id              BIGSERIAL    PRIMARY KEY,
+  notice_id       TEXT         UNIQUE NOT NULL,
+  title           TEXT         NOT NULL,
+  agency          TEXT         NOT NULL,
+  office          TEXT,
+  state_code      TEXT,
+  naics           TEXT,
+  posted_date     DATE         NOT NULL,
+  response_due    DATE,
+  award_date      DATE,
+  estimated_value BIGINT,
+  contract_type   TEXT,
+  status          TEXT         NOT NULL DEFAULT 'OPEN',
+  award_notice_id TEXT,
+  fetched_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE  federal_solicitations                  IS 'SAM.gov construction solicitations (NAICS 236x/237x/238x) — leading indicator for federal spend.';
+COMMENT ON COLUMN federal_solicitations.notice_id        IS 'SAM.gov canonical notice identifier — unique per solicitation.';
+COMMENT ON COLUMN federal_solicitations.status           IS 'OPEN | AWARDED | CANCELLED | CLOSED.';
+COMMENT ON COLUMN federal_solicitations.estimated_value  IS 'Estimated contract value in USD, when disclosed.';
+COMMENT ON COLUMN federal_solicitations.award_notice_id  IS 'Links to the award notice when the solicitation converts to a contract.';
+
+CREATE INDEX IF NOT EXISTS idx_sol_state  ON federal_solicitations(state_code);
+CREATE INDEX IF NOT EXISTS idx_sol_status ON federal_solicitations(status);
+CREATE INDEX IF NOT EXISTS idx_sol_posted ON federal_solicitations(posted_date DESC);
+
+ALTER TABLE federal_solicitations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_read_federal_solicitations"
+  ON federal_solicitations FOR SELECT TO anon USING (true);
+
+CREATE POLICY "service_all_federal_solicitations"
+  ON federal_solicitations FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 
 -- ---------------------------------------------------------------------------

@@ -8,6 +8,17 @@ import { WatchButton } from '@/app/components/ui/WatchButton'
 import { STATE_NAMES } from '@/lib/state-names'
 
 // ── Types ────────────────────────────────────────────────────
+interface Solicitation {
+  notice_id:       string
+  title:           string
+  agency:          string
+  state_code:      string | null
+  posted_date:     string
+  response_due:    string | null
+  estimated_value: number | null
+  status:          string
+}
+
 interface StateData {
   state_code:               string
   state_name:               string
@@ -63,6 +74,7 @@ export default function StatePage() {
   const [data,    setData]    = useState<StateData | null>(null)
   const [cities,  setCities]  = useState<CityPermit[]>([])
   const [msas,    setMsas]    = useState<MsaRow[]>([])
+  const [sols,    setSols]    = useState<Solicitation[]>([])
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState<string | null>(null)
 
@@ -75,8 +87,10 @@ export default function StatePage() {
         .then(r => r.ok ? r.json() : { cities: [] }),
       fetch('/api/satellite')
         .then(r => r.ok ? r.json() : { msas: [] }),
+      fetch(`/api/solicitations?state=${stateCode}&limit=5`)
+        .then(r => r.ok ? r.json() : { solicitations: [] }),
     ])
-      .then(([sd, pd, sat]) => {
+      .then(([sd, pd, sat, solData]) => {
         if (!sd || sd.error) {
           setError(sd?.error ?? 'State not found')
           return
@@ -96,6 +110,7 @@ export default function StatePage() {
               (sd as StateData).satellite_msas.includes(m.msa_code)
             )
         setMsas(stateMsas)
+        setSols((solData as { solicitations?: Solicitation[] }).solicitations ?? [])
       })
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false))
@@ -338,6 +353,77 @@ export default function StatePage() {
             </div>
           </div>
         </div>
+
+        {/* Section 3b — Open Federal Solicitations */}
+        {sols.length > 0 && (
+          <div style={{ marginBottom: 40 }}>
+            {sectionLabel('Open Federal Solicitations')}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {sols.map(s => {
+                const days = s.response_due
+                  ? Math.ceil((new Date(s.response_due).getTime() - Date.now()) / 86_400_000)
+                  : null
+                const dueColor =
+                  days === null         ? color.t4  :
+                  days <= 7             ? color.red  :
+                  days <= 21            ? color.amber :
+                  color.green
+                return (
+                  <div key={s.notice_id} style={{
+                    background:   color.bg1,
+                    borderRadius: 10,
+                    border:       `1px solid ${color.bd1}`,
+                    padding:      '14px 20px',
+                    display:      'flex',
+                    alignItems:   'flex-start',
+                    gap:          16,
+                    flexWrap:     'wrap',
+                  }}>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <div style={{
+                        fontFamily: font.sys, fontSize: 13, fontWeight: 600,
+                        color: color.t1, lineHeight: 1.4,
+                      }}>
+                        {s.title}
+                      </div>
+                      <div style={{
+                        fontFamily: font.mono, fontSize: 11, color: color.t4, marginTop: 3,
+                      }}>
+                        {s.agency} · {s.notice_id}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                      {s.estimated_value !== null && (
+                        <div style={{ fontFamily: font.mono, fontSize: 13, fontWeight: 700, color: color.t2 }}>
+                          {s.estimated_value >= 1_000_000
+                            ? `$${(s.estimated_value / 1_000_000).toFixed(1)}M`
+                            : s.estimated_value >= 1_000
+                            ? `$${(s.estimated_value / 1_000).toFixed(0)}K`
+                            : `$${s.estimated_value.toLocaleString()}`}
+                        </div>
+                      )}
+                      {s.response_due && (
+                        <div style={{ fontFamily: font.mono, fontSize: 11, color: dueColor }}>
+                          Due {new Date(s.response_due).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {days !== null && ` · ${days <= 0 ? 'Past due' : `${days}d`}`}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <Link href={`/federal?tab=solicitations&state=${stateCode}`}
+                style={{
+                  fontFamily: font.mono, fontSize: 11, color: color.amber,
+                  textDecoration: 'none',
+                }}>
+                View all {stateCode} solicitations →
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Section 4 — Satellite */}
         <div style={{ marginBottom:40 }}>
