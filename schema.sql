@@ -1155,3 +1155,61 @@ CREATE POLICY "anon_read_project_reality_gaps"
 
 CREATE POLICY "service_all_project_reality_gaps"
   ON project_reality_gaps FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- ---------------------------------------------------------------------------
+-- Table: prediction_outcomes
+-- Tracks every classification prediction made for an entity so we can compute
+-- PAR (Prediction Accuracy Rate) once the horizon window has elapsed.
+--
+-- Workflow:
+--   1. Scoring crons INSERT a row when score >= 70 (HIGH classification).
+--   2. The weekly evaluate-predictions cron resolves rows where
+--      outcome_due_at <= NOW() AND outcome_observed IS NULL.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS prediction_outcomes (
+  id                  BIGSERIAL    PRIMARY KEY,
+  entity_type         TEXT         NOT NULL,  -- 'project' | 'metro' | 'site'
+  entity_id           TEXT         NOT NULL,
+  score_type          TEXT         NOT NULL,  -- 'formation' | 'opportunity' | 'reality_gap'
+  predicted_value     FLOAT        NOT NULL,  -- score at prediction time
+  predicted_class     TEXT         NOT NULL,  -- HIGH / MEDIUM / LOW or EXPAND / STABLE / CONTRACT
+  predicted_at        TIMESTAMPTZ  NOT NULL,
+  horizon_days        INT          NOT NULL,  -- 90 | 180 | 360
+  outcome_due_at      TIMESTAMPTZ  NOT NULL,  -- predicted_at + horizon_days
+  outcome_observed    TEXT,                   -- actual classification when resolved
+  outcome_score       FLOAT,                  -- actual score when resolved
+  outcome_correct     BOOLEAN,                -- did classification match?
+  outcome_checked_at  TIMESTAMPTZ,
+  notes               TEXT
+);
+
+COMMENT ON TABLE  prediction_outcomes IS 'Per-entity classification predictions with resolved outcomes for PAR computation.';
+COMMENT ON COLUMN prediction_outcomes.entity_type      IS 'Grain of entity: project | metro | site.';
+COMMENT ON COLUMN prediction_outcomes.entity_id        IS 'Stable identifier for the entity (metro_code, project id, etc.).';
+COMMENT ON COLUMN prediction_outcomes.score_type       IS 'Which scoring model produced this prediction: formation | opportunity | reality_gap.';
+COMMENT ON COLUMN prediction_outcomes.predicted_value  IS 'Numeric score (0–100) at the time the prediction was made.';
+COMMENT ON COLUMN prediction_outcomes.predicted_class  IS 'Classification bucket at prediction time (HIGH/MEDIUM/LOW or equivalent).';
+COMMENT ON COLUMN prediction_outcomes.predicted_at     IS 'Wall-clock timestamp when the prediction was written.';
+COMMENT ON COLUMN prediction_outcomes.horizon_days     IS 'Days forward the prediction is evaluated against (90, 180, or 360).';
+COMMENT ON COLUMN prediction_outcomes.outcome_due_at   IS 'predicted_at + horizon_days — the date on which the outcome should be checked.';
+COMMENT ON COLUMN prediction_outcomes.outcome_observed IS 'Actual classification measured at outcome_due_at.';
+COMMENT ON COLUMN prediction_outcomes.outcome_score    IS 'Actual numeric score measured at outcome_due_at.';
+COMMENT ON COLUMN prediction_outcomes.outcome_correct  IS 'TRUE when predicted_class === outcome_observed.';
+COMMENT ON COLUMN prediction_outcomes.outcome_checked_at IS 'Timestamp the evaluate-predictions cron resolved this row.';
+
+-- Fast lookup for the evaluate-predictions cron (unresolved, overdue rows)
+CREATE INDEX IF NOT EXISTS idx_pred_outcomes_due
+  ON prediction_outcomes (outcome_due_at)
+  WHERE outcome_observed IS NULL;
+
+-- PAR aggregation queries: filter by score type and predicted class
+CREATE INDEX IF NOT EXISTS idx_pred_outcomes_type
+  ON prediction_outcomes (score_type, predicted_class);
+
+ALTER TABLE prediction_outcomes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_read_prediction_outcomes"
+  ON prediction_outcomes FOR SELECT TO anon USING (true);
+
+CREATE POLICY "service_all_prediction_outcomes"
+  ON prediction_outcomes FOR ALL TO service_role USING (true) WITH CHECK (true);

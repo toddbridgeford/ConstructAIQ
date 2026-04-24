@@ -183,6 +183,32 @@ jobs:
             echo "Not Sunday — skipping project summaries (day=$DAY)"
           fi
 
+      - name: 8 — Evaluate predictions (Wednesdays only)
+        if: ${{ github.event_name == 'schedule' }}
+        continue-on-error: true
+        run: |
+          DAY=$(date +%u)
+          if [ "$DAY" = "3" ]; then
+            echo "Wednesday — evaluating due predictions..."
+            HTTP=$(curl -s -o eval.json -w "%{http_code}" -X GET "$APP_URL/api/cron/evaluate-predictions" \
+              -H "Authorization: Bearer $CRON_SECRET")
+            echo "HTTP $HTTP"
+            cat eval.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if 'error' in d:
+            print('ERROR:', d['error'])
+            sys.exit(1)
+          par = d.get('par_pct')
+          par_str = f'{par}%' if par is not None else 'n/a (no resolved predictions)'
+          print(f'Evaluated: {d.get(\"evaluated\",0)} | Correct: {d.get(\"correct\",0)} | PAR: {par_str}')
+          if d.get('errors'): print('Errors:', d['errors'])
+          " 2>/dev/null || cat eval.json
+            [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || (echo "Non-2xx response: HTTP $HTTP" && exit 1)
+          else
+            echo "Not Wednesday — skipping prediction evaluation (day=$DAY)"
+          fi
+
       - name: Summary
         if: always()
         run: |
