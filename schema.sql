@@ -1094,3 +1094,64 @@ CREATE POLICY "anon_read_project_formation_scores"
 
 CREATE POLICY "service_all_project_formation_scores"
   ON project_formation_scores FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: project_reality_gaps
+-- Nightly-computed signed divergence (−100 → +100) between what a project
+-- officially declares and what observable signals confirm.
+--
+--   gap = observed_score − official_score
+--   negative: reality is worse than declared (project is lagging or ghost)
+--   positive: reality ahead of official record (construction leading paperwork)
+--
+-- Official side (declared):  permit_valuation · award_amount · announced_milestone
+-- Observed side (ground):    satellite_bsi · amendment_cadence · warn_stress
+--
+-- Classifications:
+--   ON_TRACK  gap ≥ −15
+--   LAGGING   −50 ≤ gap < −15
+--   STALLED   gap < −50 (some observed activity)
+--   GHOST     gap < −25 AND observed_score ≤ 20
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS project_reality_gaps (
+  id              BIGSERIAL    PRIMARY KEY,
+  project_id      BIGINT       NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  gap             INTEGER      NOT NULL,                        -- −100 to +100
+  official_score  INTEGER      NOT NULL,                        -- 0–100
+  observed_score  INTEGER      NOT NULL,                        -- 0–100
+  classification  TEXT         NOT NULL,                        -- ON_TRACK | LAGGING | STALLED | GHOST
+  driver_json     JSONB        NOT NULL,                        -- official_drivers, observed_drivers, top_gap_drivers
+  computed_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  valid_through   TIMESTAMPTZ  NOT NULL,
+
+  CONSTRAINT project_reality_gaps_project_computed_unique
+    UNIQUE (project_id, computed_at)
+);
+
+COMMENT ON TABLE  project_reality_gaps                IS 'Nightly signed divergence between declared project momentum and observable ground signals.';
+COMMENT ON COLUMN project_reality_gaps.project_id     IS 'Foreign key to projects.id.';
+COMMENT ON COLUMN project_reality_gaps.gap            IS 'observed_score − official_score; negative means reality trails the official record.';
+COMMENT ON COLUMN project_reality_gaps.official_score IS 'Composite official-momentum score (0–100): valuation + award + milestone.';
+COMMENT ON COLUMN project_reality_gaps.observed_score IS 'Composite observed-momentum score (0–100): satellite BSI + amendment cadence + WARN stress.';
+COMMENT ON COLUMN project_reality_gaps.classification IS 'ON_TRACK | LAGGING | STALLED | GHOST.';
+COMMENT ON COLUMN project_reality_gaps.driver_json    IS 'Full driver breakdown for both official and observed sides, plus top_gap_drivers (top 3 by deviation from neutral).';
+COMMENT ON COLUMN project_reality_gaps.computed_at    IS 'Timestamp the gap was computed.';
+COMMENT ON COLUMN project_reality_gaps.valid_through  IS 'Serve-fresh cutoff — recompute after this timestamp.';
+
+CREATE INDEX IF NOT EXISTS idx_project_reality_gaps_project_latest
+  ON project_reality_gaps (project_id, computed_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_project_reality_gaps_classification
+  ON project_reality_gaps (classification, computed_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_project_reality_gaps_gap
+  ON project_reality_gaps (gap, computed_at DESC);
+
+ALTER TABLE project_reality_gaps ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_read_project_reality_gaps"
+  ON project_reality_gaps FOR SELECT TO anon USING (true);
+
+CREATE POLICY "service_all_project_reality_gaps"
+  ON project_reality_gaps FOR ALL TO service_role USING (true) WITH CHECK (true);
