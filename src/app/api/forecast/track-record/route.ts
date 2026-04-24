@@ -5,16 +5,17 @@ import { supabase } from '@/lib/supabase'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// TTLCONS seed — 60 months Jan 2021 → Dec 2025 (same as forecast route)
+// TTLCONS seed — 61 months Jan 2021 → Jan 2026 (same as forecast route)
 const SEED: number[] = [
   1610,1639,1703,1750,1796,1829,1847,1859,1872,1891,1906,1921,
   1938,1952,1969,1985,2001,2018,2035,2049,2062,2078,2091,2101,
   2111,2119,2133,2142,2158,2162,2168,2171,2175,2178,2180,2183,
   2184.6,2174.9,2206.5,2215.4,2199.8,2200.7,2205.3,2197.9,2197.1,2192.9,2176.6,2169.6,
   2165.4,2150.8,2153.4,2149.1,2160.7,2168.5,2177.2,2169.5,2167.9,2181.2,2197.6,2190.4,
+  2190.4,
 ]
 
-// Seed anchor: index 59 = December 2025
+// Seed anchor: index 60 = January 2026
 function seedIndexToDate(i: number): string {
   // index 0 = Jan 2021 → offset i months
   const d = new Date(2021, 0 + i, 1)

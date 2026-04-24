@@ -29,7 +29,7 @@ export interface SectorResponse {
 }
 
 // ── Extra seed data for series not in /api/obs ─────────────────────────────
-// 24 monthly values Jan 2024 – Dec 2025
+// 24 monthly values Jan 2024 – Dec 2025 (proxy series; not extended to Jan 2026)
 
 const EXTRA_SEED: Record<string, number[]> = {
   // Residential 30-yr fixed mortgage rate (%)
@@ -60,23 +60,27 @@ const EXTRA_SEED: Record<string, number[]> = {
   ],
 }
 
-// Baked-in SEED_24 values from /api/obs (mirrors that file)
+// Baked-in seed values from /api/obs (mirrors that file) — Jan 2024 – Jan 2026
 const OBS_SEED: Record<string, number[]> = {
   TTLCONS: [
     2184.6,2174.9,2206.5,2215.4,2199.8,2200.7,2205.3,2197.9,2197.1,2192.9,2176.6,2169.6,
     2165.4,2150.8,2153.4,2149.1,2160.7,2168.5,2177.2,2169.5,2167.9,2181.2,2197.6,2190.4,
+    2190.4,
   ],
   CES2000000001: [
     8170,8176,8196,8208,8236,8254,8262,8267,8276,8264,8267,8273,
     8271,8269,8267,8261,8239,8255,8243,8279,8272,8317,8304,8330,
+    8363,
   ],
   HOUST: [
     1552,1312,1385,1316,1327,1265,1391,1357,1352,1295,1514,1358,
     1490,1355,1398,1282,1382,1420,1291,1328,1272,1324,1387,1487,
+    1487,
   ],
   PERMIT: [
     1577,1476,1459,1407,1461,1436,1476,1434,1428,1508,1480,1460,
     1454,1481,1422,1394,1393,1362,1330,1415,1411,1388,1455,1386,
+    1376,
   ],
 }
 
@@ -139,7 +143,7 @@ function signalScore(yoy: number | null): number {
   return Math.max(-1, Math.min(1, yoy / 10))
 }
 
-const AS_OF = '2025-12-01'
+const AS_OF = '2026-01-01'
 
 // ── Sector builders ────────────────────────────────────────────────────────
 
