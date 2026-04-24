@@ -51,67 +51,6 @@ const TTLCONS_60 = [
   2160.7,2168.5,2177.2,2169.5,2167.9,2181.2,2197.6,2190.4,
 ]
 
-// ── Static commodities — same as pricewatch synthetic fallback ─────────────────
-const STATIC_COMMODITIES = [
-  { id:'WPU0811',   name:'Lumber & Wood',     value:421.8, prevValue:438.2, mom:-3.74, yoy:-15.2, unit:'PPI Index', source:'BLS',  signal:'BUY'  as const, trend:'DOWN' as const, updated:'' },
-  { id:'WPU101',    name:'Iron & Steel',       value:318.4, prevValue:309.6, mom: 2.84, yoy:  8.4, unit:'PPI Index', source:'BLS',  signal:'SELL' as const, trend:'UP'   as const, updated:'' },
-  { id:'WPU132',    name:'Concrete Products',  value:284.6, prevValue:281.2, mom: 1.21, yoy:  4.8, unit:'PPI Index', source:'BLS',  signal:'HOLD' as const, trend:'UP'   as const, updated:'' },
-  { id:'WPU1021',   name:'Copper & Products',  value:342.1, prevValue:328.4, mom: 4.17, yoy: 18.2, unit:'PPI Index', source:'BLS',  signal:'SELL' as const, trend:'UP'   as const, updated:'' },
-  { id:'DCOILWTICO',name:'WTI Crude Oil',      value: 74.82,prevValue: 78.14,mom:-4.25, yoy: -8.6, unit:'$/bbl',     source:'FRED', signal:'BUY'  as const, trend:'DOWN' as const, updated:'' },
-  { id:'PCOPPUSDM', name:'Copper Price',        value:9842,  prevValue:9420,  mom: 4.48, yoy: 12.4, unit:'$/tonne',   source:'FRED', signal:'SELL' as const, trend:'UP'   as const, updated:'' },
-  { id:'WPU0561',   name:'Diesel Fuel',         value:218.4, prevValue:224.8, mom:-2.85, yoy: -6.2, unit:'PPI Index', source:'BLS',  signal:'BUY'  as const, trend:'DOWN' as const, updated:'' },
-]
-
-// ── Static signals — fallback when DB signals table is empty ──────────────────
-const STATIC_SIGNALS = [
-  { type:'WARNING', series_id:'TTLCONS',      title:'TTLCONS Flat — Extended Plateau',  description:'Net spend growth near zero over rolling 24-month window despite IIJA tailwinds.',confidence:94,method:'slope-change',value_at_signal:2190.4,is_active:true },
-  { type:'BEARISH', series_id:'PERMIT',        title:'Permits Below Prior Peak',          description:'Building permits tracking 10–15% below prior cycle peak.',                    confidence:89,method:'zscore',      value_at_signal:1386,  is_active:true },
-  { type:'BULLISH', series_id:'CES2000000001', title:'Employment at Cycle High',           description:'Construction employment at highest recorded level.',                           confidence:96,method:'acceleration',value_at_signal:8330,  is_active:true },
-  { type:'BULLISH', series_id:'HOUST',         title:'Housing Starts V-Rebound',          description:'Starts recovering from cycle low across 3 consecutive months.',               confidence:82,method:'zscore',      value_at_signal:1487,  is_active:true },
-  { type:'WARNING', series_id:'TTLCONS',       title:'Spend/Permit Divergence Active',    description:'Rising spend with falling permits signals margin compression ahead.',          confidence:78,method:'divergence',  value_at_signal:2190.4,is_active:true },
-  { type:'BULLISH', series_id:'TTLCONS',       title:'IIJA Infrastructure Spend Active',  description:'Public construction running above trend, absorbing residential softness.',     confidence:91,method:'slope-change',value_at_signal:890,   is_active:true },
-]
-
-// ── CSHI computation — deterministic, inlined from /api/cshi ─────────────────
-function seededRand(seed: number) { const x = Math.sin(seed + 1) * 10000; return x - Math.floor(x) }
-
-function computeCshi() {
-  const sub = {
-    spendGrowth:           { score:75, weight:0.20, label:'Spend Growth' },
-    permitVelocity:        { score:68, weight:0.20, label:'Permit Velocity' },
-    employmentMomentum:    { score:78, weight:0.15, label:'Employment Momentum' },
-    materialsCostPressure: { score:62, weight:0.15, label:'Materials Cost (inverted)' },
-    regionalMomentum:      { score:80, weight:0.15, label:'Regional Momentum' },
-    federalAwardPace:      { score:71, weight:0.15, label:'Federal Award Pace' },
-  }
-  const raw   = Object.values(sub).reduce((s, v) => s + v.score * v.weight, 0)
-  const score = parseFloat(raw.toFixed(1))
-
-  const classification = score >= 70 ? 'EXPANDING' : score >= 50 ? 'NEUTRAL' : score >= 30 ? 'SLOWING' : 'CONTRACTING'
-  const classColor     = score >= 70 ? '#30d158'    : score >= 50 ? '#f5a623' : '#ff453a'
-
-  const history: { week: string; score: number; classification: string }[] = []
-  const weeks = 24, start = 64.0
-  for (let i = 0; i < weeks; i++) {
-    const p    = i / (weeks - 1)
-    const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2
-    const base = start + (score - start) * ease
-    const s    = Math.max(30, Math.min(100, parseFloat((base + (seededRand(i * 7 + 3) - 0.5) * 6).toFixed(1))))
-    const d    = new Date('2025-10-27')
-    d.setDate(d.getDate() + (i - weeks + 1) * 7)
-    history.push({ week: d.toISOString().split('T')[0], score: s,
-      classification: s >= 70 ? 'EXPANDING' : s >= 50 ? 'NEUTRAL' : 'SLOWING' })
-  }
-
-  const momentumLine = history.map((pt, i) => ({
-    week:     pt.week,
-    momentum: i < 4 ? 0 : parseFloat(((pt.score - history[i - 4].score) / 4).toFixed(2)),
-  }))
-
-  const weeklyChange = parseFloat((score - (history.at(-2)?.score ?? score - 1.3)).toFixed(1))
-
-  return { score, classification, classColor, weeklyChange, subScores: sub, history, momentumLine, updatedAt: '2026-04-20T07:00:00Z' }
-}
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 async function tryQuery<T>(p: Promise<T>): Promise<T | null> {
@@ -231,10 +170,14 @@ export async function GET() {
   }
 
   // ── Signals ───────────────────────────────────────────────────────────────
-  const signals = signalRows?.length ? signalRows : STATIC_SIGNALS
+  const signals = signalRows ?? []
+  // Empty signals array is honest — the dashboard renders an empty state.
 
-  // ── CSHI ──────────────────────────────────────────────────────────────────
-  const cshi = computeCshi()
+  // ── Pricewatch ────────────────────────────────────────────────────────────
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://constructaiq.trade'
+  const priceRes = await fetch(`${base}/api/pricewatch`, { cache: 'no-store' })
+  const priceData = priceRes.ok ? await priceRes.json() : null
+  const commodities = priceData?.items ?? []
 
   // ── Brief ─────────────────────────────────────────────────────────────────
   const briefText = (briefRow as { brief_text?: string } | null)?.brief_text ?? null
@@ -259,10 +202,9 @@ export async function GET() {
         data_as_of: permit12.at(-1)?.obs_date ?? null,
         spark:      permit12.map(r => r.value),
       },
-      cshi,
       forecast,
       signals,
-      commodities:   STATIC_COMMODITIES,
+      commodities,
       brief_excerpt: briefText?.slice(0, 400) ?? null,
       brief_as_of:   briefAt,
       obs: {

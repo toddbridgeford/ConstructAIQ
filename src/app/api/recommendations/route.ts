@@ -90,7 +90,7 @@ export async function GET(request: Request) {
   ).length
 
   const mortObs = mortData?.observations ?? []
-  const mortgageRate = mortObs[0]?.value ?? 6.8
+  const mortgageRate = mortObs[0]?.value ?? null
 
   const signals: Signals = {
     verdict:          verdictData?.overall ?? 'HOLD',
