@@ -247,7 +247,7 @@ export default function PermitsPage() {
               boxShadow: `0 0 8px ${GREEN}`, display: 'inline-block', animation: 'pulse 2s infinite',
             }} />
             <span style={{ fontFamily: MONO, fontSize: 11, color: GREEN, letterSpacing: '0.1em' }}>
-              LIVE · 40 CITIES
+              LIVE · {loading ? '...' : `${allCities.length || 40} CITIES`}
             </span>
           </div>
 
@@ -284,6 +284,16 @@ export default function PermitsPage() {
               </>
             )}
           </div>
+
+          {/* Coverage note */}
+          {!loading && (
+            <div style={{ fontFamily: SYS, fontSize: 13, color: T3, marginBottom: 16 }}>
+              Coverage expanding to 75+ markets.{' '}
+              <a href="/methodology#city-permits" style={{ color: BLUE, textDecoration: 'underline' }}>
+                View coverage map →
+              </a>
+            </div>
+          )}
 
           {/* Filter row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -464,7 +474,7 @@ export default function PermitsPage() {
           Construction Intelligence Platform · constructaiq.trade
         </div>
         <div style={{ fontFamily: SYS, fontSize: 12, color: T4 }}>
-          Data: 40 US city permit APIs · Updated daily
+          Data: {allCities.length > 0 ? allCities.length : '75'}+ US city permit APIs · Updated daily
         </div>
       </footer>
     </div>

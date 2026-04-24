@@ -7,7 +7,7 @@ Live at: https://constructaiq.trade
 Tracks 38+ government data sources and shows you:
 - 12-month AI forecast for US construction spending
 - Federal pipeline: every USASpending.gov construction award
-- City permits: 40 major US cities, updated daily
+- City permits: 59 major US cities, updated daily
 - Satellite ground signal: Sentinel-2 BSI for 20 US markets
 - WARN Act layoff notices for construction companies
 - Construction cost estimates by building type
@@ -43,7 +43,7 @@ daily at 6am UTC, manually triggerable:
 | 2 | Run ensemble forecast models | Daily |
 | 3 | Refresh federal awards (USASpending) | Daily |
 | 4 | Fetch SAM.gov solicitations | Daily |
-| 5 | Fetch city permits (40 cities) | Daily |
+| 5 | Fetch city permits (59 cities) | Daily |
 | 6 | Generate AI weekly brief | Mondays only |
 | 7 | Send newsletter | Mondays only |
 | 8 | Generate project summaries | Sundays only |
