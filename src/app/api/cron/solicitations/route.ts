@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { writeSourceHealth } from '@/lib/sourceHealth'
 
 export const runtime     = 'nodejs'
 export const dynamic     = 'force-dynamic'
@@ -91,6 +92,13 @@ export async function GET(request: Request) {
 
   const apiKey = process.env.SAM_GOV_API_KEY
   if (!apiKey) {
+    await writeSourceHealth({
+      source_id:    'solicitations_samgov',
+      source_label: 'SAM.gov Solicitations',
+      category:     'federal',
+      status:       'not_configured',
+      rows_written: 0,
+    })
     return NextResponse.json({
       status:  'skipped',
       message: 'SAM_GOV_API_KEY not configured — solicitations feed is empty',
@@ -118,6 +126,14 @@ export async function GET(request: Request) {
     if (!res.ok) {
       const body = await res.text()
       console.error('[cron/solicitations] SAM.gov error', res.status, body.slice(0, 200))
+      await writeSourceHealth({
+        source_id:    'solicitations_samgov',
+        source_label: 'SAM.gov Solicitations',
+        category:     'federal',
+        status:       'failed',
+        error_message: `SAM.gov returned HTTP ${res.status}`,
+        rows_written: 0,
+      })
       return NextResponse.json({
         status:  'error',
         message: `SAM.gov returned HTTP ${res.status}`,
@@ -128,6 +144,14 @@ export async function GET(request: Request) {
     raw = json.opportunitiesData ?? []
   } catch (err) {
     console.error('[cron/solicitations] fetch error:', err)
+    await writeSourceHealth({
+      source_id:    'solicitations_samgov',
+      source_label: 'SAM.gov Solicitations',
+      category:     'federal',
+      status:       'failed',
+      error_message: String(err),
+      rows_written: 0,
+    })
     return NextResponse.json({
       status:   'error',
       message:  String(err),
@@ -136,6 +160,13 @@ export async function GET(request: Request) {
   }
 
   if (!raw.length) {
+    await writeSourceHealth({
+      source_id:    'solicitations_samgov',
+      source_label: 'SAM.gov Solicitations',
+      category:     'federal',
+      status:       'ok',
+      rows_written: 0,
+    })
     return NextResponse.json({ status: 'ok', upserted: 0, message: 'No opportunities returned from SAM.gov' })
   }
 
@@ -147,13 +178,30 @@ export async function GET(request: Request) {
 
   if (error) {
     console.error('[cron/solicitations] upsert error:', error)
+    await writeSourceHealth({
+      source_id:    'solicitations_samgov',
+      source_label: 'SAM.gov Solicitations',
+      category:     'federal',
+      status:       'failed',
+      error_message: error.message,
+      rows_written: 0,
+    })
     return NextResponse.json({ status: 'error', message: error.message, upserted: 0 }, { status: 500 })
   }
+
+  const upserted = count ?? rows.length
+  await writeSourceHealth({
+    source_id:    'solicitations_samgov',
+    source_label: 'SAM.gov Solicitations',
+    category:     'federal',
+    status:       'ok',
+    rows_written: upserted,
+  })
 
   return NextResponse.json({
     status:   'ok',
     fetched:  raw.length,
-    upserted: count ?? rows.length,
+    upserted,
     asOf:     new Date().toISOString(),
   })
 }

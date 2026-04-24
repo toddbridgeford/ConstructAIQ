@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getStateAllocations, type StateAllocation } from '@/lib/federal'
 import { supabaseAdmin } from '@/lib/supabase'
 import { upsertEntityBatch, writeEventLogBatch, upsertEntityEdgeBatch, type EntityRow, type EventRow } from '@/lib/entity'
+import { writeSourceHealth } from '@/lib/sourceHealth'
 
 function cronSecret() { return process.env.CRON_SECRET || '' }
 
@@ -40,6 +41,15 @@ export async function GET(request: Request) {
   } catch (err) {
     console.error('[federal] contractor ingestion error:', err)
   }
+
+  await writeSourceHealth({
+    source_id:    'federal_usaspending',
+    source_label: 'USASpending.gov Federal Awards',
+    category:     'federal',
+    status:       error ? 'failed' : 'ok',
+    rows_written: data.length,
+    duration_ms:  duration,
+  })
 
   return NextResponse.json({
     status,
