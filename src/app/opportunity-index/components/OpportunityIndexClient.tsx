@@ -27,9 +27,9 @@ const BAND_DIM: Record<string, string> = {
 
 const GAP_COLOR = (gap: number | null): string => {
   if (gap === null) return color.t4
-  if (gap >= -10)  return color.green
-  if (gap >= -30)  return color.amber
-  return color.red
+  if (gap >  5)    return color.green   // ahead of narrative
+  if (gap >= -10)  return color.t3      // on-track
+  return color.red                      // lagging / behind narrative
 }
 
 const CONF_COLOR: Record<string, string> = {
@@ -380,7 +380,7 @@ export default function OpportunityIndexClient({
           {[
             'Metro',
             'Score',
-            'Avg Gap',
+            'Reality Gap',
             'Spend Release',
             'Top Signal Driver',
             'Conf.',

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, TrendingUp, Building2, MapPin, FolderOpen,
   Radio, BarChart2, AlertTriangle, MessageSquare,
-  BookOpen, Key, PieChart, Newspaper, Mail, Calendar, Layers, type LucideIcon,
+  BookOpen, Key, PieChart, Newspaper, Mail, Calendar, Layers, ScanSearch, type LucideIcon,
 } from "lucide-react"
 import { color, font, layout as L, type as TS } from "@/lib/theme"
 import { getPrefs, removeMarket, PREF_EVENT, type UserPreferences } from "@/lib/preferences"
@@ -42,6 +42,7 @@ const NAV: NavItem[] = [
   { label: "City Permits",     href: "/permits",             Icon: MapPin          },
   { label: "Projects",         href: "/projects",            Icon: FolderOpen      },
   { label: "Satellite",        href: "/ground-signal",       Icon: Radio           },
+  { label: "Reality Gap",      href: "/reality-gap",          Icon: ScanSearch      },
   { label: "Material Costs",   href: "/materials",            Icon: BarChart2       },
   { label: "Data Calendar",    href: "/calendar",            Icon: Calendar        },
   { label: "WARN Act",         href: "/dashboard#signals",   Icon: AlertTriangle   },
