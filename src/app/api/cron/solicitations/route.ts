@@ -90,118 +90,91 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const start = Date.now()
   const apiKey = process.env.SAM_GOV_API_KEY
-  if (!apiKey) {
-    await writeSourceHealth({
-      source_id:    'solicitations_samgov',
-      source_label: 'SAM.gov Solicitations',
-      category:     'federal',
-      status:       'not_configured',
-      rows_written: 0,
-    })
-    return NextResponse.json({
-      status:  'skipped',
-      message: 'SAM_GOV_API_KEY not configured — solicitations feed is empty',
-      upserted: 0,
-    })
-  }
+  let fetchError = false
+  let totalUpserted = 0
 
-  const params = new URLSearchParams({
-    api_key:          apiKey,
-    naics:            NAICS_CODES,
-    ptype:            PTYPE,
-    dateRange:        'activeInLastDays',
-    activeInLastDays: '7',
-    limit:            '100',
-  })
-
-  const url = `https://api.sam.gov/opportunities/v2/search?${params.toString()}`
-
-  let raw: SamOpportunity[] = []
   try {
-    const res = await fetch(url, {
-      headers: { Accept: 'application/json' },
-      signal:  AbortSignal.timeout(8000),
-    })
-    if (!res.ok) {
-      const body = await res.text()
-      console.error('[cron/solicitations] SAM.gov error', res.status, body.slice(0, 200))
-      await writeSourceHealth({
-        source_id:    'solicitations_samgov',
-        source_label: 'SAM.gov Solicitations',
-        category:     'federal',
-        status:       'failed',
-        error_message: `SAM.gov returned HTTP ${res.status}`,
-        rows_written: 0,
-      })
+    if (!apiKey) {
       return NextResponse.json({
-        status:  'error',
-        message: `SAM.gov returned HTTP ${res.status}`,
+        status:  'skipped',
+        message: 'SAM_GOV_API_KEY not configured — solicitations feed is empty',
+        upserted: 0,
+      })
+    }
+
+    const params = new URLSearchParams({
+      api_key:          apiKey,
+      naics:            NAICS_CODES,
+      ptype:            PTYPE,
+      dateRange:        'activeInLastDays',
+      activeInLastDays: '7',
+      limit:            '100',
+    })
+
+    const url = `https://api.sam.gov/opportunities/v2/search?${params.toString()}`
+
+    let raw: SamOpportunity[] = []
+    try {
+      const res = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        signal:  AbortSignal.timeout(8000),
+      })
+      if (!res.ok) {
+        fetchError = true
+        const body = await res.text()
+        console.error('[cron/solicitations] SAM.gov error', res.status, body.slice(0, 200))
+        return NextResponse.json({
+          status:  'error',
+          message: `SAM.gov returned HTTP ${res.status}`,
+          upserted: 0,
+        }, { status: 502 })
+      }
+      const json = await res.json() as { opportunitiesData?: SamOpportunity[] }
+      raw = json.opportunitiesData ?? []
+    } catch (err) {
+      fetchError = true
+      console.error('[cron/solicitations] fetch error:', err)
+      return NextResponse.json({
+        status:   'error',
+        message:  String(err),
         upserted: 0,
       }, { status: 502 })
     }
-    const json = await res.json() as { opportunitiesData?: SamOpportunity[] }
-    raw = json.opportunitiesData ?? []
-  } catch (err) {
-    console.error('[cron/solicitations] fetch error:', err)
-    await writeSourceHealth({
-      source_id:    'solicitations_samgov',
-      source_label: 'SAM.gov Solicitations',
-      category:     'federal',
-      status:       'failed',
-      error_message: String(err),
-      rows_written: 0,
-    })
+
+    if (!raw.length) {
+      return NextResponse.json({ status: 'ok', upserted: 0, message: 'No opportunities returned from SAM.gov' })
+    }
+
+    const rows = raw.map(normalizeOpportunity)
+
+    const { error, count } = await supabaseAdmin
+      .from('federal_solicitations')
+      .upsert(rows, { onConflict: 'notice_id', count: 'exact' })
+
+    if (error) {
+      fetchError = true
+      console.error('[cron/solicitations] upsert error:', error)
+      return NextResponse.json({ status: 'error', message: error.message, upserted: 0 }, { status: 500 })
+    }
+
+    totalUpserted = count ?? rows.length
+
     return NextResponse.json({
-      status:   'error',
-      message:  String(err),
-      upserted: 0,
-    }, { status: 502 })
-  }
-
-  if (!raw.length) {
+      status:   'ok',
+      fetched:  raw.length,
+      upserted: totalUpserted,
+      asOf:     new Date().toISOString(),
+    })
+  } finally {
     await writeSourceHealth({
       source_id:    'solicitations_samgov',
       source_label: 'SAM.gov Solicitations',
       category:     'federal',
-      status:       'ok',
-      rows_written: 0,
+      status:       !apiKey ? 'not_configured' : fetchError ? 'failed' : 'ok',
+      rows_written: totalUpserted,
+      duration_ms:  Date.now() - start,
     })
-    return NextResponse.json({ status: 'ok', upserted: 0, message: 'No opportunities returned from SAM.gov' })
   }
-
-  const rows = raw.map(normalizeOpportunity)
-
-  const { error, count } = await supabaseAdmin
-    .from('federal_solicitations')
-    .upsert(rows, { onConflict: 'notice_id', count: 'exact' })
-
-  if (error) {
-    console.error('[cron/solicitations] upsert error:', error)
-    await writeSourceHealth({
-      source_id:    'solicitations_samgov',
-      source_label: 'SAM.gov Solicitations',
-      category:     'federal',
-      status:       'failed',
-      error_message: error.message,
-      rows_written: 0,
-    })
-    return NextResponse.json({ status: 'error', message: error.message, upserted: 0 }, { status: 500 })
-  }
-
-  const upserted = count ?? rows.length
-  await writeSourceHealth({
-    source_id:    'solicitations_samgov',
-    source_label: 'SAM.gov Solicitations',
-    category:     'federal',
-    status:       'ok',
-    rows_written: upserted,
-  })
-
-  return NextResponse.json({
-    status:   'ok',
-    fetched:  raw.length,
-    upserted,
-    asOf:     new Date().toISOString(),
-  })
 }

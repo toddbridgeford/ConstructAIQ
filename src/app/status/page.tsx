@@ -101,6 +101,21 @@ const HEALTH_BADGE: Record<string, { bg: string; label: string }> = {
   unknown:        { bg: '#888',       label: 'Unknown'        },
 }
 
+const STATUS_PRIORITY: Record<string, number> = {
+  failed: 3, warn: 2, ok: 1, skipped: 0, not_configured: 0, unknown: 0,
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  government_data: 'Government Data',
+  federal:         'Federal Pipeline',
+  permits:         'City Permits',
+  scores:          'Intelligence Scores',
+  ai:              'AI Systems',
+  other:           'Other',
+}
+
+const CAT_ORDER = ['government_data', 'federal', 'permits', 'scores', 'ai', 'other']
+
 // ── PAR Trend Chart ───────────────────────────────────────────────────────
 
 const CHART_W   = 680
@@ -322,6 +337,16 @@ export default function StatusPage() {
     loading ? '—' : (v == null ? fallback : String(v))
 
   const parColor = (par?.overall_par ?? 0) >= 70 ? color.green : (par?.overall_par ?? 0) >= 50 ? color.amber : color.red
+
+  const byCategory = (status?.source_health ?? []).reduce(
+    (acc, row) => {
+      const cat = row.category ?? 'other'
+      acc[cat] = acc[cat] ?? []
+      acc[cat].push(row)
+      return acc
+    },
+    {} as Record<string, SourceHealthRow[]>
+  )
 
   return (
     <div style={{ minHeight: '100vh', background: color.bg0, color: color.t1 }}>
@@ -642,33 +667,88 @@ export default function StatusPage() {
                   </td>
                 </tr>
               ) : (
-                (status.source_health ?? []).map(row => {
-                  const badge = HEALTH_BADGE[row.status] ?? HEALTH_BADGE.unknown
-                  return (
-                    <tr key={row.source_id}>
-                      <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.sys, fontSize: 13, color: color.t2 }}>
-                        {row.source_label}
-                      </td>
-                      <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 11, color: color.t4 }}>
-                        {row.category}
-                      </td>
-                      <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 12, color: color.t3 }}>
-                        {row.rows_written != null ? row.rows_written.toLocaleString() : '—'}
-                      </td>
-                      <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 12, color: color.t3 }}>
-                        {fmtAge(row.run_at)}
-                      </td>
-                      <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}` }}>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 5,
-                          fontFamily: font.mono, fontSize: 11, color: badge.bg,
-                        }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: badge.bg, display: 'inline-block' }} />
-                          {badge.label}
-                        </span>
+                CAT_ORDER.filter(cat => (byCategory[cat]?.length ?? 0) > 0).flatMap(cat => {
+                  const rows = byCategory[cat]
+                  const label = CATEGORY_LABELS[cat] ?? cat
+
+                  const headerRow = (
+                    <tr key={`cat-hdr-${cat}`}>
+                      <td colSpan={5} style={{
+                        padding: '14px 0 6px',
+                        fontFamily: font.mono, fontSize: 10,
+                        color: color.t4, letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        borderBottom: `1px solid ${color.bd2}`,
+                      }}>
+                        {label}
                       </td>
                     </tr>
                   )
+
+                  if (cat === 'permits') {
+                    const worstStatus = rows.reduce(
+                      (worst, r) => (STATUS_PRIORITY[r.status] ?? 0) > (STATUS_PRIORITY[worst] ?? 0) ? r.status : worst,
+                      'ok'
+                    )
+                    const totalRows = rows.reduce((sum, r) => sum + (r.rows_written ?? 0), 0)
+                    const latestRun = rows.reduce(
+                      (latest, r) => (r.run_at > latest ? r.run_at : latest),
+                      ''
+                    )
+                    const badge = HEALTH_BADGE[worstStatus] ?? HEALTH_BADGE.unknown
+                    return [
+                      headerRow,
+                      <tr key="permits-summary">
+                        <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.sys, fontSize: 13, color: color.t2 }}>
+                          Building Permits — {rows.length} cities tracked
+                        </td>
+                        <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 11, color: color.t4 }}>
+                          permits
+                        </td>
+                        <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 12, color: color.t3 }}>
+                          {totalRows > 0 ? totalRows.toLocaleString() : '—'}
+                        </td>
+                        <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 12, color: color.t3 }}>
+                          {fmtAge(latestRun || null)}
+                        </td>
+                        <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}` }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: font.mono, fontSize: 11, color: badge.bg }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: badge.bg, display: 'inline-block' }} />
+                            {badge.label}
+                          </span>
+                        </td>
+                      </tr>,
+                    ]
+                  }
+
+                  return [
+                    headerRow,
+                    ...rows.map(row => {
+                      const badge = HEALTH_BADGE[row.status] ?? HEALTH_BADGE.unknown
+                      return (
+                        <tr key={row.source_id}>
+                          <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.sys, fontSize: 13, color: color.t2 }}>
+                            {row.source_label}
+                          </td>
+                          <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 11, color: color.t4 }}>
+                            {row.category}
+                          </td>
+                          <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 12, color: color.t3 }}>
+                            {row.rows_written != null ? row.rows_written.toLocaleString() : '—'}
+                          </td>
+                          <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 12, color: color.t3 }}>
+                            {fmtAge(row.run_at)}
+                          </td>
+                          <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}` }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: font.mono, fontSize: 11, color: badge.bg }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: badge.bg, display: 'inline-block' }} />
+                              {badge.label}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    }),
+                  ]
                 })
               )}
             </tbody>

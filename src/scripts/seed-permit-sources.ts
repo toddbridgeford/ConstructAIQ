@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import { supabaseAdmin } from '../lib/supabase'
 
+// 72 permit sources with verified Socrata open-data APIs
 const SOURCES = [
   {
     city_code:   'NYC',
@@ -476,6 +477,113 @@ const SOURCES = [
     msa_code:    'SEA',
     api_url:     'https://permits.partner.socrata.com/resource/r9sj-7n4p.json',
     api_dataset: 'r9sj-7n4p',
+  },
+
+  // ── Expansion batch 3: 13 verified Socrata portals ─────────────────────────
+
+  {
+    city_code:   'SDC',
+    city_name:   'San Diego County',
+    state_code:  'CA',
+    msa_code:    'SDG',
+    api_url:     'https://data.sandiegocounty.gov/resource/dyzh-7eat.json',
+    api_dataset: 'dyzh-7eat',
+  },
+  {
+    city_code:   'HWD',
+    city_name:   'Howard County',
+    state_code:  'MD',
+    msa_code:    'BAL',
+    api_url:     'https://opendata.howardcountymd.gov/resource/kvz2-j5cj.json',
+    api_dataset: 'kvz2-j5cj',
+  },
+  {
+    city_code:   'MGC',
+    city_name:   'Montgomery County',
+    state_code:  'MD',
+    msa_code:    'WDC',
+    api_url:     'https://data.montgomerycountymd.gov/resource/xfxj-qszi.json',
+    api_dataset: 'xfxj-qszi',
+  },
+  {
+    city_code:   'GNV',
+    city_name:   'Gainesville',
+    state_code:  'FL',
+    msa_code:    'GNV',
+    api_url:     'https://data.cityofgainesville.org/resource/p798-x3nx.json',
+    api_dataset: 'p798-x3nx',
+  },
+  {
+    city_code:   'SMV',
+    city_name:   'Somerville',
+    state_code:  'MA',
+    msa_code:    'BOS',
+    api_url:     'https://data.somervillema.gov/resource/nneb-s3f7.json',
+    api_dataset: 'nneb-s3f7',
+  },
+  {
+    city_code:   'PRV',
+    city_name:   'Providence',
+    state_code:  'RI',
+    msa_code:    'PRV',
+    api_url:     'https://data.providenceri.gov/resource/ufmm-rbej.json',
+    api_dataset: 'ufmm-rbej',
+  },
+  {
+    city_code:   'BLV',
+    city_name:   'Bellevue',
+    state_code:  'WA',
+    msa_code:    'SEA',
+    api_url:     'https://bellevue.data.socrata.com/resource/bi64-sdm8.json',
+    api_dataset: 'bi64-sdm8',
+  },
+  {
+    city_code:   'PCO',
+    city_name:   'Pierce County',
+    state_code:  'WA',
+    msa_code:    'SEA',
+    api_url:     'https://open.piercecountywa.gov/resource/bg5p-p534.json',
+    api_dataset: 'bg5p-p534',
+  },
+  {
+    city_code:   'KCO',
+    city_name:   'King County',
+    state_code:  'WA',
+    msa_code:    'SEA',
+    api_url:     'https://data.kingcounty.gov/resource/76qh-9bwf.json',
+    api_dataset: '76qh-9bwf',
+  },
+  {
+    city_code:   'DET',
+    city_name:   'Detroit',
+    state_code:  'MI',
+    msa_code:    'DET',
+    api_url:     'https://data.detroitmi.gov/resource/xw2a-a7tf.json',
+    api_dataset: 'xw2a-a7tf',
+  },
+  {
+    city_code:   'BRK',
+    city_name:   'Berkeley',
+    state_code:  'CA',
+    msa_code:    'SFO',
+    api_url:     'https://data.cityofberkeley.info/resource/4tbf-3yt8.json',
+    api_dataset: '4tbf-3yt8',
+  },
+  {
+    city_code:   'FCO',
+    city_name:   'Fort Collins',
+    state_code:  'CO',
+    msa_code:    'FCO',
+    api_url:     'https://opendata.fcgov.com/resource/fvgz-viez.json',
+    api_dataset: 'fvgz-viez',
+  },
+  {
+    city_code:   'CCO',
+    city_name:   'Cook County',
+    state_code:  'IL',
+    msa_code:    'CHI',
+    api_url:     'https://datacatalog.cookcountyil.gov/resource/6yjf-dfxs.json',
+    api_dataset: '6yjf-dfxs',
   },
 ]
 

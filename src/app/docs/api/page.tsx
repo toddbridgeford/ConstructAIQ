@@ -485,7 +485,6 @@ curl https://constructaiq.trade/api/forecast \\
 
         {/* ── SECTION: Detailed endpoint documentation ── */}
         <div style={S.section} id="detail">
-          <Anchor id="detail" />
           <h2 style={H2}>Endpoint reference</h2>
           <p style={S.p}>
             Each endpoint below includes parameters,
