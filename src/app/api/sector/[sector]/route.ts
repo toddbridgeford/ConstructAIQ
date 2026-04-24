@@ -244,7 +244,9 @@ async function commercial(): Promise<SectorResponse> {
   const verd = scoreVerdict(scores)
   const conf = confidence(scores)
 
-  const ttlCur   = ttlcons[ttlcons.length - 1] ?? 2190
+  const ttlCur   = ttlcons.length > 0
+    ? ttlcons[ttlcons.length - 1]
+    : null
   const nonrCur  = nonres[nonres.length - 1]   ?? 1238
 
   const headline = (() => {
@@ -263,7 +265,7 @@ async function commercial(): Promise<SectorResponse> {
     primary_signals: [
       {
         id: 'TTLCONS', label: 'Total Construction',
-        value: fmtB(ttlCur / 1000),
+        value: ttlCur !== null ? fmtB(ttlCur / 1000) : '—',
         yoy: ttlYoy,
         direction: direction(ttlYoy),
         note: 'Annualized, trillions',
@@ -306,7 +308,9 @@ async function infrastructure(): Promise<SectorResponse> {
   // Employment in heavy/civil engineering (CES2000000001 proxy)
   const emp    = await fetchObs('CES2000000001')
   const empYoy = yoyPct(emp)
-  const empCur = emp[emp.length - 1] ?? 8330
+  const empCur = emp.length > 0
+    ? emp[emp.length - 1]
+    : null
 
   const scores = [oblScore, signalScore(empYoy), oblScore]
   const verd   = scoreVerdict(scores)
@@ -342,7 +346,7 @@ async function infrastructure(): Promise<SectorResponse> {
       },
       {
         id: 'CES2000000001', label: 'Const. Employment',
-        value: `${(empCur / 1000).toFixed(1)}M`,
+        value: empCur !== null ? `${(empCur / 1000).toFixed(1)}M` : '—',
         yoy: empYoy,
         direction: direction(empYoy),
         note: 'BLS construction employment',

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,169 +61,31 @@ interface CycleComparison {
   description: string
 }
 
-// Seeded pseudo-random for deterministic history
-function seededRand(seed: number): number {
-  const x = Math.sin(seed * 9301 + 49297) * 233280
-  return x - Math.floor(x)
-}
-
-// Generate 24 months of history from May 2024 → April 2026
-function monthDates(count: number): string[] {
-  const dates: string[] = []
-  const start = new Date('2024-05-01')
-  for (let i = 0; i < count; i++) {
-    const d = new Date(start)
-    d.setMonth(d.getMonth() + i)
-    dates.push(d.toISOString().split('T')[0])
-  }
-  return dates
-}
-
-// Permits: trended from ~1380 → 1482 K units/yr over 24 months with variance
-function generatePermitHistory(): HistoryPoint[] {
-  const dates = monthDates(24)
-  // Permits lead employment by ~10 weeks (~2-3 months)
-  const base = [
-    1380, 1392, 1405, 1388, 1414, 1428,
-    1410, 1436, 1452, 1438, 1448, 1461,
-    1445, 1458, 1466, 1454, 1470, 1478,
-    1462, 1474, 1480, 1468, 1476, 1482,
-  ]
-  return dates.map((date, i) => ({
-    date,
-    value: base[i] + Math.round((seededRand(i + 10) - 0.5) * 18),
-  }))
-}
-
-// Starts: lag permits by ~1 month, trended from ~1280 → 1380
-function generateStartsHistory(): HistoryPoint[] {
-  const dates = monthDates(24)
-  const base = [
-    1285, 1292, 1302, 1295, 1308, 1318,
-    1308, 1322, 1335, 1322, 1330, 1340,
-    1330, 1342, 1348, 1340, 1354, 1360,
-    1348, 1358, 1365, 1358, 1368, 1380,
-  ]
-  return dates.map((date, i) => ({
-    date,
-    value: base[i] + Math.round((seededRand(i + 20) - 0.5) * 16),
-  }))
-}
-
-// Employment: lag permits by ~2-3 months, trended from ~8100 → 8330 K workers
-function generateEmploymentHistory(): HistoryPoint[] {
-  const dates = monthDates(24)
-  const base = [
-    8105, 8118, 8130, 8122, 8140, 8152,
-    8148, 8162, 8175, 8168, 8180, 8192,
-    8188, 8202, 8210, 8204, 8218, 8228,
-    8222, 8238, 8248, 8242, 8286, 8330,
-  ]
-  return dates.map((date, i) => ({
-    date,
-    value: base[i] + Math.round((seededRand(i + 30) - 0.5) * 24),
-  }))
-}
-
-// Spending: $B, trended from ~2050 → 2190
-function generateSpendingHistory(): HistoryPoint[] {
-  const dates = monthDates(24)
-  const base = [
-    2052, 2065, 2074, 2068, 2082, 2092,
-    2086, 2098, 2108, 2102, 2114, 2122,
-    2118, 2128, 2136, 2130, 2142, 2152,
-    2148, 2158, 2166, 2162, 2174, 2190,
-  ]
-  return dates.map((date, i) => ({
-    date,
-    value: base[i] + Math.round((seededRand(i + 40) - 0.5) * 28),
-  }))
-}
-
-// GDP impact: % of GDP, trended from 4.5 → 4.8
-function generateGdpHistory(): HistoryPoint[] {
-  const dates = monthDates(24)
-  const base = [
-    4.50, 4.52, 4.54, 4.53, 4.56, 4.58,
-    4.57, 4.60, 4.62, 4.61, 4.63, 4.65,
-    4.64, 4.66, 4.68, 4.67, 4.70, 4.72,
-    4.71, 4.73, 4.75, 4.74, 4.77, 4.80,
-  ]
-  return dates.map((date, i) => ({
-    date,
-    value: parseFloat((base[i] + (seededRand(i + 50) - 0.5) * 0.04).toFixed(2)),
-  }))
-}
-
 function trendColor(trend: Trend): string {
   if (trend === 'UP')   return GREEN
   if (trend === 'DOWN') return RED
   return AMBER
 }
 
-const STAGES: PipelineStage[] = [
-  {
-    id: 'permits',
-    label: 'PERMITS',
-    value: 1482,
-    unit: 'K units/yr',
-    mom: 2.8,
-    trend: 'UP',
-    trendColor: trendColor('UP'),
-    lagToNext: 8,
-    history: generatePermitHistory(),
-  },
-  {
-    id: 'starts',
-    label: 'STARTS',
-    value: 1380,
-    unit: 'K units/yr',
-    mom: 1.8,
-    trend: 'UP',
-    trendColor: trendColor('UP'),
-    lagToNext: 10,
-    history: generateStartsHistory(),
-  },
-  {
-    id: 'employment',
-    label: 'EMPLOYMENT',
-    value: 8330,
-    unit: 'K workers',
-    mom: 0.31,
-    trend: 'UP',
-    trendColor: trendColor('UP'),
-    lagToNext: 6,
-    history: generateEmploymentHistory(),
-  },
-  {
-    id: 'spending',
-    label: 'SPENDING',
-    value: 2190,
-    unit: '$B',
-    mom: 0.3,
-    trend: 'FLAT',
-    trendColor: trendColor('FLAT'),
-    lagToNext: 8,
-    history: generateSpendingHistory(),
-  },
-  {
-    id: 'gdp',
-    label: 'GDP IMPACT',
-    value: 4.8,
-    unit: '% of GDP',
-    mom: 0.1,
-    trend: 'UP',
-    trendColor: trendColor('UP'),
-    lagToNext: null,
-    history: generateGdpHistory(),
-  },
-]
+function computeMom(hist: HistoryPoint[]): number {
+  if (hist.length < 2) return 0
+  const cur  = hist[hist.length - 1].value
+  const prev = hist[hist.length - 2].value
+  return prev ? parseFloat((((cur - prev) / prev) * 100).toFixed(2)) : 0
+}
+
+function computeTrend(hist: HistoryPoint[]): Trend {
+  const m = computeMom(hist)
+  if (m > 0.2)  return 'UP'
+  if (m < -0.2) return 'DOWN'
+  return 'FLAT'
+}
 
 const CASCADE_ALERTS: CascadeAlert[] = [
   {
     id: 'alert-1',
     severity: 'WATCH',
-    icon: '⚠️',
+    icon: '⚠',
     title: 'Permit volume accelerated +2.1σ',
     message: 'Construction employment likely to rise in 8–12 weeks based on historical patterns.',
     type: 'Acceleration',
@@ -232,7 +95,7 @@ const CASCADE_ALERTS: CascadeAlert[] = [
   {
     id: 'alert-2',
     severity: 'INFO',
-    icon: '🟢',
+    icon: '■',
     title: 'Southeast permit surge detected',
     message: 'Capital flow into region expected to accelerate in Q3.',
     type: 'Regional Anomaly',
@@ -242,7 +105,7 @@ const CASCADE_ALERTS: CascadeAlert[] = [
   {
     id: 'alert-3',
     severity: 'ANOMALY',
-    icon: '🔴',
+    icon: '■',
     title: 'Steel PPI reversed -1.8σ from trend',
     message: 'Materials cost pressure easing — favorable procurement window opening. Monitor lumber for confirmation.',
     type: 'Trend Reversal',
@@ -252,7 +115,7 @@ const CASCADE_ALERTS: CascadeAlert[] = [
   {
     id: 'alert-4',
     severity: 'INFO',
-    icon: '🟢',
+    icon: '■',
     title: 'IIJA obligation pace accelerating',
     message: '$4.8B in new federal highway awards this week — backlog expansion likely to sustain starts through H2 2026.',
     type: 'Federal Momentum',
@@ -262,7 +125,7 @@ const CASCADE_ALERTS: CascadeAlert[] = [
   {
     id: 'alert-5',
     severity: 'WATCH',
-    icon: '⚠️',
+    icon: '⚠',
     title: 'Lumber futures nearing 3-year moving average resistance',
     message: 'Breakout would signal sustained cost pressure in residential construction. Watch next 2 weeks.',
     type: 'Price Watch',
@@ -272,7 +135,7 @@ const CASCADE_ALERTS: CascadeAlert[] = [
   {
     id: 'alert-6',
     severity: 'INFO',
-    icon: '🟢',
+    icon: '■',
     title: 'Multi-family starts diverging from single-family',
     message: 'Single-family starts +3.2% MoM vs multi-family -1.4% MoM — composition shift toward ownership units.',
     type: 'Segment Divergence',
@@ -282,7 +145,7 @@ const CASCADE_ALERTS: CascadeAlert[] = [
   {
     id: 'alert-7',
     severity: 'ANOMALY',
-    icon: '🔴',
+    icon: '■',
     title: 'Copper PPI at 8-month high',
     message: 'Electrical and plumbing subcontractor costs rising — data center and EV manufacturing build-out driving demand.',
     type: 'Commodity Alert',
@@ -292,7 +155,7 @@ const CASCADE_ALERTS: CascadeAlert[] = [
   {
     id: 'alert-8',
     severity: 'WATCH',
-    icon: '⚠️',
+    icon: '⚠',
     title: 'AZ + TX + FL simultaneously HOT',
     message: 'Three-state simultaneous HOT configuration historically signals 6–9 months of above-trend national activity.',
     type: 'Regional Configuration',
@@ -302,7 +165,7 @@ const CASCADE_ALERTS: CascadeAlert[] = [
   {
     id: 'alert-9',
     severity: 'INFO',
-    icon: '🟢',
+    icon: '■',
     title: 'Construction employment at cycle high: 8.33M',
     message: 'Job openings in construction remain elevated — wage pressure may compress margins for smaller GCs in Q2.',
     type: 'Labor Market',
@@ -312,7 +175,7 @@ const CASCADE_ALERTS: CascadeAlert[] = [
   {
     id: 'alert-10',
     severity: 'WATCH',
-    icon: '⚠️',
+    icon: '⚠',
     title: 'Census spending report beat consensus by +0.3%',
     message: 'Infrastructure spending outpacing residential — federal IIJA disbursement acceleration confirmed.',
     type: 'Spending Surprise',
@@ -321,31 +184,41 @@ const CASCADE_ALERTS: CascadeAlert[] = [
   },
 ]
 
-// Predictive overlay: permit index (base 100 = current) and employment shifted +10 weeks
-function generatePredictiveOverlay(): PredictiveOverlay {
-  const permitHistory = generatePermitHistory()
-  const employmentHistory = generateEmploymentHistory()
-  const currentPermit = 1482
-  const currentEmployment = 8330
+function computePredictiveOverlay(
+  permHist: HistoryPoint[],
+  empHist: HistoryPoint[],
+): PredictiveOverlay {
+  const currentPermit     = permHist[permHist.length - 1]?.value ?? 0
+  const currentEmployment = empHist[empHist.length - 1]?.value ?? 0
 
-  const permitIndex: HistoryPoint[] = permitHistory.map(p => ({
+  if (currentPermit === 0 || currentEmployment === 0) {
+    return { permitIndex: [], employmentShifted: [], prediction: 'Insufficient data for predictive overlay.' }
+  }
+
+  const permitIndex: HistoryPoint[] = permHist.map(p => ({
     date: p.date,
     value: parseFloat(((p.value / currentPermit) * 100).toFixed(1)),
   }))
 
-  // Employment shifted ~10 weeks (2.5 months) forward so lead/lag is visible
-  const shiftMonths = 2
-  const shiftedDates = monthDates(24 + shiftMonths)
-  const employmentShifted: HistoryPoint[] = employmentHistory.map((p, i) => ({
-    date: shiftedDates[i + shiftMonths],
-    value: parseFloat(((p.value / currentEmployment) * 100).toFixed(1)),
-  }))
+  // Employment shifted ~2 months forward so lead/lag is visible
+  const employmentShifted: HistoryPoint[] = empHist.map(p => {
+    const d = new Date(p.date)
+    d.setMonth(d.getMonth() + 2)
+    return {
+      date: d.toISOString().split('T')[0],
+      value: parseFloat(((p.value / currentEmployment) * 100).toFixed(1)),
+    }
+  })
+
+  const momPerm = permHist.length >= 2
+    ? (((permHist[permHist.length - 1].value - permHist[permHist.length - 2].value)
+        / permHist[permHist.length - 2].value) * 100).toFixed(1)
+    : '0.0'
 
   return {
     permitIndex,
     employmentShifted,
-    prediction:
-      'Based on current permit readings (+2.8% MoM), employment is projected to increase 0.4–0.6% in 8–12 weeks.',
+    prediction: `Based on current permit readings (${momPerm}% MoM), employment is projected to follow in 8–12 weeks.`,
   }
 }
 
@@ -355,22 +228,15 @@ function generateCycleComparison(): CycleComparison {
   const months: number[] = [-24, -18, -12, -6, 0, 6, 12, 18]
 
   const makeCycle = (
-    key: CycleKey,
+    _key: CycleKey,
     values: number[]
   ): CyclePoint[] =>
     months.map((m, i) => ({ monthFromPeak: m, value: values[i] }))
 
-  // 2008 cycle: peaked around construction bust; sharp decline post-trough
   const cycle2008 = makeCycle('cycle2008', [112, 108, 104, 102, 100, 88, 78, 70])
-
-  // 2016 cycle: moderate, steady growth
   const cycle2016 = makeCycle('cycle2016', [94, 96, 97, 99, 100, 104, 109, 115])
-
-  // 2020 cycle: sharp COVID drop then V-recovery
   const cycle2020 = makeCycle('cycle2020', [104, 102, 98, 88, 100, 110, 116, 120])
-
-  // Current cycle: similar to 2020 but more sustained, currently at month +18
-  const current = makeCycle('current', [96, 97, 98, 99, 100, 104, 108, 112])
+  const current   = makeCycle('current',   [96, 97, 98, 99, 100, 104, 108, 112])
 
   return {
     current,
@@ -382,15 +248,107 @@ function generateCycleComparison(): CycleComparison {
   }
 }
 
-// Suppress unused color variable warnings
-void RED
-
 export async function GET() {
   try {
-    const stages = STAGES
-    const cascadeAlerts = CASCADE_ALERTS
-    const predictiveOverlay = generatePredictiveOverlay()
-    const cycleComparison = generateCycleComparison()
+    const [spendRows, permRows, empRows] = await Promise.all([
+      supabaseAdmin.from('observations')
+        .select('obs_date,value')
+        .eq('series_id', 'TTLCONS')
+        .order('obs_date', { ascending: true })
+        .limit(60),
+      supabaseAdmin.from('observations')
+        .select('obs_date,value')
+        .eq('series_id', 'PERMIT')
+        .order('obs_date', { ascending: true })
+        .limit(60),
+      supabaseAdmin.from('observations')
+        .select('obs_date,value')
+        .eq('series_id', 'CES2000000001')
+        .order('obs_date', { ascending: true })
+        .limit(60),
+    ])
+
+    const spendHist = (spendRows.data ?? []).map(r => ({ date: r.obs_date, value: r.value }))
+    const permHist  = (permRows.data  ?? []).map(r => ({ date: r.obs_date, value: r.value }))
+    const empHist   = (empRows.data   ?? []).map(r => ({ date: r.obs_date, value: r.value }))
+
+    if (spendHist.length === 0 || permHist.length === 0 || empHist.length === 0) {
+      return NextResponse.json({ error: 'Data not yet available', data_needed: true })
+    }
+
+    // Starts derived from permit data (~93% of permits become starts historically)
+    const startsHist: HistoryPoint[] = permHist.map(p => ({
+      date: p.date,
+      value: Math.round(p.value * 0.93),
+    }))
+
+    // GDP impact derived from spending as % of ~$29T US GDP
+    const gdpHist: HistoryPoint[] = spendHist.map(s => ({
+      date: s.date,
+      value: parseFloat(((s.value / 29000) * 100).toFixed(2)),
+    }))
+
+    const stages: PipelineStage[] = [
+      {
+        id: 'permits',
+        label: 'PERMITS',
+        value: permHist[permHist.length - 1].value,
+        unit: 'K units/yr',
+        mom: computeMom(permHist),
+        trend: computeTrend(permHist),
+        trendColor: trendColor(computeTrend(permHist)),
+        lagToNext: 8,
+        history: permHist,
+      },
+      {
+        id: 'starts',
+        label: 'STARTS',
+        value: startsHist[startsHist.length - 1].value,
+        unit: 'K units/yr',
+        mom: computeMom(startsHist),
+        trend: computeTrend(startsHist),
+        trendColor: trendColor(computeTrend(startsHist)),
+        lagToNext: 10,
+        history: startsHist,
+      },
+      {
+        id: 'employment',
+        label: 'EMPLOYMENT',
+        value: empHist[empHist.length - 1].value,
+        unit: 'K workers',
+        mom: computeMom(empHist),
+        trend: computeTrend(empHist),
+        trendColor: trendColor(computeTrend(empHist)),
+        lagToNext: 6,
+        history: empHist,
+      },
+      {
+        id: 'spending',
+        label: 'SPENDING',
+        value: spendHist[spendHist.length - 1].value,
+        unit: '$B',
+        mom: computeMom(spendHist),
+        trend: computeTrend(spendHist),
+        trendColor: trendColor(computeTrend(spendHist)),
+        lagToNext: 8,
+        history: spendHist,
+      },
+      {
+        id: 'gdp',
+        label: 'GDP IMPACT',
+        value: gdpHist[gdpHist.length - 1].value,
+        unit: '% of GDP',
+        mom: computeMom(gdpHist),
+        trend: computeTrend(gdpHist),
+        trendColor: trendColor(computeTrend(gdpHist)),
+        lagToNext: null,
+        history: gdpHist,
+      },
+    ]
+
+    const cascadeAlerts      = CASCADE_ALERTS
+    const predictiveOverlay  = computePredictiveOverlay(permHist, empHist)
+    const cycleComparison    = generateCycleComparison()
 
     return NextResponse.json(
       {
@@ -398,7 +356,7 @@ export async function GET() {
         cascadeAlerts,
         predictiveOverlay,
         cycleComparison,
-        updatedAt: '2026-04-20T06:00:00Z',
+        updatedAt: new Date().toISOString(),
       },
       { headers: { 'Cache-Control': 'public, s-maxage=3600' } }
     )
