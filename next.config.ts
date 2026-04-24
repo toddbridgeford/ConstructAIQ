@@ -79,11 +79,12 @@ const nextConfig: NextConfig = {
   },
 };
 
+// TODO: Re-enable PWA only after production smoke tests cover service-worker update behavior and API/dashboard cache invalidation.
 const pwaConfig = withPWA({
   dest: "public",
-  register: true,
+  register: false,
   skipWaiting: true,
-  disable: !isProd,
+  disable: true,
   fallbacks: {
     document: "/offline.html",
     image:    "/icons/icon-192.png",
@@ -91,41 +92,7 @@ const pwaConfig = withPWA({
     video:    "",
     font:     "",
   },
-  runtimeCaching: [
-    {
-      urlPattern: /^https:\/\/constructaiq\.trade\/api\/.*/i,
-      handler: "StaleWhileRevalidate",
-      options: {
-        cacheName: "api-cache",
-        expiration: { maxEntries: 64, maxAgeSeconds: 24 * 60 * 60 },
-      },
-    },
-    {
-      urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
-      handler: "CacheFirst",
-      options: {
-        cacheName: "image-cache",
-        expiration: { maxEntries: 64, maxAgeSeconds: 30 * 24 * 60 * 60 },
-      },
-    },
-    {
-      urlPattern: /\.(?:woff2?|ttf|otf)$/i,
-      handler: "CacheFirst",
-      options: {
-        cacheName: "font-cache",
-        expiration: { maxEntries: 16, maxAgeSeconds: 365 * 24 * 60 * 60 },
-      },
-    },
-    {
-      urlPattern: /^https:\/\/constructaiq\.trade\/.*/i,
-      handler: "NetworkFirst",
-      options: {
-        cacheName: "page-cache",
-        expiration: { maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 },
-        networkTimeoutSeconds: 10,
-      },
-    },
-  ],
+  // runtimeCaching intentionally omitted while PWA is disabled — restore alongside re-enabling above.
 })(nextConfig);
 
 export default withSentryConfig(pwaConfig, {
