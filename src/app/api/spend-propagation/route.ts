@@ -12,7 +12,7 @@ import {
 
 export const runtime     = 'nodejs'
 export const dynamic     = 'force-dynamic'
-export const maxDuration = 15
+export const maxDuration = 10
 
 const CACHE_HEADERS = {
   'Cache-Control': 'public, s-maxage=21600, stale-while-revalidate=3600',

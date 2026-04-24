@@ -7,7 +7,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30
+export const maxDuration = 10
 
 let _limiter: Ratelimit | null = null
 

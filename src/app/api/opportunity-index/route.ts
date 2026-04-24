@@ -4,7 +4,7 @@ import { estimateSpendWindow } from '@/lib/spendPropagation'
 
 export const runtime     = 'nodejs'
 export const dynamic     = 'force-dynamic'
-export const maxDuration = 30
+export const maxDuration = 10
 
 const CACHE_HEADERS = {
   'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600',

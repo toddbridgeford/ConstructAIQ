@@ -97,7 +97,7 @@ export async function GET() {
         .limit(10)
       return r.data ?? []
     })()),
-    // Latest brief from DB (no generation — stays within maxDuration)
+    // Latest brief from DB (no generation — stays within time budget)
     tryQuery((async () => {
       const r = await supabaseAdmin
         .from('weekly_briefs')
