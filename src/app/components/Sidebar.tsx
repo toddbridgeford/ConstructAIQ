@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, TrendingUp, Building2, MapPin, FolderOpen,
   Radio, BarChart2, AlertTriangle, MessageSquare,
-  BookOpen, Key, PieChart, Newspaper, Mail, Calendar, Layers, ScanSearch, Globe2, type LucideIcon,
+  BookOpen, Key, PieChart, Newspaper, Mail, Calendar, Layers, ScanSearch, Globe2, FileText, type LucideIcon,
 } from "lucide-react"
 import { color, font, layout as L, type as TS } from "@/lib/theme"
 import { getPrefs, removeMarket, PREF_EVENT, type UserPreferences } from "@/lib/preferences"
@@ -320,6 +320,15 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
             >
               + Add market
             </Link>
+
+            {/* My Brief shortcut */}
+            <NavRow
+              href="/my-brief"
+              label="My Brief"
+              Icon={FileText}
+              active={pathname === '/my-brief'}
+              iconOnly={false}
+            />
           </div>
         )}
 
