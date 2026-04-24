@@ -24,15 +24,16 @@ export async function GET() {
         .order('obs_date', { ascending: false })
         .limit(1)
         .maybeSingle(),
-      supabaseAdmin
-        .from('embed_impressions')
-        .select('count')
-        .then(r => {
-          if (r.error) return { total: 0 }
-          const total = (r.data ?? []).reduce((sum: number, row: { count: number }) => sum + (row.count ?? 0), 0)
-          return { total }
-        })
-        .catch(() => ({ total: 0 })),
+      Promise.resolve(
+        supabaseAdmin
+          .from('embed_impressions')
+          .select('count')
+          .then(r => {
+            if (r.error) return { total: 0 }
+            const total = (r.data ?? []).reduce((sum: number, row: { count: number }) => sum + (row.count ?? 0), 0)
+            return { total }
+          })
+      ).catch(() => ({ total: 0 })),
     ])
 
     const obsCount      = obsRes.count ?? 0

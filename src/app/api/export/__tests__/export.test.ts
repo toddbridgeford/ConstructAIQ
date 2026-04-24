@@ -66,6 +66,13 @@ describe('GET /api/export', () => {
   })
 
   it('CSV body starts with header row and has data rows', async () => {
+    getLimit().mockResolvedValue({
+      data: Array.from({ length: 12 }, (_, i) => ({
+        obs_date: `2025-${String(i + 1).padStart(2, '0')}-01`,
+        value:    2100 + i * 10,
+      })),
+      error: null,
+    })
     const res = await GET(makeReq({ series: 'TTLCONS' }))
     const text = await res.text()
     const lines = text.split('\n')
@@ -91,7 +98,7 @@ describe('GET /api/export', () => {
     expect(lines[2]).toBe('2025-02-01,2200')
   })
 
-  it('falls back to seed data when Supabase throws', async () => {
+  it('returns empty CSV when Supabase throws', async () => {
     getLimit().mockRejectedValue(new Error('DB connection failed'))
     const res = await GET(makeReq({ series: 'HOUST' }))
     expect(res.status).toBe(200)
