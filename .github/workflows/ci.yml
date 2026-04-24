@@ -68,3 +68,43 @@ jobs:
 
       - name: Audit (fail on critical)
         run: npm audit --audit-level=critical
+
+  e2e:
+    name: E2E Smoke Tests
+    runs-on: ubuntu-latest
+    # Only run on main/Predictive-Model pushes, not every PR
+    # (E2E tests hit the live site — throttle to merges only)
+    if: >
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' ||
+       github.ref == 'refs/heads/Predictive-Model')
+    needs: build-and-test    # wait for unit tests to pass first
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run E2E smoke tests
+        run: npx playwright test
+        env:
+          # Run against the live production site
+          E2E_BASE_URL: https://constructaiq.trade
+
+      - name: Upload E2E test report
+        uses: actions/upload-artifact@v4
+        if: always()           # upload even on failure
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
