@@ -69,6 +69,25 @@ export async function GET(request: Request) {
         continue
       }
 
+      // Record a prediction outcome row for HIGH-scored metros (score >= 70).
+      // ON CONFLICT DO NOTHING prevents duplicate rows if the cron re-runs
+      // within the same day — the unique check is on (entity_id, score_type, predicted_at).
+      if (result.score >= 70) {
+        const predictedAt   = new Date(result.computed_at)
+        const outcomeDueAt  = new Date(predictedAt.getTime() + 90 * 24 * 60 * 60 * 1000)
+        await supabaseAdmin.from('prediction_outcomes').insert({
+          entity_type:     'metro',
+          entity_id:       result.metro_code,
+          score_type:      'opportunity',
+          predicted_value: result.score,
+          predicted_class: 'HIGH',
+          predicted_at:    predictedAt.toISOString(),
+          horizon_days:    90,
+          outcome_due_at:  outcomeDueAt.toISOString(),
+        })
+        // Ignore conflict errors — a row for this metro+day may already exist
+      }
+
       computed.push(result.metro_code)
     } catch (err) {
       errors.push(`${metroCode}: ${err instanceof Error ? err.message : String(err)}`)

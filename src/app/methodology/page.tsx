@@ -13,7 +13,20 @@ const SECTIONS = [
   { id: 'cost-benchmark', label: 'Cost Benchmarking'   },
   { id: 'nlq',            label: 'AI Query Engine'     },
   { id: 'accuracy',       label: 'Accuracy & Tracking' },
+  { id: 'par',            label: 'Prediction Accuracy' },
 ]
+
+type PARHorizonEntry = { par: number; sample_size: number }
+type PARTypeEntry    = { par: number; sample_size: number }
+
+type PARData = {
+  overall_par: number | null
+  by_horizon:  Record<string, PARHorizonEntry>
+  by_type:     Record<string, PARTypeEntry>
+  sample_size: number
+  as_of:       string
+  note:        string
+}
 
 const tableStyle: React.CSSProperties = {
   width: '100%', borderCollapse: 'collapse',
@@ -39,6 +52,14 @@ const prose: React.CSSProperties = {
 
 export default function MethodologyPage() {
   const [activeId, setActiveId] = useState('overview')
+  const [par, setPar]           = useState<PARData | null>(null)
+
+  useEffect(() => {
+    fetch('/api/par')
+      .then(r => r.json())
+      .then(setPar)
+      .catch(() => {/* non-blocking */})
+  }, [])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -384,6 +405,142 @@ export default function MethodologyPage() {
                 ))}
               </tbody>
             </table>
+          </section>
+
+          {/* ── Prediction Accuracy Rate ── */}
+          <section id="par" style={{ marginBottom: 64 }}>
+            <h2 style={sectionH2}>Prediction Accuracy Rate (PAR)</h2>
+            <p style={prose}>
+              PAR measures the percentage of HIGH-classified opportunity scores that prove
+              correct when re-evaluated at the end of the prediction horizon. A metro scored
+              HIGH is predicted to sustain elevated construction activity for the next 90 days.
+              The outcome is checked once the horizon elapses, the classification is re-computed
+              from live data, and the result is recorded permanently.
+            </p>
+            <p style={prose}>
+              This is the most important trust signal on the platform — real accuracy numbers
+              from real predictions, not back-tested claims.
+            </p>
+
+            {/* Hero PAR number */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 24,
+              background: '#f7f9ff', border: '1px solid #dde5ff',
+              borderRadius: 12, padding: '24px 28px', marginBottom: 28,
+            }}>
+              <div>
+                <div style={{
+                  fontFamily: font.mono, fontSize: 11, color: '#6677aa',
+                  letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6,
+                }}>
+                  Overall PAR — all resolved predictions
+                </div>
+                <div style={{
+                  fontFamily: font.sys, fontSize: 48, fontWeight: 700,
+                  color: '#0033cc', lineHeight: 1,
+                }}>
+                  {par === null
+                    ? '—'
+                    : par.overall_par === null
+                      ? '—'
+                      : `${par.overall_par}%`}
+                </div>
+                <div style={{
+                  fontFamily: font.mono, fontSize: 12, color: '#888', marginTop: 6,
+                }}>
+                  {par === null
+                    ? 'Loading...'
+                    : `n = ${par.sample_size} · as of ${par.as_of}`}
+                </div>
+              </div>
+            </div>
+
+            {/* By-horizon breakdown */}
+            {par && Object.keys(par.by_horizon).length > 0 && (
+              <>
+                <h3 style={{
+                  fontFamily: font.sys, fontSize: 16, fontWeight: 600,
+                  color: '#111', marginBottom: 12,
+                }}>
+                  By prediction horizon
+                </h3>
+                <table style={tableStyle}>
+                  <thead>
+                    <tr>
+                      {['Horizon', 'PAR', 'Sample size'].map(h => (
+                        <th key={h} style={thStyle}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(par.by_horizon)
+                      .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                      .map(([horizon, { par: p, sample_size }]) => (
+                        <tr key={horizon}>
+                          <td style={{ ...tdStyle, fontFamily: font.mono, fontSize: 13, fontWeight: 600 }}>
+                            {horizon}
+                          </td>
+                          <td style={{ ...tdStyle, fontFamily: font.mono, fontSize: 13 }}>
+                            {p}%
+                          </td>
+                          <td style={{ ...tdStyle, fontFamily: font.mono, fontSize: 13, color: '#888' }}>
+                            n = {sample_size}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+
+            {/* By-type breakdown */}
+            {par && Object.keys(par.by_type).length > 0 && (
+              <>
+                <h3 style={{
+                  fontFamily: font.sys, fontSize: 16, fontWeight: 600,
+                  color: '#111', marginBottom: 12, marginTop: 24,
+                }}>
+                  By score model
+                </h3>
+                <table style={tableStyle}>
+                  <thead>
+                    <tr>
+                      {['Score type', 'PAR', 'Sample size'].map(h => (
+                        <th key={h} style={thStyle}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(par.by_type).map(([type, { par: p, sample_size }]) => (
+                      <tr key={type}>
+                        <td style={{ ...tdStyle, fontFamily: font.mono, fontSize: 13, fontWeight: 600 }}>
+                          {type}
+                        </td>
+                        <td style={{ ...tdStyle, fontFamily: font.mono, fontSize: 13 }}>
+                          {p}%
+                        </td>
+                        <td style={{ ...tdStyle, fontFamily: font.mono, fontSize: 13, color: '#888' }}>
+                          n = {sample_size}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+
+            {/* Empty state */}
+            {par && par.sample_size === 0 && (
+              <p style={{ ...prose, color: '#888', fontStyle: 'italic' }}>
+                {par.note}
+              </p>
+            )}
+
+            <p style={{ ...prose, marginTop: 16, fontSize: 13, color: '#888' }}>
+              Outcomes are evaluated weekly (Wednesdays). A prediction is marked correct when
+              the re-computed classification matches the original HIGH classification.
+              PAR accumulates as the platform ages — early figures reflect small sample sizes.
+            </p>
           </section>
 
         </div>
