@@ -7,11 +7,11 @@ export const dynamic     = 'force-dynamic'
 export const maxDuration = 10
 
 // ── Seed data — mirrors obs/route.ts SEED_24 ──────────────────────────────────
-// Anchored to Dec 2025 (24 months = Jan 2024 – Dec 2025)
+// Anchored to Jan 2026 (25 months = Jan 2024 – Jan 2026)
 function seedDates(n: number): string[] {
   const dates: string[] = []
   for (let i = n - 1; i >= 0; i--) {
-    let m = 11 - i, y = 2025
+    let m = 0 - i, y = 2026
     while (m < 0) { m += 12; y-- }
     dates.push(`${y}-${String(m + 1).padStart(2, '0')}-01`)
   }
@@ -30,18 +30,21 @@ const SEED = {
     2184.6,2174.9,2206.5,2215.4,2199.8,2200.7,2205.3,2197.9,
     2197.1,2192.9,2176.6,2169.6,2165.4,2150.8,2153.4,2149.1,
     2160.7,2168.5,2177.2,2169.5,2167.9,2181.2,2197.6,2190.4,
+    2190.4,
   ]),
   CES2000000001: makeSeed([
     8170,8176,8196,8208,8236,8254,8262,8267,8276,8264,8267,8273,
     8271,8269,8267,8261,8239,8255,8243,8279,8272,8317,8304,8330,
+    8363,
   ]),
   PERMIT: makeSeed([
     1577,1476,1459,1407,1461,1436,1476,1434,1428,1508,1480,1460,
     1454,1481,1422,1394,1393,1362,1330,1415,1411,1388,1455,1386,
+    1376,
   ]),
 }
 
-// Full 60-month TTLCONS for ensemble model training
+// Full 61-month TTLCONS for ensemble model training
 const TTLCONS_60 = [
   1610,1639,1703,1750,1796,1829,1847,1859,1872,1891,1906,1921,
   1938,1952,1969,1985,2001,2018,2035,2049,2062,2078,2091,2101,
@@ -49,6 +52,7 @@ const TTLCONS_60 = [
   2184.6,2174.9,2206.5,2215.4,2199.8,2200.7,2205.3,2197.9,
   2197.1,2192.9,2176.6,2169.6,2165.4,2150.8,2153.4,2149.1,
   2160.7,2168.5,2177.2,2169.5,2167.9,2181.2,2197.6,2190.4,
+  2190.4,
 ]
 
 
@@ -93,7 +97,7 @@ export async function GET() {
         .limit(10)
       return r.data ?? []
     })()),
-    // Latest brief from DB (no generation — stays within maxDuration)
+    // Latest brief from DB (no generation — stays within time budget)
     tryQuery((async () => {
       const r = await supabaseAdmin
         .from('weekly_briefs')
