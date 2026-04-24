@@ -7,11 +7,29 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    if (!EIA_KEY) return NextResponse.json(getSyntheticEIA(), { headers: { 'Cache-Control': 'public, s-maxage=14400' } })
+    if (!EIA_KEY) {
+      return NextResponse.json({
+        source: 'EIA',
+        live: false,
+        error: 'EIA_API_KEY not configured',
+        data: [],
+        summary: null,
+        updated: null,
+      }, { status: 503 })
+    }
 
     const url = 'https://api.eia.gov/v2/total-energy/data/?api_key=' + EIA_KEY + '&frequency=monthly&data[0]=value&facets[msn][]=CNCBUS&sort[0][column]=period&sort[0][direction]=desc&length=24'
     const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
-    if (!res.ok) return NextResponse.json(getSyntheticEIA(), { headers: { 'Cache-Control': 'public, s-maxage=14400' } })
+    if (!res.ok) {
+      return NextResponse.json({
+        source: 'EIA',
+        live: false,
+        error: `EIA API returned ${res.status}`,
+        data: [],
+        summary: null,
+        updated: null,
+      }, { status: 503 })
+    }
 
     const data = await res.json()
     const rows = data?.response?.data || []
@@ -46,23 +64,13 @@ export async function GET() {
     }, { headers: { 'Cache-Control': 'public, s-maxage=14400' } })
   } catch (err) {
     console.error('[/api/eia]', err)
-    return NextResponse.json(getSyntheticEIA(), { headers: { 'Cache-Control': 'public, s-maxage=14400' } })
-  }
-}
-
-function getSyntheticEIA() {
-  return {
-    source: 'EIA — synthetic fallback',
-    live: false,
-    unit: 'Trillion BTU',
-    data: [
-      { period: '2024-01', value: 284.2 }, { period: '2024-04', value: 291.8 },
-      { period: '2024-07', value: 312.4 }, { period: '2024-10', value: 298.7 },
-      { period: '2025-01', value: 279.3 }, { period: '2025-04', value: 287.6 },
-      { period: '2025-07', value: 308.9 }, { period: '2025-10', value: 294.2 },
-      { period: '2026-01', value: 281.7 }, { period: '2026-02', value: 276.4 },
-    ],
-    summary: { latest: 276.4, period: '2026-02', mom: -1.9, signal: 'STABLE' },
-    updated: new Date().toISOString(),
+    return NextResponse.json({
+      source: 'EIA',
+      live: false,
+      error: 'EIA fetch failed',
+      data: [],
+      summary: null,
+      updated: null,
+    }, { status: 503 })
   }
 }
