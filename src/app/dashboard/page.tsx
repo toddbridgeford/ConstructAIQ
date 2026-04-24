@@ -173,28 +173,28 @@ export default function Dashboard() {
   const emp12     = obs?.CES2000000001_12 ?? []
   const permit12  = obs?.PERMIT_12        ?? []
 
-  const spendRaw  = ttl12.at(-1)?.value    ?? dashCore?.construction_spending.value ?? null
+  const spendRaw  = ttl12.at(-1)?.value    ?? dashCore?.construction_spending?.value ?? null
   const spendVal  = spendRaw != null ? parseFloat(String(spendRaw)) : null
   const prevSpend = ttl12.at(-2)?.value    ?? null
   const spendMom  = (spendVal != null && prevSpend != null && prevSpend > 0)
     ? ((spendVal - prevSpend) / prevSpend) * 100
-    : dashCore?.construction_spending.mom_change ?? 0
+    : dashCore?.construction_spending?.mom_change ?? 0
 
-  const empVal    = emp12.at(-1)?.value    ?? dashCore?.employment.value ?? null
+  const empVal    = emp12.at(-1)?.value    ?? dashCore?.employment?.value ?? null
   const prevEmp   = emp12.at(-2)?.value    ?? null
   const empMom    = (empVal != null && prevEmp != null && prevEmp > 0)
     ? ((empVal - prevEmp) / prevEmp) * 100
-    : dashCore?.employment.mom_change ?? 0
+    : dashCore?.employment?.mom_change ?? 0
 
-  const permitVal  = permit12.at(-1)?.value ?? dashCore?.permits.value ?? null
+  const permitVal  = permit12.at(-1)?.value ?? dashCore?.permits?.value ?? null
   const prevPermit = permit12.at(-2)?.value ?? null
   const permitMom  = (permitVal != null && prevPermit != null && prevPermit > 0)
     ? ((permitVal - prevPermit) / prevPermit) * 100
-    : dashCore?.permits.mom_change ?? 0
+    : dashCore?.permits?.mom_change ?? 0
 
-  const cshiScore  = dashCore?.cshi.score        ?? null
-  const cshiChange = dashCore?.cshi.weeklyChange  ?? null
-  const cshiSpark  = (dashCore?.cshi.history ?? []).slice(-12).map(h => h.score)
+  const cshiScore  = dashCore?.cshi?.score        ?? null
+  const cshiChange = dashCore?.cshi?.weeklyChange  ?? null
+  const cshiSpark  = (dashCore?.cshi?.history ?? []).slice(-12).map(h => h.score)
 
   const spendSpark  = obsSpark(ttl12,    12, spendVal)
   const empSpark    = obsSpark(emp12,    12, empVal)
@@ -266,7 +266,7 @@ export default function Dashboard() {
     : 61
 
   // ── Freshness — derived from actual obs timestamps ───────────────────────────
-  const overviewFreshness  = formatFreshness(dashCore?.construction_spending.data_as_of ?? dashCore?.cshi.updatedAt)
+  const overviewFreshness  = formatFreshness(dashCore?.construction_spending?.data_as_of ?? dashCore?.cshi?.updatedAt)
   const forecastFreshness  = formatFreshness(dashCore?.forecast?.run_at)
   const pricesFreshness    = formatFreshness(null)
   const signalsFreshness   = formatFreshness(ttl12.at(-1)?.date ?? null)
