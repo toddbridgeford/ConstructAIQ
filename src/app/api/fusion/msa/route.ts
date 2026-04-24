@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { cacheGet, cacheSet, classifyActivity, type Classification } from '../../satellite/_lib'
 
+export const maxDuration = 10
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

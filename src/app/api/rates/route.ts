@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+export const maxDuration = 10
+
 const FRED_KEY = process.env.FRED_API_KEY || ''
 const BASE     = 'https://api.stlouisfed.org/fred/series/observations'
 

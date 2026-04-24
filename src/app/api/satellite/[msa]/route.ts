@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { classifyActivity, FALSE_POSITIVE_EXPLANATIONS, type Classification } from '../_lib'
 
+export const maxDuration = 10
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

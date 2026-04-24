@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
+export const maxDuration = 10
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

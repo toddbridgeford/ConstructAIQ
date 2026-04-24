@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 
+export const maxDuration = 10
+
 const EVENTS = [
   {
     id: "census-permits-apr",

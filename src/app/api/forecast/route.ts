@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { runEnsemble, type EnsembleResult, type ModelResult } from '@/lib/models/ensemble'
 import { supabase, upsertForecasts, type ForecastRow } from '@/lib/supabase'
 
+export const maxDuration = 10
+
 // Real API data baked-in (last refresh Apr 24 2026)
 // These are updated by the DataHarvest cron job
 // Extended to 61 months for better model training

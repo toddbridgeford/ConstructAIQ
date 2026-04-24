@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { randomBytes, createHash } from 'crypto'
 import { sendApiKeyWelcome } from '@/lib/email'
 
+export const maxDuration = 10
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

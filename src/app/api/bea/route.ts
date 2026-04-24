@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 const BEA_KEY = process.env.BEA_API_KEY || ''
 const BEA_URL = 'https://apps.bea.gov/api/data'
 
+export const maxDuration = 10
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
