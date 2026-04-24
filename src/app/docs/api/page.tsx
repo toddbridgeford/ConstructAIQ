@@ -481,6 +481,305 @@ curl https://constructaiq.trade/api/forecast \\
           </table>
         </div>
 
+        <hr style={S.divider} />
+
+        {/* ── SECTION: Detailed endpoint documentation ── */}
+        <div style={S.section} id="detail">
+          <Anchor id="detail" />
+          <h2 style={H2}>Endpoint reference</h2>
+          <p style={S.p}>
+            Each endpoint below includes parameters,
+            an example curl command, and an abbreviated
+            example response.
+          </p>
+
+          {(
+            [
+              {
+                method: 'GET',
+                path: '/api/forecast',
+                anchor: 'api-forecast',
+                desc: 'Returns a 12-month ensemble forecast for a construction series. Combines Holt-Winters, SARIMA, and a custom gradient-boosted tree model with accuracy-weighted blending.',
+                params: [
+                  { name: 'series', type: 'string', req: true, desc: 'Series ID. Supported: TTLCONS, PERMIT, HOUST, CES2000000001' },
+                  { name: 'periods', type: 'number', req: false, desc: 'Forecast horizon in months (default 12, max 24)' },
+                ],
+                curl: 'curl https://constructaiq.trade/api/forecast?series=TTLCONS',
+                response: `{
+  "series":   "TTLCONS",
+  "history":  [2160, 2168, ...],
+  "ensemble": [
+    { "month": "2026-05", "base": 2215, "lo80": 2190, "hi80": 2240 },
+    ...
+  ],
+  "metrics": {
+    "accuracy": 87.3,
+    "mape": 4.1,
+    "hwWeight": 0.35,
+    "sarimaWeight": 0.35,
+    "xgboostWeight": 0.30
+  },
+  "run_at": "2026-04-24T06:00:00Z",
+  "live": true
+}`,
+              },
+              {
+                method: 'GET',
+                path: '/api/verdict',
+                anchor: 'api-verdict',
+                desc: 'Returns the current market verdict — EXPAND, HOLD, or CONTRACT — based on a scoring model across forecast, permits, LICS, WARN Act, and satellite signals.',
+                params: [],
+                curl: 'curl https://constructaiq.trade/api/verdict',
+                response: `{
+  "overall":    "HOLD",
+  "confidence": "HIGH",
+  "headline":   "Mixed signals. Federal pipeline strong but permits softening.",
+  "supporting": ["..."],
+  "as_of": "2026-04-24",
+  "live": true
+}`,
+              },
+              {
+                method: 'GET',
+                path: '/api/federal',
+                anchor: 'api-federal',
+                desc: 'Returns federal construction awards by state from USASpending.gov. Filtered to construction NAICS codes (2361–2389) for the current fiscal year.',
+                params: [],
+                curl: 'curl https://constructaiq.trade/api/federal',
+                response: `{
+  "stateAllocations": [
+    {
+      "state": "TX",
+      "obligated": 8400,
+      "rank": 3,
+      "yoy": 34.2
+    },
+    ...
+  ],
+  "fromCache": false,
+  "fetchedAt": "2026-04-24T06:10:00Z",
+  "live": true
+}`,
+              },
+              {
+                method: 'GET',
+                path: '/api/permits',
+                anchor: 'api-permits',
+                desc: 'Returns building permit activity for tracked cities. Filter by city code or return all 40+ cities.',
+                params: [
+                  { name: 'city', type: 'string', req: false, desc: 'City code e.g. PHX, DAL, NYC. Omit for all cities.' },
+                  { name: 'months', type: 'number', req: false, desc: 'History depth in months (default 12)' },
+                ],
+                curl: 'curl "https://constructaiq.trade/api/permits?city=PHX&months=12"',
+                response: `{
+  "cities": [
+    {
+      "city_code": "PHX",
+      "city_name": "Phoenix",
+      "state_code": "AZ",
+      "latest_month_count": 412,
+      "yoy_change_pct": 8.6,
+      "spark": [380, 392, 404, ...]
+    }
+  ],
+  "live": true
+}`,
+              },
+              {
+                method: 'GET',
+                path: '/api/opportunity-score',
+                anchor: 'api-opportunity-score',
+                desc: 'Returns an opportunity score (0–100) for a metro market. Combines permit trend, federal awards, satellite BSI, leading indicators, and WARN Act signals.',
+                params: [
+                  { name: 'metro', type: 'string', req: true, desc: 'Metro code e.g. PHX, DFW, ATL' },
+                ],
+                curl: 'curl "https://constructaiq.trade/api/opportunity-score?metro=PHX"',
+                response: `{
+  "metro_code":     "PHX",
+  "score":          78,
+  "classification": "BUILDING",
+  "confidence":     "HIGH",
+  "top_drivers": [
+    { "factor": "Permit trend", "impact": "POSITIVE" },
+    { "factor": "Satellite BSI", "impact": "POSITIVE" }
+  ],
+  "computed_at": "2026-04-24T09:30:00Z",
+  "live": true
+}`,
+              },
+              {
+                method: 'POST',
+                path: '/api/nlq',
+                anchor: 'api-nlq',
+                desc: 'Natural language query over all construction data. Returns an AI-generated answer grounded in real-time data from internal APIs. Requires no key.',
+                params: [
+                  { name: 'question', type: 'string', req: true, desc: 'Plain English question about construction markets' },
+                ],
+                curl: `curl -X POST https://constructaiq.trade/api/nlq \\
+  -H "Content-Type: application/json" \\
+  -d '{"question":"What is happening in the Phoenix construction market?"}'`,
+                response: `{
+  "answer": "Phoenix construction is expanding...",
+  "sources_queried": ["/api/permits?city=PHX", "/api/opportunity-score?metro=PHX"],
+  "live": true
+}`,
+              },
+            ] as const
+          ).map(ep => (
+            <div key={ep.path} id={ep.anchor}
+              style={{ marginBottom: 48, scrollMarginTop: 80 }}>
+              <div style={{ display: 'flex', alignItems: 'center',
+                gap: 12, marginBottom: 12 }}>
+                <span style={S.badge(
+                  ep.method === 'GET' ? color.green + '22' : color.blue + '22',
+                  ep.method === 'GET' ? color.green : color.blue,
+                )}>
+                  {ep.method}
+                </span>
+                <code style={{ fontFamily: font.mono, fontSize: 15,
+                  color: color.t1 }}>
+                  {ep.path}
+                </code>
+              </div>
+              <p style={S.p}>{ep.desc}</p>
+
+              {'params' in ep && (ep.params as ReadonlyArray<{name:string;type:string;req:boolean;desc:string}>).length > 0 && (
+                <table style={S.tableWrap}>
+                  <thead>
+                    <tr>
+                      {['Parameter', 'Type', 'Required', 'Description'].map(h => (
+                        <th key={h} style={S.th}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(ep.params as ReadonlyArray<{name:string;type:string;req:boolean;desc:string}>).map(p => (
+                      <tr key={p.name}>
+                        <td style={S.td}>
+                          <code style={S.inlineCode}>{p.name}</code>
+                        </td>
+                        <td style={{ ...S.td, fontFamily: font.mono,
+                          fontSize: 12, color: color.t3 }}>
+                          {p.type}
+                        </td>
+                        <td style={S.td}>
+                          {p.req
+                            ? <span style={{ color: color.red,
+                                fontFamily: font.mono, fontSize: 11 }}>
+                                required
+                              </span>
+                            : <span style={{ color: color.t4,
+                                fontFamily: font.mono, fontSize: 11 }}>
+                                optional
+                              </span>}
+                        </td>
+                        <td style={{ ...S.td, color: color.t3 }}>
+                          {p.desc}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
+              <p style={{ ...S.p, fontFamily: font.mono, fontSize: 10,
+                color: color.t4, letterSpacing: '0.08em',
+                marginBottom: 6 }}>
+                EXAMPLE
+              </p>
+              <code style={S.code}>{ep.curl}</code>
+
+              <p style={{ ...S.p, fontFamily: font.mono, fontSize: 10,
+                color: color.t4, letterSpacing: '0.08em',
+                marginBottom: 6 }}>
+                RESPONSE
+              </p>
+              <code style={S.code}>{ep.response}</code>
+
+              <a href="#endpoints"
+                style={{ fontFamily: font.sys, fontSize: 12,
+                  color: color.t4, textDecoration: 'none' }}>
+                ↑ Back to endpoint list
+              </a>
+            </div>
+          ))}
+        </div>
+
+        <hr style={S.divider} />
+
+        {/* ── SECTION: Data freshness ── */}
+        <div style={S.section} id="freshness">
+          <h2 style={H2}>Data freshness</h2>
+          <p style={S.p}>
+            Every response includes fields that tell you
+            where the data came from and how recent it is.
+          </p>
+          <table style={S.tableWrap}>
+            <thead>
+              <tr>
+                <th style={S.th}>Field</th>
+                <th style={S.th}>Type</th>
+                <th style={S.th}>Meaning</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['live', 'boolean',
+                  'true = data came from a live upstream API or was computed from fresh DB data. false = cached, seeded, or upstream was unavailable.'],
+                ['as_of', 'string (ISO date)',
+                  'The date of the most recent source observation. For Census data, this is the latest reported month.'],
+                ['data_as_of', 'string (ISO date)',
+                  'Alternate form of as_of used by some endpoints.'],
+                ['updated_at', 'string (ISO datetime)',
+                  'When ConstructAIQ last wrote this record to the database.'],
+                ['fetchedAt', 'string (ISO datetime)',
+                  'When the upstream API was last called (federal, satellite).'],
+              ].map(([field, type, meaning]) => (
+                <tr key={field}>
+                  <td style={S.td}>
+                    <code style={S.inlineCode}>{field}</code>
+                  </td>
+                  <td style={{ ...S.td, fontFamily: font.mono,
+                    fontSize: 12, color: color.t3 }}>
+                    {type}
+                  </td>
+                  <td style={{ ...S.td, color: color.t3 }}>{meaning}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ ...S.card, borderLeft: `3px solid ${color.amber}` }}>
+            <p style={{ ...S.p, margin: 0, fontSize: 13 }}>
+              When <code style={S.inlineCode}>live: false</code>, the
+              response may contain cached data from a previous successful
+              run, or bootstrap seed values if no live data is available
+              yet. Check{' '}
+              <Link href="/status"
+                style={{ color: color.amber }}>
+                /status
+              </Link>
+              {' '}for per-source freshness status.
+            </p>
+          </div>
+
+          <div style={{ marginTop: 40, paddingTop: 24,
+            borderTop: `1px solid ${color.bd1}` }}>
+            <p style={{ ...S.p, color: color.t4, fontSize: 13 }}>
+              Questions?{' '}
+              <Link href="/ask"
+                style={{ color: color.amber }}>
+                Ask the platform →
+              </Link>
+              {' · '}
+              <Link href="https://github.com/toddbridgeford/ConstructAIQ/issues"
+                target="_blank" rel="noopener noreferrer"
+                style={{ color: color.amber }}>
+                Open a GitHub issue ↗
+              </Link>
+            </p>
+          </div>
+        </div>
+
       </div>
     </div>
   )
