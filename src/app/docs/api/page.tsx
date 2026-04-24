@@ -303,6 +303,184 @@ curl https://constructaiq.trade/api/forecast \\
           </div>
         </div>
 
+        <hr style={S.divider} />
+
+        {/* ── SECTION: Response shape ── */}
+        <div style={S.section} id="response">
+          <h2 style={H2}>Standard response shape</h2>
+          <p style={S.p}>
+            All responses include a <code style={S.inlineCode}>live</code> boolean
+            and a freshness timestamp.
+          </p>
+
+          <p style={{ ...S.p, fontFamily: font.mono, fontSize: 11,
+            color: color.amber, letterSpacing: '0.08em',
+            marginBottom: 8 }}>
+            COLLECTION ENDPOINTS
+          </p>
+          <code style={S.code}>{`{
+  "data":    [...],        // array of results
+  "count":   42,           // total items
+  "as_of":   "2026-04-24", // data freshness
+  "live":    true          // false if using cached/seed data
+}`}</code>
+
+          <p style={{ ...S.p, fontFamily: font.mono, fontSize: 11,
+            color: color.amber, letterSpacing: '0.08em',
+            marginBottom: 8 }}>
+            SINGLE-RESOURCE ENDPOINTS
+          </p>
+          <code style={S.code}>{`{
+  // ...resource fields...
+  "as_of":      "2026-04-24",
+  "updated_at": "2026-04-24T06:12:00Z",
+  "live":       true
+}`}</code>
+        </div>
+
+        <hr style={S.divider} />
+
+        {/* ── SECTION: Rate limits ── */}
+        <div style={S.section} id="rate-limits">
+          <h2 style={H2}>Rate limits</h2>
+          <table style={S.tableWrap}>
+            <thead>
+              <tr>
+                <th style={S.th}>Access type</th>
+                <th style={S.th}>Limit</th>
+                <th style={S.th}>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['Public (no key)', 'Not enforced',
+                  'Open access for dashboard and embeds'],
+                ['Keyed (caiq_...)', '1,000 req/day',
+                  'Default; higher limits planned'],
+              ].map(([type, limit, note]) => (
+                <tr key={type}>
+                  <td style={S.td}>{type}</td>
+                  <td style={{ ...S.td, fontFamily: font.mono, fontSize: 13 }}>
+                    {limit}
+                  </td>
+                  <td style={{ ...S.td, color: color.t3 }}>{note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p style={S.p}>
+            Rate-limited responses return HTTP 429 with a{' '}
+            <code style={S.inlineCode}>Retry-After</code> header
+            and <code style={S.inlineCode}>X-RateLimit-Remaining: 0</code>.
+          </p>
+        </div>
+
+        <hr style={S.divider} />
+
+        {/* ── SECTION: Error format ── */}
+        <div style={S.section} id="errors">
+          <h2 style={H2}>Error format</h2>
+          <code style={S.code}>{`{
+  "error": "Human-readable message",
+  "code":  "MACHINE_CODE"            // optional
+}`}</code>
+
+          <table style={S.tableWrap}>
+            <thead>
+              <tr>
+                <th style={S.th}>Status</th>
+                <th style={S.th}>Code</th>
+                <th style={S.th}>Meaning</th>
+              </tr>
+            </thead>
+            <tbody>
+              {([
+                ['400', 'INVALID_PARAMS',       'Missing or invalid query parameter'],
+                ['401', 'UNAUTHORIZED',         'Missing or invalid API key'],
+                ['404', 'NOT_FOUND',            'Resource not found or insufficient data'],
+                ['429', 'RATE_LIMITED',         'Rate limit exceeded — see Retry-After header'],
+                ['503', 'UPSTREAM_UNAVAILABLE', 'External API unavailable — try again later'],
+                ['500', 'INTERNAL',             'Internal server error'],
+              ] as const).map(([status, code, meaning]) => (
+                <tr key={status}>
+                  <td style={{ ...S.td, fontFamily: font.mono,
+                    fontSize: 13, color: color.red }}>
+                    {status}
+                  </td>
+                  <td style={{ ...S.td }}>
+                    <code style={S.inlineCode}>{code}</code>
+                  </td>
+                  <td style={{ ...S.td, color: color.t3 }}>{meaning}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <hr style={S.divider} />
+
+        {/* ── SECTION: Endpoint table ── */}
+        <div style={S.section} id="endpoints">
+          <h2 style={H2}>Endpoints</h2>
+          <table style={S.tableWrap}>
+            <thead>
+              <tr>
+                <th style={S.th}>Method</th>
+                <th style={S.th}>Path</th>
+                <th style={S.th}>Description</th>
+                <th style={S.th}>Key required</th>
+              </tr>
+            </thead>
+            <tbody>
+              {([
+                ['GET',  '/api/forecast',              'AI ensemble 12-month forecast',         false],
+                ['GET',  '/api/signals',               'Market anomaly signals and alerts',      false],
+                ['GET',  '/api/verdict',               'EXPAND / HOLD / CONTRACT verdict',       false],
+                ['GET',  '/api/benchmark',             'Historical percentile for a value',      false],
+                ['GET',  '/api/federal',               'Federal construction awards by state',   false],
+                ['GET',  '/api/solicitations',         'SAM.gov pre-award solicitations',        false],
+                ['GET',  '/api/permits',               'City permit activity — 40 cities',       false],
+                ['GET',  '/api/permits/[city]',        'Single city permit detail',              false],
+                ['GET',  '/api/satellite',             'Sentinel-2 BSI ground disturbance',      false],
+                ['GET',  '/api/warn',                  'DOL WARN Act layoff notices',            false],
+                ['GET',  '/api/opportunity-score',     'Metro opportunity score (0–100)',         false],
+                ['GET',  '/api/reality-gap',           'Official vs observed momentum gap',      false],
+                ['GET',  '/api/leading-indicators',    'LICS 6-month forward composite',         false],
+                ['GET',  '/api/recession-probability', 'Construction recession probability',     false],
+                ['GET',  '/api/par',                   'Prediction Accuracy Rate (live)',         false],
+                ['GET',  '/api/sector/[sector]',       'Sector intelligence (residential etc.)', false],
+                ['POST', '/api/nlq',                   'Natural language query',                 false],
+                ['POST', '/api/watchlist',             'Manage watchlist entities',              true ],
+              ] as const).map(([method, path, desc, keyReq]) => (
+                <tr key={path}>
+                  <td style={S.td}>
+                    <span style={S.badge(
+                      method === 'GET' ? color.green + '22' : color.blue + '22',
+                      method === 'GET' ? color.green : color.blue,
+                    )}>
+                      {method}
+                    </span>
+                  </td>
+                  <td style={S.td}>
+                    <a href={`#${path.replace(/\//g, '-').replace(/[\[\]]/g, '').slice(1)}`}
+                      style={{ fontFamily: font.mono, fontSize: 12,
+                        color: color.amber, textDecoration: 'none' }}>
+                      {path}
+                    </a>
+                  </td>
+                  <td style={{ ...S.td, color: color.t3 }}>{desc}</td>
+                  <td style={S.td}>
+                    {keyReq
+                      ? <span style={S.badge(color.amber + '22', color.amber)}>Yes</span>
+                      : <span style={{ fontFamily: font.mono, fontSize: 10,
+                          color: color.t4 }}>No</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
       </div>
     </div>
   )
