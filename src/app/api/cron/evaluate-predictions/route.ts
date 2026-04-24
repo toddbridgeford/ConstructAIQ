@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { computeOpportunityScore } from '@/lib/opportunityScore'
+import { writeSourceHealth } from '@/lib/sourceHealth'
 
 function cronSecret() { return process.env.CRON_SECRET || '' }
 
@@ -41,68 +42,82 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { protocol, host } = new URL(request.url)
-  const baseUrl = `${protocol}//${host}`
-  const now     = new Date().toISOString()
-
-  // 1. Fetch up to 50 unresolved predictions whose horizon has elapsed
-  const { data: due, error: fetchErr } = await supabaseAdmin
-    .from('prediction_outcomes')
-    .select('id, entity_type, entity_id, score_type, predicted_class, predicted_value')
-    .lte('outcome_due_at', now)
-    .is('outcome_observed', null)
-    .limit(50)
-
-  if (fetchErr) {
-    return NextResponse.json({ error: fetchErr.message }, { status: 500 })
-  }
-
-  const rows = (due ?? []) as PredictionRow[]
+  const start = Date.now()
   let evaluated = 0
-  let correct   = 0
-  const errors: string[] = []
 
-  // 2. Resolve each row
-  for (const row of rows) {
-    try {
-      const current = await fetchCurrentScore(row, baseUrl)
-      if (!current) {
-        errors.push(`${row.entity_id}: could not fetch current score`)
-        continue
-      }
+  try {
+    const { protocol, host } = new URL(request.url)
+    const baseUrl = `${protocol}//${host}`
+    const now     = new Date().toISOString()
 
-      const isCorrect = current.classification === row.predicted_class
+    // 1. Fetch up to 50 unresolved predictions whose horizon has elapsed
+    const { data: due, error: fetchErr } = await supabaseAdmin
+      .from('prediction_outcomes')
+      .select('id, entity_type, entity_id, score_type, predicted_class, predicted_value')
+      .lte('outcome_due_at', now)
+      .is('outcome_observed', null)
+      .limit(50)
 
-      const { error: updateErr } = await supabaseAdmin
-        .from('prediction_outcomes')
-        .update({
-          outcome_observed:   current.classification,
-          outcome_score:      current.score,
-          outcome_correct:    isCorrect,
-          outcome_checked_at: now,
-        })
-        .eq('id', row.id)
-
-      if (updateErr) {
-        errors.push(`${row.entity_id}: ${updateErr.message}`)
-        continue
-      }
-
-      evaluated++
-      if (isCorrect) correct++
-    } catch (err) {
-      errors.push(`${row.entity_id}: ${err instanceof Error ? err.message : String(err)}`)
+    if (fetchErr) {
+      return NextResponse.json({ error: fetchErr.message }, { status: 500 })
     }
+
+    const rows = (due ?? []) as PredictionRow[]
+    let correct   = 0
+    const errors: string[] = []
+
+    // 2. Resolve each row
+    for (const row of rows) {
+      try {
+        const current = await fetchCurrentScore(row, baseUrl)
+        if (!current) {
+          errors.push(`${row.entity_id}: could not fetch current score`)
+          continue
+        }
+
+        const isCorrect = current.classification === row.predicted_class
+
+        const { error: updateErr } = await supabaseAdmin
+          .from('prediction_outcomes')
+          .update({
+            outcome_observed:   current.classification,
+            outcome_score:      current.score,
+            outcome_correct:    isCorrect,
+            outcome_checked_at: now,
+          })
+          .eq('id', row.id)
+
+        if (updateErr) {
+          errors.push(`${row.entity_id}: ${updateErr.message}`)
+          continue
+        }
+
+        evaluated++
+        if (isCorrect) correct++
+      } catch (err) {
+        errors.push(`${row.entity_id}: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    }
+
+    const parPct = evaluated > 0 ? Math.round((correct / evaluated) * 1000) / 10 : null
+
+    return NextResponse.json({
+      status:    'ok',
+      evaluated,
+      correct,
+      par_pct:   parPct,
+      errors,
+      runAt:     now,
+    })
+  } finally {
+    await writeSourceHealth({
+      source_id:              'par_evaluation',
+      source_label:           'PAR — Prediction Outcome Evaluation',
+      category:               'scores',
+      status:                 'ok',
+      rows_written:           evaluated,
+      duration_ms:            Date.now() - start,
+      expected_cadence_hours: 168,
+    })
   }
-
-  const parPct = evaluated > 0 ? Math.round((correct / evaluated) * 1000) / 10 : null
-
-  return NextResponse.json({
-    status:    'ok',
-    evaluated,
-    correct,
-    par_pct:   parPct,
-    errors,
-    runAt:     now,
-  })
 }

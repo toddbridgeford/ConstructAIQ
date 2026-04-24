@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { batchComputeFormationScores } from '@/lib/formationScore'
 import type { FormationScoreResult } from '@/lib/formationScore'
+import { writeSourceHealth } from '@/lib/sourceHealth'
 
 export const runtime     = 'nodejs'
 export const dynamic     = 'force-dynamic'
@@ -20,56 +21,70 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const url   = new URL(request.url)
-  const batch = Math.max(0, parseInt(url.searchParams.get('batch') ?? '0', 10))
-
-  const { computed, errors, durationMs, hasMore } = await batchComputeFormationScores({
-    offset: batch * BATCH_SIZE,
-    limit:  BATCH_SIZE,
-  })
-
-  if (computed.length === 0 && errors.length > 0) {
-    return NextResponse.json(
-      { error: 'Batch computation failed', details: errors },
-      { status: 500 },
-    )
-  }
-
+  const start = Date.now()
+  let processed = 0
   const writeErrors: string[] = []
 
-  const CHUNK = 200
-  for (let i = 0; i < computed.length; i += CHUNK) {
-    const chunk = computed.slice(i, i + CHUNK)
-    const rows  = chunk.map((r: FormationScoreResult) => ({
-      project_id:     r.project_id,
-      score:          r.score,
-      classification: r.classification,
-      confidence:     r.confidence,
-      driver_json:    {
-        drivers:     r.drivers,
-        top_drivers: r.top_drivers,
-      },
-      computed_at:    r.computed_at,
-      valid_through:  r.valid_through,
-    }))
+  try {
+    const url   = new URL(request.url)
+    const batch = Math.max(0, parseInt(url.searchParams.get('batch') ?? '0', 10))
 
-    const { error } = await supabaseAdmin
-      .from('project_formation_scores')
-      .upsert(rows, { onConflict: 'project_id,computed_at' })
+    const { computed, errors, durationMs, hasMore } = await batchComputeFormationScores({
+      offset: batch * BATCH_SIZE,
+      limit:  BATCH_SIZE,
+    })
 
-    if (error) {
-      writeErrors.push(`chunk ${i}–${i + chunk.length - 1}: ${error.message}`)
+    if (computed.length === 0 && errors.length > 0) {
+      return NextResponse.json(
+        { error: 'Batch computation failed', details: errors },
+        { status: 500 },
+      )
     }
+
+    const CHUNK = 200
+    for (let i = 0; i < computed.length; i += CHUNK) {
+      const chunk = computed.slice(i, i + CHUNK)
+      const rows  = chunk.map((r: FormationScoreResult) => ({
+        project_id:     r.project_id,
+        score:          r.score,
+        classification: r.classification,
+        confidence:     r.confidence,
+        driver_json:    {
+          drivers:     r.drivers,
+          top_drivers: r.top_drivers,
+        },
+        computed_at:    r.computed_at,
+        valid_through:  r.valid_through,
+      }))
+
+      const { error } = await supabaseAdmin
+        .from('project_formation_scores')
+        .upsert(rows, { onConflict: 'project_id,computed_at' })
+
+      if (error) {
+        writeErrors.push(`chunk ${i}–${i + chunk.length - 1}: ${error.message}`)
+      }
+    }
+
+    processed = computed.length
+    const nextBatch = hasMore ? batch + 1 : null
+
+    return NextResponse.json({
+      status:    writeErrors.length === 0 ? 'ok' : 'partial',
+      processed,
+      nextBatch,
+      errors:    [...errors, ...writeErrors],
+      durationMs,
+      runAt:     new Date().toISOString(),
+    })
+  } finally {
+    await writeSourceHealth({
+      source_id:    'scores_formation',
+      source_label: 'Project Formation Scores',
+      category:     'scores',
+      status:       writeErrors.length > 0 ? 'warn' : 'ok',
+      rows_written: processed,
+      duration_ms:  Date.now() - start,
+    })
   }
-
-  const nextBatch = hasMore ? batch + 1 : null
-
-  return NextResponse.json({
-    status:    writeErrors.length === 0 ? 'ok' : 'partial',
-    processed: computed.length,
-    nextBatch,
-    errors:    [...errors, ...writeErrors],
-    durationMs,
-    runAt:     new Date().toISOString(),
-  })
 }
