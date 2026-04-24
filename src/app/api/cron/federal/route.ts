@@ -7,7 +7,7 @@ function cronSecret() { return process.env.CRON_SECRET || '' }
 
 export const runtime     = 'nodejs'
 export const dynamic     = 'force-dynamic'
-export const maxDuration = 10
+export const maxDuration = 30
 
 export async function GET(request: Request) {
   const auth   = request.headers.get('authorization')
@@ -33,13 +33,22 @@ export async function GET(request: Request) {
     }
   }
 
+  // Contractor momentum ingestion — non-fatal
+  let contractorStats = { upserted: 0 }
+  try {
+    contractorStats = await ingestContractors()
+  } catch (err) {
+    console.error('[federal] contractor ingestion error:', err)
+  }
+
   return NextResponse.json({
     status,
     statesRefreshed: data.length,
     fromCache,
     fetchedAt,
-    durationMs: duration,
-    entities:   entityStats,
+    durationMs:  duration,
+    entities:    entityStats,
+    contractors: contractorStats,
     ...(error ? { error } : {}),
   })
 }
@@ -145,4 +154,181 @@ async function ingestFederalEntities(
     events:   eventsWritten,
     edges:    edgeRows.length,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Contractor momentum ingestion
+// ---------------------------------------------------------------------------
+
+const CONSTRUCTION_NAICS = ['2361','2362','2371','2372','2379','2381','2382','2383','2389']
+
+interface AwardBucket {
+  name:     string
+  state:    string
+  count:    number
+  value:    number
+  lastDate: string
+}
+
+// Fetch top 100 construction awards from USASpending for a date range,
+// aggregated by recipient_id (USASpending internal stable entity key).
+async function fetchTopAwards(
+  startDate: string,
+  endDate:   string,
+): Promise<Map<string, AwardBucket>> {
+  const res = await fetch(
+    'https://api.usaspending.gov/api/v2/search/spending_by_award/',
+    {
+      method:  'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent':   'ConstructAIQ/1.0 (constructaiq.trade)',
+      },
+      body: JSON.stringify({
+        filters: {
+          time_period:      [{ start_date: startDate, end_date: endDate }],
+          award_type_codes: ['A', 'B', 'C', 'D'],
+          naics_codes:      CONSTRUCTION_NAICS,
+        },
+        fields: [
+          'Award ID',
+          'Recipient Name',
+          'recipient_id',
+          'Place of Performance State Code',
+          'Award Amount',
+          'Last Modified Date',
+        ],
+        page:  1,
+        limit: 100,
+        sort:  'Award Amount',
+        order: 'desc',
+      }),
+      signal: AbortSignal.timeout(12_000),
+    },
+  )
+
+  if (!res.ok) throw new Error(`USASpending awards HTTP ${res.status}`)
+
+  const json = (await res.json()) as {
+    results: Array<{
+      'Recipient Name':                    string
+      'recipient_id':                      string | null
+      'Place of Performance State Code':   string | null
+      'Award Amount':                      number | null
+      'Last Modified Date':                string | null
+    }>
+  }
+
+  const map = new Map<string, AwardBucket>()
+
+  for (const r of json.results ?? []) {
+    const name  = (r['Recipient Name'] ?? '').trim()
+    const state = (r['Place of Performance State Code'] ?? '').trim()
+    const value = Math.max(0, r['Award Amount'] ?? 0)
+    const date  = r['Last Modified Date'] ?? startDate
+
+    // Use recipient_id as stable key; fall back to normalized name
+    const key = r['recipient_id']
+      || name.toLowerCase().replace(/[^a-z0-9]+/g, '_')
+
+    const existing = map.get(key)
+    if (existing) {
+      existing.count++
+      existing.value += value
+      if (date > existing.lastDate) existing.lastDate = date
+    } else {
+      map.set(key, { name, state, count: 1, value, lastDate: date })
+    }
+  }
+
+  return map
+}
+
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 200)
+}
+
+async function ingestContractors(): Promise<{ upserted: number }> {
+  // Compute fiscal year date ranges — same calendar period, 1 FY apart
+  const now = new Date()
+  const fy  = now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear()
+
+  const ytdStart   = `${fy - 1}-10-01`
+  const ytdEnd     = now.toISOString().split('T')[0]
+  const priorStart = `${fy - 2}-10-01`
+  const priorEnd   = [
+    fy - 1,
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
+
+  // Fetch both periods in parallel
+  const [ytd, prior] = await Promise.all([
+    fetchTopAwards(ytdStart, ytdEnd),
+    fetchTopAwards(priorStart, priorEnd),
+  ])
+
+  const rows: Array<{
+    name:              string
+    name_normalized:   string
+    uei:               string
+    primary_state:     string | null
+    award_count_ytd:   number
+    award_value_ytd:   number
+    award_count_prior: number
+    award_value_prior: number
+    momentum_score:    number | null
+    momentum_class:    string
+    last_award_date:   string | null
+    updated_at:        string
+  }> = []
+
+  for (const [uei, d] of ytd) {
+    if (!d.name) continue
+
+    const p        = prior.get(uei)
+    const ytdVal   = d.value
+    const priorVal = p?.value ?? 0
+
+    let momentumScore: number | null = null
+    let momentumClass = 'STABLE'
+
+    if (priorVal > 0) {
+      momentumScore = parseFloat(((ytdVal / priorVal - 1) * 100).toFixed(1))
+      if      (momentumScore > 20)  momentumClass = 'ACCELERATING'
+      else if (momentumScore < -10) momentumClass = 'DECELERATING'
+    } else if (ytdVal > 0) {
+      momentumScore = 100
+      momentumClass = 'ACCELERATING'
+    }
+
+    rows.push({
+      name:              d.name,
+      name_normalized:   normalizeName(d.name),
+      uei,
+      primary_state:     d.state || null,
+      award_count_ytd:   d.count,
+      award_value_ytd:   Math.round(ytdVal),
+      award_count_prior: p?.count ?? 0,
+      award_value_prior: Math.round(priorVal),
+      momentum_score:    momentumScore,
+      momentum_class:    momentumClass,
+      last_award_date:   d.lastDate || null,
+      updated_at:        now.toISOString(),
+    })
+  }
+
+  if (!rows.length) return { upserted: 0 }
+
+  const { error } = await supabaseAdmin
+    .from('contractor_profiles')
+    .upsert(rows, { onConflict: 'uei', ignoreDuplicates: false })
+
+  if (error) throw new Error(`contractor_profiles upsert: ${error.message}`)
+
+  return { upserted: rows.length }
 }

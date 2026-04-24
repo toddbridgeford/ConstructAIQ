@@ -40,6 +40,16 @@ interface Solicitation {
   status:          string
 }
 
+interface ContractorRow {
+  name:             string
+  state:            string | null
+  award_value_ytd:  number
+  award_count_ytd:  number
+  momentum_score:   number | null
+  momentum_class:   string
+  last_award:       string | null
+}
+
 // ── Design tokens ──────────────────────────────────────────────────────────
 
 const { bg0: BG0, bg1: BG1, bg2: BG2, bd1: BD1, bd2: BD2,
@@ -452,19 +462,200 @@ function SolicitationsPanel({ sols, total, loading, stateFilter, onStateFilter }
   )
 }
 
+// ── Momentum badge ─────────────────────────────────────────────────────────
+
+function MomentumBadge({ cls }: { cls: string }) {
+  const { col, label } =
+    cls === 'ACCELERATING' ? { col: GREEN,  label: 'ACCELERATING' } :
+    cls === 'DECELERATING' ? { col: RED,    label: 'DECELERATING' } :
+                             { col: AMBER,  label: 'STABLE'       }
+  return (
+    <span style={{
+      fontFamily:    MONO,
+      fontSize:      10,
+      fontWeight:    600,
+      color:         col,
+      background:    `${col}18`,
+      border:        `1px solid ${col}30`,
+      borderRadius:  5,
+      padding:       '2px 7px',
+      letterSpacing: '0.04em',
+      whiteSpace:    'nowrap',
+    }}>
+      {label}
+    </span>
+  )
+}
+
+// ── Contractors panel ──────────────────────────────────────────────────────
+
+interface ContractorsPanelProps {
+  contractors:    ContractorRow[]
+  total:          number
+  loading:        boolean
+  stateFilter:    string
+  onStateFilter:  (s: string) => void
+}
+
+function ContractorsPanel({ contractors, total, loading, stateFilter, onStateFilter }: ContractorsPanelProps) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      {/* Filter row */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        marginBottom: 16, flexWrap: 'wrap',
+      }}>
+        <div style={{ fontFamily: MONO, fontSize: 11, color: T3, letterSpacing: '0.06em' }}>
+          {loading ? 'Loading…' : `${total} contractor${total !== 1 ? 's' : ''} tracked`}
+        </div>
+        <select
+          value={stateFilter}
+          onChange={e => onStateFilter(e.target.value)}
+          style={{
+            background:    BG2,
+            border:        `1px solid ${BD2}`,
+            borderRadius:  8,
+            color:         T2,
+            fontFamily:    MONO,
+            fontSize:      12,
+            padding:       '6px 12px',
+            cursor:        'pointer',
+            outline:       'none',
+          }}
+        >
+          <option value="">All States</option>
+          {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <div style={{ fontFamily: MONO, fontSize: 11, color: T4 }}>
+          Ranked by momentum · YoY award-value growth
+        </div>
+      </div>
+
+      <div style={{
+        background:   BG1,
+        border:       `1px solid ${BD1}`,
+        borderRadius: L.cardRadius,
+        overflow:     'hidden',
+      }}>
+        {loading ? (
+          <div style={{ padding: 24 }}>
+            {[0,1,2,3,4].map(i => (
+              <div key={i} style={{
+                height: 52, marginBottom: 4, borderRadius: 6,
+                background: BG2, opacity: 1 - i * 0.15,
+              }} />
+            ))}
+          </div>
+        ) : contractors.length === 0 ? (
+          <div style={{
+            padding: '48px 32px', textAlign: 'center',
+            fontFamily: SYS, fontSize: 14, color: T4,
+          }}>
+            {stateFilter
+              ? `No contractors tracked in ${stateFilter}. Try another state or clear the filter.`
+              : 'No contractor data yet. The federal cron populates this table daily from USASpending.gov.'}
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="fed-table" style={{ minWidth: 680 }}>
+              <thead>
+                <tr>
+                  {([
+                    ['Contractor',  undefined],
+                    ['State',       60],
+                    ['YTD Awards',  120],
+                    ['Momentum',    200],
+                    ['Last Award',  110],
+                  ] as [string, number | undefined][]).map(([label, w]) => (
+                    <th key={label} style={{
+                      fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: '0.08em',
+                      textTransform: 'uppercase', padding: '0 16px', height: 40,
+                      textAlign: 'left', background: BG2, fontWeight: 600,
+                      borderBottom: `1px solid ${BD2}`,
+                      width: w ?? 'auto', whiteSpace: 'nowrap',
+                    }}>
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {contractors.map((c, i) => (
+                  <tr key={`${c.name}-${i}`} style={{ background: i % 2 === 0 ? BG0 : BG1 }}>
+                    <td style={{ padding: '10px 16px', borderTop: `1px solid ${BD1}` }}>
+                      <div style={{
+                        fontFamily: SYS, fontSize: 13, fontWeight: 600,
+                        color: T1, lineHeight: 1.3,
+                      }}>
+                        {c.name}
+                      </div>
+                      <div style={{ fontFamily: MONO, fontSize: 10, color: T4, marginTop: 2 }}>
+                        {c.award_count_ytd} award{c.award_count_ytd !== 1 ? 's' : ''} YTD
+                      </div>
+                    </td>
+                    <td style={{
+                      padding: '0 16px', borderTop: `1px solid ${BD1}`,
+                      fontFamily: MONO, fontSize: 12, fontWeight: 700, color: T2,
+                    }}>
+                      {c.state ?? '—'}
+                    </td>
+                    <td style={{
+                      padding: '0 16px', borderTop: `1px solid ${BD1}`,
+                      fontFamily: MONO, fontSize: 12, color: T2, whiteSpace: 'nowrap',
+                    }}>
+                      {fmtValue(c.award_value_ytd)}
+                    </td>
+                    <td style={{
+                      padding: '0 16px', borderTop: `1px solid ${BD1}`,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      <MomentumBadge cls={c.momentum_class} />
+                      {c.momentum_score !== null && (
+                        <span style={{
+                          fontFamily: MONO, fontSize: 11, color: T4, marginLeft: 8,
+                        }}>
+                          {c.momentum_score > 0 ? '+' : ''}{c.momentum_score.toFixed(1)}%
+                        </span>
+                      )}
+                    </td>
+                    <td style={{
+                      padding: '0 16px', borderTop: `1px solid ${BD1}`,
+                      fontFamily: MONO, fontSize: 11, color: T4, whiteSpace: 'nowrap',
+                    }}>
+                      {c.last_award ? fmtShortDate(c.last_award) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: '0.06em', marginTop: 12 }}>
+        Source: USASpending.gov · Construction NAICS 236x/237x/238x · Updated daily
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function FederalPage() {
   const [data,         setData]         = useState<FederalData | null>(null)
   const [loading,      setLoading]      = useState(true)
-  const [tab,          setTab]          = useState<'state' | 'agency' | 'solicitations'>('state')
+  const [tab,          setTab]          = useState<'state' | 'agency' | 'solicitations' | 'contractors'>('state')
   const [sortKey,      setSortKey]      = useState('obligated')
   const [sortDir,      setSortDir]      = useState<SortDir>('desc')
   const [showChart,    setShowChart]    = useState(false)
   const [sols,         setSols]         = useState<Solicitation[]>([])
   const [solsTotal,    setSolsTotal]    = useState(0)
   const [solsLoading,  setSolsLoading]  = useState(false)
-  const [solStateFilter, setSolStateFilter] = useState('')
+  const [solStateFilter,  setSolStateFilter]  = useState('')
+  const [contractors,     setContractors]     = useState<ContractorRow[]>([])
+  const [contractorsTotal, setContractorsTotal] = useState(0)
+  const [contractorsLoading, setContractorsLoading] = useState(false)
+  const [contractorStateFilter, setContractorStateFilter] = useState('')
 
   useEffect(() => {
     fetch("/api/federal")
@@ -482,6 +673,18 @@ export default function FederalPage() {
       .then(d => { setSols(d.solicitations ?? []); setSolsTotal(d.total ?? 0) })
       .finally(() => setSolsLoading(false))
   }, [tab, solStateFilter])
+
+  useEffect(() => {
+    if (tab !== 'contractors') return
+    setContractorsLoading(true)
+    const qs = contractorStateFilter
+      ? `?state=${contractorStateFilter}&limit=50&sort=momentum`
+      : '?limit=50&sort=momentum'
+    fetch(`/api/contractors${qs}`)
+      .then(r => r.ok ? r.json() : { contractors: [], total: 0 })
+      .then(d => { setContractors(d.contractors ?? []); setContractorsTotal(d.total ?? 0) })
+      .finally(() => setContractorsLoading(false))
+  }, [tab, contractorStateFilter])
 
   function handleSort(key: string) {
     if (sortKey === key) {
@@ -599,6 +802,7 @@ export default function FederalPage() {
                 ['state',         'By State'],
                 ['agency',        'By Agency'],
                 ['solicitations', 'Solicitations'],
+                ['contractors',   'Contractors'],
               ] as const).map(([t, label]) => (
                 <button
                   key={t}
@@ -624,7 +828,7 @@ export default function FederalPage() {
               ))}
             </div>
 
-            {tab !== 'solicitations' && (
+            {tab !== 'solicitations' && tab !== 'contractors' && (
               <div style={{ display: "flex", gap: 8 }}>
                 <button
                   onClick={() => setShowChart(v => !v)}
@@ -747,8 +951,19 @@ export default function FederalPage() {
           />
         )}
 
+        {/* ── Contractors tab ────────────────────────────────────────────── */}
+        {tab === 'contractors' && (
+          <ContractorsPanel
+            contractors={contractors}
+            total={contractorsTotal}
+            loading={contractorsLoading}
+            stateFilter={contractorStateFilter}
+            onStateFilter={setContractorStateFilter}
+          />
+        )}
+
         {/* ── Table ──────────────────────────────────────────────────────── */}
-        {tab !== 'solicitations' && <div style={{
+        {tab !== 'solicitations' && tab !== 'contractors' && <div style={{
           background:   BG1,
           border:       `1px solid ${BD1}`,
           borderRadius: L.cardRadius,
