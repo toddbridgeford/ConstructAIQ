@@ -105,7 +105,7 @@ function trimPayload(url: string, data: unknown): unknown {
   return data
 }
 
-function selectDataSources(question: string): string[] {
+function selectDataSources(question: string, ttlVal: number | null, permVal: number | null): string[] {
   const q = question.toLowerCase()
   const sources: string[] = []
 
@@ -161,7 +161,10 @@ function selectDataSources(question: string): string[] {
       q.includes('typical') || q.includes('unusual') ||
       (q.includes('high') && (q.includes('spend') || q.includes('permit') || q.includes('employ'))) ||
       (q.includes('low')  && (q.includes('spend') || q.includes('permit') || q.includes('employ'))))
-    sources.push('/api/benchmark?series=TTLCONS&value=2190', '/api/benchmark?series=PERMIT&value=1400')
+    if (ttlVal !== null)
+      sources.push(`/api/benchmark?series=TTLCONS&value=${ttlVal}`)
+    if (permVal !== null)
+      sources.push(`/api/benchmark?series=PERMIT&value=${permVal}`)
 
   if (q.includes('compare') || q.includes('versus') || q.includes(' vs ') || q.includes('difference'))
     sources.push('/api/map', '/api/satellite')
@@ -236,7 +239,21 @@ export async function POST(request: Request) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://constructaiq.trade'
-    const sources = selectDataSources(question)
+
+    // Fetch current values for benchmark context
+    const [ttlLatest, permLatest] = await Promise.all([
+      fetch(`${baseUrl}/api/obs?series=TTLCONS&n=1`)
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null),
+      fetch(`${baseUrl}/api/obs?series=PERMIT&n=1`)
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null),
+    ])
+
+    const ttlVal  = ttlLatest?.obs?.[0]?.value  ?? null
+    const permVal = permLatest?.obs?.[0]?.value ?? null
+
+    const sources = selectDataSources(question, ttlVal, permVal)
     const raw = await fetchData(sources, baseUrl)
 
     // Trim payloads when many sources selected to avoid token limits

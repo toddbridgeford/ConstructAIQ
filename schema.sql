@@ -1323,3 +1323,31 @@ CREATE POLICY "anon_read_contractor_profiles"
 
 CREATE POLICY "service_all_contractor_profiles"
   ON contractor_profiles FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- ---------------------------------------------------------------------------
+-- Table: embed_impressions
+-- Lightweight counter for embed widget impressions by widget type and domain.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS embed_impressions (
+  id          BIGSERIAL PRIMARY KEY,
+  widget_type TEXT        NOT NULL,
+  origin      TEXT        NOT NULL DEFAULT 'direct',
+  day         DATE        NOT NULL DEFAULT CURRENT_DATE,
+  count       INT         NOT NULL DEFAULT 1,
+  CONSTRAINT embed_impressions_unique UNIQUE (widget_type, origin, day)
+);
+
+CREATE INDEX IF NOT EXISTS idx_embed_impressions_day
+  ON embed_impressions (day DESC);
+
+CREATE INDEX IF NOT EXISTS idx_embed_impressions_type
+  ON embed_impressions (widget_type);
+
+ALTER TABLE embed_impressions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "service_all_embed_impressions"
+  ON embed_impressions FOR ALL
+  TO service_role USING (true) WITH CHECK (true);
+
+COMMENT ON TABLE embed_impressions IS
+  'Widget embed impression counts by type, origin domain, and day.';
