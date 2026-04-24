@@ -23,6 +23,7 @@ import type {
 } from "@/lib/api-types"
 import type { ForecastData } from "./types"
 import { formatFreshness } from "@/lib/freshness"
+import { normalizeDashboardData } from "@/lib/dashboard-schema"
 
 const SYS  = font.sys
 const MONO = font.mono
@@ -162,7 +163,8 @@ export default function Dashboard() {
       // /api/permits and /api/satellite are fetched by their respective
       // section components on demand — not needed for initial dashboard paint
     ])
-    if (core) setDashCore(core as DashboardData)
+    const normalized = normalizeDashboardData(core)
+    if (normalized) setDashCore(normalized)
   }, [])
 
   useEffect(() => { load() }, [load])
