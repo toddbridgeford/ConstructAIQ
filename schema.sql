@@ -242,7 +242,8 @@ BEGIN
         'anon_read_entity_edges', 'service_all_entity_edges',
         'anon_read_event_log', 'service_all_event_log',
         'anon_read_project_state_history', 'service_all_project_state_history',
-        'anon_read_federal_solicitations', 'service_all_federal_solicitations'
+        'anon_read_federal_solicitations', 'service_all_federal_solicitations',
+        'anon_read_contractor_profiles', 'service_all_contractor_profiles'
       )
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, pol.tablename);
@@ -1269,3 +1270,56 @@ CREATE POLICY "anon_read_prediction_outcomes"
 
 CREATE POLICY "service_all_prediction_outcomes"
   ON prediction_outcomes FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ---------------------------------------------------------------------------
+-- Table: contractor_profiles
+-- Contractor-level momentum tracking derived from USASpending.gov award data.
+-- One row per contractor (keyed by USASpending recipient_id stored as uei).
+-- Populated and refreshed by the /api/cron/federal route.
+--
+-- momentum_score = (ytd_value / prior_value − 1) × 100
+-- momentum_class = ACCELERATING | STABLE | DECELERATING
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS contractor_profiles (
+  id                BIGSERIAL    PRIMARY KEY,
+  name              TEXT         NOT NULL,
+  name_normalized   TEXT         NOT NULL UNIQUE,
+  cage_code         TEXT,
+  uei               TEXT         UNIQUE,
+  primary_state     TEXT,
+  naics_primary     TEXT,
+  award_count_ytd   INT          NOT NULL DEFAULT 0,
+  award_value_ytd   BIGINT       NOT NULL DEFAULT 0,
+  award_count_prior INT          NOT NULL DEFAULT 0,
+  award_value_prior BIGINT       NOT NULL DEFAULT 0,
+  momentum_score    FLOAT,
+  momentum_class    TEXT,
+  last_award_date   DATE,
+  updated_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE  contractor_profiles                  IS 'Contractor momentum profiles derived from USASpending.gov construction awards — one row per contractor.';
+COMMENT ON COLUMN contractor_profiles.uei              IS 'USASpending recipient_id (stable internal hash, used as unique entity key).';
+COMMENT ON COLUMN contractor_profiles.name_normalized  IS 'Lowercased, alphanumeric-only contractor name used for deduplication.';
+COMMENT ON COLUMN contractor_profiles.award_count_ytd  IS 'Number of federal construction awards in current fiscal year to date.';
+COMMENT ON COLUMN contractor_profiles.award_value_ytd  IS 'Total dollar value of awards in current fiscal year to date.';
+COMMENT ON COLUMN contractor_profiles.award_count_prior IS 'Award count for same period in the prior fiscal year (for YoY comparison).';
+COMMENT ON COLUMN contractor_profiles.award_value_prior IS 'Award value for same period in the prior fiscal year.';
+COMMENT ON COLUMN contractor_profiles.momentum_score   IS 'YoY award-value growth rate: (ytd_value / prior_value − 1) × 100. Null when prior is zero.';
+COMMENT ON COLUMN contractor_profiles.momentum_class   IS 'ACCELERATING (>+20%) | STABLE | DECELERATING (<−10%).';
+COMMENT ON COLUMN contractor_profiles.last_award_date  IS 'Date of the most recent award received by this contractor.';
+
+CREATE INDEX IF NOT EXISTS idx_contractor_momentum
+  ON contractor_profiles (momentum_score DESC NULLS LAST);
+
+CREATE INDEX IF NOT EXISTS idx_contractor_state
+  ON contractor_profiles (primary_state, momentum_score DESC NULLS LAST);
+
+ALTER TABLE contractor_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_read_contractor_profiles"
+  ON contractor_profiles FOR SELECT TO anon USING (true);
+
+CREATE POLICY "service_all_contractor_profiles"
+  ON contractor_profiles FOR ALL TO service_role USING (true) WITH CHECK (true);

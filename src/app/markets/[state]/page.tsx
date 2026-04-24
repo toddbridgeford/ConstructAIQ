@@ -8,6 +8,15 @@ import { WatchButton } from '@/app/components/ui/WatchButton'
 import { STATE_NAMES } from '@/lib/state-names'
 
 // ── Types ────────────────────────────────────────────────────
+interface ContractorRow {
+  name:            string
+  state:           string | null
+  award_value_ytd: number
+  momentum_score:  number | null
+  momentum_class:  string
+  last_award:      string | null
+}
+
 interface Solicitation {
   notice_id:       string
   title:           string
@@ -71,12 +80,13 @@ export default function StatePage() {
   const params    = useParams()
   const stateCode = (params?.state as string ?? '').toUpperCase()
 
-  const [data,    setData]    = useState<StateData | null>(null)
-  const [cities,  setCities]  = useState<CityPermit[]>([])
-  const [msas,    setMsas]    = useState<MsaRow[]>([])
-  const [sols,    setSols]    = useState<Solicitation[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState<string | null>(null)
+  const [data,        setData]        = useState<StateData | null>(null)
+  const [cities,      setCities]      = useState<CityPermit[]>([])
+  const [msas,        setMsas]        = useState<MsaRow[]>([])
+  const [sols,        setSols]        = useState<Solicitation[]>([])
+  const [contractors, setContractors] = useState<ContractorRow[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [error,       setError]       = useState<string | null>(null)
 
   useEffect(() => {
     if (!stateCode) return
@@ -89,8 +99,10 @@ export default function StatePage() {
         .then(r => r.ok ? r.json() : { msas: [] }),
       fetch(`/api/solicitations?state=${stateCode}&limit=5`)
         .then(r => r.ok ? r.json() : { solicitations: [] }),
+      fetch(`/api/contractors?state=${stateCode}&limit=5&sort=momentum`)
+        .then(r => r.ok ? r.json() : { contractors: [] }),
     ])
-      .then(([sd, pd, sat, solData]) => {
+      .then(([sd, pd, sat, solData, contractorData]) => {
         if (!sd || sd.error) {
           setError(sd?.error ?? 'State not found')
           return
@@ -111,6 +123,7 @@ export default function StatePage() {
             )
         setMsas(stateMsas)
         setSols((solData as { solicitations?: Solicitation[] }).solicitations ?? [])
+        setContractors((contractorData as { contractors?: ContractorRow[] }).contractors ?? [])
       })
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false))
@@ -420,6 +433,86 @@ export default function StatePage() {
                   textDecoration: 'none',
                 }}>
                 View all {stateCode} solicitations →
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Section 3c — Active Contractors */}
+        {contractors.length > 0 && (
+          <div style={{ marginBottom: 40 }}>
+            {sectionLabel('Active Contractors')}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {contractors.map((c, i) => {
+                const momentumColor =
+                  c.momentum_class === 'ACCELERATING' ? color.green :
+                  c.momentum_class === 'DECELERATING' ? color.red   :
+                  color.amber
+                const fmtValue = (v: number) =>
+                  v >= 1_000_000_000 ? `$${(v / 1_000_000_000).toFixed(1)}B` :
+                  v >= 1_000_000     ? `$${(v / 1_000_000).toFixed(1)}M`     :
+                  v >= 1_000         ? `$${(v / 1_000).toFixed(0)}K`         :
+                  `$${v.toLocaleString()}`
+                return (
+                  <div key={`${c.name}-${i}`} style={{
+                    background:   color.bg1,
+                    borderRadius: 10,
+                    border:       `1px solid ${color.bd1}`,
+                    padding:      '14px 20px',
+                    display:      'flex',
+                    alignItems:   'center',
+                    gap:          16,
+                    flexWrap:     'wrap',
+                  }}>
+                    <div style={{ flex: 1, minWidth: 180 }}>
+                      <div style={{
+                        fontFamily: font.sys, fontSize: 14, fontWeight: 600,
+                        color: color.t1, lineHeight: 1.3,
+                      }}>
+                        {c.name}
+                      </div>
+                    </div>
+                    <div style={{
+                      fontFamily: font.mono, fontSize: 13,
+                      fontWeight: 700, color: color.t2,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {fmtValue(c.award_value_ytd)}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{
+                        fontFamily:    font.mono,
+                        fontSize:      10,
+                        fontWeight:    600,
+                        color:         momentumColor,
+                        background:    `${momentumColor}18`,
+                        border:        `1px solid ${momentumColor}30`,
+                        borderRadius:  5,
+                        padding:       '2px 7px',
+                        letterSpacing: '0.04em',
+                        whiteSpace:    'nowrap',
+                      }}>
+                        {c.momentum_class}
+                      </span>
+                      {c.momentum_score !== null && (
+                        <span style={{
+                          fontFamily: font.mono, fontSize: 11, color: momentumColor,
+                        }}>
+                          {c.momentum_score > 0 ? '+' : ''}{c.momentum_score.toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <Link href={`/federal?tab=contractors&state=${stateCode}`}
+                style={{
+                  fontFamily: font.mono, fontSize: 11, color: color.amber,
+                  textDecoration: 'none',
+                }}>
+                View all {stateCode} contractors →
               </Link>
             </div>
           </div>
