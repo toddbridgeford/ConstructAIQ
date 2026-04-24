@@ -61,12 +61,18 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE, freshness }: HeroFo
     const ens   = fore?.ensemble ?? []
     const acc   = fore?.metrics?.accuracy ?? foreAccuracy
     const mape  = fore?.metrics?.mape ?? foreMAPE
-    const last  = hist[hist.length - 1] ?? 2190
-    const end   = ens.length > 0 ? ens[ens.length - 1]?.base ?? last : last
+    const last  = hist[hist.length - 1] ?? null
+
+    // Cannot compute verdict without actual data
+    if (last === null || ens.length === 0) return null
+
+    const end   = ens[ens.length - 1]?.base ?? last
     const pct   = last > 0 ? ((end - last) / last) * 100 : 0
     const dir   = pct > 0.5 ? 'growth' : pct < -0.5 ? 'decline' : 'flat movement'
-    const vsMedian = pct > 2.1 ? 'above' : pct < 0 ? 'below' : 'near'
-    return `Forecast shows ${Math.abs(pct).toFixed(1)}% ${dir} over 12 months with ${acc.toFixed(0)}% model accuracy (MAPE ${mape.toFixed(1)}%). ${pct > 2.1 ? 'Above' : pct < 0 ? 'Below' : 'Near'} the platform's long-run median growth rate.`
+    return `Forecast shows ${Math.abs(pct).toFixed(1)}% ${dir} over 12 months ` +
+      `with ${acc.toFixed(0)}% model accuracy (MAPE ${mape.toFixed(1)}%). ` +
+      `${pct > 2.1 ? 'Above' : pct < 0 ? 'Below' : 'Near'} the platform's ` +
+      `long-run median growth rate.`
   })()
 
   return (
@@ -155,7 +161,7 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE, freshness }: HeroFo
         </Card>
       </div>
 
-      {fore && <SectionVerdict text={forecastVerdictText} />}
+      {fore && forecastVerdictText && <SectionVerdict text={forecastVerdictText} />}
     </section>
   )
 }
