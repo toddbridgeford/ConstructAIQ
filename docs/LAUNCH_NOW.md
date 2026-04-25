@@ -4,13 +4,19 @@
 
 ---
 
+> **STOP: code is launch-ready. The only active blocker is external Vercel domain
+> binding. Do not add more app changes before binding `constructaiq.trade` and
+> `www.constructaiq.trade` in Vercel.**
+
+---
+
 ## Verdict
 
 | Dimension | Status |
 |-----------|--------|
 | Build | **GO** — 84 routes · 0 errors |
 | Lint | **GO** — no warnings or errors |
-| Tests | **GO** — 317/317 passed |
+| Tests | **GO** — 341/341 passed |
 | Smoke | **NO-GO** — sole blocker: Vercel domain binding |
 | Public launch | **NO-GO** |
 
@@ -55,7 +61,7 @@ npm run launch:check -- --include-smoke
 - `smoke:prod` exits 0 — `✓ All checks passed`.
 - `launch:check --include-smoke` exits 0 — all gates green.
 
-After all four pass, run the env-variable check in [OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md), then update this verdict to **GO**.
+After all four pass, paste [docs/CLAUDE_POST_BINDING_PROMPT.md](./CLAUDE_POST_BINDING_PROMPT.md) into Claude Code for automated verification and doc updates, then update this verdict to **GO**.
 
 ---
 
@@ -63,6 +69,7 @@ After all four pass, run the env-variable check in [OPERATOR_HANDOFF.md](./OPERA
 
 | Doc | Read when |
 |-----|-----------|
+| [docs/CLAUDE_POST_BINDING_PROMPT.md](./CLAUDE_POST_BINDING_PROMPT.md) | After binding — paste into Claude Code for automated verification |
 | [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md) | Env-var check, rollback SHA, full action list |
 | [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md) | Step-by-step domain binding walkthrough |
 | [docs/RELEASE_CANDIDATE_REPORT.md](./RELEASE_CANDIDATE_REPORT.md) | Full sign-off history, SHA glossary, smoke run logs |
