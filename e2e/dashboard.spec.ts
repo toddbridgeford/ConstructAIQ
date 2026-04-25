@@ -93,9 +93,13 @@ test.describe('Dashboard', () => {
     //   • Next.js telemetry/edge-runtime notices
     //   • Browser extension injections (chrome-extension://)
     //   • Static asset 404s (e.g. Aeonik Pro font files — not yet deployed to /public/fonts/)
+    //   • Stale-server MIME errors: after npm run build the server process continues
+    //     serving the old chunk manifest; new chunk hashes return 404→HTML, logged as
+    //     "Refused to execute script … MIME type ('text/html')"
     const HARMLESS = [
       'Failed to fetch',
       'Failed to load resource',   // static asset 404s (fonts, etc.) — not JS errors
+      'Refused to execute script', // stale server after rebuild — not a code error
       'net::ERR_',
       'ERR_CONNECTION',
       'Sentry',

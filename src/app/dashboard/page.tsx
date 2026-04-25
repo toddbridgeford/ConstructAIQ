@@ -3,13 +3,26 @@ import { useState, useEffect, useCallback } from "react"
 import { color, font, fmtB }   from "@/lib/theme"
 import { obsSpark }             from "@/lib/sparkline"
 import { getPrefs }             from "@/lib/preferences"
+import dynamic                  from "next/dynamic"
 import { DashboardShell }       from "./DashboardShell"
 import { OverviewSection }      from "./sections/OverviewSection"
-import { HeroForecast }         from "./sections/HeroForecast"
-import { MaterialsSection }     from "./sections/MaterialsSection"
-import { SignalsSection }        from "./sections/SignalsSection"
 import { ErrorBoundary }        from "./components/ErrorBoundary"
 import { SectionFallback }      from "./components/SectionFallback"
+
+// Lazy-load non-overview sections so their deps (recharts, etc.) ship
+// in separate chunks and are not included in the /dashboard initial JS.
+const HeroForecast = dynamic(
+  () => import("./sections/HeroForecast").then(m => ({ default: m.HeroForecast })),
+  { loading: () => <SectionFallback title="Forecast" /> },
+)
+const MaterialsSection = dynamic(
+  () => import("./sections/MaterialsSection").then(m => ({ default: m.MaterialsSection })),
+  { loading: () => <SectionFallback title="Materials Intelligence" /> },
+)
+const SignalsSection = dynamic(
+  () => import("./sections/SignalsSection").then(m => ({ default: m.SignalsSection })),
+  { loading: () => <SectionFallback title="Signals" /> },
+)
 import { RolePrompt }           from "@/app/components/RolePrompt"
 import { VerdictBanner }        from "./components/VerdictBanner"
 import Link                     from "next/link"
