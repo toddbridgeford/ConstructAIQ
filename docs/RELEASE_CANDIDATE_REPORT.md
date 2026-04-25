@@ -4669,3 +4669,34 @@ Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 ·
 **Verdict:** Cannot classify any boolean. All values unreadable because `/api/status` returns a plain-text 403 (`Host not in allowlist`) — domain not bound in Vercel. No launch-blocker or warning determination is possible. Public launch remains NO-GO. Next action: bind domain in Vercel, confirm `smoke:prod` exits 0, then re-run env/runtime verification.
 
 Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI · env/runtime)*
+
+---
+
+## Phase 20 data/dashboard verification — 2026-04-25
+
+*Branch: `claude/verify-dns-propagation-OEExI`*
+
+**Prerequisite:** `smoke:prod` exits 0 — NOT MET (exits 1). All data commands attempted to document state.
+
+| Endpoint | curl result | jq exit |
+|----------|-------------|---------|
+| `/api/status` (`jq .data`) | `Host not in allowlist` — 403 | 5 |
+| `/api/status?deep=1` (`jq .data`) | `Host not in allowlist` — 403 | 5 |
+| `/api/federal` | `Host not in allowlist` — 403 | 5 |
+| `/api/weekly-brief` | `Host not in allowlist` — 403 | 5 |
+| `/api/dashboard` | `Host not in allowlist` — 403 | 5 |
+| `npm run lint` | exit 127 — node_modules absent; CI authoritative (exit 0) |  |
+
+| Field | Value |
+|-------|-------|
+| `dashboardShapeOk` | UNREADABLE |
+| federal `dataSource` | UNREADABLE |
+| weekly-brief `source` / `live` | UNREADABLE |
+| dashboard `cshi` type | UNREADABLE |
+| dashboard `signals` length | UNREADABLE |
+| dashboard `commodities` length | UNREADABLE |
+| dashboard `forecast` type | UNREADABLE |
+
+**Verdict:** All data shapes unverifiable. Every API endpoint returns `Host not in allowlist` (plain-text 403) because the domain is not bound in Vercel. No blocker or warning classification is possible. Public launch remains NO-GO. Next action: bind domain in Vercel, confirm `smoke:prod` exits 0, then re-run data/dashboard verification.
+
+Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI · data/dashboard)*

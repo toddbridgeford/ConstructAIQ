@@ -1,10 +1,10 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 20 env/runtime verification — prerequisite smoke:prod exit 1 not met · /api/status unreachable · env booleans unreadable · Public launch NO-GO)**
+**Updated: 2026-04-25 (Phase 20 data/dashboard verification — prerequisite smoke:prod exit 1 not met · all endpoints return 403 · data shapes unverifiable · Public launch NO-GO)**
 
 ---
 
-> **STOP: code is launch-ready. DNS-only propagation confirmed (apex → `76.76.21.21`). Sole remaining blocker: Vercel domain not bound to this project — add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains. Smoke and env verification cannot proceed until domain is bound.**
+> **STOP: code is launch-ready. DNS-only propagation confirmed (apex → `76.76.21.21`). Sole remaining blocker: Vercel domain not bound to this project — add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains. All downstream verification is blocked until domain is bound.**
 
 ---
 
@@ -19,10 +19,36 @@
 | 4 | smoke:prod | **NO-GO** — exit 1 · 1/6 passed · 5 failed · root cause: domain not bound |
 | 4 | smoke:www | **NO-GO** — exit 1 · 1/2 passed · 1 failed · root cause: domain not bound |
 | 3 | env/runtime | **BLOCKED** — prerequisite smoke:prod exit 1 not met · `/api/status` returns `Host not in allowlist` · JSON parse error · all booleans unreadable |
-| 3 | data/dashboard | **BLOCKED** — all API endpoints return 403; shapes unverifiable |
+| 3 | data/dashboard | **BLOCKED** — prerequisite smoke:prod exit 1 not met · all 5 endpoints return `Host not in allowlist` · jq parse error exit 5 on every query · shapes unverifiable |
 | 2 | Apex DNS target | **GO** — resolves to `76.76.21.21` (Vercel) · DNS-only confirmed · proxyWarning: false |
 | — | launch:check | **FAILED** — exit 1 · failing gates: smoke:prod, smoke:www |
 | — | Public launch | **NO-GO** |
+
+---
+
+## Phase 20 data/dashboard verification (2026-04-25)
+
+**Prerequisite:** `smoke:prod` exits 0 — NOT MET (exits 1). All data commands attempted regardless to document state.
+
+| Endpoint | curl response | jq exit |
+|----------|--------------|---------|
+| `/api/status` (`.data`) | `Host not in allowlist` — 403, not JSON | 5 |
+| `/api/status?deep=1` (`.data`) | `Host not in allowlist` — 403, not JSON | 5 |
+| `/api/federal` | `Host not in allowlist` — 403, not JSON | 5 |
+| `/api/weekly-brief` | `Host not in allowlist` — 403, not JSON | 5 |
+| `/api/dashboard` | `Host not in allowlist` — 403, not JSON | 5 |
+
+| Field | Value | Classification |
+|-------|-------|----------------|
+| `data.dashboardShapeOk` | UNREADABLE | Cannot classify |
+| `data.dataSource` (federal) | UNREADABLE | Cannot classify |
+| `data.source` (weekly-brief) | UNREADABLE | Cannot classify |
+| `dashboard.cshi` type | UNREADABLE | Cannot classify |
+| `dashboard.signals` length | UNREADABLE | Cannot classify |
+| `dashboard.commodities` length | UNREADABLE | Cannot classify |
+| `dashboard.forecast` type | UNREADABLE | Cannot classify |
+
+**Verdict:** All data shapes unverifiable. Every endpoint returns a plain-text 403 (`Host not in allowlist`) — Vercel rejects at the routing layer before the application handles the request. No classification (blocker or warning) is possible. Single root cause: domain not bound in Vercel project.
 
 ---
 
