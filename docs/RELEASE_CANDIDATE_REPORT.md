@@ -3099,5 +3099,26 @@ Test count increased from 317 → 341: Phase 11 added 24 new unit tests covering
 
 ---
 
+## Current Stop Condition — 2026-04-25
+
+**The codebase is launch-ready. Do not make further product code changes.**
+
+| Gate | Status |
+|------|--------|
+| Build | **GO** — 84 routes · 0 errors |
+| Lint | **GO** — no warnings or errors |
+| Tests | **GO** — 341/341 passed |
+| Smoke / Public launch | **NO-GO** — sole blocker: Vercel domain binding |
+
+The only remaining action is **external and non-code**:
+
+1. Vercel UI → ConstructAIQ project → **Settings → Domains**
+2. Add `constructaiq.trade` → confirm.
+3. Add `www.constructaiq.trade` → confirm.
+4. Wait for green checkmarks on both (SSL provisions in 1–10 minutes).
+5. After binding, paste [docs/CLAUDE_POST_BINDING_PROMPT.md](./CLAUDE_POST_BINDING_PROMPT.md) into Claude Code to run automated verification and update this document.
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 ~19:22 UTC by `claude/add-domain-checker-x6F6K`.*
+Last updated: 2026-04-25 19:55 UTC by `claude/add-launch-blocker-notice-53k11`.*
