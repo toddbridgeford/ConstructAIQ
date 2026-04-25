@@ -9,7 +9,8 @@ const T1 = color.t1, T2 = color.t2, T3 = color.t3, T4 = color.t4
 interface WeeklyBriefProps {
   brief?: string
   generatedAt?: string
-  source?: "ai" | "static"
+  source?: "ai" | "static" | "static-fallback"
+  live?: boolean
 }
 
 function parseBrief(text: string) {
@@ -38,6 +39,10 @@ function extractBriefString(raw: any): string | undefined {
 }
 
 export function WeeklyBrief({ brief, generatedAt, source = "static" }: WeeklyBriefProps) {
+  const isAi       = source === "ai"
+  const isFallback = source === "static-fallback"
+  const badgeText  = isAi ? "AI GENERATED" : isFallback ? "UNAVAILABLE" : "EDITORIAL"
+  const badgeColor = isAi ? AMBER : isFallback ? T4 : BLUE
   // Normalize: handles string, object {brief,generatedAt,source}, or undefined
   const briefText = extractBriefString(brief)
   const weekOf = generatedAt
@@ -61,8 +66,8 @@ export function WeeklyBrief({ brief, generatedAt, source = "static" }: WeeklyBri
           <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em", marginBottom: 4 }}>CONSTRUCTAIQ WEEKLY INTELLIGENCE BRIEF</div>
           <div style={{ fontFamily: SYS, fontSize: 14, color: T3 }}>Week of {weekOf}</div>
         </div>
-        <span style={{ fontFamily: MONO, fontSize: 10, color: source === "ai" ? AMBER : BLUE, background: (source === "ai" ? AMBER : BLUE) + "22", border: `1px solid ${(source === "ai" ? AMBER : BLUE)}44`, borderRadius: 6, padding: "3px 10px" }}>
-          {source === "ai" ? "AI GENERATED" : "EDITORIAL"}
+        <span style={{ fontFamily: MONO, fontSize: 10, color: badgeColor, background: badgeColor + "22", border: `1px solid ${badgeColor}44`, borderRadius: 6, padding: "3px 10px" }}>
+          {badgeText}
         </span>
       </div>
       <div style={{ borderTop: `1px solid ${BD2}`, paddingTop: 20, display: "flex", flexDirection: "column", gap: 18 }}>

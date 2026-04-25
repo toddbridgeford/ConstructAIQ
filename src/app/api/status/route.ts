@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getSourceHealthSummary } from '@/lib/sourceHealth'
+import { isWeeklyBriefConfigured } from '@/lib/weeklyBrief'
 
 export const maxDuration = 10
 
@@ -116,6 +117,12 @@ export async function GET() {
       bea:           hasBEAKey,
       solicitations: hasSamKey,
       equities:      hasPolyKey,
+    },
+    // Live AI weekly brief generation requires ANTHROPIC_API_KEY in the
+    // runtime env. We expose only a boolean — the key value is never
+    // returned, logged, or otherwise leaked.
+    weekly_brief: {
+      configured: isWeeklyBriefConfigured(),
     },
     opportunity_metros: oppCount,
     predictions: {

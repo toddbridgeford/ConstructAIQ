@@ -11,9 +11,15 @@ export async function GET() {
     {
       brief:       result.brief,
       generatedAt: result.generatedAt,
+      // Provenance — every field is required reading for any UI that
+      // displays this brief. `source` is the canonical flag; `live` and
+      // `configured` are convenience booleans for status surfaces.
       source:      result.source,
-      ...(result.error ? { error: result.error } : {}),
+      live:        result.live,
+      configured:  result.configured,
+      ...(result.warning ? { warning: result.warning } : {}),
+      ...(result.error   ? { error:   result.error   } : {}),
     },
-    { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } }
+    { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } },
   )
 }
