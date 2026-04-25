@@ -16,7 +16,7 @@
 |-----------|--------|
 | Build | **GO** — 84 routes · 0 errors |
 | Lint | **GO** — no warnings or errors |
-| Tests | **GO** — 341/341 passed |
+| Tests | **GO** — 344/344 passed |
 | Smoke | **NO-GO** — gate failed: `domain:check` exit 1 · `host_not_allowed` on apex + www |
 | Public launch | **NO-GO** |
 
