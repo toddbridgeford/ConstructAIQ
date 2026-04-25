@@ -1,5 +1,7 @@
 # Release Candidate Report
 
+> **Operator:** next manual action → [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
+
 ## Current SHA
 
 | Field           | Value                                        |
