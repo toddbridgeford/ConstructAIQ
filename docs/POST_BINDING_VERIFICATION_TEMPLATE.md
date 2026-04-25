@@ -20,6 +20,12 @@
 npm run domain:check
 ```
 
+Optional — machine-readable JSON (useful when capturing output in CI):
+
+```bash
+node scripts/check-domain-status.mjs --json
+```
+
 **Output:**
 ```
 (paste here)

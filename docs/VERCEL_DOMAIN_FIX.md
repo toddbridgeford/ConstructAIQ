@@ -162,6 +162,22 @@ Reports `APEX_OK` / `WWW_REDIRECT_OK` when binding is complete, or
 Exit 0 = healthy. Exit 1 = `host_not_allowed`. Continue to the steps below
 once it exits 0.
 
+For machine-readable output (CI or scripted post-deploy hooks):
+
+```bash
+node scripts/check-domain-status.mjs --json
+```
+
+To probe a staging or preview deployment without editing the script, pass
+`--apex` and/or `--www` with the target URLs:
+
+```bash
+node scripts/check-domain-status.mjs \
+  --apex https://preview.constructaiq.trade \
+  --www  https://www-preview.constructaiq.trade/dashboard \
+  --json
+```
+
 ### 1. Check DNS resolution
 
 ```bash
