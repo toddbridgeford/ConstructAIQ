@@ -3584,3 +3584,46 @@ Smoke tests were **not executed** per the constraint: *"Run smoke checks only af
 Lint: `npm run lint` — node_modules not installed in this sandbox; no product code changed in this phase (docs-only). Prior Phase 14 lint exit 0 remains the last valid lint result.
 
 *Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
+
+---
+
+## Phase 15 env/runtime verification — 2026-04-25
+
+**Task:** Read `supabaseConfigured`, `cronSecretConfigured`, `anthropicConfigured`, `upstashConfigured`, `sentryConfigured`, `runtime.siteLocked`, `runtime.nodeEnv`, `runtime.appUrl` from `https://constructaiq.trade/api/status`.
+
+### Prerequisite gate: FAILED — env/runtime not readable
+
+`npm run smoke:prod` must exit 0 before env/runtime data is meaningful. It cannot, because `domain:check` still exits 1 (`VERCEL_DOMAIN_NOT_BOUND`).
+
+Direct probe confirms the endpoint is unreachable:
+
+| Probe | Result |
+|-------|--------|
+| `curl -s https://constructaiq.trade/api/status` | `HTTP 403 · Host not in allowlist` |
+| Response body | `Host not in allowlist` (plain text — Vercel edge rejection) |
+| JSON env/runtime data | **Not returned** |
+
+### Env/runtime booleans
+
+| Field | Value | Classification |
+|-------|-------|----------------|
+| `supabaseConfigured` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `cronSecretConfigured` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `anthropicConfigured` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `upstashConfigured` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `sentryConfigured` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `runtime.siteLocked` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `runtime.nodeEnv` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `runtime.appUrl` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+
+### Verdict
+
+**NO-GO — prerequisite chain broken at domain binding.**
+
+Env/runtime verification cannot proceed until the domain is bound and `smoke:prod` exits 0.
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → bind both `constructaiq.trade` and `www.constructaiq.trade` with green SSL checkmarks (direct, no apex-to-www redirect). Then re-run `npm run domain:check` (exit 0) → `npm run smoke:prod` (exit 0) → re-attempt this env/runtime check.
+
+Lint: `npm run lint` — node_modules not installed in this sandbox; no product code changed in this phase (docs-only). Prior Phase 14 lint exit 0 remains the last valid lint result.
+
+*Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
