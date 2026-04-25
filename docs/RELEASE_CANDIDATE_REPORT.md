@@ -1558,9 +1558,9 @@ configuration blockers in this report instead.
 
 ## Final Launch Sign-Off
 
-**Captured: 2026-04-25 18:01 UTC**
-**Branch: `claude/verify-domain-fix-uDUrA`**
-**Docs SHA: `a47f309c` · Code SHA: `8c1cd98d`**
+**Captured: 2026-04-25 18:20 UTC**
+**Branch: `claude/verify-domain-binding-gvssO`**
+**SHA: `b392c3759fb5051197203c3e050584b37d0b90e1` (short: `b392c37`)**
 
 ---
 
@@ -1575,32 +1575,70 @@ One P0 external blocker prevents launch. No code change is required.
 
 ---
 
-### Build / Lint / Test — final run (2026-04-25 18:01 UTC)
+### Build / Lint / Test — final run (2026-04-25 18:20 UTC)
 
 | Command | Exit | Wall time | Result |
 |---------|------|-----------|--------|
-| `npm run build` | **0** | ~80 s | `✓ Compiled successfully` — 84 routes, 0 errors |
-| `npm run lint` | **0** | ~12 s | `✔ No ESLint warnings or errors` |
-| `npm test` | **0** | ~6 s | `23 passed (23)` · `317 passed (317)` |
+| `npm run build` | **0** | ~28 s (cache warm) | `✓ Compiled successfully in 27.7s` — 84 routes, 0 errors |
+| `npm run lint` | **0** | ~3 s | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | ~3 s | `23 passed (23)` · `317 passed (317)` |
 
 All three green. Gate 5 is fully closed.
 
----
-
-### Smoke — final run (2026-04-25 17:57 UTC, via `npm run launch:check --include-smoke`)
-
-| Command | Exit | Checks | Root cause |
-|---------|------|--------|------------|
-| `npm run smoke:prod` | **1** | 1 passed / 5 failed | HTTP 403 `x-deny-reason: host_not_allowed` on all endpoints |
-| `npm run smoke:www` | **1** | 1 passed / 1 failed | HTTP 403 `x-deny-reason: host_not_allowed` on www |
-
-Gate 4 fails on both checks. The smoke script itself is correct.
-DNS resolves correctly (`www DNS resolves` passes on every run).
-The issue is exclusively the Vercel project domain binding.
+Notable: the `next lint` deprecation notice (`next lint will be removed in
+Next.js 16`) is pre-existing — not introduced by Phase 6 work.
 
 ---
 
-### Highest-priority blocker (P0 — sole launch blocker)
+### Smoke — final run (2026-04-25 18:17 UTC, via `npm run launch:check --include-smoke`)
+
+| Command | Exit | Passed | Failed | Root cause |
+|---------|------|--------|--------|------------|
+| `npm run smoke:prod` | **1** | 1 / 6 | 5 | HTTP 403 `x-deny-reason: host_not_allowed` on all endpoints |
+| `npm run smoke:www` | **1** | 1 / 2 | 1 | HTTP 403 `x-deny-reason: host_not_allowed` on www |
+
+Passing check on both runs: `www DNS resolves` ✓ — DNS is propagated.
+Failing checks: every page, API, and www-binding check — all return HTTP 403.
+The smoke script itself is correct; the app never receives any request.
+
+---
+
+### Env / data-source status
+
+All env booleans and data-source states are **UNOBSERVABLE**. Every probe
+of `/api/status`, `/api/federal`, `/api/weekly-brief`, and `/api/dashboard`
+returns HTTP 403 with `x-deny-reason: host_not_allowed` before the Next.js
+application runs. jq exits 5 (parse error) on all commands.
+
+**Env booleans (verified: 2026-04-25 18:11 UTC)**
+
+| Boolean | Env var(s) | Expected | Observed | Priority |
+|---------|------------|----------|----------|----------|
+| `supabaseConfigured` | `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` | `true` | **UNOBSERVABLE** | 🔴 P0 — launch blocker |
+| `cronSecretConfigured` | `CRON_SECRET` | `true` | **UNOBSERVABLE** | 🔴 P0 — launch blocker |
+| `runtime.siteLocked` | `SITE_LOCKED` | `false` | **UNOBSERVABLE** | 🔴 P0 — launch blocker if `true` |
+| `anthropicConfigured` | `ANTHROPIC_API_KEY` | `true` | **UNOBSERVABLE** | 🟡 P1 — launch warning |
+| `upstashConfigured` | `UPSTASH_REDIS_REST_URL` + token | `true` | **UNOBSERVABLE** | 🟡 P1 — launch warning |
+| `sentryConfigured` | `NEXT_PUBLIC_SENTRY_DSN` | `true` | **UNOBSERVABLE** | 🟡 P1 — launch warning |
+
+**Data-source state (verified: 2026-04-25 18:12 UTC)**
+
+| Surface | Expected | Observed | Classification |
+|---------|----------|----------|----------------|
+| `/api/status` `.data.federalSource` | `"usaspending.gov"` | **UNOBSERVABLE** | — |
+| `/api/status` `.data.weeklyBriefSource` | `"ai"` | **UNOBSERVABLE** | — |
+| `/api/status?deep=1` `.data.dashboardShapeOk` | `true` | **UNOBSERVABLE** | 🔴 Launch blocker if `false` |
+| `/api/federal` `dataSource` | `"usaspending.gov"` | **UNOBSERVABLE** | 🟡 Launch warning if `"static-fallback"` |
+| `/api/weekly-brief` `source` | `"ai"` | **UNOBSERVABLE** | 🟡 Launch warning if `"static-fallback"` |
+| `/api/dashboard` `forecast` type | `"object"` | **UNOBSERVABLE** | 🔴 Launch blocker if not `"object"` |
+| `/api/dashboard` `cshi` type | `"object"` | **UNOBSERVABLE** | 🔴 Launch blocker if not `"object"` |
+| `/api/dashboard` `signals` count | `> 0` | **UNOBSERVABLE** | 🔴 Launch blocker if `0` |
+
+All become observable the moment the Vercel domain binding is completed.
+
+---
+
+### Unresolved blocker (P0 — sole launch blocker)
 
 > **Vercel project domain binding not completed.**
 >
@@ -1608,140 +1646,123 @@ The issue is exclusively the Vercel project domain binding.
 > to the ConstructAIQ Vercel project under **Settings → Domains**.
 > Every inbound request is rejected at the Vercel edge before the
 > Next.js application runs. This is not a DNS issue, not a code issue,
-> and not a Cloudflare/firewall issue — DNS is already propagated.
+> and not a Cloudflare/firewall issue — DNS is confirmed propagated
+> (`www DNS resolves` passes on every smoke run since 2026-04-25 04:00 UTC).
 >
 > **Fix:** Complete Steps 1–4 in [`docs/VERCEL_DOMAIN_FIX.md`](./VERCEL_DOMAIN_FIX.md).
 
----
+Evidence across all Phase 6 passes:
 
-### Env / data-source status
-
-All env booleans and data-source states are **UNOBSERVABLE** because
-`/api/status` returns HTTP 403 before the application runs. They become
-verifiable the moment the Vercel domain binding is completed.
-
-| Check | Status |
-|-------|--------|
-| `supabaseConfigured` | UNOBSERVABLE — verify with `curl /api/status \| jq .env` after domain fix |
-| `cronSecretConfigured` | UNOBSERVABLE — P0 env var, must be `true` before launch |
-| `anthropicConfigured` | UNOBSERVABLE — P1; Weekly Brief falls back to static if absent |
-| `upstashConfigured` | UNOBSERVABLE — P1; rate limiting is DB-only if absent |
-| `sentryConfigured` | UNOBSERVABLE — P1; error capture is console-only if absent |
-| `federalSource` | UNOBSERVABLE — expected `"usaspending.gov"` |
-| `weeklyBriefSource` | UNOBSERVABLE — expected `"ai"` after first cron run |
-| `dashboardShapeOk` | UNOBSERVABLE — expected `true` |
+| Timestamp (UTC) | Probe | HTTP | Header |
+|-----------------|-------|------|--------|
+| 18:08:24 | `curl -sSI https://constructaiq.trade` | **403** | `x-deny-reason: host_not_allowed` |
+| 18:08:25 | `curl -sSI https://www.constructaiq.trade/dashboard` | **403** | `x-deny-reason: host_not_allowed` |
+| 18:11:25 | `curl -sSI https://constructaiq.trade/api/status` | **403** | `x-deny-reason: host_not_allowed` |
+| 18:12 | All five data-source endpoints | **403** | `x-deny-reason: host_not_allowed` |
 
 ---
 
-### Pending operator actions — complete in this order
-
-**Step 1 (required — blocks everything):**
-
-```
-Vercel UI → ConstructAIQ project → Settings → Domains
-  → Add: constructaiq.trade
-  → Add: www.constructaiq.trade
-Wait for green checkmarks (1–10 min after DNS validates).
-```
-
-Full walkthrough: [`docs/VERCEL_DOMAIN_FIX.md`](./VERCEL_DOMAIN_FIX.md) Steps 1–4.
-
-**Step 2 (required — run after Step 1):**
+### Next command to run (when domain binding is completed)
 
 ```bash
+# 1. Confirm apex no longer returns 403
 curl -sSI https://constructaiq.trade | head -1
-# must return HTTP/2 200 (not 403)
-```
+# must return HTTP/2 200 (or 30x to a valid path)
 
-**Step 3 (required — set in Vercel Production scope, then redeploy):**
-
-```
-NEXT_PUBLIC_SUPABASE_URL     = <your Supabase project URL>
-NEXT_PUBLIC_SUPABASE_ANON_KEY = <anon/public key>
-SUPABASE_SERVICE_ROLE_KEY    = <service role key>
-CRON_SECRET                  = <long random string>
-SITE_LOCKED                  = false
-```
-
-Walkthrough: [`docs/ENVIRONMENT.md`](./ENVIRONMENT.md).
-
-**Step 4 (required — verify env after redeploy):**
-
-```bash
-curl -s https://constructaiq.trade/api/status | jq .env
-# supabaseConfigured and cronSecretConfigured must be true
-```
-
-**Step 5 (required — final smoke gate):**
-
-```bash
+# 2. Run smoke
 npm run smoke:prod   # must exit 0
 npm run smoke:www    # must exit 0
-```
 
-Only after both exit 0 may the verdict change to **GO**.
+# 3. Verify env booleans
+curl -s https://constructaiq.trade/api/status | jq .env
+# supabaseConfigured and cronSecretConfigured must be true
 
-**Step 6 (recommended — full launch gate):**
+# 4. Verify data-source state
+curl -s https://constructaiq.trade/api/status | jq .data
+# federalSource: "usaspending.gov", weeklyBriefSource: "ai"
 
-```bash
+# 5. Verify dashboard shape
+curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data.dashboardShapeOk
+# must be true
+
+# 6. Full gate
 npm run launch:check -- --include-smoke
 # must end: ✓ Automatable gates passed.
 ```
 
+Complete operator steps in order:
+
+1. **Vercel UI → ConstructAIQ project → Settings → Domains**
+   → Add `constructaiq.trade` and `www.constructaiq.trade`
+   → Wait for green checkmarks (1–10 min).
+   Full walkthrough: [`docs/VERCEL_DOMAIN_FIX.md`](./VERCEL_DOMAIN_FIX.md) Steps 1–4.
+
+2. **Set P0 env vars in Vercel Production scope, then redeploy:**
+   ```
+   NEXT_PUBLIC_SUPABASE_URL      = <Supabase project URL>
+   NEXT_PUBLIC_SUPABASE_ANON_KEY = <anon/public key>
+   SUPABASE_SERVICE_ROLE_KEY     = <service role key>
+   CRON_SECRET                   = <long random string>
+   SITE_LOCKED                   = false
+   ```
+   Walkthrough: [`docs/ENVIRONMENT.md`](./ENVIRONMENT.md).
+
+3. **Run the six commands above in order.** Both smoke tests must exit 0
+   before this verdict may be changed to GO.
+
 ---
 
-### Post-launch monitoring (first 30 minutes)
+### Post-launch watch
 
-Run from any machine with outbound network immediately after going live:
+See [`docs/POST_LAUNCH_WATCH.md`](./POST_LAUNCH_WATCH.md) for the complete
+first-24-hour monitoring checklist including env booleans, data-source live
+checks, Vercel function log scan, cron verification, freshness checks, and
+rollback triggers.
+
+Quick-reference command set (run immediately after going live):
 
 ```bash
-# Smoke — must both exit 0
 npm run smoke:prod
 npm run smoke:www
-
-# Env booleans — all five must be true
 curl -s https://constructaiq.trade/api/status | jq .env
-
-# Data sources — verify live (not fallback)
 curl -s https://constructaiq.trade/api/status | jq .data
-# federalSource: "usaspending.gov"
-# weeklyBriefSource: "ai"
-
-# Freshness — count of stale series (target 0)
-curl -s https://constructaiq.trade/api/status | jq '[.freshness[] | select(.status=="stale")] | length'
-
-# Dashboard shape
+curl -s https://constructaiq.trade/api/federal \
+  | jq '{dataSource, contractors: (.contractors|length), agencies: (.agencies|length)}'
+curl -s https://constructaiq.trade/api/weekly-brief | jq '{source, live, configured}'
+curl -s https://constructaiq.trade/api/dashboard | jq '{fetched_at, cshi: (.cshi|type)}'
+curl -s https://constructaiq.trade/api/status \
+  | jq '[.freshness[] | select(.status=="stale")] | length'
 curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data.dashboardShapeOk
-# must be true
 ```
-
-See [docs/POST_LAUNCH_WATCH.md](./POST_LAUNCH_WATCH.md) for the full 24-hour watch guide, and [Post-Launch Monitoring Checklist](#post-launch-monitoring-checklist) above for the condensed inline version.
 
 ---
 
-### Rollback
+### Rollback reminder
 
-If a regression appears after launch, promote the last known-good
-Vercel deployment via the Vercel UI (`Deployments → … → Promote to
-Production`) or via `vercel rollback <id> --prod`. Then rerun
-`npm run smoke:prod` to confirm. Full procedure:
-[Rollback Procedure](#rollback-procedure).
+Last known-good code SHA: **`b392c37`**
+(`b392c3759fb5051197203c3e050584b37d0b90e1`)
 
-The last known-good code SHA documented in this report is `8c1cd98d`.
+If a regression appears after launch: **Vercel → ConstructAIQ →
+Deployments → find last Ready build → `…` → Promote to Production**.
+Then rerun `npm run smoke:prod` — must exit 0 before rollback is
+declared complete. Via CLI: `vercel rollback <id> --prod`.
+
+Full procedure: [Rollback Procedure](#rollback-procedure).
 
 ---
 
 ### How to change this verdict to GO
 
-1. Complete the five operator steps above.
+1. Complete the three operator steps above (domain binding → env vars → redeploy).
 2. Confirm `npm run smoke:prod` and `npm run smoke:www` both exit 0.
 3. Confirm `curl /api/status | jq .env` shows `supabaseConfigured: true`
    and `cronSecretConfigured: true` at minimum.
-4. Update this section: replace `◼ NO-GO` with `◆ GO`, add timestamp,
-   record the smoke pass output, and sign with the operator name or
+4. Confirm `curl /api/status | jq .runtime` shows `siteLocked: false`.
+5. Update this section: replace `◼ NO-GO` with `◆ GO`, add timestamp and
+   SHA, paste the smoke pass output, and sign with the operator name or
    GitHub handle that confirmed the live checks.
 
 ---
 
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:18 UTC by `claude/verify-domain-binding-gvssO`.*
+Last updated: 2026-04-25 18:20 UTC by `claude/verify-domain-binding-gvssO`.*
