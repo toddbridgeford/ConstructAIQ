@@ -34,6 +34,19 @@ const REQUIRED_DASHBOARD_KEYS = [
   'fetched_at',
 ]
 
+// Canonical domain is apex (constructaiq.trade).
+// If Vercel's "Redirect to www" is enabled, apex redirects to www, which
+// then loops back via the app-layer next.config.ts www→apex rule.
+// Both the redirect-loop catch and the res.url host check use this message.
+//
+// Manual verification: node scripts/smoke-prod.mjs https://constructaiq.trade
+// Expected output when Vercel apex→www is active:
+//   ✗  GET / — canonical domain
+//        Apex redirected to www, but ConstructAIQ expects apex canonical...
+const FIX_APEX_TO_WWW =
+  'Apex redirected to www, but ConstructAIQ expects apex canonical. ' +
+  'Remove the Vercel-level apex-to-www redirect. See docs/CANONICAL_DOMAIN_DECISION.md.'
+
 let passed = 0
 let failed = 0
 
@@ -77,9 +90,28 @@ async function checkPage(path, label) {
   try {
     res = await get(url)
   } catch (err) {
+    // A Vercel apex→www redirect combined with the app-layer www→apex redirect
+    // creates a loop that exhausts the maximum redirect count and throws here.
+    const errText = ((err?.cause?.message ?? '') + ' ' + (err?.message ?? '')).toLowerCase()
+    if (errText.includes('redirect')) {
+      fail(`${label} — canonical domain`, FIX_APEX_TO_WWW)
+      return
+    }
     fail(`${label} — fetch failed`, err.message)
     return
   }
+
+  // If fetch followed redirects and the final URL landed on www, the Vercel
+  // apex-to-www redirect is active but the loop resolved (e.g. www doesn't
+  // redirect back yet).  Either way it's the same misconfiguration.
+  try {
+    const reqHost = new URL(url).hostname
+    const resHost = new URL(res.url).hostname
+    if (!reqHost.startsWith('www.') && resHost.startsWith('www.')) {
+      fail(`${label} — canonical domain`, FIX_APEX_TO_WWW)
+      return
+    }
+  } catch { /* URL parse error — skip canonical host check */ }
 
   if (res.status !== 200) {
     fail(`${label} returns 200`, `got ${res.status}`)
