@@ -78,7 +78,7 @@ npm run smoke:prod
 | Check | Expected result |
 |-------|----------------|
 | `curl -sSI https://constructaiq.trade` | `HTTP/2 200` — no `x-deny-reason` header |
-| `curl -sSI https://www.constructaiq.trade/dashboard` | `HTTP/2 301` or `200` — no `x-deny-reason` header; www redirects to apex |
+| `curl -sSI https://www.constructaiq.trade/dashboard` | `HTTP/2 301`, `302`, or `308` — `location` header points to `https://constructaiq.trade/dashboard`; no `x-deny-reason` header |
 | `npm run smoke:www` | Exit 0 — `✓ All checks passed` |
 | `npm run smoke:prod` | Exit 0 — `✓ All checks passed` |
 
