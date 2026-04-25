@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 18:55 UTC**
+**Updated: 2026-04-25 19:01 UTC**
 
 ---
 
@@ -53,6 +53,20 @@ npm run smoke:prod
 
 If all four pass, the P0 is resolved. Update the verdict to **GO** and proceed
 with env-variable verification (see [OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)).
+
+---
+
+## Last domain check — 2026-04-25 19:01 UTC (manual curl)
+
+| Command | HTTP status | `x-deny-reason` | `Location` |
+|---------|------------|-----------------|------------|
+| `curl -sSI https://constructaiq.trade` | **403** | **host_not_allowed** | (none) |
+| `curl -sSI https://www.constructaiq.trade/dashboard` | **403** | **host_not_allowed** | (none) |
+
+**Domain binding status: INCOMPLETE.** Both domains continue to be rejected at
+the Vercel edge. `x-deny-reason: host_not_allowed` is present on both
+responses — identical to every prior check. DNS resolves. No code change needed.
+The next action remains: Vercel UI → Settings → Domains → Add both domains.
 
 ---
 

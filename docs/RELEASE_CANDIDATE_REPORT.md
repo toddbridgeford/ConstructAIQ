@@ -2525,5 +2525,91 @@ If it exits 0, proceed to env/data verification per
 
 ---
 
+## Phase 9 domain binding check — 2026-04-25 19:01 UTC
+
+This section records the Phase 9 manual curl verification of domain binding
+status. No smoke scripts were run (smoke requires domain binding to be
+complete first; running them would produce identical output to Phase 8).
+
+### Commands run
+
+```
+curl -sSI https://constructaiq.trade
+curl -sSI https://www.constructaiq.trade/dashboard
+```
+
+### `curl -sSI https://constructaiq.trade`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 19:00:49 GMT
+```
+
+| Field | Value |
+|-------|-------|
+| HTTP status | **403** |
+| `x-deny-reason` | **host_not_allowed** |
+| `Location` | (none) |
+
+### `curl -sSI https://www.constructaiq.trade/dashboard`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 19:00:49 GMT
+```
+
+| Field | Value |
+|-------|-------|
+| HTTP status | **403** |
+| `x-deny-reason` | **host_not_allowed** |
+| `Location` | (none) |
+
+### Phase 9 interpretation
+
+**The Vercel domain binding has not been completed.** Both
+`constructaiq.trade` and `www.constructaiq.trade` return
+`HTTP 403 x-deny-reason: host_not_allowed` — identical to all prior
+verification passes. DNS resolves on both domains (confirmed by prior smoke
+runs; TCP/TLS handshake completes). No DNS action is needed. No code change
+is needed.
+
+This is the **ninth consecutive** check finding the same result. The sole
+remaining action is the one-time Vercel UI step:
+
+> **Vercel UI → ConstructAIQ project → Settings → Domains**
+> → Add `constructaiq.trade` → wait for green checkmark
+> → Add `www.constructaiq.trade` → wait for green checkmark
+
+Full walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md)
+
+### Updated launch verdict
+
+| Dimension | Verdict | Detail |
+|-----------|---------|--------|
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · RC code SHA `8c1cd98d` · Gate 5 green across all phases |
+| **Smoke** | **◼ FAIL** | Not re-run (prerequisite unmet) — Phase 8 result stands: `smoke:prod` exit 1, `smoke:www` exit 1 |
+| **Public launch** | **◼ NO-GO** | Sole blocker: Vercel domain binding incomplete as of 2026-04-25 19:01 UTC |
+
+**Public launch: NO-GO.** No code change is required.
+
+After domain binding (1–10 minutes for SSL auto-provision), rerun:
+
+```bash
+npm run smoke:www   # must exit 0
+npm run smoke:prod  # must exit 0
+```
+
+Both must exit 0 before this verdict may be changed to GO. Once smoke passes,
+proceed to env/data verification per
+[docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md).
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:55 UTC by `claude/audit-sha-references-OpiT1`.*
+Last updated: 2026-04-25 19:01 UTC by `claude/fix-launch-docs-Gxt9P`.*
