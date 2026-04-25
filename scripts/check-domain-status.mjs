@@ -12,6 +12,8 @@
  *   2 — other failure
  */
 
+import { fileURLToPath } from 'url'
+
 const TIMEOUT_MS = 15_000
 const APEX       = 'https://constructaiq.trade'
 const WWW        = 'https://www.constructaiq.trade/dashboard'
@@ -49,7 +51,7 @@ async function probe(url) {
 
 // ── Classification ────────────────────────────────────────────────────────────
 
-function classifyApex(result) {
+export function classifyApex(result) {
   if (!result.ok) {
     const { code } = result
     if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'DNS_MISSING'
@@ -60,7 +62,7 @@ function classifyApex(result) {
   return 'UNKNOWN_FAILURE'
 }
 
-function classifyWww(result) {
+export function classifyWww(result) {
   if (!result.ok) {
     const { code } = result
     if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'DNS_MISSING'
@@ -117,43 +119,50 @@ function printResult(label, result, classification) {
   console.log(`  diagnosis    : ${DIAGNOSIS[classification]}`)
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+// ── Main (CLI only) ───────────────────────────────────────────────────────────
 
-console.log('\nConstructAIQ — domain status check')
-console.log('═'.repeat(54))
+async function main() {
+  console.log('\nConstructAIQ — domain status check')
+  console.log('═'.repeat(54))
 
-const [apexResult, wwwResult] = await Promise.all([
-  probe(APEX),
-  probe(WWW),
-])
+  const [apexResult, wwwResult] = await Promise.all([
+    probe(APEX),
+    probe(WWW),
+  ])
 
-const apexClass = classifyApex(apexResult)
-const wwwClass  = classifyWww(wwwResult)
+  const apexClass = classifyApex(apexResult)
+  const wwwClass  = classifyWww(wwwResult)
 
-printResult(APEX_LABEL, apexResult, apexClass)
-printResult(WWW_LABEL,  wwwResult,  wwwClass)
+  printResult(APEX_LABEL, apexResult, apexClass)
+  printResult(WWW_LABEL,  wwwResult,  wwwClass)
 
-// ── Summary & exit ────────────────────────────────────────────────────────────
+  console.log('\n' + '═'.repeat(54))
 
-console.log('\n' + '═'.repeat(54))
+  const hostNotAllowed =
+    apexResult.denyReason?.includes('host_not_allowed') ||
+    wwwResult.denyReason?.includes('host_not_allowed')
 
-const hostNotAllowed =
-  apexResult.denyReason?.includes('host_not_allowed') ||
-  wwwResult.denyReason?.includes('host_not_allowed')
+  const apexOk = apexClass === 'APEX_OK'
+  const wwwOk  = wwwClass  === 'WWW_REDIRECT_OK'
 
-const apexOk = apexClass === 'APEX_OK'
-const wwwOk  = wwwClass  === 'WWW_REDIRECT_OK'
+  if (apexOk && wwwOk) {
+    console.log('\n  ✓ All good — apex reachable, www redirects correctly.\n')
+    process.exit(0)
+  } else if (hostNotAllowed) {
+    console.log('\n  ✗ host_not_allowed — Vercel domain not bound to this project.\n')
+    process.exit(1)
+  } else {
+    const issues = []
+    if (!apexOk) issues.push(`apex: ${apexClass}`)
+    if (!wwwOk)  issues.push(`www: ${wwwClass}`)
+    console.log(`\n  ✗ Domain issues detected: ${issues.join(', ')}\n`)
+    process.exit(2)
+  }
+}
 
-if (apexOk && wwwOk) {
-  console.log('\n  ✓ All good — apex reachable, www redirects correctly.\n')
-  process.exit(0)
-} else if (hostNotAllowed) {
-  console.log('\n  ✗ host_not_allowed — Vercel domain not bound to this project.\n')
-  process.exit(1)
-} else {
-  const issues = []
-  if (!apexOk) issues.push(`apex: ${apexClass}`)
-  if (!wwwOk)  issues.push(`www: ${wwwClass}`)
-  console.log(`\n  ✗ Domain issues detected: ${issues.join(', ')}\n`)
-  process.exit(2)
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch(err => {
+    console.error('Unexpected error:', err)
+    process.exit(2)
+  })
 }
