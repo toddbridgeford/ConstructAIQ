@@ -1,5 +1,6 @@
 "use client"
 import { font, color } from "@/lib/theme"
+import { weeklyBriefBadge } from "@/lib/dashboardProvenance"
 
 const MONO = font.mono, SYS = font.sys
 const AMBER = color.amber, BLUE = color.blue
@@ -38,17 +39,45 @@ function extractBriefString(raw: any): string | undefined {
   return undefined
 }
 
+function badgeColorFor(kind: ReturnType<typeof weeklyBriefBadge>['kind']): string {
+  if (kind === 'ai')           return AMBER
+  if (kind === 'unavailable')  return T4
+  return BLUE
+}
+
 export function WeeklyBrief({ brief, generatedAt, source = "static" }: WeeklyBriefProps) {
-  const isAi       = source === "ai"
-  const isFallback = source === "static-fallback"
-  const badgeText  = isAi ? "AI GENERATED" : isFallback ? "UNAVAILABLE" : "EDITORIAL"
-  const badgeColor = isAi ? AMBER : isFallback ? T4 : BLUE
   // Normalize: handles string, object {brief,generatedAt,source}, or undefined
   const briefText = extractBriefString(brief)
+  const badge     = weeklyBriefBadge({ briefText, source })
+  const badgeColor = badgeColorFor(badge.kind)
+
   const weekOf = generatedAt
     ? new Date(generatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
     : new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
 
+  // Explicit "unavailable" — backend told us this is the static fallback.
+  // Render an honest panel rather than a perpetual "Loading…" shimmer.
+  if (badge.unavailable && !briefText) {
+    return (
+      <div style={{ background: BG1, borderRadius: 20, padding: "28px 32px", border: `1px solid ${BD1}` }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T4, letterSpacing: "0.1em" }}>
+            CONSTRUCTAIQ WEEKLY INTELLIGENCE BRIEF
+          </div>
+          <span style={{ fontFamily: MONO, fontSize: 10, color: badgeColor, background: badgeColor + "22", border: `1px solid ${badgeColor}44`, borderRadius: 6, padding: "3px 10px" }}>
+            {badge.label}
+          </span>
+        </div>
+        <div style={{ fontFamily: SYS, fontSize: 14, color: T3, lineHeight: 1.6 }}>
+          The live AI weekly brief is not currently available. ConstructAIQ
+          will not show stale or fabricated copy in its place — the brief
+          will return automatically once the next generation succeeds.
+        </div>
+      </div>
+    )
+  }
+
+  // No content yet, source unknown — caller is still loading.
   if (!briefText) {
     return (
       <div style={{ background: BG2, borderRadius: 16, padding: 24, border: `1px solid ${BD1}` }}>
@@ -67,7 +96,7 @@ export function WeeklyBrief({ brief, generatedAt, source = "static" }: WeeklyBri
           <div style={{ fontFamily: SYS, fontSize: 14, color: T3 }}>Week of {weekOf}</div>
         </div>
         <span style={{ fontFamily: MONO, fontSize: 10, color: badgeColor, background: badgeColor + "22", border: `1px solid ${badgeColor}44`, borderRadius: 6, padding: "3px 10px" }}>
-          {badgeText}
+          {badge.label}
         </span>
       </div>
       <div style={{ borderTop: `1px solid ${BD2}`, paddingTop: 20, display: "flex", flexDirection: "column", gap: 18 }}>

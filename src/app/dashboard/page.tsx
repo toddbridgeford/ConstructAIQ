@@ -261,12 +261,19 @@ export default function Dashboard() {
   // BriefResponse expected by SignalsSection → WeeklyBrief.
   // brief_excerpt is sourced from the weekly_briefs table, into which only
   // Claude-generated rows are inserted (see cron/brief), so any non-null
-  // excerpt here is a real AI brief — not a static fallback.
-  const brief: BriefResponse | null = dashCore?.brief_excerpt ? {
-    brief:       dashCore.brief_excerpt,
-    generatedAt: dashCore.brief_as_of ?? undefined,
-    source:      'ai',
-  } : null
+  // excerpt here is a real AI brief — not a static fallback. When the
+  // dashboard fetch resolves with brief_excerpt === null, surface an
+  // explicit static-fallback so the WeeklyBrief panel renders the honest
+  // "unavailable" state instead of a perpetual loading shimmer.
+  const brief: BriefResponse | null = dashCore?.brief_excerpt
+    ? {
+        brief:       dashCore.brief_excerpt,
+        generatedAt: dashCore.brief_as_of ?? undefined,
+        source:      'ai',
+      }
+    : dashCore
+      ? { source: 'static-fallback' }
+      : null
 
   // PricewatchResponse expected by MaterialsSection loading gate
   const commodities: CommodityItem[] = dashCore?.commodities ?? []
@@ -297,7 +304,7 @@ export default function Dashboard() {
         return (
           <ErrorBoundary fallback={<SectionFallback title="Forecast" />}>
             <div style={{ padding: '32px 0' }}>
-              <HeroForecast fore={fore} foreAccuracy={foreAccuracy} foreMAPE={foreMAPE} freshness={forecastFreshness} />
+              <HeroForecast fore={fore} foreAccuracy={foreAccuracy} foreMAPE={foreMAPE} freshness={forecastFreshness} loading={dashCore === null} />
             </div>
           </ErrorBoundary>
         )

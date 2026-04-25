@@ -8,6 +8,7 @@ import { Skeleton } from "@/app/components/Skeleton"
 import { color, font, layout as L } from "@/lib/theme"
 import { WatchButton } from "@/app/components/ui/WatchButton"
 import { STATE_NAMES } from "@/lib/state-names"
+import { federalProvenance } from "@/lib/dashboardProvenance"
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -750,15 +751,47 @@ export default function FederalPage() {
 
         {/* ── Page header ────────────────────────────────────────────────── */}
         <div style={{ marginBottom: 32 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <span style={{
-              width: 7, height: 7, borderRadius: "50%", background: GREEN,
-              boxShadow: `0 0 8px ${GREEN}`, display: "inline-block", animation: "pulse 2s infinite",
-            }} />
-            <span style={{ fontFamily: MONO, fontSize: 11, color: GREEN, letterSpacing: "0.1em" }}>
-              LIVE · USASpending.gov
-            </span>
-          </div>
+          {(() => {
+            const prov = federalProvenance(data ?? null)
+            const dotColor =
+              prov.state === 'live'     ? GREEN :
+              prov.state === 'cached'   ? color.amber :
+              prov.state === 'fallback' ? color.amber :
+              prov.state === 'error'    ? color.red :
+                                          color.t4
+            const labelColor = dotColor
+            const animate = prov.state === 'live'
+            return (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{
+                  width: 7, height: 7, borderRadius: "50%", background: dotColor,
+                  boxShadow: animate ? `0 0 8px ${dotColor}` : "none",
+                  display: "inline-block",
+                  ...(animate ? { animation: "pulse 2s infinite" } : {}),
+                }} />
+                <span style={{ fontFamily: MONO, fontSize: 11, color: labelColor, letterSpacing: "0.1em" }}>
+                  {loading ? 'LOADING…' : prov.label}
+                </span>
+              </div>
+            )
+          })()}
+          {!loading && data && (data.dataSource === 'static-fallback') && (
+            <div style={{
+              marginBottom: 16,
+              background: color.amber + '10',
+              border: `1px solid ${color.amber}44`,
+              borderRadius: 10,
+              padding: '10px 14px',
+              fontFamily: SYS,
+              fontSize: 13,
+              color: color.t3,
+              lineHeight: 1.55,
+            }}>
+              The USASpending.gov live feed is currently unavailable.
+              Contractor and agency leaderboards are intentionally empty —
+              the page shows real awards or nothing, never fabricated names.
+            </div>
+          )}
           <h1 style={{ fontFamily: SYS, fontSize: 40, fontWeight: 700,
                        letterSpacing: "-0.03em", lineHeight: 1.08, color: T1, marginBottom: 20 }}>
             Federal Construction Pipeline
