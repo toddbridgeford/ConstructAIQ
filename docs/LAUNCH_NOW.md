@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25**
+**Updated: 2026-04-25 18:50 UTC**
 
 ---
 
@@ -9,7 +9,7 @@
 | Dimension | Status |
 |-----------|--------|
 | Codebase | **GO** — build ✓ · lint ✓ · 317/317 tests ✓ |
-| Public launch | **NO-GO** — one P0 blocker (see below) |
+| Public launch | **NO-GO** — P0 blocker unchanged (see below) |
 
 ---
 
@@ -47,6 +47,20 @@ both smoke scripts exit 0 and print `✓ All checks passed`.
 
 If all four pass, the P0 is resolved. Update the verdict to **GO** and proceed
 with env-variable verification (see [OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)).
+
+---
+
+## Last verified — 2026-04-25 18:50 UTC
+
+| Probe | Result |
+|-------|--------|
+| `curl -sSI https://constructaiq.trade` | **HTTP/2 403** · `x-deny-reason: host_not_allowed` |
+| `curl -sSI https://www.constructaiq.trade/dashboard` | **HTTP/2 403** · `x-deny-reason: host_not_allowed` |
+| `npm run smoke:www` | **exit 1** · 1 passed, 1 failed |
+| `npm run smoke:prod` | **exit 1** · 1 passed, 5 failed |
+
+DNS resolves on both domains (`www DNS resolves` passes). The Vercel domain
+binding has not been completed. Next.js never receives any request.
 
 ---
 

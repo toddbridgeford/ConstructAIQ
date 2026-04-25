@@ -2221,5 +2221,142 @@ First-24-hour watch guide: [docs/POST_LAUNCH_WATCH.md](./POST_LAUNCH_WATCH.md)
 
 ---
 
+## Phase 8 domain binding check — 2026-04-25 18:50 UTC
+
+This section records the Phase 8 verification pass following the operator's
+reported domain-binding action. Its purpose is to confirm whether
+`host_not_allowed` has been resolved.
+
+### Commands run
+
+```
+curl -sSI https://constructaiq.trade
+curl -sSI https://www.constructaiq.trade/dashboard
+npm run smoke:www
+npm run smoke:prod
+```
+
+### `curl -sSI https://constructaiq.trade`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 18:50:04 GMT
+```
+
+| Field | Value |
+|-------|-------|
+| HTTP status | **403** |
+| `x-deny-reason` | **host_not_allowed** |
+| `Location` | (none) |
+
+### `curl -sSI https://www.constructaiq.trade/dashboard`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 18:50:05 GMT
+```
+
+| Field | Value |
+|-------|-------|
+| HTTP status | **403** |
+| `x-deny-reason` | **host_not_allowed** |
+| `Location` | (none) |
+
+### `npm run smoke:www`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade  (--www-only)
+──────────────────────────────────────────────────
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+
+──────────────────────────────────────────────────
+1 passed, 1 failed
+✗ Smoke test FAILED
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Passed | 1 |
+| Failed | 1 |
+
+### `npm run smoke:prod`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade
+──────────────────────────────────────────────────
+
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+
+──────────────────────────────────────────────────
+1 passed, 5 failed
+✗ Smoke test FAILED
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Passed | 1 |
+| Failed | 5 |
+
+### Phase 8 interpretation
+
+**The Vercel domain binding has not been completed.** Both
+`constructaiq.trade` and `www.constructaiq.trade` continue to return
+`HTTP 403 x-deny-reason: host_not_allowed` — identical to every prior
+verification pass since 2026-04-25 04:00 UTC. DNS resolution is confirmed
+(`www DNS resolves` passes on both smoke runs). No DNS action is needed.
+
+The operator action in [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md)
+Steps 1–4 (Vercel UI → Settings → Domains → Add both domains) remains
+outstanding.
+
+### Updated launch verdict
+
+| Dimension | Verdict | Detail |
+|-----------|---------|--------|
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · sign-off capture SHA `b392c37` (docs-only; RC code SHA `8c1cd98d`) · unchanged across all phases |
+| **Public launch** | **◼ NO-GO** | `smoke:prod` exit 1 · `smoke:www` exit 1 · sole cause: Vercel domain binding still incomplete as of 2026-04-25 18:50 UTC |
+
+**Public launch: NO-GO.** No code change is required.
+
+> **Vercel UI → ConstructAIQ project → Settings → Domains**
+> → Add `constructaiq.trade` → wait for green checkmark
+> → Add `www.constructaiq.trade` → wait for green checkmark
+
+After binding (1–10 minutes for SSL auto-provision), rerun:
+
+```bash
+npm run smoke:www   # must exit 0
+npm run smoke:prod  # must exit 0
+```
+
+Both must exit 0 before this verdict may be changed to GO.
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:36 UTC by `claude/fix-doc-sha-consistency-7Y01M`.*
+Last updated: 2026-04-25 18:50 UTC by `claude/audit-sha-references-OpiT1`.*
