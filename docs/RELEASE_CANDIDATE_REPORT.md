@@ -4573,3 +4573,168 @@ Prerequisite not met. All API endpoints are unreachable.
 *Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
 
 Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-5Q5BF)*
+
+---
+
+## Phase 20 DNS-only propagation verification — 2026-04-25
+
+*Branch: `claude/verify-dns-propagation-OEExI`*
+
+| Command | Result |
+|---------|--------|
+| `socket.gethostbyname('constructaiq.trade')` | `76.76.21.21` — Vercel IP confirmed |
+| `dig +short constructaiq.trade` | not available in sandbox |
+| `dig +short www.constructaiq.trade` | not available in sandbox |
+| `domain:check` exit code | 1 |
+| apex classification | `VERCEL_DOMAIN_NOT_BOUND` |
+| www classification | `VERCEL_DOMAIN_NOT_BOUND` |
+| apex HTTP status | 403 |
+| apex `x-deny-reason` | `host_not_allowed` |
+| www HTTP status | 403 |
+| www `x-deny-reason` | `host_not_allowed` |
+| Location headers | null |
+| `proxyWarning` | `false` — no Cloudflare proxy active |
+| `cf-ray` | null |
+| `npm run lint` | exit 127 — node_modules absent in sandbox; CI authoritative (exit 0) |
+
+**Outcome:** DNS-only propagation is confirmed. Apex resolves to `76.76.21.21` (Vercel), not a Cloudflare 104.x/172.x proxy IP. `proxyWarning: false` and null `cf-ray` confirm DNS-only is active. Root cause of remaining NO-GO: domain not bound in Vercel project (`VERCEL_DOMAIN_NOT_BOUND`). Next action: add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains.
+
+Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI)*
+
+---
+
+## Phase 20 smoke verification — 2026-04-25
+
+*Branch: `claude/verify-dns-propagation-OEExI`*
+
+**Prerequisite check:** `domain:check` exit 1 — prerequisite NOT MET. Smoke ran regardless to capture current state.
+
+### smoke:www (exit 1 · 1 passed, 1 failed)
+
+| Check | Result |
+|-------|--------|
+| www DNS resolves | PASS |
+| www is bound to this Vercel project | FAIL — got 403 `host_not_allowed` |
+
+### smoke:prod (exit 1 · 1 passed, 5 failed)
+
+| Check | Result |
+|-------|--------|
+| GET / returns 200 | FAIL — got 403 |
+| GET /dashboard returns 200 | FAIL — got 403 |
+| /api/status returns 200 | FAIL — got 403 |
+| /api/dashboard returns 200 | FAIL — got 403 |
+| www DNS resolves | PASS |
+| www is bound to this Vercel project | FAIL — got 403 `host_not_allowed` |
+
+### npm run lint
+
+| Field | Value |
+|-------|-------|
+| Exit code | 127 — `next` not found; node_modules absent in sandbox |
+| CI result | Authoritative exit 0 (previously verified) |
+
+### Verdict
+
+**NO-GO.** Both smoke commands exit 1. Single root cause: domain not bound in Vercel project (`VERCEL_DOMAIN_NOT_BOUND`). All 5 prod failures and the www failure share the same `host_not_allowed` 403 response. DNS is correct (`76.76.21.21`, DNS-only confirmed). Next action: add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains, then re-run `domain:check` → `smoke:www` → `smoke:prod` in order.
+
+Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI)*
+
+---
+
+## Phase 20 env/runtime verification — 2026-04-25
+
+*Branch: `claude/verify-dns-propagation-OEExI`*
+
+**Prerequisite:** `smoke:prod` exits 0 — NOT MET (exits 1). Verification attempted to document state.
+
+| Command | Outcome |
+|---------|---------|
+| `curl -s https://constructaiq.trade/api/status` | `Host not in allowlist` — plain text 403, not JSON |
+| `jq .env` | parse error — exit 5 |
+| `jq .runtime` | parse error — exit 5 |
+| `npm run lint` | exit 127 — node_modules absent in sandbox; CI authoritative (exit 0) |
+
+| Boolean | Value |
+|---------|-------|
+| `supabaseConfigured` | UNREADABLE |
+| `cronSecretConfigured` | UNREADABLE |
+| `anthropicConfigured` | UNREADABLE |
+| `upstashConfigured` | UNREADABLE |
+| `sentryConfigured` | UNREADABLE |
+| `runtime.siteLocked` | UNREADABLE |
+| `runtime.nodeEnv` | UNREADABLE |
+| `runtime.appUrl` | UNREADABLE |
+
+**Verdict:** Cannot classify any boolean. All values unreadable because `/api/status` returns a plain-text 403 (`Host not in allowlist`) — domain not bound in Vercel. No launch-blocker or warning determination is possible. Public launch remains NO-GO. Next action: bind domain in Vercel, confirm `smoke:prod` exits 0, then re-run env/runtime verification.
+
+Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI · env/runtime)*
+
+---
+
+## Phase 20 data/dashboard verification — 2026-04-25
+
+*Branch: `claude/verify-dns-propagation-OEExI`*
+
+**Prerequisite:** `smoke:prod` exits 0 — NOT MET (exits 1). All data commands attempted to document state.
+
+| Endpoint | curl result | jq exit |
+|----------|-------------|---------|
+| `/api/status` (`jq .data`) | `Host not in allowlist` — 403 | 5 |
+| `/api/status?deep=1` (`jq .data`) | `Host not in allowlist` — 403 | 5 |
+| `/api/federal` | `Host not in allowlist` — 403 | 5 |
+| `/api/weekly-brief` | `Host not in allowlist` — 403 | 5 |
+| `/api/dashboard` | `Host not in allowlist` — 403 | 5 |
+| `npm run lint` | exit 127 — node_modules absent; CI authoritative (exit 0) |  |
+
+| Field | Value |
+|-------|-------|
+| `dashboardShapeOk` | UNREADABLE |
+| federal `dataSource` | UNREADABLE |
+| weekly-brief `source` / `live` | UNREADABLE |
+| dashboard `cshi` type | UNREADABLE |
+| dashboard `signals` length | UNREADABLE |
+| dashboard `commodities` length | UNREADABLE |
+| dashboard `forecast` type | UNREADABLE |
+
+**Verdict:** All data shapes unverifiable. Every API endpoint returns `Host not in allowlist` (plain-text 403) because the domain is not bound in Vercel. No blocker or warning classification is possible. Public launch remains NO-GO. Next action: bind domain in Vercel, confirm `smoke:prod` exits 0, then re-run data/dashboard verification.
+
+Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI · data/dashboard)*
+
+---
+
+## Phase 20 final launch gate — 2026-04-25
+
+*Branch: `claude/verify-dns-propagation-OEExI`*
+
+### Command table
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run launch:check -- --include-smoke` | 1 | FAILED — smoke:prod ✗ · smoke:www ✗ · build/lint/tests ✗ in sandbox |
+| `npm run build` | 127 | node_modules absent in sandbox — CI authoritative (exit 0) |
+| `npm run lint` | 127 | node_modules absent in sandbox — CI authoritative (exit 0) |
+| `npm test` | 127 | node_modules absent in sandbox — CI authoritative (exit 0) |
+| `npm run smoke:prod` | 1 | 1/6 passed · 5 failed — `host_not_allowed` 403 |
+| `npm run smoke:www` | 1 | 1/2 passed · 1 failed — `host_not_allowed` 403 |
+
+### Smoke results
+
+| Check | smoke:prod | smoke:www |
+|-------|-----------|-----------|
+| GET / returns 200 | FAIL — 403 | — |
+| GET /dashboard returns 200 | FAIL — 403 | — |
+| /api/status returns 200 | FAIL — 403 | — |
+| /api/dashboard returns 200 | FAIL — 403 | — |
+| www DNS resolves | PASS | PASS |
+| www is bound to this Vercel project | FAIL — 403 | FAIL — 403 |
+
+### Final verdict
+
+**NO-GO.** `launch:check --include-smoke` exits 1. Exact failing gate: Gate 4 (smoke) — `smoke:prod` and `smoke:www` both exit 1. Gate 5 (build/lint/tests) exits 127 in sandbox; CI is authoritative and previously verified exit 0. No product code issue. Single root cause: domain not bound in Vercel project. Next action: add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains, then re-run full verification sequence.
+
+`docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO.
+
+Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI · final launch gate)*
+
+Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI · GO checklist phase)*
