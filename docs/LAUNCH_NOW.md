@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 18:50 UTC**
+**Updated: 2026-04-25 18:55 UTC**
 
 ---
 
@@ -8,8 +8,11 @@
 
 | Dimension | Status |
 |-----------|--------|
-| Codebase | **GO** — build ✓ · lint ✓ · 317/317 tests ✓ |
-| Public launch | **NO-GO** — P0 blocker unchanged (see below) |
+| Build | **GO** — `✓ Compiled successfully` · 84 routes · 0 errors (94.6 s) |
+| Lint | **GO** — `✔ No ESLint warnings or errors` |
+| Tests | **GO** — 23 files · 317/317 passed |
+| Smoke | **NO-GO** — `smoke:prod` exit 1 · `smoke:www` exit 1 |
+| Public launch | **NO-GO** — sole blocker: Vercel domain binding (see below) |
 
 ---
 
@@ -50,21 +53,26 @@ with env-variable verification (see [OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
 
 ---
 
-## Last verified — 2026-04-25 19:00 UTC
+## Last verified — 2026-04-25 18:55 UTC (`npm run launch:check -- --include-smoke`)
 
-| Probe | Result |
-|-------|--------|
-| `curl -sSI https://constructaiq.trade` | **HTTP/2 403** · `x-deny-reason: host_not_allowed` |
-| `curl -sSI https://www.constructaiq.trade/dashboard` | **HTTP/2 403** · `x-deny-reason: host_not_allowed` |
-| `npm run smoke:www` | **exit 1** · 1 passed, 1 failed |
-| `npm run smoke:prod` | **exit 1** · 1 passed, 5 failed |
+| Gate | Command | Exit | Result |
+|------|---------|------|--------|
+| 5 | `npm run build` | **0** | `✓ Compiled successfully in 56 s` · 84 routes · 0 errors |
+| 5 | `npm run lint` | **0** | `✔ No ESLint warnings or errors` |
+| 5 | `npm test` | **0** | 23 files · 317/317 tests passed |
+| 4 | `npm run smoke:prod` | **1** | 1 passed, 5 failed — `x-deny-reason: host_not_allowed` |
+| 4 | `npm run smoke:www` | **1** | 1 passed, 1 failed — `x-deny-reason: host_not_allowed` |
 
-DNS resolves on both domains (`www DNS resolves` passes). The Vercel domain
-binding has not been completed. Next.js never receives any request.
+`launch:check` summary line: `✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www`
+`launch:check` exit code: **1**
+
+DNS resolves on both domains (`www DNS resolves` passes on both smoke runs).
+The Vercel domain binding has not been completed.
 
 Env/data verification (Supabase, CRON_SECRET, federal source, weekly-brief
-source) was not attempted — all endpoints return 403 before the application
-runs, so those probes carry no signal. They will be run once smoke exits 0.
+source) was not attempted — all endpoints return HTTP 403 before the
+application runs, so those probes carry no signal. They will be run once
+smoke exits 0.
 
 ---
 

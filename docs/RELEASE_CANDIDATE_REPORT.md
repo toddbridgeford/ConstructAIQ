@@ -2425,5 +2425,105 @@ All seven probes will be run immediately after `smoke:prod` exits 0.
 
 ---
 
+## Phase 8 final launch gate — 2026-04-25 18:55 UTC
+
+Full command: `npm run launch:check -- --include-smoke`
+
+### Gate 5 — build / lint / unit tests
+
+| Step | Exit | Wall time | Result |
+|------|------|-----------|--------|
+| `npm run build` | **0** | 94.6 s | `✓ Compiled successfully in 56s` — 84 routes, 0 errors |
+| `npm run lint` | **0** | 2.7 s | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | 3.3 s | `Test Files 23 passed (23)` · `Tests 317 passed (317)` |
+
+Gate 5 summary: `✓  build  ✓  lint  ✓  unit tests`
+
+### Gate 4 — production smoke
+
+| Step | Exit | Wall time | Result |
+|------|------|-----------|--------|
+| `npm run smoke:prod` | **1** | 0.7 s | 1 passed, 5 failed |
+| `npm run smoke:www` | **1** | 0.3 s | 1 passed, 1 failed |
+
+#### `npm run smoke:prod` — failing checks
+
+| Check | Expected | Got |
+|-------|----------|-----|
+| `GET / returns 200` | 200 | **403** `x-deny-reason: host_not_allowed` |
+| `GET /dashboard returns 200` | 200 | **403** `x-deny-reason: host_not_allowed` |
+| `/api/status returns 200` | 200 | **403** `x-deny-reason: host_not_allowed` |
+| `/api/dashboard returns 200` | 200 | **403** `x-deny-reason: host_not_allowed` |
+| `www is bound to this Vercel project` | 200/301 | **403** `x-deny-reason: host_not_allowed` |
+
+Passing check: `www DNS resolves` ✓
+
+#### `npm run smoke:www` — failing check
+
+| Check | Expected | Got |
+|-------|----------|-----|
+| `www is bound to this Vercel project` | 200/301 | **403** `x-deny-reason: host_not_allowed` |
+
+Passing check: `www DNS resolves` ✓
+
+### `launch:check` final output
+
+```
+Summary
+───────
+  ✓  build
+  ✓  lint
+  ✓  unit tests
+  ✗  smoke:prod
+  ✗  smoke:www
+
+✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Root cause | Vercel domain binding — `host_not_allowed` on apex and www |
+| Code regression | None — codebase is unchanged and Gate 5 is fully green |
+
+### Phase 8 interpretation
+
+**The codebase is launch-ready. The infrastructure is not.**
+
+Gate 5 is fully green for the first time with all probes captured: build
+compiles 84 routes without error, lint is clean, and all 317 unit tests pass.
+The sole failing gate is Gate 4 (smoke), and the sole cause of those failures
+is that neither `constructaiq.trade` nor `www.constructaiq.trade` has been
+added to the Vercel project's domain list.
+
+This is the **eighth consecutive pass** of Gate 5 since 2026-04-25 04:00 UTC.
+No code change is required.
+
+### Updated launch verdict
+
+| Dimension | Verdict | Detail |
+|-----------|---------|--------|
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · RC code SHA `8c1cd98d` · Gate 5 green across all 8 phases |
+| **Smoke** | **◼ FAIL** | `smoke:prod` exit 1 (1/6 passed) · `smoke:www` exit 1 (1/2 passed) · `host_not_allowed` on all application checks |
+| **Public launch** | **◼ NO-GO** | Smoke must exit 0. Sole blocker: Vercel domain binding incomplete as of 2026-04-25 18:55 UTC |
+
+**Public launch: NO-GO.** No code change is required.
+
+> **Next action:**
+> Vercel UI → ConstructAIQ project → Settings → Domains
+> → Add `constructaiq.trade` → wait for green checkmark
+> → Add `www.constructaiq.trade` → wait for green checkmark
+
+After binding (1–10 minutes for SSL auto-provision), rerun:
+
+```bash
+npm run launch:check -- --include-smoke   # must exit 0
+```
+
+If it exits 0, proceed to env/data verification per
+[docs/POST_LAUNCH_WATCH.md](./POST_LAUNCH_WATCH.md).
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 19:00 UTC by `claude/audit-sha-references-OpiT1`.*
+Last updated: 2026-04-25 18:55 UTC by `claude/audit-sha-references-OpiT1`.*
