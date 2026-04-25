@@ -146,38 +146,116 @@ per row — make sure both records are saved before continuing.
 
 ## Verification Commands
 
-Run these from any machine with outbound network access after completing the
-Vercel and DNS steps above.
+Run these in order from any machine with outbound network access once the
+Vercel Domain Steps and DNS Steps above are complete.
+
+### 1. Check DNS resolution
 
 ```bash
-# 1. Confirm apex no longer returns 403
-curl -sSI https://constructaiq.trade | head -3
-# expected: HTTP/2 200 (or 301/302 to canonical path)
-# must NOT contain: x-deny-reason: host_not_allowed
-
-# 2. Confirm www DNS resolves and redirects to apex
-npm run smoke:www
-# expected: exits 0, all checks pass
-
-# 3. Full smoke suite — pages, API shape, and www redirect
-npm run smoke:prod
-# expected: exits 0, "✓ All checks passed"
-
-# 4. Verify apex and www DNS records directly
 dig +short constructaiq.trade
-# expected: 76.76.21.21 or a Vercel anycast IP
-
-dig +short www.constructaiq.trade
-# expected: CNAME chain ending at a Vercel edge address
-
-# 5. Confirm infrastructure env vars after redeploy
-curl -s https://constructaiq.trade/api/status | jq .env
-# expected: { supabaseConfigured: true, anthropicConfigured: true,
-#             upstashConfigured: true, sentryConfigured: true,
-#             cronSecretConfigured: true }
 ```
 
+Expected — one of:
+- `76.76.21.21` (Vercel anycast A record)
+- A CNAME chain ending at a Vercel edge address (if ALIAS/flattening is used)
+
+If the output is **empty**, the apex DNS record has not been saved or has not
+propagated yet.
+
+```bash
+dig +short www.constructaiq.trade
+```
+
+Expected — a CNAME chain that passes through `cname.vercel-dns.com` and
+resolves to a Vercel IP. If empty, the `www` CNAME record is missing.
+
+### 2. Check the apex HTTP response
+
+```bash
+curl -sSI https://constructaiq.trade
+```
+
+Expected first line: `HTTP/2 200` (or `301`/`302` to a canonical path).
+
+The response must **not** contain `x-deny-reason: host_not_allowed`. If it
+does, the domain has not been added to the Vercel project yet (or DNS has not
+propagated) — see Troubleshooting below.
+
+### 3. Check the www HTTP response
+
+```bash
+curl -sSI https://www.constructaiq.trade/dashboard
+```
+
+Expected: `HTTP/2 301` (or `308`) with a `location` header pointing to
+`https://constructaiq.trade/dashboard`.
+
+The response must **not** be `200` (that would mean the redirect rule is not
+firing) and must **not** contain `x-deny-reason: host_not_allowed`.
+
+### 4. Run the www smoke test
+
+```bash
+npm run smoke:www
+```
+
+Must exit 0. See Expected Passing Output below.
+
+### 5. Run the full production smoke suite
+
+```bash
+npm run smoke:prod
+```
+
+Must exit 0. See Expected Passing Output below.
+
 ## Expected Passing Output
+
+### `dig +short constructaiq.trade`
+
+```
+76.76.21.21
+```
+
+### `dig +short www.constructaiq.trade`
+
+```
+cname.vercel-dns.com.
+76.76.21.21
+```
+
+### `curl -sSI https://constructaiq.trade`
+
+```
+HTTP/2 200
+content-type: text/html; charset=utf-8
+...
+```
+
+No `x-deny-reason` header present.
+
+### `curl -sSI https://www.constructaiq.trade/dashboard`
+
+```
+HTTP/2 301
+location: https://constructaiq.trade/dashboard
+...
+```
+
+Status is `301` (or `308`). Location points to `https://constructaiq.trade/…`.
+No `x-deny-reason` header present.
+
+### `npm run smoke:www`
+
+```
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✓  www returns 308 redirect
+  ✓  www redirect target → https://constructaiq.trade/dashboard
+3 passed, 0 failed
+```
+
+Exit code: 0.
 
 ### `npm run smoke:prod`
 
@@ -211,54 +289,100 @@ www redirect
 ✓ All checks passed
 ```
 
-### `npm run smoke:www`
-
-```
-www redirect
-  ✓  www DNS resolves (www.constructaiq.trade responded)
-  ✓  www returns 308 redirect
-  ✓  www redirect target → https://constructaiq.trade/dashboard
-```
+Exit code: 0.
 
 ## Troubleshooting
 
-### Still getting 403 after adding the domain in Vercel
+### `dig` returns empty — `ENOTFOUND` or no output
 
-The DNS record has not propagated yet, or the record value is wrong.
+**Symptom:** `dig +short constructaiq.trade` prints nothing, or a DNS tool
+reports `ENOTFOUND`.
 
-- Wait a further 5 minutes and recheck the Vercel Domains panel.
-- Run `dig +short constructaiq.trade` — if it returns nothing or a
-  non-Vercel IP the apex record is missing or incorrect.
-- Run `dig +short www.constructaiq.trade` — if it returns nothing the
-  CNAME record is missing.
+**Cause:** The DNS record does not exist yet, or it was not saved at the
+provider.
 
-### `smoke:www` reports "www DNS resolves" but still 403
+**Fix:**
+1. Log back in to the DNS provider and confirm the A or ALIAS record for
+   `constructaiq.trade` is present and saved (not just drafted).
+2. For `www`: confirm the CNAME record for `www` is present and saved.
+3. Wait 5 more minutes and retry `dig`.
 
-DNS is correct but `www.constructaiq.trade` has not been added to the Vercel
-project. Complete Vercel Domain Step 4 (add `www.constructaiq.trade` in the
-Domains panel).
+### `curl` returns HTTP 403 with `x-deny-reason: host_not_allowed`
 
-### `smoke:www` reports redirect to wrong target
+**Symptom:**
 
-The `next.config.ts` `redirects()` rule points `www` → apex. If the Location
-header shows an unexpected URL, the redirect destination has been edited.
-Restore the `destination` value to `https://constructaiq.trade/:path*`.
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+```
 
-### `smoke:prod` pages pass but `/api/status` returns 500
+**Cause:** DNS resolves correctly (the request reaches Vercel) but the domain
+has not been added to the ConstructAIQ Vercel project, or it has been added
+to a **different** Vercel project.
 
-The domain is bound but required environment variables are not set in Vercel
-Production scope. Set the required variables (see
-[ENVIRONMENT.md](./ENVIRONMENT.md)) and trigger a redeploy. The 500 will
-persist until at minimum `NEXT_PUBLIC_SUPABASE_URL`,
-`NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are present.
+**Fix:**
+1. Open <https://vercel.com/dashboard> → **construct-aiq** project →
+   **Settings → Domains**.
+2. Confirm `constructaiq.trade` (and `www.constructaiq.trade` for the www
+   variant) are listed here. If they appear in another project, remove them
+   from that project and add them to construct-aiq.
+3. If the domain was just added, wait 1–2 minutes for Vercel to detect the
+   DNS records, then retry.
+
+This is the exact failure observed in the release-candidate smoke tests on
+2026-04-25 — it is the primary launch blocker.
+
+### `curl https://www.constructaiq.trade` returns HTTP 200 (not a redirect)
+
+**Symptom:** The www address loads the full site instead of redirecting to the
+apex.
+
+**Cause:** The `next.config.ts` `redirects()` rule did not fire. Most likely
+cause: `www.constructaiq.trade` was configured in Vercel as a **primary
+domain** rather than relying on the application-layer redirect.
+
+**Fix:**
+1. In Vercel → Settings → Domains, check how `www.constructaiq.trade` is
+   configured. It should be a plain domain entry that the application handles
+   — not a Vercel-level "redirect to" setting that overrides the app.
+2. Confirm the latest `main` deployment is the one serving traffic (a stale
+   deployment predating the `redirects()` rule would also cause this).
+3. Trigger a redeploy if needed: Vercel → Deployments → latest Production →
+   `…` → Redeploy.
+
+### `curl https://www.constructaiq.trade` redirects to the wrong domain
+
+**Symptom:** The `location` header in the 301/308 response points to a domain
+other than `https://constructaiq.trade/…`.
+
+**Cause:** The `destination` value in the `redirects()` block inside
+`next.config.ts` has been edited.
+
+**Fix:** Open `next.config.ts` and restore the redirect destination to:
+
+```ts
+destination: "https://constructaiq.trade/:path*",
+```
+
+### `smoke:prod` pages return 200 but `/api/status` returns 500
+
+**Cause:** Domain binding is working but required Vercel Production
+environment variables are missing. `/api/status` calls Supabase and cannot
+succeed without `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+and `SUPABASE_SERVICE_ROLE_KEY`.
+
+**Fix:** Set the required variables in Vercel → Settings → Environment
+Variables → Production scope, then trigger a redeploy. See
+[ENVIRONMENT.md](./ENVIRONMENT.md) for the full walkthrough.
 
 ### Vercel Domains panel stuck on "Invalid Configuration" after 15 minutes
 
-- Confirm the DNS record was saved at the provider (not just edited in the UI
-  without saving).
-- Check for a conflicting CAA record that blocks Vercel's certificate issuer.
-- Try `dig +short constructaiq.trade` from a public resolver
-  (`8.8.8.8` or `1.1.1.1`) to rule out local DNS caching.
+- Confirm the record was **saved** at the DNS provider (not just edited).
+- Run `dig +short constructaiq.trade @8.8.8.8` — using Google's resolver
+  rules out local DNS caching. If it returns the correct IP, Vercel should
+  validate within minutes.
+- Check for a conflicting CAA record at the DNS provider that might block
+  Vercel's certificate issuer (Let's Encrypt).
 
 ## Related Docs
 
