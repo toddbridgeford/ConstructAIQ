@@ -3765,3 +3765,56 @@ The "Proxy Detected" warning additionally indicates a CDN proxy (likely Cloudfla
 **NO-GO** — domains connected but apex redirects to www; proxy detected. Redirect loop prevents the site from being reached. No product code was changed in this phase (docs-only).
 
 *Updated by `claude/update-launch-docs-MXJjd` · 2026-04-25*
+
+---
+
+## Phase 16 canonical/proxy validation — 2026-04-25
+
+**Task:** Run domain:check, smoke:www, smoke:prod, build, lint, test against current live state.
+
+### Command results
+
+| Command | Exit code | Summary |
+|---------|-----------|---------|
+| `npm run domain:check` | **1** | Both domains `VERCEL_DOMAIN_NOT_BOUND` · `host_not_allowed` |
+| `node scripts/check-domain-status.mjs --json` | **1** | apex status 403, www status 403, `proxyWarning: false` |
+| `npm run smoke:www` | **1** | 1/2 passed · `host_not_allowed` on www |
+| `npm run smoke:prod` | **1** | 1/6 passed · `host_not_allowed` on apex and www |
+| `npm run build` | **0** | 84 routes · 0 errors |
+| `npm run lint` | **0** | No ESLint warnings or errors |
+| `npm test` | **0** | 356/356 · 24 files |
+
+### domain:check JSON (abridged)
+
+```json
+{
+  "apex": { "status": 403, "denyReason": "host_not_allowed", "location": null, "proxyWarning": false, "classification": "VERCEL_DOMAIN_NOT_BOUND" },
+  "www":  { "status": 403, "denyReason": "host_not_allowed", "location": null, "proxyWarning": false, "classification": "VERCEL_DOMAIN_NOT_BOUND" },
+  "ok": false,
+  "proxyWarning": false,
+  "exitCode": 1
+}
+```
+
+### Interpretation
+
+The Vercel UI screenshot (Phase 16 context) showed both domains appearing connected with a 308 apex→www redirect and "Proxy Detected" warnings. Live network probes continue to return `host_not_allowed` on both domains. The UI configuration has not propagated to the Vercel edge, or the domains are bound to a different Vercel project. No proxy headers (`cf-ray`, `cf-cache-status`, `server: cloudflare`) were present in the 403 responses — `proxyWarning` is false.
+
+### Smoke detail
+
+| Check | smoke:prod | smoke:www |
+|-------|-----------|-----------|
+| `GET / returns 200` | FAIL — got 403 | — |
+| `GET /dashboard returns 200` | FAIL — got 403 | — |
+| `/api/status returns 200` | FAIL — got 403 | — |
+| `/api/dashboard returns 200` | FAIL — got 403 | — |
+| www DNS resolves | PASS | PASS |
+| www is bound to Vercel project | FAIL — got 403 | FAIL — got 403 |
+
+### Verdict
+
+**NO-GO** — `domain:check` exits 1. Both domains still return `host_not_allowed`. Code-quality gates (build, lint, tests) all pass. Domain binding remains the sole blocker.
+
+**Next action:** Vercel UI → ConstructAIQ → Settings → Domains — confirm both domains are bound to the correct project with green SSL checkmarks. Remove any apex→www redirect. Disable DNS proxy (Cloudflare DNS-only) if applicable. Re-run `npm run domain:check` (must exit 0) then the full smoke suite.
+
+*Updated by `claude/update-launch-docs-MXJjd` · 2026-04-25*

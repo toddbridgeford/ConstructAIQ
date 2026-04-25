@@ -1,10 +1,10 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 16 — Vercel canonical/proxy misconfiguration)**
+**Updated: 2026-04-25 (Phase 16 — domain:check exit 1 · host_not_allowed on both domains)**
 
 ---
 
-> **STOP: code is launch-ready. The only active blocker is Vercel domain misconfiguration.**
+> **STOP: code is launch-ready. The only active blocker is Vercel domain binding.**
 
 ---
 
@@ -12,30 +12,35 @@
 
 | Dimension | Status |
 |-----------|--------|
-| Build | **GO** — 84 routes · 0 errors (51.5s) |
-| Lint | **GO** — no ESLint warnings or errors (2.7s) |
-| Tests | **GO** — 344/344 · 24 files (3.5s) |
-| Smoke | **NO-GO** — domains connected but canonical direction is wrong |
+| Build | **GO** — 84 routes · 0 errors |
+| Lint | **GO** — no ESLint warnings or errors |
+| Tests | **GO** — 356/356 · 24 files |
+| domain:check | **NO-GO** — exit 1 · both domains `VERCEL_DOMAIN_NOT_BOUND` (`host_not_allowed`) |
+| smoke:prod | **NO-GO** — 1/6 passed · 5 fail on `host_not_allowed` |
+| smoke:www | **NO-GO** — 1/2 passed · 1 fail on `host_not_allowed` |
 | Public launch | **NO-GO** |
 
 ---
 
 ## P0 blocker
 
-**Vercel canonical/proxy misconfiguration.**
+**Both `constructaiq.trade` and `www.constructaiq.trade` return HTTP 403 `x-deny-reason: host_not_allowed`.**
 
-Both domains are now connected to the Vercel project (the prior `host_not_allowed`
-403 is resolved), but the Vercel UI shows:
+`npm run domain:check` (2026-04-25):
 
-- `www.constructaiq.trade` → connected to Production
-- `constructaiq.trade` → configured as **308 redirect to `www.constructaiq.trade`**
-- Vercel reports **Proxy Detected** on both domains
+```
+apex  → status 403 · x-deny-reason: host_not_allowed · VERCEL_DOMAIN_NOT_BOUND
+www   → status 403 · x-deny-reason: host_not_allowed · VERCEL_DOMAIN_NOT_BOUND
+proxyWarning: false
+exit 1
+```
 
-This is the opposite of what the repo requires. The `next.config.ts` redirect
-sends `www → apex`. With Vercel also redirecting `apex → www`, the result is an
-infinite redirect loop. The site is unreachable.
+The Vercel UI screenshot (Phase 16) showed both domains appearing connected with a 308 apex→www
+redirect and "Proxy Detected" warnings — but live network probes still return `host_not_allowed`.
+This means the UI configuration has not fully taken effect, or the domains are bound to a
+different Vercel project.
 
-**No code change needed.** The fix is a Vercel UI change only.
+**No code change needed.** Fix is Vercel UI only.
 
 ---
 
@@ -43,30 +48,33 @@ infinite redirect loop. The site is unreachable.
 
 **Vercel UI → ConstructAIQ project → Settings → Domains**
 
-1. Find `constructaiq.trade` — it currently has a "Redirect to www" rule. **Remove that redirect.**
-2. `constructaiq.trade` must be connected **directly** to Production — no Vercel-level redirect on it.
-3. `www.constructaiq.trade` must also be connected directly — the app-layer rule in `next.config.ts` handles `www → apex` automatically.
-4. If the DNS provider is Cloudflare (or equivalent): **disable the proxy** on both records (set to DNS-only / grey cloud). Vercel's "Proxy Detected" warning indicates a proxied record is interfering.
+1. Confirm **both** `constructaiq.trade` and `www.constructaiq.trade` are listed under the
+   **correct project** (construct-aiq / ConstructAIQ) with green SSL checkmarks — not just appearing in the UI.
+2. If `constructaiq.trade` has a "Redirect to www" rule: **remove it.** Connect it directly to Production.
+3. `www.constructaiq.trade` must also be connected directly — `next.config.ts` handles `www → apex` at the application layer.
+4. If the DNS provider is Cloudflare or similar: **set both records to DNS-only** (disable proxy / grey cloud).
+   Proxied records can cause `host_not_allowed` even when the domain appears bound in the UI.
+5. Wait for green checkmarks, then run:
 
-> **Why:** Vercel `apex → www` + `next.config.ts` `www → apex` = infinite redirect loop. Apex canonical is the repo decision. See [docs/CANONICAL_DOMAIN_DECISION.md](./CANONICAL_DOMAIN_DECISION.md).
+```bash
+npm run domain:check
+# Must exit 0: APEX_OK + WWW_REDIRECT_OK
+```
 
 Full walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md)
 
 ---
 
-## After binding — verify in order
+## After domain:check exits 0 — verify in order
 
 ```bash
-npm run domain:check
-# Must exit 0: APEX_OK + WWW_REDIRECT_OK
-
 npm run smoke:www
 npm run smoke:prod
 npm run launch:check -- --include-smoke
 # All must exit 0 before flipping verdict to GO.
 ```
 
-When all four pass: paste [docs/CLAUDE_POST_BINDING_PROMPT.md](./CLAUDE_POST_BINDING_PROMPT.md)
+When all pass: paste [docs/CLAUDE_POST_BINDING_PROMPT.md](./CLAUDE_POST_BINDING_PROMPT.md)
 into Claude Code for automated verification, then update this verdict to **GO**.
 
 ---
