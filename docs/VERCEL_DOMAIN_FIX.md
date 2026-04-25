@@ -2,7 +2,105 @@
 
 > **Launch state and remaining actions:** [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
 
-## Problem
+---
+
+## Current observed Vercel misconfiguration (Phase 16 — 2026-04-25)
+
+> **This section supersedes the original `host_not_allowed` problem below.**
+> Both domains are now connected to the Vercel project. The new blocker is a
+> canonical-direction mismatch and a proxy-detected warning.
+
+### What the Vercel UI shows
+
+| Domain | Current Vercel state |
+|--------|---------------------|
+| `www.constructaiq.trade` | Connected to Production |
+| `constructaiq.trade` | 308 redirect → `www.constructaiq.trade` |
+| Both domains | **Proxy Detected** warning |
+
+### Why this is wrong
+
+The repository is configured for **apex canonical** (`constructaiq.trade`).
+`next.config.ts` issues a permanent redirect for every request whose `Host`
+header is `www.constructaiq.trade` → `https://constructaiq.trade/:path*`.
+
+With Vercel simultaneously redirecting `constructaiq.trade → www.constructaiq.trade`,
+every request loops:
+
+```
+constructaiq.trade → (Vercel 308) → www.constructaiq.trade
+                   ← (Next.js 308 in next.config.ts) ←
+```
+
+Browsers abort with "Too many redirects". The site is unreachable.
+
+The "Proxy Detected" warning means a DNS proxy (e.g. Cloudflare orange-cloud)
+sits in front of Vercel. This can prevent Vercel from issuing SSL certificates,
+cause `host_not_allowed` to return after the domain appears bound, and mask the
+true origin IP from Vercel's edge.
+
+### Required operator steps
+
+1. **Open Vercel → construct-aiq project → Settings → Domains.**
+
+2. **Edit `constructaiq.trade`:**
+   - Find the entry for `constructaiq.trade`.
+   - If there is a "Redirect to www" toggle or a redirect rule pointing to
+     `www.constructaiq.trade`, **remove or disable it**.
+   - `constructaiq.trade` must be connected directly to Production with no
+     Vercel-level redirect attached.
+
+3. **Check `www.constructaiq.trade`:**
+   - It must be a plain connected domain — not marked as the primary/canonical.
+   - Do **not** add a Vercel redirect rule to it; `next.config.ts` handles
+     `www → apex` at the application layer.
+
+4. **Disable the DNS proxy (Cloudflare or equivalent):**
+   - Log in to your DNS provider.
+   - For both `constructaiq.trade` (apex/`@`) and `www` records:
+     - If using Cloudflare: click the orange cloud icon → set to **grey cloud
+       (DNS only)**.
+     - If using another provider with a proxy toggle: disable it.
+   - Save the records.
+   - Wait 1–2 minutes for Vercel's "Proxy Detected" warning to clear.
+
+   > **Why DNS-only:** Vercel is the edge layer. Routing traffic through a
+   > second proxy (Cloudflare) before it reaches Vercel causes certificate
+   > conflicts, IP spoofing warnings, and `host_not_allowed` errors. Use
+   > Vercel's own edge network directly; if DDoS protection is needed, add it
+   > after the domain is confirmed healthy.
+
+5. **Verify in Vercel UI:**
+   - Both `constructaiq.trade` and `www.constructaiq.trade` show a green
+     checkmark with no redirect indicator and no "Proxy Detected" warning.
+
+6. **Run the domain health check:**
+
+   ```bash
+   npm run domain:check
+   # Expected: APEX_OK + WWW_REDIRECT_OK — exit 0
+   ```
+
+### Expected passing state
+
+| Check | Expected result |
+|-------|----------------|
+| `constructaiq.trade` HTTP response | `200` (serves content) — no `Location` header pointing to `www.*` |
+| `www.constructaiq.trade/dashboard` HTTP response | `308` (or `301`/`302`) with `Location: https://constructaiq.trade/dashboard` |
+| `npm run domain:check` | Exit 0 — `APEX_OK + WWW_REDIRECT_OK` |
+| Vercel Domains panel | Both rows green · no redirect indicator · no "Proxy Detected" |
+
+---
+
+## Original problem — `host_not_allowed` (resolved as of Phase 16)
+
+> Both domains previously returned HTTP 403 `x-deny-reason: host_not_allowed`
+> because neither was bound to the Vercel project. This is now resolved —
+> both domains are connected. See the section above for the current blocker.
+
+---
+
+## Problem (original)
 
 `constructaiq.trade` and `www.constructaiq.trade` return HTTP 403 with the
 response header `x-deny-reason: host_not_allowed` on every request. All pages,
