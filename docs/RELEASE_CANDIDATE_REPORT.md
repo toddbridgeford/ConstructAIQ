@@ -3723,3 +3723,45 @@ Launch GO checklist skipped because Public launch remains NO-GO.
 `docs/LAUNCH_GO_CHECKLIST.md` was not created.
 
 Lint: `npm run lint` exit 0 — no ESLint warnings or errors.
+
+---
+
+## Phase 16 current Vercel state — 2026-04-25
+
+**Task:** Update launch docs to reflect the domain state shown in the latest Vercel screenshot.
+
+### Observed Vercel state
+
+| Domain | Vercel configuration |
+|--------|---------------------|
+| `www.constructaiq.trade` | Connected to Production (green) |
+| `constructaiq.trade` | 308 redirect → `www.constructaiq.trade` |
+| Both domains | Proxy Detected warning |
+
+### Old blocker (Phase 15)
+
+`host_not_allowed` — both domains returned HTTP 403 because neither was bound to the Vercel project.
+
+### New observed state
+
+Domains are now connected, but the canonical direction is wrong. Vercel has `constructaiq.trade` redirecting 308 to `www.constructaiq.trade`. The repo's `next.config.ts` redirects `www → apex`. With both rules active simultaneously, every request loops:
+
+```
+constructaiq.trade → (Vercel 308) → www.constructaiq.trade
+                   ← (Next.js 308) ←
+```
+
+The "Proxy Detected" warning additionally indicates a CDN proxy (likely Cloudflare) sits in front of Vercel, which can interfere with Vercel's SSL provisioning and edge routing.
+
+### Required operator action
+
+1. Vercel → Domains → `constructaiq.trade` → remove the "Redirect to www" rule.
+2. Confirm both `constructaiq.trade` and `www.constructaiq.trade` are connected directly (no Vercel-level redirect on either).
+3. At DNS provider (Cloudflare or equivalent): set both records to **DNS-only** (disable proxy / grey cloud).
+4. After saving, run `npm run domain:check` (exit 0) and `npm run smoke:prod` (exit 0).
+
+### Verdict
+
+**NO-GO** — domains connected but apex redirects to www; proxy detected. Redirect loop prevents the site from being reached. No product code was changed in this phase (docs-only).
+
+*Updated by `claude/update-launch-docs-MXJjd` · 2026-04-25*

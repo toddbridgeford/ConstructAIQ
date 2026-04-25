@@ -1,10 +1,10 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 15 final gate — launch:check exit 1 · smoke:prod + smoke:www fail)**
+**Updated: 2026-04-25 (Phase 16 — Vercel canonical/proxy misconfiguration)**
 
 ---
 
-> **STOP: code is launch-ready. The only active blocker is Vercel domain binding.**
+> **STOP: code is launch-ready. The only active blocker is Vercel domain misconfiguration.**
 
 ---
 
@@ -15,15 +15,27 @@
 | Build | **GO** — 84 routes · 0 errors (51.5s) |
 | Lint | **GO** — no ESLint warnings or errors (2.7s) |
 | Tests | **GO** — 344/344 · 24 files (3.5s) |
-| Smoke | **NO-GO** — smoke:prod 1/6 passed · smoke:www 1/2 passed · both fail on `host_not_allowed` |
+| Smoke | **NO-GO** — domains connected but canonical direction is wrong |
 | Public launch | **NO-GO** |
 
 ---
 
 ## P0 blocker
 
-Both `constructaiq.trade` and `www.constructaiq.trade` return HTTP 403
-`x-deny-reason: host_not_allowed`. DNS resolves. No code change needed.
+**Vercel canonical/proxy misconfiguration.**
+
+Both domains are now connected to the Vercel project (the prior `host_not_allowed`
+403 is resolved), but the Vercel UI shows:
+
+- `www.constructaiq.trade` → connected to Production
+- `constructaiq.trade` → configured as **308 redirect to `www.constructaiq.trade`**
+- Vercel reports **Proxy Detected** on both domains
+
+This is the opposite of what the repo requires. The `next.config.ts` redirect
+sends `www → apex`. With Vercel also redirecting `apex → www`, the result is an
+infinite redirect loop. The site is unreachable.
+
+**No code change needed.** The fix is a Vercel UI change only.
 
 ---
 
@@ -31,14 +43,12 @@ Both `constructaiq.trade` and `www.constructaiq.trade` return HTTP 403
 
 **Vercel UI → ConstructAIQ project → Settings → Domains**
 
-1. **Add Domain** → `constructaiq.trade` → confirm.
-2. **Add Domain** → `www.constructaiq.trade` → confirm.
-3. Wait for a green checkmark on both (SSL provisions in 1–10 minutes).
+1. Find `constructaiq.trade` — it currently has a "Redirect to www" rule. **Remove that redirect.**
+2. `constructaiq.trade` must be connected **directly** to Production — no Vercel-level redirect on it.
+3. `www.constructaiq.trade` must also be connected directly — the app-layer rule in `next.config.ts` handles `www → apex` automatically.
+4. If the DNS provider is Cloudflare (or equivalent): **disable the proxy** on both records (set to DNS-only / grey cloud). Vercel's "Proxy Detected" warning indicates a proxied record is interfering.
 
-> **Canonical note:** Connect both domains directly. Do **not** enable
-> "Redirect to www" on `constructaiq.trade` — that creates a redirect loop
-> with the app-layer `www → apex` rule in `next.config.ts`.
-> See [docs/CANONICAL_DOMAIN_DECISION.md](./CANONICAL_DOMAIN_DECISION.md).
+> **Why:** Vercel `apex → www` + `next.config.ts` `www → apex` = infinite redirect loop. Apex canonical is the repo decision. See [docs/CANONICAL_DOMAIN_DECISION.md](./CANONICAL_DOMAIN_DECISION.md).
 
 Full walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md)
 
