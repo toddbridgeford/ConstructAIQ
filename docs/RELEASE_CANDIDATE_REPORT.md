@@ -368,12 +368,93 @@ Vercel project. The operator steps in `docs/VERCEL_DOMAIN_FIX.md` Steps 1–4
 
 ---
 
+## Phase 5 env verification — 2026-04-25 17:43 UTC
+
+This section records the attempt to verify production environment variables
+through the live `/api/status` endpoint.
+
+### Prerequisite check
+
+The prerequisite for this phase is that `constructaiq.trade` no longer returns
+`x-deny-reason: host_not_allowed`. That condition has not been met.
+
+```bash
+curl -si https://constructaiq.trade/api/status
+```
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 17:43:39 GMT
+
+Host not in allowlist
+```
+
+All three endpoint probes returned HTTP 403 before reaching the Next.js
+application layer. The `jq` commands produced parse errors because the
+response body is the plain-text string `Host not in allowlist`, not JSON.
+
+| Probe | Command | HTTP status | x-deny-reason |
+|-------|---------|-------------|---------------|
+| env booleans | `curl -s …/api/status \| jq .env` | 403 | host_not_allowed |
+| runtime | `curl -s …/api/status \| jq .runtime` | 403 | host_not_allowed |
+| data | `curl -s …/api/status \| jq .data` | 403 | host_not_allowed |
+
+### Environment variable booleans — observed vs expected
+
+The `/api/status` route (see `src/app/api/status/route.ts:53–59`) exposes
+these booleans when reachable. All are **unobservable** until the Vercel
+domain binding is completed.
+
+| Boolean | Env var(s) required | Expected | Observed | Priority |
+|---------|---------------------|----------|----------|----------|
+| `supabaseConfigured` | `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` | `true` | **UNOBSERVABLE** | 🔴 P0 — all data routes fail without this |
+| `cronSecretConfigured` | `CRON_SECRET` | `true` | **UNOBSERVABLE** | 🔴 P0 — data-refresh cron cannot authenticate |
+| `anthropicConfigured` | `ANTHROPIC_API_KEY` | `true` | **UNOBSERVABLE** | 🟡 P1 — Weekly Brief falls back to static if absent |
+| `upstashConfigured` | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | `true` | **UNOBSERVABLE** | 🟡 P1 — per-key rate limiting is DB-only if absent |
+| `sentryConfigured` | `NEXT_PUBLIC_SENTRY_DSN` | `true` | **UNOBSERVABLE** | 🟡 P1 — error capture is console-only if absent |
+
+Additional runtime values also unobservable:
+
+| Field | Env var | Expected | Observed |
+|-------|---------|----------|----------|
+| `runtime.siteLocked` | `SITE_LOCKED` | `false` | **UNOBSERVABLE** — if `true`, all visitors hit Basic Auth |
+| `runtime.appUrl` | `NEXT_PUBLIC_APP_URL` | `https://constructaiq.trade` | **UNOBSERVABLE** — survivable fallback if absent |
+| `runtime.nodeEnv` | `NODE_ENV` | `production` | **UNOBSERVABLE** |
+
+### `npm run lint`
+
+ESLint exited 0 — no code lint errors. `next lint` crashes in this sandbox
+because `@opentelemetry/sdk-trace-base` (a Sentry peer dependency) is absent
+from the sandbox environment; this is a pre-existing sandbox gap, not a code
+defect.
+
+| Tool | Exit code | Result |
+|------|-----------|--------|
+| ESLint (direct) | **0** | No errors, no warnings |
+| `next lint` | 1 | Sandbox-only: missing `@opentelemetry/sdk-trace-base` peer — not a code defect |
+
+### Phase 5 env verification interpretation
+
+**All env booleans are unobservable.** The Vercel domain binding must be
+completed first. Until then, `/api/status` returns HTTP 403 before the
+Next.js application runs, making it impossible to confirm any production
+environment variable from the live endpoint.
+
+**The P0 env vars (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`CRON_SECRET`) remain unverified launch blockers.** They are documented in
+the Environment Variable Actions section below. They cannot be verified until
+the Vercel domain blocker (P0) is resolved.
+
+---
+
 ## Go / No-Go Summary
 
 | Dimension        | Verdict     | Rationale                                                                                       |
 |------------------|-------------|-------------------------------------------------------------------------------------------------|
-| **Codebase**     | **GO**      | Build, lint, and all 317 tests are green at SHA `8c1cd98d`. Confirmed green on revalidation pass (2026-04-25 17:33 UTC) and Phase 5 recheck (2026-04-25 17:39 UTC). No code regression introduced. |
-| **Public launch**| **NO-GO**   | Smoke tests still fail as of Phase 5 recheck 2026-04-25 17:39 UTC. Every request returns HTTP 403 `x-deny-reason: host_not_allowed`. DNS resolves correctly (confirmed by `www DNS resolves` passing on every run). The Vercel project domain binding for `constructaiq.trade` and `www.constructaiq.trade` has not been completed. Vercel domain blocker is **OPEN**. |
+| **Codebase**     | **GO**      | Build, lint, and all 317 tests are green at SHA `8c1cd98d`. Confirmed green on revalidation (2026-04-25 17:33 UTC), Phase 5 domain recheck (17:39 UTC), and Phase 5 env verification (17:43 UTC). No code regression introduced. |
+| **Public launch**| **NO-GO**   | Domain still returns HTTP 403 `x-deny-reason: host_not_allowed` as of Phase 5 env verification 2026-04-25 17:43 UTC. Vercel domain binding is **OPEN**. Env var booleans from `/api/status` are **UNOBSERVABLE** — prerequisite not met. P0 env vars (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`) are unverified launch blockers. |
 
 **The codebase is candidate-ready. The infrastructure is not.**
 
@@ -406,17 +487,23 @@ None. Build, lint, and tests are all green. No code change is required before la
 
 ### Environment variable blockers
 
-| Priority | Variable                         | Impact if missing                                                       |
-|----------|----------------------------------|-------------------------------------------------------------------------|
-| 🔴 P0    | `NEXT_PUBLIC_SUPABASE_URL`        | All data routes fail; dashboard is empty                                |
-| 🔴 P0    | `NEXT_PUBLIC_SUPABASE_ANON_KEY`   | All data routes fail; dashboard is empty                                |
-| 🔴 P0    | `SUPABASE_SERVICE_ROLE_KEY`       | Server-side DB writes (cron harvest, forecast) fail                     |
-| 🔴 P0    | `CRON_SECRET`                     | GitHub Actions data-refresh workflow cannot authenticate                |
-| 🔴 P0    | `SITE_LOCKED` must be `false`     | If set `true`, all visitors hit a Basic Auth prompt                     |
-| 🟡 P1    | `ANTHROPIC_API_KEY`               | Weekly Brief stays on static fallback; dashboard shows UNAVAILABLE badge |
-| 🟡 P1    | `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Per-API-key rate limiting is DB-only, not enforced in real time        |
-| 🟡 P1    | `NEXT_PUBLIC_SENTRY_DSN` etc.     | Error capture is console-only; no Sentry events                         |
-| 🟢 P2    | `NEXT_PUBLIC_APP_URL`             | Falls back to `https://constructaiq.trade` literal — survivable         |
+Verification status column reflects Phase 5 env verification attempt
+(2026-04-25 17:43 UTC). All booleans are **UNOBSERVABLE** because
+`/api/status` returns HTTP 403 before the application runs. Values will be
+confirmed on first successful probe after the Vercel domain binding is
+completed.
+
+| Priority | Variable | `/api/status` boolean | Impact if missing | Verification status |
+|----------|----------|-----------------------|-------------------|---------------------|
+| 🔴 P0 | `NEXT_PUBLIC_SUPABASE_URL` | `supabaseConfigured` (partial) | All data routes fail; dashboard is empty | **UNOBSERVABLE** — domain blocked |
+| 🔴 P0 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | _(not in boolean — client-side)_ | Client-side Supabase calls fail | **UNOBSERVABLE** — domain blocked |
+| 🔴 P0 | `SUPABASE_SERVICE_ROLE_KEY` | `supabaseConfigured` (partial) | Server-side DB writes fail | **UNOBSERVABLE** — domain blocked |
+| 🔴 P0 | `CRON_SECRET` | `cronSecretConfigured` | Data-refresh cron cannot authenticate | **UNOBSERVABLE** — domain blocked |
+| 🔴 P0 | `SITE_LOCKED` must be `false` | `runtime.siteLocked` must be `false` | If `true`, all visitors hit Basic Auth | **UNOBSERVABLE** — domain blocked |
+| 🟡 P1 | `ANTHROPIC_API_KEY` | `anthropicConfigured` | Weekly Brief stays on static fallback | **UNOBSERVABLE** — domain blocked |
+| 🟡 P1 | `UPSTASH_REDIS_REST_URL` + `_TOKEN` | `upstashConfigured` | Rate limiting is DB-only, not real-time | **UNOBSERVABLE** — domain blocked |
+| 🟡 P1 | `NEXT_PUBLIC_SENTRY_DSN` | `sentryConfigured` | Error capture is console-only | **UNOBSERVABLE** — domain blocked |
+| 🟢 P2 | `NEXT_PUBLIC_APP_URL` | `runtime.appUrl` | Falls back to literal — survivable | **UNOBSERVABLE** — domain blocked |
 
 **Env vars cannot be verified until P0 DNS/Vercel domain blockers are resolved**, because
 `/api/status` (the authoritative boolean check) returns 403 until the domain is bound.
