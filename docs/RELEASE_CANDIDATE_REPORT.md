@@ -690,6 +690,115 @@ outcome after domain binding (assuming env vars are also set) is:
 
 ---
 
+## Phase 6 smoke check — 2026-04-25 18:08 UTC
+
+This section records smoke test results run immediately after the Phase 6 domain
+binding curl check. Both `npm run smoke:www` and `npm run smoke:prod` were
+executed to confirm whether the Vercel domain binding has been completed.
+
+### `npm run smoke:www`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade  (--www-only)
+──────────────────────────────────────────────────
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+       www.constructaiq.trade resolves but is rejected (403).
+       Fix: add www.constructaiq.trade as a Vercel project domain.
+       Vercel dashboard → ConstructAIQ project → Settings → Domains → Add →
+       "www.constructaiq.trade". See docs/PRODUCTION_SMOKE.md.
+
+──────────────────────────────────────────────────
+1 passed, 1 failed
+
+✗ Smoke test FAILED
+```
+
+| Field        | Value  |
+|--------------|--------|
+| Exit code    | **1**  |
+| Passed       | 1      |
+| Failed       | 1      |
+| Failing gate | `www is bound to this Vercel project` — HTTP 403 |
+
+### `npm run smoke:prod`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade
+──────────────────────────────────────────────────
+
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+       www.constructaiq.trade resolves but is rejected (403).
+       Fix: add www.constructaiq.trade as a Vercel project domain.
+       Vercel dashboard → ConstructAIQ project → Settings → Domains → Add →
+       "www.constructaiq.trade". See docs/PRODUCTION_SMOKE.md.
+
+──────────────────────────────────────────────────
+1 passed, 5 failed
+
+✗ Smoke test FAILED
+```
+
+| Field        | Value  |
+|--------------|--------|
+| Exit code    | **1**  |
+| Passed       | 1      |
+| Failed       | 5      |
+| Failing gates | `GET / returns 200` (got 403) · `GET /dashboard returns 200` (got 403) · `/api/status returns 200` (got 403) · `/api/dashboard returns 200` (got 403) · `www is bound to this Vercel project` (HTTP 403) |
+
+### `npm run lint`
+
+`npm run lint` invokes `next lint`, which exits with `next: not found` — the
+same pre-existing sandbox gap recorded in every prior phase. No code was
+changed in Phase 6.
+
+| Tool | Exit | Result |
+|------|------|--------|
+| `npm run lint` | 127 | Sandbox: `next: not found` — pre-existing; not a code defect |
+
+### Phase 6 smoke check interpretation
+
+Both smoke tests **failed**. The root cause is identical to every prior
+phase: the Vercel project domain binding has not been completed. All five
+`smoke:prod` endpoints and the single `smoke:www` check return HTTP 403
+from Vercel's edge before reaching the Next.js application.
+
+DNS resolves correctly — `www DNS resolves` passes on both runs.
+
+**Public launch: NO-GO.**
+
+Exact failing smoke gates:
+
+| Gate | Test | Result |
+|------|------|--------|
+| `smoke:www` | `www is bound to this Vercel project` | **FAIL** — HTTP 403 |
+| `smoke:prod` | `GET / returns 200` | **FAIL** — got 403 |
+| `smoke:prod` | `GET /dashboard returns 200` | **FAIL** — got 403 |
+| `smoke:prod` | `/api/status returns 200` | **FAIL** — got 403 |
+| `smoke:prod` | `/api/dashboard returns 200` | **FAIL** — got 403 |
+| `smoke:prod` | `www is bound to this Vercel project` | **FAIL** — HTTP 403 |
+
+Sole blocker: Vercel project domain binding. Steps 1–4 in
+`docs/VERCEL_DOMAIN_FIX.md` are still outstanding.
+
+---
+
 ## Phase 6 domain binding check — 2026-04-25 18:08 UTC
 
 This section records the Phase 6 verification pass. Its purpose is to determine
@@ -1305,4 +1414,4 @@ The last known-good code SHA documented in this report is `8c1cd98d`.
 ---
 
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:08 UTC by `claude/verify-domain-binding-gvssO`.*
+Last updated: 2026-04-25 18:09 UTC by `claude/verify-domain-binding-gvssO`.*
