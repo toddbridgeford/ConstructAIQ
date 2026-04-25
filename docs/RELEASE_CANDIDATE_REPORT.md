@@ -4571,3 +4571,5 @@ Prerequisite not met. All API endpoints are unreachable.
 **Single next action:** Set Cloudflare A record for `constructaiq.trade` to `76.76.21.21` DNS-only (grey cloud). Allow propagation, then re-run `npm run launch:check -- --include-smoke`; must exit 0 for GO.
 
 *Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
+
+Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-5Q5BF)*
