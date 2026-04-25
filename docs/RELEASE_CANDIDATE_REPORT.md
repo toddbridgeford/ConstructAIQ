@@ -4033,3 +4033,62 @@ www redirect
 **Next action:** Complete Vercel domain binding (green SSL checkmarks on both domains in the correct project). `domain:check` must exit 0 before smoke can pass.
 
 *Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*
+
+---
+
+## Phase 17 env/data verification — 2026-04-25 21:35 UTC
+
+### Prerequisite check
+
+`smoke:prod` exit 1 — prerequisite NOT met. All probes ran as instructed.
+
+### API probe results
+
+All seven probes (`/api/status`, `/api/status?deep=1`, `/api/federal`, `/api/weekly-brief`, `/api/dashboard`) returned identical plain-text 403:
+
+```
+Host not in allowlist
+```
+
+`jq` parse failed on every probe (`jq: parse error: Invalid numeric literal at line 1, column 5` — input is not JSON). No env, runtime, or data fields are evaluable.
+
+### Critical finding — DNS target
+
+TLS handshake to `constructaiq.trade` connected to:
+
+```
+104.21.50.117
+172.67.206.20
+```
+
+Both IPs are in Cloudflare anycast ranges (104.21.0.0/16, 172.67.0.0/22). Vercel's apex IP is `76.76.21.21`. The A record is pointing to a Cloudflare IP, not Vercel's.
+
+The `proxyWarning: false` result in prior phases was a false negative: `check-domain-status.mjs` detects proxy via response headers only (`cf-ray`, `cf-cache-status`, `server: cloudflare`). Cloudflare does not add these headers to pass-through 403 responses from an origin, so the header-based detection missed the proxy. The IP evidence is unambiguous.
+
+### Required DNS correction
+
+| Record | Type | Required value | Observed resolution |
+|--------|------|----------------|---------------------|
+| `constructaiq.trade` | A | `76.76.21.21` | Cloudflare IP `104.21.50.117` |
+| `www.constructaiq.trade` | CNAME | `cname.vercel-dns.com` | not independently verified |
+
+Both records must be DNS-only (grey cloud) in Cloudflare after pointing to the correct target.
+
+### Blocker classification
+
+| Check | Result | Classification |
+|-------|--------|----------------|
+| apex DNS target | Cloudflare IP (wrong) | **Launch blocker** |
+| domain:check | exit 1 · `VERCEL_DOMAIN_NOT_BOUND` | **Launch blocker** |
+| All env fields | not evaluable (403) | **Blocked** |
+| All data fields | not evaluable (403) | **Blocked** |
+
+### Lint
+
+`npm run lint` exits 127 — `node_modules` absent in sandbox. Last verified: exit 0 Phase 16. No code changes since.
+
+### Verdict
+
+**NO-GO** — env/data verification blocked by DNS misconfiguration. Apex A record must be updated to `76.76.21.21` before any further checks can pass.
+
+*Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*

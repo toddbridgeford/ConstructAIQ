@@ -1,10 +1,10 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 17 smoke — FAILED · domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND)**
+**Updated: 2026-04-25 (Phase 17 env/data — BLOCKED · wrong DNS target · VERCEL_DOMAIN_NOT_BOUND)**
 
 ---
 
-> **STOP: code is launch-ready. Sole blocker: both domains return `host_not_allowed`.**
+> **STOP: code is launch-ready. Sole blocker: apex A record points to Cloudflare IPs, not Vercel.**
 
 ---
 
@@ -15,30 +15,34 @@
 | Build | **GO** — 84 routes · 0 errors |
 | Lint | **GO** — no ESLint warnings or errors (last verified Phase 16; node_modules absent in sandbox) |
 | Tests | **GO** — 356/356 · 24 files |
-| Cloudflare proxy | **GO** — `proxyWarning: false` · DNS-only confirmed |
-| Apex canonical redirect | **BLOCKED** — cannot evaluate; Vercel rejects both domains before redirect logic runs |
+| Cloudflare proxy headers | `proxyWarning: false` — no CF response headers |
+| Apex DNS target | **NO-GO** — resolves to Cloudflare IPs (`104.21.50.117`, `172.67.206.20`), not Vercel (`76.76.21.21`) |
 | domain:check | **NO-GO** — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` on both |
 | smoke:prod | **NO-GO** — 1/6 passed (all 403 `host_not_allowed`) |
 | smoke:www | **NO-GO** — 1/2 passed (all 403 `host_not_allowed`) |
+| env/data | **BLOCKED** — all API endpoints return `Host not in allowlist`; not evaluable |
 | Public launch | **NO-GO** |
 
 ---
 
 ## Next action — do this now
 
-**Both domains still return `host_not_allowed`. Domain binding has not propagated.**
+**Fix the apex A record — it must point to Vercel's IP, not a Cloudflare IP.**
 
-Fix the Vercel domain binding — smoke cannot pass until `domain:check` exits 0.
+The apex resolves to `104.21.50.117` / `172.67.206.20` (Cloudflare ranges). Vercel requires:
 
-1. Vercel → **construct-aiq** project → **Settings → Domains**
-2. Confirm `constructaiq.trade` is listed with a green SSL checkmark — connected directly to Production, **no redirect to www**
-3. Confirm `www.constructaiq.trade` is listed with a green SSL checkmark — connected directly, no Vercel-level redirect rule
-4. If both domains appear correct in the UI but probes still return 403: wait 2–5 minutes for edge propagation, then re-run
-5. Run:
+| Record | Type | Value |
+|--------|------|-------|
+| `constructaiq.trade` | A | `76.76.21.21` |
+| `www.constructaiq.trade` | CNAME | `cname.vercel-dns.com` |
+
+Both records must be **DNS-only** (grey cloud) in Cloudflare.
+
+After updating DNS:
 
 ```bash
 npm run domain:check
-# Must exit 0: APEX_OK + WWW_REDIRECT_OK before smoke can pass
+# Must exit 0: APEX_OK + WWW_REDIRECT_OK
 ```
 
 Full walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md) · Remediation detail: [docs/VERCEL_CANONICAL_REMEDIATION.md](./VERCEL_CANONICAL_REMEDIATION.md)
