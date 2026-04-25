@@ -83,6 +83,10 @@ export function classifyApex(result) {
     return 'UNKNOWN_FAILURE'
   }
   if (result.denyReason?.includes('host_not_allowed')) return 'VERCEL_DOMAIN_NOT_BOUND'
+  const isRedirect = result.status >= 300 && result.status < 400
+  if (isRedirect && result.location?.startsWith('https://www.constructaiq.trade')) {
+    return 'APEX_REDIRECTS_TO_WWW'
+  }
   if (result.status === 200 || result.status === 308 || result.status === 301) return 'APEX_OK'
   return 'UNKNOWN_FAILURE'
 }
@@ -146,6 +150,10 @@ const DIAGNOSIS = {
   VERCEL_DOMAIN_NOT_BOUND:
     'Vercel domain not bound to this project. ' +
     'Go to Vercel dashboard → ConstructAIQ → Settings → Domains → Add the domain.',
+  APEX_REDIRECTS_TO_WWW:
+    'Apex redirects to www, but this repo expects apex canonical. ' +
+    'Remove the Vercel-level apex-to-www redirect. ' +
+    'See docs/CANONICAL_DOMAIN_DECISION.md.',
   WWW_REDIRECT_OK:
     'www redirects correctly to the apex domain.',
   WWW_REDIRECT_WRONG_TARGET:

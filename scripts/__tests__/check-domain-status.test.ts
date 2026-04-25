@@ -31,6 +31,16 @@ describe('classifyApex', () => {
     expect(classifyApex({ ok: true, status: 500, denyReason: null, location: null }))
       .toBe('UNKNOWN_FAILURE')
   })
+
+  it('308 Location https://www.constructaiq.trade -> APEX_REDIRECTS_TO_WWW', () => {
+    expect(classifyApex({ ok: true, status: 308, denyReason: null, location: 'https://www.constructaiq.trade/' }))
+      .toBe('APEX_REDIRECTS_TO_WWW')
+  })
+
+  it('301 Location https://www.constructaiq.trade/dashboard -> APEX_REDIRECTS_TO_WWW', () => {
+    expect(classifyApex({ ok: true, status: 301, denyReason: null, location: 'https://www.constructaiq.trade/dashboard' }))
+      .toBe('APEX_REDIRECTS_TO_WWW')
+  })
 })
 
 // ── classifyWww ───────────────────────────────────────────────────────────────
@@ -165,6 +175,19 @@ describe('buildJsonOutput', () => {
     })
     expect(out.exitCode).toBe(2)
     expect(out.ok).toBe(false)
+  })
+
+  it('exitCode=2 and ok=false when apex redirects to www (canonical mismatch)', () => {
+    const apexToWwwResult = { ok: true, status: 308, denyReason: null, location: 'https://www.constructaiq.trade/' }
+    const out = buildJsonOutput({
+      apexUrl: DEFAULT_APEX, apexResult: apexToWwwResult, apexClass: 'APEX_REDIRECTS_TO_WWW',
+      wwwUrl: DEFAULT_WWW,   wwwResult:  okWwwResult,     wwwClass:  'WWW_REDIRECT_OK',
+    })
+    expect(out.exitCode).toBe(2)
+    expect(out.ok).toBe(false)
+    expect(out.apex.classification).toBe('APEX_REDIRECTS_TO_WWW')
+    // www-to-apex redirect is still correctly classified even when apex is broken
+    expect(out.www.classification).toBe('WWW_REDIRECT_OK')
   })
 
   it('status is null when probe returned a network error', () => {
