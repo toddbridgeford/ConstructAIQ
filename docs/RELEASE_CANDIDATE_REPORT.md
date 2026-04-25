@@ -4408,3 +4408,26 @@ Both domains return HTTP 403 `host_not_allowed` from Vercel, confirming the doma
 **Next action:** Confirm Cloudflare A record for `constructaiq.trade` is saved as DNS-only (grey cloud) with value `76.76.21.21`. Allow up to 5 minutes for propagation, then re-run Phase 19 verification.
 
 *Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
+
+---
+
+## Phase 19 smoke verification — 2026-04-25T00:00:00Z
+
+**Branch:** `claude/verify-dns-propagation-5Q5BF`
+
+### Result
+
+| Check | Result |
+|-------|--------|
+| `domain:check` prerequisite | **NOT MET** — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` (apex + www) |
+| `smoke:www` | **NOT RUN** — blocked by prerequisite failure |
+| `smoke:prod` | **NOT RUN** — blocked by prerequisite failure |
+| Public launch | **NO-GO** |
+
+### Reason
+
+Phase 19 goal is "run production smoke only after DNS and domain routing pass." The prerequisite — `domain:check` exits 0 with `APEX_OK` and `WWW_REDIRECT_OK` — was not satisfied. Apex still resolves to `104.21.50.117` (Cloudflare proxy); `domain:check` exits 1 with `VERCEL_DOMAIN_NOT_BOUND` on both apex and www. Smoke was not run.
+
+**Next action:** Operator must confirm Cloudflare A record for `constructaiq.trade` is DNS-only (grey cloud, value `76.76.21.21`). Once `domain:check` exits 0, re-run Phase 19 smoke.
+
+*Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*

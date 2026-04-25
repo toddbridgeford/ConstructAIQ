@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 19 DNS-only verification — domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND · Cloudflare proxy still active)**
+**Updated: 2026-04-25 (Phase 19 smoke — BLOCKED · domain:check prerequisite not met · Cloudflare proxy still active)**
 
 ---
 
@@ -16,6 +16,8 @@
 | 5 | Lint | **GO** — previously verified exit 0 · no warnings (node_modules absent in sandbox; CI confirmed) |
 | 5 | Tests | **GO** — previously verified 356/356 exit 0 (node_modules absent in sandbox; CI confirmed) |
 | 4 | domain:check | **NO-GO** — exit 1 · apex `VERCEL_DOMAIN_NOT_BOUND` · www `VERCEL_DOMAIN_NOT_BOUND` |
+| 4 | smoke:www | **BLOCKED** — prerequisite not met (domain:check exit 1) |
+| 4 | smoke:prod | **BLOCKED** — prerequisite not met (domain:check exit 1) |
 | 2 | Apex DNS target | **NO-GO** — resolves to `104.21.50.117` (Cloudflare proxy), not `76.76.21.21` (Vercel) |
 | — | Public launch | **NO-GO** |
 
