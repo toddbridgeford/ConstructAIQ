@@ -4318,3 +4318,55 @@ curl -s https://constructaiq.trade/api/status | jq .runtime  # jq exit 5
 **Single next action:** Fix Cloudflare DNS to DNS-only (grey cloud, A record → `76.76.21.21`). Once `smoke:prod` exits 0, re-run all Phase 18 data checks.
 
 *Updated by `claude/verify-dns-cloudflare-sKNiP` · 2026-04-25*
+
+---
+
+## Phase 18 final launch gate — 2026-04-25
+
+**Branch:** `claude/verify-dns-cloudflare-sKNiP`
+
+### Command results
+
+| Command | Exit | Notes |
+|---------|------|-------|
+| `npm run build` | 127 | `next` not found — node_modules absent in sandbox; previously verified exit 0 in CI (84 routes, 60.1s) |
+| `npm run lint` | 127 | `next lint` not found — node_modules absent in sandbox; previously verified exit 0 in CI |
+| `npm test` | 127 | `vitest` not found — node_modules absent in sandbox; previously verified 356/356 exit 0 in CI |
+| `npm run smoke:prod` | 1 | 1/6 passed · 5 failed · all 403 `host_not_allowed` |
+| `npm run smoke:www` | 1 | 1/2 passed · 1 failed · 403 `host_not_allowed` |
+| `npm run launch:check -- --include-smoke` | 1 | Failing gates reported: smoke:prod, smoke:www |
+
+### launch:check final line
+
+```
+✗ Launch readiness FAILED — required gates: build, lint, unit tests
+```
+
+> Note: launch:check reports build/lint/tests as failed because node_modules is absent in this sandbox.
+> Gate 5 status is GO based on previously verified CI runs. The live blocker is Gate 4 (smoke).
+
+### smoke:prod detail (exit 1)
+
+| Check | Result |
+|-------|--------|
+| GET / returns 200 | FAIL — got 403 |
+| GET /dashboard returns 200 | FAIL — got 403 |
+| /api/status returns 200 | FAIL — got 403 |
+| /api/dashboard returns 200 | FAIL — got 403 |
+| www DNS resolves | PASS |
+| www is bound to this Vercel project | FAIL — got 403 |
+
+### smoke:www detail (exit 1)
+
+| Check | Result |
+|-------|--------|
+| www DNS resolves | PASS |
+| www is bound to this Vercel project | FAIL — got 403 |
+
+### Final verdict
+
+**NO-GO.** `launch:check --include-smoke` exits 1. Gate 5 (build/lint/tests) confirmed GO by CI. Gate 4 (smoke) fails on both checks — single root cause: apex DNS resolves to `172.67.206.20` (Cloudflare proxy), not `76.76.21.21` (Vercel). Domain is not bound.
+
+**Single next action:** Set Cloudflare A record for `constructaiq.trade` to `76.76.21.21` with proxy OFF (grey cloud). Re-run `npm run launch:check -- --include-smoke`; must exit 0 for GO.
+
+*Updated by `claude/verify-dns-cloudflare-sKNiP` · 2026-04-25*
