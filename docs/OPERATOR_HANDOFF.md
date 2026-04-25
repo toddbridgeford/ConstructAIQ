@@ -60,16 +60,19 @@ No DNS changes are needed. The registrar/DNS side is done.
 ## Verification — run these after binding
 
 ```bash
-# 1. Apex no longer returns x-deny-reason
+# 1. Quick diagnosis — run this first; exit 1 means domain not yet bound
+npm run domain:check
+
+# 2. Apex no longer returns x-deny-reason
 curl -sSI https://constructaiq.trade
 
-# 2. www no longer returns x-deny-reason
+# 3. www no longer returns x-deny-reason
 curl -sSI https://www.constructaiq.trade/dashboard
 
-# 3. www smoke — must exit 0
+# 4. www smoke — must exit 0
 npm run smoke:www
 
-# 4. Full smoke — must exit 0
+# 5. Full smoke — must exit 0
 npm run smoke:prod
 ```
 

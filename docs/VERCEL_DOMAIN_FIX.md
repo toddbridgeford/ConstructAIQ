@@ -151,6 +151,17 @@ per row — make sure both records are saved before continuing.
 Run these in order from any machine with outbound network access once the
 Vercel Domain Steps and DNS Steps above are complete.
 
+### 0. Quick domain check (run this first)
+
+```bash
+npm run domain:check
+```
+
+Reports `APEX_OK` / `WWW_REDIRECT_OK` when binding is complete, or
+`VERCEL_DOMAIN_NOT_BOUND` if the domains have not been added to the project.
+Exit 0 = healthy. Exit 1 = `host_not_allowed`. Continue to the steps below
+once it exits 0.
+
 ### 1. Check DNS resolution
 
 ```bash

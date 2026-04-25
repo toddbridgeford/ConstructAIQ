@@ -3008,5 +3008,66 @@ first-24-hour monitoring per [docs/POST_LAUNCH_WATCH.md](./POST_LAUNCH_WATCH.md)
 
 ---
 
+---
+
+## Phase 10 validation — 2026-04-25 (branch `claude/add-domain-checker-x6F6K`)
+
+### What changed in Phase 10
+
+- Added `scripts/check-domain-status.mjs` — operator helper that probes apex and www, prints HTTP status, `x-deny-reason`, `Location`, and a named classification (`APEX_OK`, `VERCEL_DOMAIN_NOT_BOUND`, `DNS_MISSING`, `WWW_REDIRECT_OK`, `WWW_REDIRECT_WRONG_TARGET`, `UNKNOWN_FAILURE`). Exit 0 = healthy, exit 1 = `host_not_allowed`, exit 2 = other failure.
+- Added `npm run domain:check` to `package.json`.
+- Trimmed `docs/LAUNCH_NOW.md` from 172 lines to 70 — historical smoke logs removed (they live in this report).
+- Updated `OPERATOR_HANDOFF.md`, `VERCEL_DOMAIN_FIX.md`, `PRODUCTION_SMOKE.md` to reference `domain:check` as the first diagnostic step.
+- Added `docs/POST_BINDING_VERIFICATION_TEMPLATE.md` — fill-in-the-blanks run sheet for the moment after domain binding completes.
+
+### `npm run domain:check` — 2026-04-25 ~19:22 UTC
+
+```
+ConstructAIQ — domain status check
+══════════════════════════════════════════════════════
+
+  apex  (constructaiq.trade)
+  ──────────────────────────────────────────────────
+  status       : 403
+  x-deny-reason: host_not_allowed
+  classification: VERCEL_DOMAIN_NOT_BOUND
+  diagnosis    : Vercel domain not bound to this project.
+
+  www   (www.constructaiq.trade/dashboard)
+  ──────────────────────────────────────────────────
+  status       : 403
+  x-deny-reason: host_not_allowed
+  classification: VERCEL_DOMAIN_NOT_BOUND
+  diagnosis    : Vercel domain not bound to this project.
+
+  ✗ host_not_allowed — Vercel domain not bound to this project.
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Apex | HTTP 403 · `x-deny-reason: host_not_allowed` · `VERCEL_DOMAIN_NOT_BOUND` |
+| www | HTTP 403 · `x-deny-reason: host_not_allowed` · `VERCEL_DOMAIN_NOT_BOUND` |
+| Change from Phase 9 | None — domain binding is still the sole blocker |
+
+### Build / lint / tests — 2026-04-25 ~19:22 UTC
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run build` | **0** | `✓ Compiled successfully in 64s` · 84 static pages · 0 errors |
+| `npm run lint` | **0** | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | 23 files · 317/317 passed |
+
+All three gates remain green. No regressions introduced by Phase 10.
+
+### Launch status
+
+**Public launch: NO-GO** — unchanged. Sole blocker remains Vercel domain binding.
+`host_not_allowed` is still present on both apex and www. No code change is required.
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → Add `constructaiq.trade` and `www.constructaiq.trade`. After binding, run `npm run domain:check` (must exit 0), then `npm run smoke:www` and `npm run smoke:prod`.
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 19:12 UTC by `claude/fix-launch-docs-Gxt9P`.*
+Last updated: 2026-04-25 ~19:22 UTC by `claude/add-domain-checker-x6F6K`.*
