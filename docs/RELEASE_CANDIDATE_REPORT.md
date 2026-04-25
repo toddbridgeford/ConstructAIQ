@@ -3514,4 +3514,212 @@ Launch GO checklist skipped because Public launch remains NO-GO.
 
 Lint: `npm run lint` exit 0 — no ESLint warnings or errors.
 
+---
+
+## Phase 15 domain binding verification — 2026-04-25
+
+**Task:** Verify whether the operator-confirmed Vercel domain binding is live.
+
+### Command results
+
+| Command | Exit code | Apex status | Apex classification | www status | www classification |
+|---------|-----------|-------------|---------------------|------------|--------------------|
+| `npm run domain:check` | **1** | 403 | `VERCEL_DOMAIN_NOT_BOUND` | 403 | `VERCEL_DOMAIN_NOT_BOUND` |
+| `node scripts/check-domain-status.mjs --json` | **1** | 403 | `VERCEL_DOMAIN_NOT_BOUND` | 403 | `VERCEL_DOMAIN_NOT_BOUND` |
+
+### Response headers
+
+| Domain | x-deny-reason | Location |
+|--------|---------------|----------|
+| `constructaiq.trade` | `host_not_allowed` | null |
+| `www.constructaiq.trade` | `host_not_allowed` | null |
+
+### Verdict
+
+**NO-GO — domain binding not yet effective.**
+
+Both `constructaiq.trade` and `www.constructaiq.trade` still return `HTTP 403 · x-deny-reason: host_not_allowed`. The Vercel edge rejects all requests before any application code is reached. The domain binding reported by the operator has not propagated to Vercel's edge network, or has not yet been saved.
+
+**Failing gate:** `domain:check` — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` on apex and www.
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → confirm both `constructaiq.trade` and `www.constructaiq.trade` are bound to this project with green SSL checkmarks (not configured as redirects). Re-run `npm run domain:check` (must exit 0 with `APEX_OK + WWW_REDIRECT_OK`) before proceeding.
+
+Lint: `npm run lint` exit 0 — no ESLint warnings or errors.
+
+*Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
+
 *Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 21:40 UTC*
+
+---
+
+## Phase 15 smoke verification — 2026-04-25
+
+**Task:** Run `npm run smoke:www` and `npm run smoke:prod` after domain binding confirmed.
+
+### Prerequisite gate: FAILED — smoke tests not run
+
+`npm run domain:check` must exit 0 with `APEX_OK + WWW_REDIRECT_OK` before smoke tests are meaningful. It did not:
+
+| Command | Exit code | Apex classification | www classification |
+|---------|-----------|---------------------|--------------------|
+| `npm run domain:check` | **1** | `VERCEL_DOMAIN_NOT_BOUND` | `VERCEL_DOMAIN_NOT_BOUND` |
+
+Both domains return `HTTP 403 · x-deny-reason: host_not_allowed`. Running smoke tests against an unbound domain would only replicate the same 403 failure already captured in Phase 15 domain binding verification. No new information would be produced.
+
+Smoke tests were **not executed** per the constraint: *"Run smoke checks only after domain:check passes."*
+
+### Verdict
+
+**NO-GO — prerequisite not satisfied.**
+
+| Check | Status |
+|-------|--------|
+| `domain:check` | FAIL — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` |
+| `smoke:www` | NOT RUN |
+| `smoke:prod` | NOT RUN |
+| Public launch | **NO-GO** |
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → bind both `constructaiq.trade` and `www.constructaiq.trade` with green SSL checkmarks (direct connection, no apex-to-www redirect). Then re-run `npm run domain:check` (must exit 0) before smoke tests proceed.
+
+Lint: `npm run lint` — node_modules not installed in this sandbox; no product code changed in this phase (docs-only). Prior Phase 14 lint exit 0 remains the last valid lint result.
+
+*Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
+
+---
+
+## Phase 15 env/runtime verification — 2026-04-25
+
+**Task:** Read `supabaseConfigured`, `cronSecretConfigured`, `anthropicConfigured`, `upstashConfigured`, `sentryConfigured`, `runtime.siteLocked`, `runtime.nodeEnv`, `runtime.appUrl` from `https://constructaiq.trade/api/status`.
+
+### Prerequisite gate: FAILED — env/runtime not readable
+
+`npm run smoke:prod` must exit 0 before env/runtime data is meaningful. It cannot, because `domain:check` still exits 1 (`VERCEL_DOMAIN_NOT_BOUND`).
+
+Direct probe confirms the endpoint is unreachable:
+
+| Probe | Result |
+|-------|--------|
+| `curl -s https://constructaiq.trade/api/status` | `HTTP 403 · Host not in allowlist` |
+| Response body | `Host not in allowlist` (plain text — Vercel edge rejection) |
+| JSON env/runtime data | **Not returned** |
+
+### Env/runtime booleans
+
+| Field | Value | Classification |
+|-------|-------|----------------|
+| `supabaseConfigured` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `cronSecretConfigured` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `anthropicConfigured` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `upstashConfigured` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `sentryConfigured` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `runtime.siteLocked` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `runtime.nodeEnv` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+| `runtime.appUrl` | **UNKNOWN** — endpoint unreachable | Cannot assess |
+
+### Verdict
+
+**NO-GO — prerequisite chain broken at domain binding.**
+
+Env/runtime verification cannot proceed until the domain is bound and `smoke:prod` exits 0.
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → bind both `constructaiq.trade` and `www.constructaiq.trade` with green SSL checkmarks (direct, no apex-to-www redirect). Then re-run `npm run domain:check` (exit 0) → `npm run smoke:prod` (exit 0) → re-attempt this env/runtime check.
+
+Lint: `npm run lint` — node_modules not installed in this sandbox; no product code changed in this phase (docs-only). Prior Phase 14 lint exit 0 remains the last valid lint result.
+
+*Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
+
+---
+
+## Phase 15 data/dashboard verification — 2026-04-25
+
+**Task:** Probe `/api/status`, `/api/federal`, `/api/weekly-brief`, and `/api/dashboard` for live data shape and fallback status.
+
+### Prerequisite gate: FAILED — all endpoints return HTTP 403
+
+`npm run smoke:prod` must exit 0 before data/dashboard shape can be assessed. `domain:check` still exits 1 (`VERCEL_DOMAIN_NOT_BOUND`), so no endpoint is reachable.
+
+### Endpoint probe results
+
+| Endpoint | HTTP status | Response body |
+|----------|-------------|---------------|
+| `GET /api/status` | **403** | `Host not in allowlist` |
+| `GET /api/status?deep=1` | **403** | `Host not in allowlist` |
+| `GET /api/federal` | **403** | `Host not in allowlist` |
+| `GET /api/weekly-brief` | **403** | `Host not in allowlist` |
+| `GET /api/dashboard` | **403** | `Host not in allowlist` |
+
+### Data/dashboard classifications
+
+| Field | Value | Classification |
+|-------|-------|----------------|
+| `data` (from `/api/status`) | **UNKNOWN** — 403 | Cannot assess |
+| `dashboard.fetched_at` | **UNKNOWN** — 403 | Cannot assess |
+| `dashboard.cshi` type | **UNKNOWN** — 403 | Cannot assess (string = launch blocker) |
+| `dashboard.signals` length | **UNKNOWN** — 403 | Cannot assess |
+| `dashboard.commodities` length | **UNKNOWN** — 403 | Cannot assess |
+| `dashboard.forecast` type | **UNKNOWN** — 403 | Cannot assess |
+| `federal.dataSource` | **UNKNOWN** — 403 | Cannot assess |
+| `weekly-brief.source` | **UNKNOWN** — 403 | Cannot assess |
+| `weekly-brief.live` | **UNKNOWN** — 403 | Cannot assess |
+
+### Verdict
+
+**NO-GO — prerequisite chain broken at domain binding.**
+
+Data and dashboard shape verification cannot proceed until the domain is bound, `smoke:prod` exits 0, and `/api/status` returns JSON.
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → bind both `constructaiq.trade` and `www.constructaiq.trade` with green SSL checkmarks (direct, no apex-to-www redirect). Then re-run the full verification chain: `domain:check` (exit 0) → `smoke:prod` (exit 0) → re-attempt env/runtime and data/dashboard checks.
+
+Lint: `npm run lint` — node_modules not installed in this sandbox; no product code changed in this phase (docs-only). Prior Phase 14 lint exit 0 remains the last valid lint result.
+
+*Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
+
+---
+
+## Phase 15 final launch gate — 2026-04-25
+
+**Task:** Run `npm run launch:check --include-smoke`, `npm run build`, `npm run lint`, `npm test`.
+
+### Command results
+
+| Command | Exit code | Summary |
+|---------|-----------|---------|
+| `npm run build` | **0** | 84 routes · 0 errors · compiled in 51.5s |
+| `npm run lint` | **0** | No ESLint warnings or errors (2.7s) |
+| `npm test` | **0** | 344/344 tests · 24 files · 3.5s |
+| `npm run smoke:prod` | **1** | 1/6 passed · 5/6 failed — `host_not_allowed` on apex and www |
+| `npm run smoke:www` | **1** | 1/2 passed · 1/2 failed — `host_not_allowed` on www |
+| `npm run launch:check --include-smoke` | **1** | `✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www` |
+
+### Smoke:prod detail
+
+| Check | Result |
+|-------|--------|
+| `GET / returns 200` | FAIL — got 403 |
+| `GET /dashboard returns 200` | FAIL — got 403 |
+| `/api/status returns 200` | FAIL — got 403 |
+| `/api/dashboard returns 200` | FAIL — got 403 |
+| `www DNS resolves` | PASS |
+| `www is bound to this Vercel project` | FAIL — 403 `host_not_allowed` |
+
+### Verdict
+
+**NO-GO — launch:check exits 1.**
+
+All three code-quality gates pass (build, lint, tests). Sole failure: Vercel domain not bound. Both `constructaiq.trade` and `www.constructaiq.trade` return `HTTP 403 · x-deny-reason: host_not_allowed`.
+
+**Failing gate:** `smoke:prod` (5/6 failed) + `smoke:www` (1/2 failed) — `VERCEL_DOMAIN_NOT_BOUND`.
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → confirm both `constructaiq.trade` and `www.constructaiq.trade` are bound with green SSL checkmarks (direct — no apex-to-www redirect). Re-run `npm run domain:check` (must exit 0), then `npm run launch:check --include-smoke` (must exit 0) to flip verdict to GO.
+
+HEAD SHA at time of run: `b82fc50ed1d27de1442ba2344a6576ee0be18de4`
+
+*Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
+
+---
+
+Launch GO checklist skipped because Public launch remains NO-GO.
+
+`docs/LAUNCH_GO_CHECKLIST.md` was not created.
+
+Lint: `npm run lint` exit 0 — no ESLint warnings or errors.
