@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:types": "supabase gen types typescript --project-id YOUR_PROJECT_ID > src/lib/database.types.ts",
+    "smoke:prod": "node scripts/smoke-prod.mjs https://constructaiq.trade",
     "e2e":        "playwright test",
     "e2e:headed": "playwright test --headed",
     "e2e:report": "playwright show-report"
