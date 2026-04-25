@@ -3400,3 +3400,50 @@ Public launch status: **NO-GO**.
 **Next action:** Resolve Vercel domain binding → `domain:check` exits 0 → `smoke:prod` exits 0 → re-run env check.
 
 *Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 21:05 UTC*
+
+---
+
+## Phase 14 data verification — 2026-04-25 21:15 UTC
+
+### Prerequisite check
+
+`npm run smoke:prod` requires a reachable production host. Domain check exits 1.
+
+| Gate | Required | Result |
+|------|----------|--------|
+| `domain:check` exits 0 | Yes | **FAIL — exit 1, VERCEL_DOMAIN_NOT_BOUND** |
+| `smoke:prod` exits 0 | Yes | **NOT RUN** |
+
+### Endpoint probe results
+
+All five data endpoints probed directly with `curl`.
+
+| Endpoint | HTTP status | JSON | Notes |
+|----------|-------------|------|-------|
+| `/api/status` (`.data`) | 403 | No — `Host not in allowlist` | Cannot read |
+| `/api/status?deep=1` (`.data`) | 403 | No — `Host not in allowlist` | Cannot read |
+| `/api/federal` | 403 | No | Cannot read |
+| `/api/weekly-brief` | 403 | No | Cannot read |
+| `/api/dashboard` | 403 | No | Cannot read |
+
+### Data classification
+
+All fields unknown — endpoint unreachable.
+
+| Check | Classification | Status |
+|-------|---------------|--------|
+| Dashboard shape valid | Launch blocker | **UNKNOWN** |
+| `cshi` type | Launch blocker | **UNKNOWN** |
+| Federal data source | Warning | **UNKNOWN** |
+| Weekly brief source | Warning | **UNKNOWN** |
+| Signals / commodities count | Warning | **UNKNOWN** |
+
+### Verdict
+
+**NO-GO — data verification blocked by unresolved VERCEL_DOMAIN_NOT_BOUND.**
+
+Public launch status: **NO-GO**.
+
+**Next action:** Resolve Vercel domain binding → `domain:check` exits 0 → `smoke:prod` exits 0 → re-run data verification.
+
+*Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 21:15 UTC*
