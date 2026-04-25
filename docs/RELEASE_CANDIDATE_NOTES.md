@@ -1,7 +1,6 @@
 # Release Candidate — Validation Notes (raw)
 
-**Status:** Working notes. Superseded by `RELEASE_CANDIDATE_REPORT.md`
-once the data here is reviewed and signed off.
+**Status:** Raw validation input; [RELEASE_CANDIDATE_REPORT.md](./RELEASE_CANDIDATE_REPORT.md) is authoritative.
 
 **Captured:** 2026-04-25 04:00 UTC
 **Captured by:** Claude Code, Phase 3 release-candidate validation chunk
