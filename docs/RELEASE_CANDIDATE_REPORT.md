@@ -316,8 +316,169 @@ npm run smoke:www    # must exit 0
 
 ## Data Source Status
 
+The actual production state of live data feeds cannot be observed until the P0
+domain/DNS blockers are resolved (every request returns 403 today). The table below
+reflects the contracts encoded in code and verified by the 317-test suite.
+
+| Surface             | Live signal when key is set                           | Current verifiable state          |
+|---------------------|-------------------------------------------------------|-----------------------------------|
+| `/api/federal`       | `dataSource: "usaspending.gov"`, `fromCache: true/false`, contractors and agencies populated | Cannot poll — production returns 403 |
+| `/api/weekly-brief`  | `source: "ai"`, `live: true`, `configured: true`     | Cannot poll — production returns 403 |
+| `/api/dashboard`     | `forecast`, `cshi`, `commodities`, `signals` all populated | Cannot poll — production returns 403 |
+| `/api/pricewatch`    | `live: true`, `commodities` non-empty                 | Cannot poll — production returns 403 |
+| `/api/forecast`      | `ensemble` array, `models`, `metrics` present         | Cannot poll — production returns 403 |
+| `/api/cshi`          | `score`, `subScores`, `history` present               | Cannot poll — production returns 403 |
+| `/api/status`        | `env.*Configured` booleans, `freshness` array         | Cannot poll — production returns 403 |
+
+**Action:** once the domain is bound and env vars are set, run:
+
+```bash
+# Infrastructure booleans — all five must be true
+curl -s https://constructaiq.trade/api/status | jq .env
+
+# Data-source live/fallback state
+curl -s https://constructaiq.trade/api/status | jq .data
+# expected: { federalSource: "usaspending.gov", weeklyBriefSource: "ai" }
+
+# Freshness — count of stale series (should be 0)
+curl -s https://constructaiq.trade/api/status | jq '[.freshness[] | select(.status=="stale")] | length'
+
+# Deep check — verifies dashboard KPI observations exist
+curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data.dashboardShapeOk
+```
+
 ## Known Fallbacks
+
+Every fallback path is explicit, structured, and tested. No fabricated data is
+presented as live.
+
+| Route               | Trigger                                                  | Fallback response                                                                      | UI behavior                                              |
+|---------------------|----------------------------------------------------------|----------------------------------------------------------------------------------------|----------------------------------------------------------|
+| `/api/federal`       | USASpending.gov fetch fails or `SAM_GOV_API_KEY` absent  | `dataSource: "static-fallback"`, `contractors: []`, `agencies: []`, `fetchError` set  | Banner: "Federal live feed unavailable"; leaderboard and agency rows empty |
+| `/api/weekly-brief`  | `ANTHROPIC_API_KEY` absent or Claude API call fails      | `source: "static-fallback"`, `live: false`, `configured: false`                        | Dashboard panel shows UNAVAILABLE badge; no numeric claims in body |
+| `/api/dashboard`     | Individual upstream source unavailable                   | Shape always present; null/empty per failing source                                    | Section-level EmptyState components; no global error     |
+| `/api/pricewatch`    | Both `BLS_API_KEY` and `FRED_API_KEY` absent             | HTTP 503, `commodities: []`                                                            | Materials section renders EmptyState                     |
+| `/api/forecast`      | Insufficient observations in Supabase                   | Falls back to baked-in seed data internally; HTTP 422 only if seed data also fails     | HeroForecast renders EmptyState with CloudOff icon when forecast is null |
+| `/api/cshi`          | Supabase query returns null                              | `null` propagated to dashboard response                                                | Dashboard null-guards via `dashCore?.cshi?.score ?? null` |
+| Equities data        | `POLYGON_API_KEY` absent                                 | Empty equities array                                                                   | Equities section renders EmptyState                      |
+| Energy/EIA data      | `EIA_API_KEY` absent                                     | Empty commodities from EIA                                                             | Materials section renders EmptyState for EIA rows        |
+
+All fallback paths emit structured logs via `src/lib/observability.ts` using one of the
+seven canonical scopes: `[dashboard]`, `[federal]`, `[weeklyBrief]`, `[status]`,
+`[pricewatch]`, `[forecast]`, `[cshi]`. Sentry capture fires only on actual failures
+(Federal live fetch total failure, Dashboard top-level aggregate, Weekly Brief Claude
+call, Supabase connection). Expected empty states do not generate Sentry noise.
 
 ## Post-Launch Monitoring Checklist
 
+Run these checks after launch and on any deploy or infrastructure change.
+
+### Immediate post-launch (within 30 minutes of going live)
+
+- [ ] **`npm run smoke:prod` exits 0** — confirms pages, API shape, and www redirect all pass
+- [ ] **`npm run smoke:www` exits 0** — confirms www DNS + Vercel binding + redirect chain
+- [ ] **`/api/status` infrastructure booleans**
+  ```bash
+  curl -s https://constructaiq.trade/api/status | jq .env
+  # all five must be true: supabaseConfigured, anthropicConfigured,
+  # upstashConfigured, sentryConfigured, cronSecretConfigured
+  ```
+- [ ] **`/api/status` data-source state**
+  ```bash
+  curl -s https://constructaiq.trade/api/status | jq .data
+  # federalSource should be "usaspending.gov" (not "static-fallback")
+  # weeklyBriefSource should be "ai"
+  ```
+- [ ] **`/api/dashboard` shape is valid**
+  ```bash
+  curl -s https://constructaiq.trade/api/dashboard | jq '{forecast: (.forecast|type), cshi: (.cshi|type), signals: (.signals|length), commodities: (.commodities|length)}'
+  ```
+- [ ] **`/api/federal` is live (not fallback)**
+  ```bash
+  curl -s https://constructaiq.trade/api/federal | jq '{dataSource, contractors: (.contractors|length), agencies: (.agencies|length)}'
+  # dataSource should be "usaspending.gov", counts > 0
+  ```
+- [ ] **`/api/weekly-brief` is live**
+  ```bash
+  curl -s https://constructaiq.trade/api/weekly-brief | jq '{source, live, configured}'
+  # source: "ai", live: true, configured: true
+  ```
+- [ ] **Vercel function logs** — open the Vercel dashboard for the Production deployment,
+      scan Function Logs for any `[scope] ERROR` lines from the observability helper.
+      Stable scopes: `[dashboard]`, `[federal]`, `[weeklyBrief]`, `[status]`,
+      `[pricewatch]`, `[forecast]`, `[cshi]`.
+- [ ] **Sentry project** (if `NEXT_PUBLIC_SENTRY_DSN` is set) — confirm no unexpected
+      `api_scope` events in the last hour. One event per intentional test is acceptable;
+      a flood indicates a live fallback path is looping.
+
+### Ongoing (after each deploy or cron run)
+
+- [ ] Re-run `npm run smoke:prod` from a machine with outbound network access.
+- [ ] Check `/api/status?deep=1` — `data.dashboardShapeOk` must be `true`.
+- [ ] Verify freshness: `curl -s https://constructaiq.trade/api/status | jq '[.freshness[] | select(.status=="stale")] | length'` — target 0.
+- [ ] Scan Vercel function logs for the deploy window for unexpected error bursts.
+
 ## Rollback Procedure
+
+Use this if a deploy introduces a regression visible in smoke tests, Sentry, or
+Vercel function logs.
+
+### 1. Identify the last known good deployment
+
+1. Open <https://vercel.com/dashboard> → **ConstructAIQ** project.
+2. Click **Deployments** in the left nav.
+3. Locate the most recent deployment whose status was **Ready** before the
+   regression appeared. Note its deployment ID and the commit SHA it was built from.
+4. Cross-reference the SHA against this report (`8c1cd98d`) or the git log to
+   confirm it predates the regression.
+
+### 2. Promote / rollback to that deployment
+
+**Via Vercel UI (recommended):**
+
+1. Click the deployment row to open its detail page.
+2. Click the `…` menu (top right of the deployment card).
+3. Select **Promote to Production**.
+4. Confirm the promotion. Vercel will instantly shift production traffic to that
+   build — no rebuild occurs; the previous artifact is re-promoted.
+
+**Via Vercel CLI:**
+
+```bash
+vercel rollback <deployment-url-or-id> --prod
+```
+
+### 3. Verify the rollback is live
+
+```bash
+# Check the deployment is serving the expected SHA
+curl -s https://constructaiq.trade/api/status | jq .runtime
+# confirm "version" or build timestamp matches the promoted deployment
+
+# Homepage and dashboard return 200
+curl -sSo /dev/null -w "%{http_code}" https://constructaiq.trade/
+curl -sSo /dev/null -w "%{http_code}" https://constructaiq.trade/dashboard
+
+# API status and dashboard shape are valid
+curl -s https://constructaiq.trade/api/status | jq .env
+curl -s https://constructaiq.trade/api/dashboard | jq .fetched_at
+```
+
+### 4. Re-run smoke tests
+
+```bash
+npm run smoke:prod   # must exit 0
+npm run smoke:www    # must exit 0
+```
+
+Both must exit 0 before the rollback is declared complete. If either still fails,
+the issue is infrastructure (DNS/Vercel domain) rather than the deployment artifact —
+do not keep rolling back through deployment history; investigate the external
+configuration blockers in this report instead.
+
+### 5. Document and notify
+
+- Record the regression SHA, the promoted rollback SHA, and the time of rollback in
+  a git commit message or incident note.
+- Open a follow-up issue with the full symptom, the smoke/Sentry evidence, and a
+  pointer to the regressing commit so the fix can be landed cleanly on a new branch.
