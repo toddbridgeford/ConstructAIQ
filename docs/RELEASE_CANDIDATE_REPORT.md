@@ -4236,3 +4236,49 @@ Launch GO checklist skipped because Public launch remains NO-GO.
 **NO-GO.** Both smoke commands exit 1. All failures share a single root cause: `host_not_allowed` — the domain is not bound to the Vercel project because DNS still routes through Cloudflare proxy. Smoke tests cannot pass until `domain:check` exits 0.
 
 *Updated by `claude/verify-dns-cloudflare-sKNiP` · 2026-04-25*
+
+---
+
+## Phase 18 env verification — 2026-04-25
+
+**Branch:** `claude/verify-dns-cloudflare-sKNiP`
+**Prerequisite state:** `smoke:prod` exits 1 — prerequisite NOT met. Env check run and documented per task specification.
+
+### Commands run
+
+```
+curl -s https://constructaiq.trade/api/status | jq .env      # jq exit 5
+curl -s https://constructaiq.trade/api/status | jq .runtime  # jq exit 5
+```
+
+### /api/status response
+
+| Field | Value |
+|-------|-------|
+| HTTP status | 403 |
+| `x-deny-reason` | `host_not_allowed` |
+| Body | `Host not in allowlist` |
+| Content-Type | `text/plain` |
+
+`jq` received a plain-text error body, not JSON. Parse failed with exit 5 on both commands.
+
+### Env boolean status
+
+| Variable | Value | Classification |
+|----------|-------|----------------|
+| `supabaseConfigured` | UNKNOWN — 403 blocked | **LAUNCH BLOCKER** (cannot verify) |
+| `cronSecretConfigured` | UNKNOWN — 403 blocked | **LAUNCH BLOCKER** (cannot verify) |
+| `anthropicConfigured` | UNKNOWN — 403 blocked | Warning (cannot verify) |
+| `upstashConfigured` | UNKNOWN — 403 blocked | Warning (cannot verify) |
+| `sentryConfigured` | UNKNOWN — 403 blocked | Warning (cannot verify) |
+| `runtime.siteLocked` | UNKNOWN — 403 blocked | **LAUNCH BLOCKER** (cannot verify) |
+| `runtime.nodeEnv` | UNKNOWN — 403 blocked | — |
+| `runtime.appUrl` | UNKNOWN — 403 blocked | — |
+
+### Verdict
+
+**BLOCKED / NO-GO.** `/api/status` returns HTTP 403 (`host_not_allowed`). No env booleans are readable. Required env cannot be classified as GO until the domain is bound to Vercel and `/api/status` returns JSON. All launch blockers remain unverified.
+
+**Single root cause:** DNS still routes through Cloudflare proxy — fix the A record to DNS-only and re-run env verification once `smoke:prod` exits 0.
+
+*Updated by `claude/verify-dns-cloudflare-sKNiP` · 2026-04-25*

@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 18 smoke verification — smoke:prod exit 1 · smoke:www exit 1 · DNS blocker unchanged)**
+**Updated: 2026-04-25 (Phase 18 env verification — /api/status blocked · 403 host_not_allowed · DNS blocker unchanged)**
 
 ---
 
@@ -17,7 +17,7 @@
 | 5 | Tests | **GO** — 356/356 · 24 files · exit 0 |
 | 4 | smoke:prod | **NO-GO** — 1/6 passed · exit 1 · 5 failed · all 403 `host_not_allowed` |
 | 4 | smoke:www | **NO-GO** — 1/2 passed · exit 1 · 1 failed · 403 `host_not_allowed` |
-| 3 | env/data | **BLOCKED** — all API endpoints return 403 while domain unbound |
+| 3 | env/data | **BLOCKED** — /api/status returns 403; env booleans unreadable while domain unbound |
 | 2 | Apex DNS target | **NO-GO** — resolves to `172.67.206.20` (Cloudflare), not `76.76.21.21` (Vercel) |
 | — | domain:check | **FAILED** — exit 1 · both apex and www: `VERCEL_DOMAIN_NOT_BOUND` |
 | — | Public launch | **NO-GO** |
