@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 15 env/runtime attempt — blocked · domain still unbound)**
+**Updated: 2026-04-25 (Phase 15 data/dashboard attempt — blocked · domain still unbound)**
 
 ---
 

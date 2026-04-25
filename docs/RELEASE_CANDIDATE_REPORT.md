@@ -3627,3 +3627,49 @@ Env/runtime verification cannot proceed until the domain is bound and `smoke:pro
 Lint: `npm run lint` — node_modules not installed in this sandbox; no product code changed in this phase (docs-only). Prior Phase 14 lint exit 0 remains the last valid lint result.
 
 *Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
+
+---
+
+## Phase 15 data/dashboard verification — 2026-04-25
+
+**Task:** Probe `/api/status`, `/api/federal`, `/api/weekly-brief`, and `/api/dashboard` for live data shape and fallback status.
+
+### Prerequisite gate: FAILED — all endpoints return HTTP 403
+
+`npm run smoke:prod` must exit 0 before data/dashboard shape can be assessed. `domain:check` still exits 1 (`VERCEL_DOMAIN_NOT_BOUND`), so no endpoint is reachable.
+
+### Endpoint probe results
+
+| Endpoint | HTTP status | Response body |
+|----------|-------------|---------------|
+| `GET /api/status` | **403** | `Host not in allowlist` |
+| `GET /api/status?deep=1` | **403** | `Host not in allowlist` |
+| `GET /api/federal` | **403** | `Host not in allowlist` |
+| `GET /api/weekly-brief` | **403** | `Host not in allowlist` |
+| `GET /api/dashboard` | **403** | `Host not in allowlist` |
+
+### Data/dashboard classifications
+
+| Field | Value | Classification |
+|-------|-------|----------------|
+| `data` (from `/api/status`) | **UNKNOWN** — 403 | Cannot assess |
+| `dashboard.fetched_at` | **UNKNOWN** — 403 | Cannot assess |
+| `dashboard.cshi` type | **UNKNOWN** — 403 | Cannot assess (string = launch blocker) |
+| `dashboard.signals` length | **UNKNOWN** — 403 | Cannot assess |
+| `dashboard.commodities` length | **UNKNOWN** — 403 | Cannot assess |
+| `dashboard.forecast` type | **UNKNOWN** — 403 | Cannot assess |
+| `federal.dataSource` | **UNKNOWN** — 403 | Cannot assess |
+| `weekly-brief.source` | **UNKNOWN** — 403 | Cannot assess |
+| `weekly-brief.live` | **UNKNOWN** — 403 | Cannot assess |
+
+### Verdict
+
+**NO-GO — prerequisite chain broken at domain binding.**
+
+Data and dashboard shape verification cannot proceed until the domain is bound, `smoke:prod` exits 0, and `/api/status` returns JSON.
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → bind both `constructaiq.trade` and `www.constructaiq.trade` with green SSL checkmarks (direct, no apex-to-www redirect). Then re-run the full verification chain: `domain:check` (exit 0) → `smoke:prod` (exit 0) → re-attempt env/runtime and data/dashboard checks.
+
+Lint: `npm run lint` — node_modules not installed in this sandbox; no product code changed in this phase (docs-only). Prior Phase 14 lint exit 0 remains the last valid lint result.
+
+*Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
