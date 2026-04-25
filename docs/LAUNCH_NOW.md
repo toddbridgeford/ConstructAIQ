@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 19 env/runtime — BLOCKED · smoke:prod exits 1 · /api/status 403 · Cloudflare proxy still active)**
+**Updated: 2026-04-25 (Phase 19 data/dashboard — BLOCKED · smoke:prod exits 1 · all API endpoints 403 · Cloudflare proxy still active)**
 
 ---
 
@@ -19,6 +19,7 @@
 | 4 | smoke:www | **BLOCKED** — domain not bound; all checks 403 |
 | 4 | smoke:prod | **NO-GO** — exit 1 · 1/6 passed · 5 failed · all 403 `host_not_allowed` |
 | 3 | env/runtime | **BLOCKED** — `/api/status` returns 403; booleans unreadable |
+| 3 | data/dashboard | **BLOCKED** — all API endpoints return 403; shapes unverifiable |
 | 2 | Apex DNS target | **NO-GO** — resolves to `104.21.50.117` (Cloudflare proxy), not `76.76.21.21` (Vercel) |
 | — | Public launch | **NO-GO** |
 

@@ -4467,3 +4467,49 @@ Prerequisite not met. `/api/status` is unreachable. All env/runtime booleans are
 **Single next action:** Fix Cloudflare DNS to DNS-only (grey cloud, A → `76.76.21.21`). Once `domain:check` exits 0 and `smoke:prod` exits 0, re-run Phase 19 env/runtime verification.
 
 *Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
+
+---
+
+## Phase 19 data/dashboard verification — 2026-04-25T00:00:00Z
+
+**Branch:** `claude/verify-dns-propagation-5Q5BF`
+
+### Prerequisite check
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run smoke:prod` | 1 | 1/6 passed · 5 failed · all 403 `host_not_allowed` |
+| `curl /api/status` | — | HTTP 403 · "Host not in allowlist" |
+| Apex DNS | — | `104.21.50.117` (Cloudflare proxy still active) |
+
+Prerequisite not met. All API endpoints are unreachable.
+
+### API probes (all blocked)
+
+| Endpoint | Result |
+|----------|--------|
+| `GET /api/status` | 403 — unreadable |
+| `GET /api/status?deep=1` | 403 — unreadable |
+| `GET /api/federal` | 403 — unreadable |
+| `GET /api/weekly-brief` | 403 — unreadable |
+| `GET /api/dashboard` | 403 — unreadable |
+
+### Data shape classifications (not captured — all blocked)
+
+| Field | Value | Classification |
+|-------|-------|----------------|
+| `dashboard` shape | unreadable | required — status unknown |
+| `dashboardShapeOk` | unreadable | required — status unknown |
+| `cshi` type | unreadable | required — status unknown |
+| `federal.dataSource` | unreadable | warning — status unknown |
+| `weekly-brief.source` | unreadable | warning — status unknown |
+| `signals` count | unreadable | warning — status unknown |
+| `commodities` count | unreadable | warning — status unknown |
+
+### Verdict
+
+**BLOCKED / NO-GO.** All five API probes return HTTP 403. No data shapes are readable. Dashboard shape cannot be verified as valid or invalid. Launch remains blocked by the single DNS root cause: Cloudflare proxy still active (`104.21.50.117`); domain not bound to Vercel project.
+
+**Single next action:** Set Cloudflare A record for `constructaiq.trade` to `76.76.21.21` DNS-only (grey cloud). Once `smoke:prod` exits 0, re-run Phase 19 data/dashboard verification.
+
+*Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
