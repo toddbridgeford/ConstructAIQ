@@ -114,6 +114,9 @@ layout threw before any boundary could catch it.
 
 ### www: full configuration steps
 
+> Full step-by-step operator instructions (Vercel UI + DNS records +
+> verification commands) are in [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md).
+
 The `www` redirect requires THREE separate things to be configured. The
 Next.js `redirects()` rule in `next.config.ts` only fires after the first
 two are in place — code alone cannot make `www.constructaiq.trade` work.

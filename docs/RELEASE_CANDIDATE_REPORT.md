@@ -164,6 +164,8 @@ Smoke tests cannot pass until:
 3. Required Vercel Production environment variables are set and a redeploy is triggered.
 4. `npm run smoke:prod` exits 0.
 
+See [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md) for step-by-step operator instructions.
+
 ## Launch Blockers
 
 ### Code blockers
