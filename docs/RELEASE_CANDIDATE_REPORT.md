@@ -1766,5 +1766,148 @@ Full procedure: [Rollback Procedure](#rollback-procedure).
 
 ---
 
+---
+
+## Phase 7 post-domain binding check — 2026-04-25 18:30 UTC
+
+This section records the Phase 7 verification pass. Its purpose is to confirm
+whether the Vercel domain binding directed in `docs/VERCEL_DOMAIN_FIX.md` and
+`docs/OPERATOR_HANDOFF.md` has been completed by the operator.
+
+### Commands run
+
+```
+curl -sSI https://constructaiq.trade
+curl -sSI https://www.constructaiq.trade/dashboard
+npm run smoke:www
+npm run smoke:prod
+```
+
+### `curl -sSI https://constructaiq.trade`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 18:30:27 GMT
+```
+
+| Field         | Value                  |
+|---------------|------------------------|
+| HTTP status   | **403**                |
+| x-deny-reason | **host_not_allowed**   |
+| Location      | (none)                 |
+
+### `curl -sSI https://www.constructaiq.trade/dashboard`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 18:30:27 GMT
+```
+
+| Field                | Value                |
+|----------------------|----------------------|
+| HTTP status          | **403**              |
+| x-deny-reason        | **host_not_allowed** |
+| Location (www→apex)  | (none)               |
+
+### `npm run smoke:www`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade  (--www-only)
+──────────────────────────────────────────────────
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+       www.constructaiq.trade resolves but is rejected (403).
+
+──────────────────────────────────────────────────
+1 passed, 1 failed
+
+✗ Smoke test FAILED
+```
+
+| Field     | Value |
+|-----------|-------|
+| Exit code | **1** |
+| Passed    | 1     |
+| Failed    | 1     |
+
+### `npm run smoke:prod`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade
+──────────────────────────────────────────────────
+
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+
+──────────────────────────────────────────────────
+1 passed, 5 failed
+
+✗ Smoke test FAILED
+```
+
+| Field     | Value |
+|-----------|-------|
+| Exit code | **1** |
+| Passed    | 1     |
+| Failed    | 5     |
+
+### Phase 7 interpretation
+
+**`host_not_allowed` is unchanged on both domains.** The Vercel domain binding
+has not been completed. Every request to `constructaiq.trade` and
+`www.constructaiq.trade` is rejected at the Vercel edge before the Next.js
+application runs, identical to all prior phases.
+
+DNS continues to resolve correctly — `www DNS resolves` passes on both smoke
+runs, unchanged since 2026-04-25 04:00 UTC.
+
+**Domain blocker: OPEN — not resolved.**
+
+| Domain | DNS | HTTP status | x-deny-reason |
+|--------|-----|-------------|---------------|
+| `constructaiq.trade` | Resolves | **403** | **host_not_allowed** |
+| `www.constructaiq.trade` | Resolves | **403** | **host_not_allowed** |
+
+### Updated launch verdict
+
+| Dimension | Verdict | Rationale |
+|-----------|---------|-----------|
+| **Codebase** | **GO** | Unchanged — build ✓, lint ✓, 317/317 tests ✓. SHA `b392c37`. |
+| **Public launch** | **NO-GO** | Vercel domain binding still incomplete. `host_not_allowed` on both apex and www as of 2026-04-25 18:30 UTC. |
+
+**Public launch: NO-GO.** No code change is required. The sole remaining
+blocker is the operator action:
+
+> **Vercel UI → ConstructAIQ project → Settings → Domains**
+> → Add `constructaiq.trade`
+> → Add `www.constructaiq.trade`
+> → Wait for green checkmarks (1–10 min).
+
+Full walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md)
+Next action summary: [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:20 UTC by `claude/verify-domain-binding-gvssO`.*
+Last updated: 2026-04-25 18:30 UTC by `claude/fix-doc-sha-consistency-7Y01M`.*
