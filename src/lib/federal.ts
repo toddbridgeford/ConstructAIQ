@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export const GEO_CACHE_KEY              = 'federal_geo_fy2025'
 export const LEADERBOARD_CACHE_KEY      = 'federal_leaderboard_v1'
+export const MONTHLY_AWARDS_CACHE_KEY   = 'federal_monthly_awards_v1'
 const        CACHE_TTL_MS               = 24 * 60 * 60 * 1000  // 24 hours
 
 export interface StateAllocation {
@@ -391,5 +392,163 @@ export async function getFederalLeaderboard(
     }
 
     return { data: empty, fromCache: false, fetchedAt, error: msg }
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Federal monthly award totals — live USASpending time-series aggregation
+// ───────────────────────────────────────────────────────────────────────────
+
+/** One month of construction prime-award obligations from USASpending. */
+export interface MonthlyAward {
+  month: string  // calendar date YYYY-MM-01
+  value: number  // $M — total prime-award obligations for the month
+}
+
+/** Shape returned by USASpending /spending_over_time/ per result row. */
+interface MonthlyPoint {
+  aggregated_amount: number
+  time_period: { fiscal_year: string; month: string }
+}
+
+/**
+ * Convert raw USASpending fiscal-calendar results into sorted calendar-month
+ * MonthlyAward rows.
+ *
+ * USASpending groups by fiscal month where month 1 = October, 2 = November, …
+ * 3 = December (prior calendar year), 4 = January, … 12 = September.
+ */
+export function aggregateMonthlyAwards(results: MonthlyPoint[]): MonthlyAward[] {
+  return results
+    .filter(r => r.aggregated_amount > 0)
+    .map(r => {
+      const fyYear  = parseInt(r.time_period.fiscal_year, 10)
+      const fyMonth = parseInt(r.time_period.month, 10)
+      let calYear: number, calMonth: number
+      if (fyMonth <= 3) {
+        // FY months 1–3 (Oct, Nov, Dec) belong to the prior calendar year
+        calYear  = fyYear - 1
+        calMonth = fyMonth + 9   // 1→10, 2→11, 3→12
+      } else {
+        calYear  = fyYear
+        calMonth = fyMonth - 3   // 4→1, 5→2, …, 12→9
+      }
+      return {
+        month: `${calYear}-${String(calMonth).padStart(2, '0')}-01`,
+        value: Math.round(r.aggregated_amount / 1e6),  // $M
+      }
+    })
+    .sort((a, b) => a.month.localeCompare(b.month))
+}
+
+async function fetchMonthlyAwardsFromUSASpending(): Promise<MonthlyAward[]> {
+  const end   = new Date()
+  const start = new Date(end)
+  start.setMonth(start.getMonth() - LEADERBOARD_LOOKBACK_MONTHS)
+  const startDate = start.toISOString().split('T')[0]
+  const endDate   = end.toISOString().split('T')[0]
+
+  const res = await fetch(
+    'https://api.usaspending.gov/api/v2/search/spending_over_time/',
+    {
+      method:  'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent':   'ConstructAIQ/1.0 (constructaiq.trade)',
+      },
+      body: JSON.stringify({
+        group:   'month',
+        filters: {
+          time_period:      [{ start_date: startDate, end_date: endDate }],
+          award_type_codes: ['A', 'B', 'C', 'D'],
+          naics_codes:      NAICS,
+        },
+      }),
+      signal: AbortSignal.timeout(15_000),
+    }
+  )
+
+  if (!res.ok) throw new Error(`USASpending monthly HTTP ${res.status}`)
+
+  const json = (await res.json()) as { results?: MonthlyPoint[] }
+  return aggregateMonthlyAwards(json.results ?? [])
+}
+
+/**
+ * Returns construction prime-award totals by calendar month for the last 24
+ * months from USASpending.gov. Caches in Supabase for 24 hours under
+ * `federal_monthly_awards_v1`. On failure returns stale cache if available,
+ * otherwise an empty array — callers must not fabricate monthly values.
+ */
+export async function getFederalMonthlyAwards(
+  opts?: { forceRefresh?: boolean },
+): Promise<{
+  data:      MonthlyAward[]
+  fromCache: boolean
+  fetchedAt: string
+  error?:    string
+}> {
+  const forceRefresh = opts?.forceRefresh ?? false
+
+  // ── 1. Cache lookup ───────────────────────────────────────
+  if (!forceRefresh) {
+    try {
+      const { data: cached } = await supabaseAdmin
+        .from('federal_cache')
+        .select('data_json, cached_at')
+        .eq('key', MONTHLY_AWARDS_CACHE_KEY)
+        .single()
+      if (cached) {
+        const age = Date.now() - new Date(cached.cached_at as string).getTime()
+        if (age < CACHE_TTL_MS) {
+          return {
+            data:      cached.data_json as MonthlyAward[],
+            fromCache: true,
+            fetchedAt: cached.cached_at as string,
+          }
+        }
+      }
+    } catch {
+      // Supabase unreachable — fall through to live fetch
+    }
+  }
+
+  // ── 2. Live fetch ─────────────────────────────────────────
+  const fetchedAt = new Date().toISOString()
+  try {
+    const data = await fetchMonthlyAwardsFromUSASpending()
+
+    supabaseAdmin
+      .from('federal_cache')
+      .upsert({ key: MONTHLY_AWARDS_CACHE_KEY, data_json: data, cached_at: fetchedAt })
+      .then(({ error }) => {
+        if (error) console.warn('[federal] Monthly awards cache write failed:', error.message)
+      })
+
+    return { data, fromCache: false, fetchedAt }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[federal] USASpending monthly awards fetch failed:', msg)
+
+    // Last-resort: stale cache rather than nothing
+    try {
+      const { data: cached } = await supabaseAdmin
+        .from('federal_cache')
+        .select('data_json, cached_at')
+        .eq('key', MONTHLY_AWARDS_CACHE_KEY)
+        .single()
+      if (cached) {
+        return {
+          data:      cached.data_json as MonthlyAward[],
+          fromCache: true,
+          fetchedAt: cached.cached_at as string,
+          error:     msg,
+        }
+      }
+    } catch {
+      // Cache miss — fall through
+    }
+
+    return { data: [], fromCache: false, fetchedAt, error: msg }
   }
 }

@@ -138,12 +138,14 @@ export interface FederalMeta {
   leaderboardAwardLimit: number
   /** Construction NAICS codes used to filter USASpending queries */
   naicsCodes: string[]
-  /** Supabase cache keys for the two feed types */
-  cacheKeys: { geo: string; leaderboard: string }
+  /** Supabase cache keys for the three feed types */
+  cacheKeys: { geo: string; leaderboard: string; monthlyAwards: string }
   /** 'usaspending.gov/live' | 'usaspending.gov/cached' | 'static-fallback' */
   geoSource: string
   /** 'usaspending.gov/live' | 'usaspending.gov/cached' | 'none' */
   leaderboardSource: string
+  /** 'usaspending.gov/live' | 'usaspending.gov/cached' | 'none' */
+  monthlyAwardsSource: string
 }
 
 export interface FederalResponse {

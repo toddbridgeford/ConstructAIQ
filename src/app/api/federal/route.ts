@@ -2,14 +2,17 @@ import { NextResponse } from 'next/server'
 import {
   getStateAllocations,
   getFederalLeaderboard,
+  getFederalMonthlyAwards,
   GEO_CACHE_KEY,
   LEADERBOARD_CACHE_KEY,
+  MONTHLY_AWARDS_CACHE_KEY,
   LEADERBOARD_LOOKBACK_MONTHS,
   LEADERBOARD_AWARD_LIMIT,
   FEDERAL_NAICS_CODES,
   type StateAllocation,
   type ContractorLeader,
   type AgencyShare,
+  type MonthlyAward,
 } from '@/lib/federal'
 
 export const maxDuration = 10
@@ -23,7 +26,6 @@ interface Program {
   name: string; authorized: number; obligated: number; spent: number
   executionPct: number; agency: string; color: string
 }
-interface MonthlyAward { month: string; value: number }
 
 // ── Static legislative authorization table ─────────────────────────────────
 // Source: IIJA / IRA / DoD MILCON authorization figures from public CBO and
@@ -47,21 +49,6 @@ const PROGRAMS: Program[] = [
   { name:'IRA — Manufacturing Investment', authorized:280000, obligated:168400, spent:98400, executionPct:60.1, agency:'Treasury', color:'#30d158' },
   { name:'DoD — Military Construction',  authorized:14000,  obligated:11400, spent:8400,  executionPct:81.4, agency:'DoD',     color:'#30d158' },
 ]
-
-function buildMonthlyAwards(): MonthlyAward[] {
-  const base = [
-    4820,5140,4680,5380,4920,5640,
-    4480,5280,5820,4940,5480,6020,
-    4380,5140,5680,5020,4840,5920,
-    5280,4740,5480,6120,5380,4980,
-  ]
-  const start = new Date('2024-05-01')
-  return base.map((value, i) => {
-    const d = new Date(start)
-    d.setMonth(d.getMonth() + i)
-    return { month: d.toISOString().split('T')[0], value }
-  })
-}
 
 // Static fallback — proportional state estimates when live data unavailable
 function staticStateAllocations(): StateAllocation[] {
@@ -96,31 +83,36 @@ function staticStateAllocations(): StateAllocation[] {
 
 export async function GET() {
   try {
-    const [statesRes, leaderRes] = await Promise.all([
+    const [statesRes, leaderRes, monthlyRes] = await Promise.all([
       getStateAllocations(),
       getFederalLeaderboard(),
+      getFederalMonthlyAwards(),
     ])
 
-    const stateAllocations: StateAllocation[]   = statesRes.data.length > 0
+    const stateAllocations: StateAllocation[] = statesRes.data.length > 0
       ? statesRes.data
       : staticStateAllocations()
-    const contractors: ContractorLeader[]       = leaderRes.data.contractors
-    const agencies:    AgencyShare[]            = leaderRes.data.agencies
+    const contractors: ContractorLeader[] = leaderRes.data.contractors
+    const agencies:    AgencyShare[]      = leaderRes.data.agencies
+    const monthlyAwards: MonthlyAward[]   = monthlyRes.data
 
-    const monthlyAwards   = buildMonthlyAwards()
     const totalAuthorized = PROGRAMS.reduce((s, p) => s + p.authorized, 0)
     const totalObligated  = PROGRAMS.reduce((s, p) => s + p.obligated,  0)
     const totalSpent      = PROGRAMS.reduce((s, p) => s + p.spent,      0)
 
-    // Provenance — every public-facing field traces back to a live source or
-    // is explicitly labeled static-fallback. We require BOTH live feeds (geo
-    // + leaderboard) to claim "usaspending.gov".
-    const liveGeo    = statesRes.data.length > 0
-    const liveLeader = contractors.length > 0 || agencies.length > 0
-    const dataSource = liveGeo && liveLeader ? 'usaspending.gov' : 'static-fallback'
-    const fetchError = statesRes.error ?? leaderRes.error
-    const fromCache  = Boolean(statesRes.fromCache && leaderRes.fromCache)
-    const updatedAt  = leaderRes.fetchedAt || statesRes.fetchedAt
+    // Provenance — all three live feeds (geo, leaderboard, monthly) must have
+    // usable data to claim "usaspending.gov".
+    const liveGeo     = statesRes.data.length > 0
+    const liveLeader  = contractors.length > 0 || agencies.length > 0
+    const liveMonthly = monthlyRes.data.length > 0
+    const dataSource  = liveGeo && liveLeader && liveMonthly
+      ? 'usaspending.gov'
+      : 'static-fallback'
+
+    const allErrors  = [statesRes.error, leaderRes.error, monthlyRes.error].filter(Boolean)
+    const fetchError = allErrors.length > 0 ? allErrors.join('; ') : undefined
+    const fromCache  = Boolean(statesRes.fromCache && leaderRes.fromCache && monthlyRes.fromCache)
+    const updatedAt  = monthlyRes.fetchedAt || leaderRes.fetchedAt || statesRes.fetchedAt
 
     const geoSource = liveGeo
       ? (statesRes.fromCache ? 'usaspending.gov/cached' : 'usaspending.gov/live')
@@ -128,14 +120,22 @@ export async function GET() {
     const leaderboardSource = liveLeader
       ? (leaderRes.fromCache ? 'usaspending.gov/cached' : 'usaspending.gov/live')
       : 'none'
+    const monthlyAwardsSource = liveMonthly
+      ? (monthlyRes.fromCache ? 'usaspending.gov/cached' : 'usaspending.gov/live')
+      : 'none'
 
     const federalMeta = {
       leaderboardLookbackMonths: LEADERBOARD_LOOKBACK_MONTHS,
       leaderboardAwardLimit:     LEADERBOARD_AWARD_LIMIT,
       naicsCodes:                FEDERAL_NAICS_CODES,
-      cacheKeys:                 { geo: GEO_CACHE_KEY, leaderboard: LEADERBOARD_CACHE_KEY },
+      cacheKeys: {
+        geo:           GEO_CACHE_KEY,
+        leaderboard:   LEADERBOARD_CACHE_KEY,
+        monthlyAwards: MONTHLY_AWARDS_CACHE_KEY,
+      },
       geoSource,
       leaderboardSource,
+      monthlyAwardsSource,
     }
 
     return NextResponse.json(
@@ -149,7 +149,6 @@ export async function GET() {
         totalAuthorized,
         totalObligated,
         totalSpent,
-        // Provenance fields — visible in API response
         dataSource,
         fromCache,
         updatedAt,
@@ -159,12 +158,10 @@ export async function GET() {
       { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } },
     )
   } catch (err) {
-    // Last-resort fallback — never error the dashboard. Public-facing
-    // contractor/agency tables are intentionally empty here so we never
-    // present fabricated leaderboard data as if it were live.
+    // Last-resort fallback — never error the dashboard. Leaderboard tables are
+    // intentionally empty; monthlyAwards is [] rather than fabricated data.
     console.error('[/api/federal]', err)
     const stateAllocations = staticStateAllocations()
-    const monthlyAwards    = buildMonthlyAwards()
     const totalAuthorized  = PROGRAMS.reduce((s, p) => s + p.authorized, 0)
     const totalObligated   = PROGRAMS.reduce((s, p) => s + p.obligated,  0)
     const totalSpent       = PROGRAMS.reduce((s, p) => s + p.spent,      0)
@@ -172,7 +169,7 @@ export async function GET() {
       programs:         PROGRAMS,
       agencies:         [],
       contractors:      [],
-      monthlyAwards,
+      monthlyAwards:    [],
       stateAllocations,
       solicitations:    [],
       totalAuthorized,
@@ -186,9 +183,14 @@ export async function GET() {
         leaderboardLookbackMonths: LEADERBOARD_LOOKBACK_MONTHS,
         leaderboardAwardLimit:     LEADERBOARD_AWARD_LIMIT,
         naicsCodes:                FEDERAL_NAICS_CODES,
-        cacheKeys:                 { geo: GEO_CACHE_KEY, leaderboard: LEADERBOARD_CACHE_KEY },
-        geoSource:        'static-fallback',
-        leaderboardSource:'none',
+        cacheKeys: {
+          geo:           GEO_CACHE_KEY,
+          leaderboard:   LEADERBOARD_CACHE_KEY,
+          monthlyAwards: MONTHLY_AWARDS_CACHE_KEY,
+        },
+        geoSource:            'static-fallback',
+        leaderboardSource:    'none',
+        monthlyAwardsSource:  'none',
       },
     })
   }

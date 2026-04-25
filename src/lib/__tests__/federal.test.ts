@@ -24,7 +24,9 @@ vi.mock('@/lib/supabase', () => ({
 import {
   aggregateContractors,
   aggregateAgencies,
+  aggregateMonthlyAwards,
   getFederalLeaderboard,
+  getFederalMonthlyAwards,
 } from '../federal'
 
 type AwardRow = {
@@ -316,5 +318,143 @@ describe('getFederalLeaderboard', () => {
     expect(out.error).toBe('boom')
     expect(out.fromCache).toBe(false)
     expect(out.data).toEqual({ contractors: [], agencies: [] })
+  })
+})
+
+// ───────────────────────────────────────────────────────────────────────────
+// aggregateMonthlyAwards — pure fiscal→calendar conversion + grouping
+// ───────────────────────────────────────────────────────────────────────────
+
+type MonthlyPoint = { aggregated_amount: number; time_period: { fiscal_year: string; month: string } }
+
+function mp(fiscalYear: string, fiscalMonth: string, amount: number): MonthlyPoint {
+  return { aggregated_amount: amount, time_period: { fiscal_year: fiscalYear, month: fiscalMonth } }
+}
+
+describe('aggregateMonthlyAwards', () => {
+  it('converts fiscal Oct (M1) to calendar Oct of the prior year', () => {
+    const out = aggregateMonthlyAwards([mp('2025', '1', 1_000_000_000)])
+    expect(out).toHaveLength(1)
+    expect(out[0].month).toBe('2024-10-01')
+  })
+
+  it('converts fiscal Nov (M2) to calendar Nov of the prior year', () => {
+    const out = aggregateMonthlyAwards([mp('2025', '2', 500_000_000)])
+    expect(out[0].month).toBe('2024-11-01')
+  })
+
+  it('converts fiscal Dec (M3) to calendar Dec of the prior year', () => {
+    const out = aggregateMonthlyAwards([mp('2025', '3', 500_000_000)])
+    expect(out[0].month).toBe('2024-12-01')
+  })
+
+  it('converts fiscal Jan (M4) to calendar Jan of the same fiscal year', () => {
+    const out = aggregateMonthlyAwards([mp('2025', '4', 500_000_000)])
+    expect(out[0].month).toBe('2025-01-01')
+  })
+
+  it('converts fiscal Sep (M12) to calendar Sep of the same fiscal year', () => {
+    const out = aggregateMonthlyAwards([mp('2025', '12', 500_000_000)])
+    expect(out[0].month).toBe('2025-09-01')
+  })
+
+  it('converts aggregated_amount to integer $M', () => {
+    const out = aggregateMonthlyAwards([mp('2025', '4', 4_820_000_000)])
+    expect(out[0].value).toBe(4820)
+    expect(Number.isInteger(out[0].value)).toBe(true)
+  })
+
+  it('sorts output ascending by calendar month', () => {
+    const out = aggregateMonthlyAwards([
+      mp('2025', '4', 1_000_000_000),  // Jan 2025
+      mp('2025', '1', 2_000_000_000),  // Oct 2024
+      mp('2025', '6', 3_000_000_000),  // Mar 2025
+    ])
+    expect(out.map(r => r.month)).toEqual(['2024-10-01', '2025-01-01', '2025-03-01'])
+  })
+
+  it('filters out zero-amount rows', () => {
+    const out = aggregateMonthlyAwards([
+      mp('2025', '4', 0),
+      mp('2025', '5', 1_000_000_000),
+    ])
+    expect(out).toHaveLength(1)
+    expect(out[0].month).toBe('2025-02-01')
+  })
+
+  it('returns an empty array for empty input', () => {
+    expect(aggregateMonthlyAwards([])).toEqual([])
+  })
+})
+
+// ───────────────────────────────────────────────────────────────────────────
+// getFederalMonthlyAwards — cache + fallback paths
+// ───────────────────────────────────────────────────────────────────────────
+
+describe('getFederalMonthlyAwards', () => {
+  it('returns cached data without calling fetch when cache is fresh', async () => {
+    const cached = [{ month: '2025-01-01', value: 4820 }]
+    singleMock.mockResolvedValueOnce({
+      data:  { data_json: cached, cached_at: new Date().toISOString() },
+      error: null,
+    })
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const out = await getFederalMonthlyAwards()
+
+    expect(out.fromCache).toBe(true)
+    expect(out.data).toEqual(cached)
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('calls USASpending spending_over_time on cache miss and returns live data', async () => {
+    singleMock.mockResolvedValue({ data: null, error: null })
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        results: [
+          { aggregated_amount: 5_000_000_000, time_period: { fiscal_year: '2025', month: '4' } },
+          { aggregated_amount: 4_500_000_000, time_period: { fiscal_year: '2025', month: '5' } },
+        ],
+      }),
+    })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const out = await getFederalMonthlyAwards()
+
+    expect(out.fromCache).toBe(false)
+    expect(out.error).toBeUndefined()
+    expect(out.data).toHaveLength(2)
+    expect(out.data[0]).toMatchObject({ month: '2025-01-01', value: 5000 })
+    expect(out.data[1]).toMatchObject({ month: '2025-02-01', value: 4500 })
+    expect(upsertMock).toHaveBeenCalled()
+  })
+
+  it('returns stale cached data + fetchError when live fetch fails', async () => {
+    const cached = [{ month: '2024-10-01', value: 4820 }]
+    const stale  = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString()
+    singleMock.mockResolvedValueOnce({ data: { data_json: cached, cached_at: stale }, error: null })
+    singleMock.mockResolvedValueOnce({ data: { data_json: cached, cached_at: stale }, error: null })
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('timeout')))
+
+    const out = await getFederalMonthlyAwards()
+
+    expect(out.error).toBe('timeout')
+    expect(out.fromCache).toBe(true)
+    expect(out.data).toEqual(cached)
+  })
+
+  it('returns empty array + fetchError when both live and cache are unavailable', async () => {
+    singleMock.mockResolvedValue({ data: null, error: null })
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
+
+    const out = await getFederalMonthlyAwards()
+
+    expect(out.error).toBe('network down')
+    expect(out.fromCache).toBe(false)
+    expect(out.data).toEqual([])
   })
 })
