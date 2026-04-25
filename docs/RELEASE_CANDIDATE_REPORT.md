@@ -3673,3 +3673,53 @@ Data and dashboard shape verification cannot proceed until the domain is bound, 
 Lint: `npm run lint` — node_modules not installed in this sandbox; no product code changed in this phase (docs-only). Prior Phase 14 lint exit 0 remains the last valid lint result.
 
 *Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
+
+---
+
+## Phase 15 final launch gate — 2026-04-25
+
+**Task:** Run `npm run launch:check --include-smoke`, `npm run build`, `npm run lint`, `npm test`.
+
+### Command results
+
+| Command | Exit code | Summary |
+|---------|-----------|---------|
+| `npm run build` | **0** | 84 routes · 0 errors · compiled in 51.5s |
+| `npm run lint` | **0** | No ESLint warnings or errors (2.7s) |
+| `npm test` | **0** | 344/344 tests · 24 files · 3.5s |
+| `npm run smoke:prod` | **1** | 1/6 passed · 5/6 failed — `host_not_allowed` on apex and www |
+| `npm run smoke:www` | **1** | 1/2 passed · 1/2 failed — `host_not_allowed` on www |
+| `npm run launch:check --include-smoke` | **1** | `✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www` |
+
+### Smoke:prod detail
+
+| Check | Result |
+|-------|--------|
+| `GET / returns 200` | FAIL — got 403 |
+| `GET /dashboard returns 200` | FAIL — got 403 |
+| `/api/status returns 200` | FAIL — got 403 |
+| `/api/dashboard returns 200` | FAIL — got 403 |
+| `www DNS resolves` | PASS |
+| `www is bound to this Vercel project` | FAIL — 403 `host_not_allowed` |
+
+### Verdict
+
+**NO-GO — launch:check exits 1.**
+
+All three code-quality gates pass (build, lint, tests). Sole failure: Vercel domain not bound. Both `constructaiq.trade` and `www.constructaiq.trade` return `HTTP 403 · x-deny-reason: host_not_allowed`.
+
+**Failing gate:** `smoke:prod` (5/6 failed) + `smoke:www` (1/2 failed) — `VERCEL_DOMAIN_NOT_BOUND`.
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → confirm both `constructaiq.trade` and `www.constructaiq.trade` are bound with green SSL checkmarks (direct — no apex-to-www redirect). Re-run `npm run domain:check` (must exit 0), then `npm run launch:check --include-smoke` (must exit 0) to flip verdict to GO.
+
+HEAD SHA at time of run: `b82fc50ed1d27de1442ba2344a6576ee0be18de4`
+
+*Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
+
+---
+
+Launch GO checklist skipped because Public launch remains NO-GO.
+
+`docs/LAUNCH_GO_CHECKLIST.md` was not created.
+
+Lint: `npm run lint` exit 0 — no ESLint warnings or errors.

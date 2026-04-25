@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 15 data/dashboard attempt — blocked · domain still unbound)**
+**Updated: 2026-04-25 (Phase 15 final gate — launch:check exit 1 · smoke:prod + smoke:www fail)**
 
 ---
 
@@ -12,9 +12,9 @@
 
 | Dimension | Status |
 |-----------|--------|
-| Build | **GO** — 84 routes · 0 errors (92.2s) |
-| Lint | **GO** — no ESLint warnings or errors |
-| Tests | **GO** — 344/344 passed |
+| Build | **GO** — 84 routes · 0 errors (51.5s) |
+| Lint | **GO** — no ESLint warnings or errors (2.7s) |
+| Tests | **GO** — 344/344 · 24 files (3.5s) |
 | Smoke | **NO-GO** — smoke:prod 1/6 passed · smoke:www 1/2 passed · both fail on `host_not_allowed` |
 | Public launch | **NO-GO** |
 
