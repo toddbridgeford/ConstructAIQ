@@ -1,10 +1,10 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 17 final gate — launch:check exit 1 · smoke FAILED · DNS blocker)**
+**Updated: 2026-04-25 (Phase 18 DNS target verification — domain:check exit 1 · host_not_allowed · apex still Cloudflare)**
 
 ---
 
-> **STOP: code is launch-ready. Sole blocker: apex A record points to Cloudflare IPs, not Vercel.**
+> **STOP: code is launch-ready. Sole blocker: apex A record still resolves to Cloudflare IPs, not Vercel.**
 
 ---
 
@@ -18,28 +18,30 @@
 | 4 | smoke:prod | **NO-GO** — 1/6 passed · exit 1 · all 403 `host_not_allowed` |
 | 4 | smoke:www | **NO-GO** — 1/2 passed · exit 1 · all 403 `host_not_allowed` |
 | 3 | env/data | **BLOCKED** — all API endpoints return `Host not in allowlist` |
-| 2 | Apex DNS target | **NO-GO** — resolves to Cloudflare IPs (`104.21.50.117`, `172.67.206.20`), not Vercel (`76.76.21.21`) |
-| — | launch:check | **FAILED** — exit 1 · failing gates: smoke:prod, smoke:www |
+| 2 | Apex DNS target | **NO-GO** — resolves to `172.67.206.20` (Cloudflare), not `76.76.21.21` (Vercel) · Phase 18 verified |
+| — | domain:check | **FAILED** — exit 1 · both apex and www: `VERCEL_DOMAIN_NOT_BOUND` · `host_not_allowed` |
 | — | Public launch | **NO-GO** |
 
 ---
 
 ## Next action — do this now
 
-**Fix the apex A record — it must point to Vercel's IP, not a Cloudflare IP.**
+**The apex A record is still routing through Cloudflare proxy.** Phase 18 DNS resolution confirms `constructaiq.trade` still resolves to `172.67.206.20` (Cloudflare range), not `76.76.21.21` (Vercel).
 
-The apex resolves to `104.21.50.117` / `172.67.206.20` (Cloudflare ranges). Vercel requires:
+Despite the operator's reported update, the orange cloud is still active. The A record must be set to DNS-only (grey cloud) and must point to the Vercel IP:
 
-| Record | Type | Value |
-|--------|------|-------|
-| `constructaiq.trade` | A | `76.76.21.21` |
-| `www.constructaiq.trade` | CNAME | `cname.vercel-dns.com` |
+| Record | Type | Value | Mode |
+|--------|------|-------|------|
+| `constructaiq.trade` | A | `76.76.21.21` | **DNS-only (grey cloud)** |
+| `www.constructaiq.trade` | CNAME | `cname.vercel-dns.com` | **DNS-only (grey cloud)** |
 
-Both records must be **DNS-only** (grey cloud) in Cloudflare.
-
-After updating DNS:
+Verify by re-running Phase 18 checks after saving Cloudflare changes:
 
 ```bash
+# Confirm apex no longer resolves to a Cloudflare IP
+python3 -c "import socket; print(socket.gethostbyname('constructaiq.trade'))"
+# Must print 76.76.21.21
+
 npm run domain:check
 # Must exit 0: APEX_OK + WWW_REDIRECT_OK
 ```

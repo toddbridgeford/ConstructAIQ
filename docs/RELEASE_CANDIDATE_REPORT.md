@@ -4159,4 +4159,45 @@ After DNS propagates, re-run `npm run domain:check` (must exit 0), then `npm run
 
 *Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*
 
+---
+
+## Phase 18 DNS target verification — 2026-04-25
+
+**Branch:** `claude/verify-dns-cloudflare-sKNiP`
+
+### DNS resolution
+
+| Command | Result | Expected | Match |
+|---------|--------|----------|-------|
+| `gethostbyname('constructaiq.trade')` | `172.67.206.20` | `76.76.21.21` | NO — Cloudflare IP |
+| `gethostbyname('www.constructaiq.trade')` | `104.21.50.117` | Vercel anycast | NO — Cloudflare IP |
+
+### `npm run domain:check` output
+
+| Field | apex | www |
+|-------|------|-----|
+| HTTP status | 403 | 403 |
+| `x-deny-reason` | `host_not_allowed` | `host_not_allowed` |
+| `location` | null | null |
+| classification | `VERCEL_DOMAIN_NOT_BOUND` | `VERCEL_DOMAIN_NOT_BOUND` |
+| proxyWarning (header-based) | false | false |
+
+### `node scripts/check-domain-status.mjs --json`
+
+| Field | Value |
+|-------|-------|
+| exit code | 1 |
+| `ok` | false |
+| `proxyWarning` | false |
+| apex `denyReason` | `host_not_allowed` |
+| www `denyReason` | `host_not_allowed` |
+
+### Verdict
+
+**NO-GO.** Apex DNS still resolves to `172.67.206.20` (Cloudflare proxy range), not `76.76.21.21` (Vercel). Despite the operator's reported DNS-only update, the orange cloud is still active. `domain:check` exits 1 (`host_not_allowed` on both records). The header-based `proxyWarning` reads `false` because Cloudflare does not inject its usual headers into the proxied Vercel 403 error response; DNS resolution confirms the proxy is still in place.
+
+**Single next action:** Open Cloudflare DNS dashboard and confirm the A record for `constructaiq.trade` is set to `76.76.21.21` with the proxy toggle set to **grey cloud (DNS-only)**. Save and allow propagation, then re-run Phase 18 checks.
+
+*Updated by `claude/verify-dns-cloudflare-sKNiP` · 2026-04-25*
+
 Launch GO checklist skipped because Public launch remains NO-GO.
