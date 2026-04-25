@@ -690,6 +690,113 @@ outcome after domain binding (assuming env vars are also set) is:
 
 ---
 
+## Phase 6 data-source verification — 2026-04-25 18:12 UTC
+
+This section records the Phase 6 attempt to verify live production data-source
+state through five API endpoints. The prerequisite — that `constructaiq.trade`
+serves the Next.js application and `/api/status` returns JSON — has **not been
+met**. Every endpoint returns HTTP 403 from Vercel's edge before the application
+runs.
+
+### Prerequisite check
+
+All five endpoints return `HTTP/2 403` with `x-deny-reason: host_not_allowed`
+and the plain-text body `Host not in allowlist`. No JSON is returned from any
+endpoint. jq exits 5 (parse error) on every command.
+
+### Probe results
+
+#### `curl -s https://constructaiq.trade/api/status | jq .data`
+
+```
+HTTP/2 403  ·  x-deny-reason: host_not_allowed  ·  Host not in allowlist
+jq exit: 5 (parse error — not JSON)
+```
+
+#### `curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data`
+
+```
+HTTP/2 403  ·  x-deny-reason: host_not_allowed  ·  Host not in allowlist
+jq exit: 5 (parse error — not JSON)
+```
+
+#### `curl -s https://constructaiq.trade/api/federal | jq '{dataSource, fromCache, contractors: (.contractors|length), agencies: (.agencies|length), fetchError}'`
+
+```
+HTTP/2 403  ·  x-deny-reason: host_not_allowed  ·  Host not in allowlist
+jq exit: 5 (parse error — not JSON)
+```
+
+#### `curl -s https://constructaiq.trade/api/weekly-brief | jq '{source, live, configured, warning, error}'`
+
+```
+HTTP/2 403  ·  x-deny-reason: host_not_allowed  ·  Host not in allowlist
+jq exit: 5 (parse error — not JSON)
+```
+
+#### `curl -s https://constructaiq.trade/api/dashboard | jq '{fetched_at, cshi: (.cshi|type), signals: (.signals|length), commodities: (.commodities|length), forecast: (.forecast|type)}'`
+
+```
+HTTP/2 403  ·  x-deny-reason: host_not_allowed  ·  Host not in allowlist
+jq exit: 5 (parse error — not JSON)
+```
+
+### Data-source status summary
+
+| Surface | Field checked | Expected (when live) | Observed | Fallback classification |
+|---------|--------------|---------------------|----------|------------------------|
+| `/api/status` `.data.federalSource` | `federalSource` | `"usaspending.gov"` | **UNOBSERVABLE** | — |
+| `/api/status` `.data.weeklyBriefSource` | `weeklyBriefSource` | `"ai"` | **UNOBSERVABLE** | — |
+| `/api/status?deep=1` `.data.dashboardShapeOk` | `dashboardShapeOk` | `true` | **UNOBSERVABLE** | 🔴 Launch blocker if `false` |
+| `/api/federal` `dataSource` | `dataSource` | `"usaspending.gov"` | **UNOBSERVABLE** | 🟡 Launch warning if `"static-fallback"` |
+| `/api/federal` `contractors` count | count | `> 0` | **UNOBSERVABLE** | 🟡 Launch warning if 0 |
+| `/api/federal` `agencies` count | count | `> 0` | **UNOBSERVABLE** | 🟡 Launch warning if 0 |
+| `/api/weekly-brief` `source` | `source` | `"ai"` | **UNOBSERVABLE** | 🟡 Launch warning if `"static-fallback"` |
+| `/api/weekly-brief` `live` | `live` | `true` | **UNOBSERVABLE** | 🟡 Launch warning if `false` |
+| `/api/dashboard` `forecast` type | type | `"object"` | **UNOBSERVABLE** | 🔴 Launch blocker if not `"object"` |
+| `/api/dashboard` `cshi` type | type | `"object"` | **UNOBSERVABLE** | 🔴 Launch blocker if not `"object"` |
+| `/api/dashboard` `signals` count | length | `> 0` | **UNOBSERVABLE** | 🔴 Launch blocker if 0 |
+| `/api/dashboard` `commodities` count | length | `> 0` | **UNOBSERVABLE** | 🟡 Launch warning if 0 |
+
+### Fallback classification
+
+**Dashboard shape** (`dashboardShapeOk`, `forecast` type, `cshi` type, `signals`
+count) — classified 🔴 **launch blocker**. An invalid or empty dashboard shape
+means the primary user-facing screen is broken.
+
+**Federal data source** (`dataSource: "static-fallback"`, empty contractor/
+agency counts) — classified 🟡 **launch warning**. The platform ships with an
+explicit fallback banner ("Federal live feed unavailable") and an empty
+leaderboard. Not a launch blocker but must be resolved post-launch.
+
+**Weekly Brief** (`source: "static-fallback"`, `live: false`) — classified
+🟡 **launch warning**. The dashboard shows an UNAVAILABLE badge when the
+static fallback is active; no fabricated data is surfaced. Not a launch
+blocker unless the live AI brief is required at launch.
+
+### `npm run lint`
+
+`npm run lint` invokes `next lint`, which exits 127 (`next: not found`) — the
+same pre-existing sandbox gap recorded in all prior phases. No code was
+changed in Phase 6.
+
+| Tool | Exit | Result |
+|------|------|--------|
+| `npm run lint` | 127 | Sandbox: `next: not found` — pre-existing; not a code defect |
+
+### Phase 6 data-source verification interpretation
+
+**All data-source states are unobservable.** The sole prerequisite — the Vercel
+domain binding — is still unmet as of 2026-04-25 18:12 UTC. Every probe hits
+the Vercel edge at HTTP 403 before the application runs.
+
+This verification pass must be repeated in full once `/api/status` returns HTTP
+200 JSON. The five commands above are the exact commands to rerun at that time.
+
+**Public launch: NO-GO.** Domain binding must be completed first.
+
+---
+
 ## Phase 6 environment verification — 2026-04-25 18:11 UTC
 
 This section records the Phase 6 attempt to verify production environment
@@ -1521,4 +1628,4 @@ The last known-good code SHA documented in this report is `8c1cd98d`.
 ---
 
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:11 UTC by `claude/verify-domain-binding-gvssO`.*
+Last updated: 2026-04-25 18:12 UTC by `claude/verify-domain-binding-gvssO`.*
