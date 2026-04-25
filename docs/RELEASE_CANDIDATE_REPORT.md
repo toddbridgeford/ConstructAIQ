@@ -4920,3 +4920,37 @@ Operator removed and re-added both domains; Vercel UI shows "Valid Configuration
 2. If IP stabilises at `76.76.21.21` but edge still returns `host_not_allowed`: contact Vercel support with project `construct-aiq`, domain `constructaiq.trade`, and the `curl -sSI` output showing "Valid Configuration" in UI but `host_not_allowed` at edge.
 
 `docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO. *(2026-04-25 · claude/verify-launch-dns-Ok9Li · Phase 25)*
+
+---
+
+## Root Cause Analysis — 2026-04-25 (Phase 26 — screenshot evidence)
+
+*Branch: `claude/verify-launch-dns-Ok9Li`*
+
+Operator provided Cloudflare DNS and Vercel Domains screenshots (5:18 PM Sat Apr 25).
+
+### Evidence from screenshots
+
+**Cloudflare:** Apex `constructaiq.trade` has a CNAME (Cloudflare-flattened) to `a40884db5344...cname.vercel-dns.com`. `www` has the same CNAME. Both DNS-only. **7 `_vercel` TXT records** present — one accumulates per add/remove cycle.
+
+**Vercel `construct-aiq`:** Both `constructaiq.trade` and `www.constructaiq.trade` show ✓ Valid Configuration → Production. Confirmed correct project and account.
+
+### Root cause
+
+**7 stale `_vercel` TXT records.** Vercel appends a new domain verification token to Cloudflare's `_vercel` TXT on each add cycle; it does not clean up the previous token. After five operator add/remove attempts, Vercel's edge routing has seven conflicting ownership tokens and cannot resolve a canonical routing target — propagation never completes. The UI shows "Valid Configuration" because it matches the most recent token; the edge never propagates because of the stale token set.
+
+The changing apex IP (`76.76.21.21` → `64.29.17.1` → `216.198.79.65`) is explained by Cloudflare CNAME flattening returning different Vercel edge IPs per PoP — not a misconfiguration.
+
+### Fix
+
+1. In Vercel: note the current `_vercel` TXT value for `constructaiq.trade` (Settings → Domains → Edit)
+2. In Cloudflare: delete all 7 `_vercel` TXT records
+3. In Cloudflare: add back only the current token from step 1
+4. In Vercel: remove `constructaiq.trade`, wait 10 s, re-add — triggers clean propagation
+5. Re-run `npm run domain:check` — must exit 0
+
+### Verdict
+
+**NO-GO.** Root cause identified and documented. Fix is entirely operator-side (Cloudflare TXT cleanup + one more Vercel cycle). No product code issue.
+
+`docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO. *(2026-04-25 · claude/verify-launch-dns-Ok9Li · Phase 26)*

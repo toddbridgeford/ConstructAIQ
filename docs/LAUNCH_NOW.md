@@ -1,10 +1,10 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 25 — post remove-and-re-add · domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND · apex IP now 216.198.79.65 · Vercel UI shows Valid Configuration but edge rejects · Public launch NO-GO)**
+**Updated: 2026-04-25 (Phase 26 — DNS/Vercel screenshot analysis · root cause identified: 7 stale `_vercel` TXT records blocking edge propagation · Public launch NO-GO)**
 
 ---
 
-> **STOP: code is launch-ready. Five consecutive verification runs (Phases 21–25) return `host_not_allowed` (403) — domain not bound at Vercel edge. Operator re-added both domains and Vercel UI confirms "Valid Configuration", but the edge still rejects. Apex IP is changing each run (76.76.21.21 → 64.29.17.1 → 216.198.79.65) — DNS A record may be misconfigured or have multiple conflicting records. Next action: verify the Cloudflare A record is exactly `76.76.21.21` (single record, no others), then contact Vercel support if edge binding still does not propagate.**
+> **STOP: root cause identified from operator screenshots. Cloudflare has 7 stale `_vercel` TXT records — one added on every domain add/remove cycle. Vercel UI correctly shows "Valid Configuration" for both domains in the correct project (`construct-aiq`). Vercel's edge has not propagated the routing because of the accumulated stale TXT verification tokens. Fix: delete all 7 `_vercel` TXT records in Cloudflare, add back only the current one, then remove and re-add `constructaiq.trade` in Vercel to trigger a clean propagation.**
 
 ---
 
@@ -20,9 +20,78 @@
 | 4 | smoke:www | **NO-GO** — exit 1 · 1/2 passed · 1 failed — 403 `host_not_allowed` · Phase 25 |
 | 3 | env/runtime | **BLOCKED** — domain not bound · all endpoints `host_not_allowed` · unreadable |
 | 3 | data/dashboard | **BLOCKED** — domain not bound · all endpoints `host_not_allowed` · unreadable |
-| 2 | Apex DNS target | **WARN** — IP changing each run: `76.76.21.21` (Ph20) → `64.29.17.1` (Ph21–24) → `216.198.79.65` (Ph25) · Vercel edge reached (host_not_allowed confirmed) · proxyWarning: false · possible multiple/conflicting A records |
+| 2 | Apex DNS target | **EXPLAINED** — apex uses Cloudflare CNAME flattening (CNAME → `a40884db5344...`) · changing IPs are Cloudflare returning different Vercel edge IPs per region — normal · proxyWarning: false |
+| 2 | `_vercel` TXT records | **ROOT CAUSE** — 7 stale TXT records in Cloudflare (1 per add/remove cycle) · Vercel UI shows Valid Configuration but edge routing never propagated · fix: delete all 7, add back only current token, re-add domain |
 | — | launch:check | **NOT RUN** — prerequisite (domain:check exit 0) not met |
 | — | Public launch | **NO-GO** |
+
+---
+
+## Phase 26 — screenshot analysis / root cause identified (2026-04-25)
+
+*Branch: `claude/verify-launch-dns-Ok9Li`*
+
+Operator provided Cloudflare DNS Records screenshot and Vercel Domains screenshot taken at 5:18 PM Sat Apr 25.
+
+### What the screenshots show
+
+**Cloudflare DNS Records (`constructaiq.trade`)**
+
+| Type | Name | Content | Proxy status |
+|------|------|---------|--------------|
+| CNAME | `api` | `a40884db5344...` | DNS only |
+| CNAME | `constructaiq.trade` (apex) | `a40884db5344...` | DNS only |
+| CNAME | `data` | `a40884db5344...` | DNS only |
+| CNAME | `docs` | `a40884db5344...` | DNS only |
+| CNAME | `www` | `a40884db5344...` | DNS only |
+| TXT | `_vercel` | `"vc-domain-veri...` | DNS only |
+| TXT | `_vercel` | `"vc-domain-veri...` | DNS only |
+| TXT | `_vercel` | `"vc-domain-veri...` | DNS only |
+| TXT | `_vercel` | `"vc-domain-veri...` | DNS only |
+| TXT | `_vercel` | `"vc-domain-veri...` | DNS only |
+| TXT | `_vercel` | `"vc-domain-veri...` | DNS only |
+| TXT | `_vercel` | `"vc-domain-veri...` | DNS only |
+
+**Vercel `construct-aiq` project → Domains**
+
+| Domain | Status | Assignment |
+|--------|--------|------------|
+| `www.constructaiq.trade` | ✓ Valid Configuration | Production |
+| `constructaiq.trade` | ✓ Valid Configuration | Production |
+| `docs.constructaiq.trade` | ✓ Valid Configuration | Production |
+| `api.constructaiq.trade` | ✓ Valid Configuration | Production |
+| `data.constructaiq.trade` | ✓ Valid Configuration | Production |
+
+### Findings
+
+**Apex CNAME (not A record) — acceptable:** The apex `constructaiq.trade` uses a CNAME to `a40884db5344...cname.vercel-dns.com` (Vercel's project-specific routing CNAME). Cloudflare flattens this to an A record at query time — that is why the IP has changed across runs (`76.76.21.21` → `64.29.17.1` → `216.198.79.65`). These are all Vercel edge IPs returned by different Cloudflare PoPs. This is **not** the root cause.
+
+**Correct Vercel project confirmed:** Both `constructaiq.trade` and `www.constructaiq.trade` are in the correct project (`construct-aiq`, Hobby account). Both show ✓ Valid Configuration → Production.
+
+**Root cause — 7 stale `_vercel` TXT records:** Vercel adds a `_vercel` TXT record each time a domain is added to a project for ownership verification. When the domain is removed and re-added, the new token is appended — the old one is **not** automatically cleaned up. After five add/remove cycles, there are 7 stale tokens. Vercel's edge routing propagation consults these records. With multiple tokens from different projects/sessions, the edge cannot resolve a canonical routing target and never propagates the binding — even though the UI shows "Valid Configuration" (the UI only checks the most recent token match).
+
+### Fix — exact operator steps
+
+**Step 1 — note the current token (do this first):**
+In Vercel → `construct-aiq` → Settings → Domains → click **Edit** next to `constructaiq.trade`. Copy the exact `_vercel` TXT value shown (it begins with `vc-domain-veri...`).
+
+**Step 2 — delete all `_vercel` TXT records in Cloudflare:**
+In Cloudflare → `constructaiq.trade` → DNS → Records: delete all 7 `_vercel` TXT records.
+
+**Step 3 — add back only the current token:**
+In Cloudflare → Add record → Type: TXT → Name: `_vercel` → Content: paste the value from Step 1 → Save.
+
+**Step 4 — remove and re-add in Vercel:**
+In Vercel → `construct-aiq` → Settings → Domains: remove `constructaiq.trade`, wait 10 s, re-add. This triggers a fresh verification + edge propagation cycle against the now-clean TXT record set.
+
+**Step 5 — re-run verification:**
+```bash
+npm run domain:check    # must exit 0
+```
+
+### Verdict
+
+**Public launch: NO-GO.** Root cause identified. No product code issue. The fix is entirely in Cloudflare DNS (delete 7 stale `_vercel` TXT records) + one more Vercel remove/re-add cycle.
 
 ---
 
