@@ -4,6 +4,8 @@
 **Branch:** `claude/fix-www-redirect-RJjRJ`  
 **Audit scope:** Full validation pass + AI-slop pattern search
 
+> **Superseded by [RELEASE_CANDIDATE_REPORT.md](./RELEASE_CANDIDATE_REPORT.md) for current launch state.**
+
 ---
 
 ## Commands run and results

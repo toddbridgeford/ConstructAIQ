@@ -346,7 +346,7 @@ Each gate references the doc that explains the failure mode in detail:
 
 | Failure                                     | Reference                                                                  |
 |---------------------------------------------|----------------------------------------------------------------------------|
-| www does not resolve / 403 / no redirect    | [docs/PRODUCTION_SMOKE.md](./PRODUCTION_SMOKE.md)                          |
+| www does not resolve / 403 / no redirect    | [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md) · [docs/PRODUCTION_SMOKE.md](./PRODUCTION_SMOKE.md) |
 | Weekly Brief stuck on static fallback       | [docs/ENVIRONMENT.md](./ENVIRONMENT.md)                                    |
 | `/api/dashboard` shape regression           | [docs/PRODUCTION_SMOKE.md](./PRODUCTION_SMOKE.md)                          |
 | Vercel env var not picked up                | [docs/ENVIRONMENT.md § Vercel Production setup](./ENVIRONMENT.md#vercel-production-setup--generic-walkthrough) |
