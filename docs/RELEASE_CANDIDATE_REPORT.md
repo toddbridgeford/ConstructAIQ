@@ -2358,5 +2358,72 @@ Both must exit 0 before this verdict may be changed to GO.
 
 ---
 
+## Phase 8 env/data verification — 2026-04-25 19:00 UTC
+
+### Prerequisite check
+
+Before running the seven env/data probes, `smoke:prod` must exit 0 and
+`x-deny-reason: host_not_allowed` must be absent from the response.
+
+```
+npm run smoke:prod
+```
+
+```
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project   HTTP 403
+
+1 passed, 5 failed  ✗ Smoke test FAILED  (exit 1)
+```
+
+**Prerequisite not met.** `host_not_allowed` is unchanged as of 2026-04-25
+19:00 UTC. Every application endpoint returns HTTP 403 before the Next.js
+app runs — the probe responses would be `Host not in allowlist` plain text,
+not JSON, and carry no diagnostic signal.
+
+### Probes deferred
+
+| Probe | Deferred reason |
+|-------|-----------------|
+| `curl .../api/status \| jq .env` | Returns HTTP 403 — not parseable |
+| `curl .../api/status \| jq .runtime` | Returns HTTP 403 — not parseable |
+| `curl .../api/status \| jq .data` | Returns HTTP 403 — not parseable |
+| `curl .../api/status?deep=1 \| jq .data` | Returns HTTP 403 — not parseable |
+| `curl .../api/federal \| jq …` | Returns HTTP 403 — not parseable |
+| `curl .../api/weekly-brief \| jq …` | Returns HTTP 403 — not parseable |
+| `curl .../api/dashboard \| jq …` | Returns HTTP 403 — not parseable |
+
+All seven probes will be run immediately after `smoke:prod` exits 0.
+
+### Classification of checks (for when probes become observable)
+
+| Check | Pass condition | Failure classification |
+|-------|---------------|------------------------|
+| `supabaseConfigured: true` | env `.supabaseConfigured === true` | **Launch blocker** — all data routes fail |
+| `cronSecretConfigured: true` | env `.cronSecretConfigured === true` | **Launch blocker** — data-refresh cron cannot authenticate |
+| `siteLocked: false` | runtime `.siteLocked === false` | **Launch blocker** — all visitors hit Basic Auth |
+| `cshi` type is `object` or `null` | dashboard `.cshi` type ≠ `"string"` | **Launch blocker** — shape regression |
+| `federalSource: "usaspending.gov"` | federal `.dataSource === "usaspending.gov"` | Warning — static fallback is labeled; not a hard blocker |
+| `weeklyBriefSource: "ai"` | brief `.source === "ai"` | Warning — static fallback is labeled; not a hard blocker |
+
+### Updated launch verdict
+
+| Dimension | Verdict | Detail |
+|-----------|---------|--------|
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · RC code SHA `8c1cd98d` · unchanged |
+| **Env/data** | **UNVERIFIABLE** | All endpoints return HTTP 403 — domain binding must be completed first |
+| **Public launch** | **◼ NO-GO** | `smoke:prod` exit 1 · `smoke:www` exit 1 · sole cause: Vercel domain binding incomplete |
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:50 UTC by `claude/audit-sha-references-OpiT1`.*
+Last updated: 2026-04-25 19:00 UTC by `claude/audit-sha-references-OpiT1`.*

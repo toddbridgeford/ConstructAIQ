@@ -50,7 +50,7 @@ with env-variable verification (see [OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
 
 ---
 
-## Last verified — 2026-04-25 18:50 UTC
+## Last verified — 2026-04-25 19:00 UTC
 
 | Probe | Result |
 |-------|--------|
@@ -61,6 +61,10 @@ with env-variable verification (see [OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
 
 DNS resolves on both domains (`www DNS resolves` passes). The Vercel domain
 binding has not been completed. Next.js never receives any request.
+
+Env/data verification (Supabase, CRON_SECRET, federal source, weekly-brief
+source) was not attempted — all endpoints return 403 before the application
+runs, so those probes carry no signal. They will be run once smoke exits 0.
 
 ---
 
