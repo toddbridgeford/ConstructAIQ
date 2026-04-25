@@ -2812,5 +2812,90 @@ curl -s https://constructaiq.trade/api/status | jq .runtime  # verify runtime fl
 
 ---
 
+## Phase 9 data-source verification — 2026-04-25 19:10 UTC
+
+### Prerequisite check
+
+```
+curl -sSI https://constructaiq.trade
+```
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 19:04:34 GMT
+```
+
+**Prerequisite not met.** Domain binding is still incomplete. All five
+data-source probes were run to capture exact evidence.
+
+### Probes attempted
+
+All five probes return an identical parse failure because the response body
+is the Vercel plain-text error string, not JSON.
+
+| Probe | Exit | Output |
+|-------|------|--------|
+| `curl .../api/status \| jq .data` | **5** | `jq: parse error: Invalid numeric literal at line 1, column 5` |
+| `curl '.../api/status?deep=1' \| jq .data` | **5** | `jq: parse error: Invalid numeric literal at line 1, column 5` |
+| `curl .../api/federal \| jq '{dataSource,…}'` | **5** | `jq: parse error: Invalid numeric literal at line 1, column 5` |
+| `curl .../api/weekly-brief \| jq '{source,…}'` | **5** | `jq: parse error: Invalid numeric literal at line 1, column 5` |
+| `curl .../api/dashboard \| jq '{cshi,signals,…}'` | **5** | `jq: parse error: Invalid numeric literal at line 1, column 5` |
+
+### Data-source status
+
+| Data source | Observed | Classification |
+|------------|----------|----------------|
+| `/api/status` `.data` | **UNVERIFIABLE** — HTTP 403 | Informational |
+| `/api/status?deep=1` `.data` | **UNVERIFIABLE** — HTTP 403 | Informational |
+| `/api/federal` — `dataSource` | **UNVERIFIABLE** — HTTP 403 | Warning if `"static-fallback"` |
+| `/api/weekly-brief` — `source` | **UNVERIFIABLE** — HTTP 403 | Warning if `"static"` |
+| `/api/dashboard` — shape (`cshi`, `signals`, `forecast`) | **UNVERIFIABLE** — HTTP 403 | **Launch blocker if invalid** |
+
+### Phase 9 data-source interpretation
+
+All five probes are blocked by the Vercel edge. The plain-text `403` body
+is not parseable as JSON — `jq` exits with code 5 (parse error) on every
+probe. No data-source signal is available.
+
+Once `smoke:prod` exits 0, these probes must be re-run in the order listed.
+The `/api/dashboard` shape check is a hard launch blocker: if `.cshi` type
+is `"string"` (not `"object"` or `"null"`), or if `signals` or `commodities`
+are missing, the dashboard is broken.
+
+### Updated launch verdict
+
+| Dimension | Verdict | Detail |
+|-----------|---------|--------|
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · RC code SHA `8c1cd98d` · unchanged |
+| **Smoke** | **◼ FAIL** | `smoke:www` exit 1 · `smoke:prod` exit 1 · all failures: `host_not_allowed` |
+| **Env/data** | **UNVERIFIABLE** | All endpoints return HTTP 403 — domain binding must be completed first |
+| **Data sources** | **UNVERIFIABLE** | All five data-source probes failed to parse — same root cause |
+| **Public launch** | **◼ NO-GO** | Sole blocker: Vercel domain binding incomplete as of 2026-04-25 19:10 UTC |
+
+**Public launch: NO-GO.** No code change is required. Next action:
+
+> **Vercel UI → ConstructAIQ project → Settings → Domains**
+> → Add `constructaiq.trade` → wait for green checkmark
+> → Add `www.constructaiq.trade` → wait for green checkmark
+
+After binding, run in order:
+
+```bash
+npm run smoke:www
+npm run smoke:prod
+curl -s https://constructaiq.trade/api/status | jq .env
+curl -s https://constructaiq.trade/api/status | jq .runtime
+curl -s https://constructaiq.trade/api/status | jq .data
+curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data
+curl -s https://constructaiq.trade/api/federal | jq '{dataSource, fromCache, contractors: (.contractors|length), agencies: (.agencies|length), fetchError}'
+curl -s https://constructaiq.trade/api/weekly-brief | jq '{source, live, configured, warning, error}'
+curl -s https://constructaiq.trade/api/dashboard | jq '{fetched_at, cshi: (.cshi|type), signals: (.signals|length), commodities: (.commodities|length), forecast: (.forecast|type)}'
+```
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 19:07 UTC by `claude/fix-launch-docs-Gxt9P`.*
+Last updated: 2026-04-25 19:10 UTC by `claude/fix-launch-docs-Gxt9P`.*

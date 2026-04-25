@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 19:07 UTC**
+**Updated: 2026-04-25 19:10 UTC**
 
 ---
 
@@ -53,6 +53,24 @@ npm run smoke:prod
 
 If all four pass, the P0 is resolved. Update the verdict to **GO** and proceed
 with env-variable verification (see [OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)).
+
+---
+
+## Data-source verification — 2026-04-25 19:10 UTC (DEFERRED)
+
+**Prerequisite not met.** `https://constructaiq.trade` returns
+`HTTP/2 403 x-deny-reason: host_not_allowed`. All five probes return
+`jq: parse error` (exit 5) — plain-text Vercel error body, not JSON.
+
+| Probe | Exit | Observed | Classification |
+|-------|------|----------|----------------|
+| `/api/status \| jq .data` | **5** | parse error — HTTP 403 | UNVERIFIABLE |
+| `/api/status?deep=1 \| jq .data` | **5** | parse error — HTTP 403 | UNVERIFIABLE |
+| `/api/federal \| jq {dataSource,…}` | **5** | parse error — HTTP 403 | UNVERIFIABLE — warning if static fallback |
+| `/api/weekly-brief \| jq {source,…}` | **5** | parse error — HTTP 403 | UNVERIFIABLE — warning if static fallback |
+| `/api/dashboard \| jq {cshi,signals,…}` | **5** | parse error — HTTP 403 | UNVERIFIABLE — **launch blocker if shape invalid** |
+
+All probes will be run immediately after `smoke:prod` exits 0.
 
 ---
 
