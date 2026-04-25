@@ -3963,3 +3963,73 @@ The operator reports the Vercel binding has been completed. Live probes still re
 **NO-GO** — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` on both. Apex redirect check blocked. Next action: confirm Vercel domain binding propagated (green SSL checkmarks on both domains in the correct project), wait if needed, then re-run `npm run domain:check`.
 
 *Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*
+
+---
+
+## Phase 17 smoke verification — 2026-04-25 21:32 UTC
+
+### Prerequisite check
+
+`domain:check` exit 1 — prerequisite NOT met. Smoke tests ran as instructed; results are consistent with the domain binding failure.
+
+### `npm run smoke:www`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade  (--www-only)
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+
+1 passed, 1 failed  ✗ Smoke test FAILED
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Passed | 1 |
+| Failed | 1 |
+| Failing check | `www is bound to this Vercel project` — HTTP 403 |
+
+### `npm run smoke:prod`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade
+
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves
+  ✗  www is bound to this Vercel project — HTTP 403
+
+1 passed, 5 failed  ✗ Smoke test FAILED
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Passed | 1 |
+| Failed | 5 |
+| Failing checks | `GET /` · `GET /dashboard` · `/api/status` · `/api/dashboard` · `www bound to Vercel` |
+| Root cause | All 403 `x-deny-reason: host_not_allowed` — `VERCEL_DOMAIN_NOT_BOUND` |
+
+### Lint
+
+`npm run lint` exits 127 — `node_modules` absent in sandbox. Last verified: exit 0 Phase 16. No code changes since.
+
+### Verdict
+
+**NO-GO** — both smoke tests exit 1. Root cause is identical to `domain:check` failure: `VERCEL_DOMAIN_NOT_BOUND`. Every failing check is a 403 from Vercel's edge before the app is reached. No application-layer failures.
+
+**Next action:** Complete Vercel domain binding (green SSL checkmarks on both domains in the correct project). `domain:check` must exit 0 before smoke can pass.
+
+*Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*

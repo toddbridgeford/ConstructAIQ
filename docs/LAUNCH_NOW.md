@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 17 canonical redirect check — domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND · proxyWarning false)**
+**Updated: 2026-04-25 (Phase 17 smoke — FAILED · domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND)**
 
 ---
 
@@ -18,25 +18,27 @@
 | Cloudflare proxy | **GO** — `proxyWarning: false` · DNS-only confirmed |
 | Apex canonical redirect | **BLOCKED** — cannot evaluate; Vercel rejects both domains before redirect logic runs |
 | domain:check | **NO-GO** — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` on both |
-| smoke:prod | **NO-GO** — 1/6 passed |
-| smoke:www | **NO-GO** — 1/2 passed |
+| smoke:prod | **NO-GO** — 1/6 passed (all 403 `host_not_allowed`) |
+| smoke:www | **NO-GO** — 1/2 passed (all 403 `host_not_allowed`) |
 | Public launch | **NO-GO** |
 
 ---
 
 ## Next action — do this now
 
-**Both domains still return `host_not_allowed`. Confirm the binding has propagated in Vercel.**
+**Both domains still return `host_not_allowed`. Domain binding has not propagated.**
+
+Fix the Vercel domain binding — smoke cannot pass until `domain:check` exits 0.
 
 1. Vercel → **construct-aiq** project → **Settings → Domains**
-2. Confirm `constructaiq.trade` is listed and shows a green SSL checkmark — connected directly to Production, **no redirect to www**
-3. Confirm `www.constructaiq.trade` is listed and shows a green SSL checkmark — connected directly, no Vercel-level redirect rule
-4. If the UI shows the domains but the check still fails: wait 2–5 minutes for Vercel edge propagation, then re-run
+2. Confirm `constructaiq.trade` is listed with a green SSL checkmark — connected directly to Production, **no redirect to www**
+3. Confirm `www.constructaiq.trade` is listed with a green SSL checkmark — connected directly, no Vercel-level redirect rule
+4. If both domains appear correct in the UI but probes still return 403: wait 2–5 minutes for edge propagation, then re-run
 5. Run:
 
 ```bash
 npm run domain:check
-# Must exit 0: APEX_OK + WWW_REDIRECT_OK
+# Must exit 0: APEX_OK + WWW_REDIRECT_OK before smoke can pass
 ```
 
 Full walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md) · Remediation detail: [docs/VERCEL_CANONICAL_REMEDIATION.md](./VERCEL_CANONICAL_REMEDIATION.md)
