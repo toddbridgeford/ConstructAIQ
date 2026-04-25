@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 14 final — launch:check exit 1)**
+**Updated: 2026-04-25 (Phase 15 — domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND)**
 
 ---
 

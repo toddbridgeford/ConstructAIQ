@@ -3514,4 +3514,38 @@ Launch GO checklist skipped because Public launch remains NO-GO.
 
 Lint: `npm run lint` exit 0 — no ESLint warnings or errors.
 
+---
+
+## Phase 15 domain binding verification — 2026-04-25
+
+**Task:** Verify whether the operator-confirmed Vercel domain binding is live.
+
+### Command results
+
+| Command | Exit code | Apex status | Apex classification | www status | www classification |
+|---------|-----------|-------------|---------------------|------------|--------------------|
+| `npm run domain:check` | **1** | 403 | `VERCEL_DOMAIN_NOT_BOUND` | 403 | `VERCEL_DOMAIN_NOT_BOUND` |
+| `node scripts/check-domain-status.mjs --json` | **1** | 403 | `VERCEL_DOMAIN_NOT_BOUND` | 403 | `VERCEL_DOMAIN_NOT_BOUND` |
+
+### Response headers
+
+| Domain | x-deny-reason | Location |
+|--------|---------------|----------|
+| `constructaiq.trade` | `host_not_allowed` | null |
+| `www.constructaiq.trade` | `host_not_allowed` | null |
+
+### Verdict
+
+**NO-GO — domain binding not yet effective.**
+
+Both `constructaiq.trade` and `www.constructaiq.trade` still return `HTTP 403 · x-deny-reason: host_not_allowed`. The Vercel edge rejects all requests before any application code is reached. The domain binding reported by the operator has not propagated to Vercel's edge network, or has not yet been saved.
+
+**Failing gate:** `domain:check` — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` on apex and www.
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → confirm both `constructaiq.trade` and `www.constructaiq.trade` are bound to this project with green SSL checkmarks (not configured as redirects). Re-run `npm run domain:check` (must exit 0 with `APEX_OK + WWW_REDIRECT_OK`) before proceeding.
+
+Lint: `npm run lint` exit 0 — no ESLint warnings or errors.
+
+*Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
+
 *Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 21:40 UTC*
