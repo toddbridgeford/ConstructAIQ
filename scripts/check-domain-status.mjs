@@ -57,10 +57,14 @@ async function probe(url) {
       headers:  { 'User-Agent': 'ConstructAIQ-domain-check/1.0' },
     })
     return {
-      ok:          true,
-      status:      res.status,
-      denyReason:  res.headers.get('x-deny-reason') ?? null,
-      location:    res.headers.get('location')       ?? null,
+      ok:             true,
+      status:         res.status,
+      denyReason:     res.headers.get('x-deny-reason')    ?? null,
+      location:       res.headers.get('location')          ?? null,
+      server:         res.headers.get('server')            ?? null,
+      cfCacheStatus:  res.headers.get('cf-cache-status')  ?? null,
+      cfRay:          res.headers.get('cf-ray')            ?? null,
+      xVercelId:      res.headers.get('x-vercel-id')       ?? null,
     }
   } catch (err) {
     const code = err?.cause?.code ?? err?.code ?? ''
@@ -72,6 +76,16 @@ async function probe(url) {
   } finally {
     clearTimeout(timer)
   }
+}
+
+// ── Proxy detection ──────────────────────────────────────────────────────────
+
+export function detectProxy(result) {
+  if (!result.ok) return false
+  if (result.server?.toLowerCase().includes('cloudflare')) return true
+  if (result.cfRay        != null) return true
+  if (result.cfCacheStatus != null) return true
+  return false
 }
 
 // ── Classification ────────────────────────────────────────────────────────────
@@ -121,22 +135,36 @@ export function buildJsonOutput({ apexUrl, apexResult, apexClass, wwwUrl, wwwRes
 
   const exitCode = (apexOk && wwwOk) ? 0 : hostNotAllowed ? 1 : 2
 
+  const apexProxy = detectProxy(apexResult)
+  const wwwProxy  = detectProxy(wwwResult)
+
   return {
     apex: {
       url:            apexUrl,
       status:         apexResult.ok ? apexResult.status : null,
-      denyReason:     apexResult.denyReason  ?? null,
-      location:       apexResult.location    ?? null,
+      denyReason:     apexResult.denyReason    ?? null,
+      location:       apexResult.location      ?? null,
+      server:         apexResult.server        ?? null,
+      cfCacheStatus:  apexResult.cfCacheStatus ?? null,
+      cfRay:          apexResult.cfRay         ?? null,
+      xVercelId:      apexResult.xVercelId     ?? null,
       classification: apexClass,
+      proxyWarning:   apexProxy,
     },
     www: {
       url:            wwwUrl,
       status:         wwwResult.ok ? wwwResult.status : null,
-      denyReason:     wwwResult.denyReason   ?? null,
-      location:       wwwResult.location     ?? null,
+      denyReason:     wwwResult.denyReason    ?? null,
+      location:       wwwResult.location      ?? null,
+      server:         wwwResult.server        ?? null,
+      cfCacheStatus:  wwwResult.cfCacheStatus ?? null,
+      cfRay:          wwwResult.cfRay         ?? null,
+      xVercelId:      wwwResult.xVercelId     ?? null,
       classification: wwwClass,
+      proxyWarning:   wwwProxy,
     },
-    ok:       apexOk && wwwOk,
+    ok:           apexOk && wwwOk,
+    proxyWarning: apexProxy || wwwProxy,
     exitCode,
   }
 }
@@ -172,16 +200,24 @@ function printResult(label, result, classification) {
   console.log(`  ${'─'.repeat(50)}`)
 
   if (!result.ok) {
-    console.log(`  status       : (no response — ${result.code || 'network error'})`)
-    console.log(`  error        : ${result.error}`)
+    console.log(`  status          : (no response — ${result.code || 'network error'})`)
+    console.log(`  error           : ${result.error}`)
   } else {
-    console.log(`  status       : ${result.status}`)
-    if (result.denyReason) console.log(`  x-deny-reason: ${result.denyReason}`)
-    if (result.location)   console.log(`  location     : ${result.location}`)
+    console.log(`  status          : ${result.status}`)
+    if (result.denyReason)    console.log(`  x-deny-reason   : ${result.denyReason}`)
+    if (result.location)      console.log(`  location        : ${result.location}`)
+    if (result.server)        console.log(`  server          : ${result.server}`)
+    if (result.cfCacheStatus) console.log(`  cf-cache-status : ${result.cfCacheStatus}`)
+    if (result.cfRay)         console.log(`  cf-ray          : ${result.cfRay}`)
+    if (result.xVercelId)     console.log(`  x-vercel-id     : ${result.xVercelId}`)
   }
 
-  console.log(`  classification: ${classification}`)
-  console.log(`  diagnosis    : ${DIAGNOSIS[classification]}`)
+  console.log(`  classification  : ${classification}`)
+  console.log(`  diagnosis       : ${DIAGNOSIS[classification]}`)
+
+  if (detectProxy(result)) {
+    console.log(`  ⚠  proxy warning: possible DNS provider proxy detected; Vercel recommends DNS-only for this domain`)
+  }
 }
 
 // ── Main (CLI only) ───────────────────────────────────────────────────────────
@@ -218,15 +254,21 @@ async function main() {
   console.log('\n' + '═'.repeat(54))
 
   if (output.ok) {
-    console.log('\n  ✓ All good — apex reachable, www redirects correctly.\n')
+    console.log('\n  ✓ All good — apex reachable, www redirects correctly.')
   } else if (apexResult.denyReason?.includes('host_not_allowed') || wwwResult.denyReason?.includes('host_not_allowed')) {
-    console.log('\n  ✗ host_not_allowed — Vercel domain not bound to this project.\n')
+    console.log('\n  ✗ host_not_allowed — Vercel domain not bound to this project.')
   } else {
     const issues = []
     if (apexClass !== 'APEX_OK')          issues.push(`apex: ${apexClass}`)
     if (wwwClass  !== 'WWW_REDIRECT_OK')  issues.push(`www: ${wwwClass}`)
-    console.log(`\n  ✗ Domain issues detected: ${issues.join(', ')}\n`)
+    console.log(`\n  ✗ Domain issues detected: ${issues.join(', ')}`)
   }
+
+  if (output.proxyWarning) {
+    console.log('  ⚠  proxy warning: possible DNS provider proxy detected; Vercel recommends DNS-only for this domain')
+  }
+
+  console.log('')
 
   process.exit(output.exitCode)
 }

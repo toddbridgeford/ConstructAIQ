@@ -4,6 +4,7 @@ import {
   classifyWww,
   parseArgs,
   buildJsonOutput,
+  detectProxy,
 } from '../check-domain-status.mjs'
 
 const DEFAULT_APEX = 'https://constructaiq.trade'
@@ -110,11 +111,20 @@ describe('parseArgs', () => {
 
 // ── buildJsonOutput ───────────────────────────────────────────────────────────
 
-const okApexResult  = { ok: true, status: 200, denyReason: null, location: null }
-const okWwwResult   = { ok: true, status: 301, denyReason: null, location: 'https://constructaiq.trade/dashboard' }
-const denyResult    = { ok: true, status: 403, denyReason: 'host_not_allowed', location: null }
-const failWwwResult = { ok: true, status: 500, denyReason: null, location: null }
+const okApexResult  = { ok: true, status: 200, denyReason: null, location: null, server: null, cfCacheStatus: null, cfRay: null, xVercelId: null }
+const okWwwResult   = { ok: true, status: 301, denyReason: null, location: 'https://constructaiq.trade/dashboard', server: null, cfCacheStatus: null, cfRay: null, xVercelId: null }
+const denyResult    = { ok: true, status: 403, denyReason: 'host_not_allowed', location: null, server: null, cfCacheStatus: null, cfRay: null, xVercelId: null }
+const failWwwResult = { ok: true, status: 500, denyReason: null, location: null, server: null, cfCacheStatus: null, cfRay: null, xVercelId: null }
 const netErrResult  = { ok: false, error: 'ENOTFOUND', code: 'ENOTFOUND' }
+
+const cfApexResult  = {
+  ok: true, status: 200, denyReason: null, location: null,
+  server: 'cloudflare', cfCacheStatus: 'DYNAMIC', cfRay: 'abc123-IAD', xVercelId: null,
+}
+const cfWwwResult   = {
+  ok: true, status: 308, denyReason: null, location: 'https://constructaiq.trade/dashboard',
+  server: 'cloudflare', cfCacheStatus: 'MISS', cfRay: 'def456-IAD', xVercelId: null,
+}
 
 describe('buildJsonOutput', () => {
   it('has the required top-level shape', () => {
@@ -128,7 +138,7 @@ describe('buildJsonOutput', () => {
     expect(out).toHaveProperty('exitCode')
   })
 
-  it('apex entry includes url, status, denyReason, location, classification', () => {
+  it('apex entry includes url, status, denyReason, location, diagnostic headers, classification, proxyWarning', () => {
     const out = buildJsonOutput({
       apexUrl: DEFAULT_APEX, apexResult: okApexResult, apexClass: 'APEX_OK',
       wwwUrl: DEFAULT_WWW,   wwwResult:  okWwwResult,  wwwClass:  'WWW_REDIRECT_OK',
@@ -138,7 +148,12 @@ describe('buildJsonOutput', () => {
       status:         200,
       denyReason:     null,
       location:       null,
+      server:         null,
+      cfCacheStatus:  null,
+      cfRay:          null,
+      xVercelId:      null,
       classification: 'APEX_OK',
+      proxyWarning:   false,
     })
   })
 
@@ -205,5 +220,91 @@ describe('buildJsonOutput', () => {
     })
     expect(out.apex.url).toBe('https://staging.example.com')
     expect(out.www.url).toBe('https://www-staging.example.com/dashboard')
+  })
+
+  it('proxyWarning=false when no Cloudflare headers present', () => {
+    const out = buildJsonOutput({
+      apexUrl: DEFAULT_APEX, apexResult: okApexResult, apexClass: 'APEX_OK',
+      wwwUrl: DEFAULT_WWW,   wwwResult:  okWwwResult,  wwwClass:  'WWW_REDIRECT_OK',
+    })
+    expect(out.proxyWarning).toBe(false)
+    expect(out.apex.proxyWarning).toBe(false)
+    expect(out.www.proxyWarning).toBe(false)
+  })
+
+  it('proxyWarning=true when apex has Cloudflare server header', () => {
+    const out = buildJsonOutput({
+      apexUrl: DEFAULT_APEX, apexResult: cfApexResult, apexClass: 'APEX_OK',
+      wwwUrl: DEFAULT_WWW,   wwwResult:  okWwwResult,  wwwClass:  'WWW_REDIRECT_OK',
+    })
+    expect(out.apex.proxyWarning).toBe(true)
+    expect(out.proxyWarning).toBe(true)
+  })
+
+  it('proxyWarning=true when www has cf-ray header', () => {
+    const out = buildJsonOutput({
+      apexUrl: DEFAULT_APEX, apexResult: okApexResult, apexClass: 'APEX_OK',
+      wwwUrl: DEFAULT_WWW,   wwwResult:  cfWwwResult,  wwwClass:  'WWW_REDIRECT_OK',
+    })
+    expect(out.www.proxyWarning).toBe(true)
+    expect(out.proxyWarning).toBe(true)
+  })
+
+  it('proxyWarning does not change exitCode when apex/www are otherwise correct', () => {
+    const out = buildJsonOutput({
+      apexUrl: DEFAULT_APEX, apexResult: cfApexResult, apexClass: 'APEX_OK',
+      wwwUrl: DEFAULT_WWW,   wwwResult:  cfWwwResult,  wwwClass:  'WWW_REDIRECT_OK',
+    })
+    expect(out.proxyWarning).toBe(true)
+    expect(out.exitCode).toBe(0)
+    expect(out.ok).toBe(true)
+  })
+
+  it('APEX_REDIRECTS_TO_WWW still yields exitCode=2 regardless of proxyWarning', () => {
+    const apexToWwwCf = {
+      ok: true, status: 308, denyReason: null,
+      location: 'https://www.constructaiq.trade/',
+      server: 'cloudflare', cfCacheStatus: 'DYNAMIC', cfRay: 'xyz-IAD', xVercelId: null,
+    }
+    const out = buildJsonOutput({
+      apexUrl: DEFAULT_APEX, apexResult: apexToWwwCf, apexClass: 'APEX_REDIRECTS_TO_WWW',
+      wwwUrl: DEFAULT_WWW,   wwwResult:  cfWwwResult, wwwClass:  'WWW_REDIRECT_OK',
+    })
+    expect(out.apex.classification).toBe('APEX_REDIRECTS_TO_WWW')
+    expect(out.exitCode).toBe(2)
+    expect(out.ok).toBe(false)
+    expect(out.proxyWarning).toBe(true)
+  })
+})
+
+// ── detectProxy ───────────────────────────────────────────────────────────────
+
+describe('detectProxy', () => {
+  it('returns false when result.ok is false', () => {
+    expect(detectProxy({ ok: false, error: 'ENOTFOUND', code: 'ENOTFOUND' })).toBe(false)
+  })
+
+  it('returns false when no proxy headers present', () => {
+    expect(detectProxy({ ok: true, status: 200, server: null, cfCacheStatus: null, cfRay: null })).toBe(false)
+  })
+
+  it('returns true when server is "cloudflare"', () => {
+    expect(detectProxy({ ok: true, status: 200, server: 'cloudflare', cfCacheStatus: null, cfRay: null })).toBe(true)
+  })
+
+  it('returns true when server contains "cloudflare" mixed-case', () => {
+    expect(detectProxy({ ok: true, status: 200, server: 'Cloudflare', cfCacheStatus: null, cfRay: null })).toBe(true)
+  })
+
+  it('returns true when cf-ray header is present', () => {
+    expect(detectProxy({ ok: true, status: 200, server: null, cfCacheStatus: null, cfRay: 'abc123-IAD' })).toBe(true)
+  })
+
+  it('returns true when cf-cache-status header is present', () => {
+    expect(detectProxy({ ok: true, status: 200, server: null, cfCacheStatus: 'HIT', cfRay: null })).toBe(true)
+  })
+
+  it('returns false when only x-vercel-id is present (Vercel-direct, no proxy)', () => {
+    expect(detectProxy({ ok: true, status: 200, server: null, cfCacheStatus: null, cfRay: null, xVercelId: 'iad1::abc' })).toBe(false)
   })
 })
