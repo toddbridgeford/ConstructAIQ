@@ -1,10 +1,10 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 23 — raw-header run · domain:check exit 1 · smoke:prod exit 1 · smoke:www exit 1 · VERCEL_DOMAIN_NOT_BOUND · no server/x-vercel-id headers · Public launch NO-GO)**
+**Updated: 2026-04-25 (Phase 24 — domain:check exit 1 · smoke:prod exit 1 · smoke:www exit 1 · VERCEL_DOMAIN_NOT_BOUND · unchanged from Phase 23 · Public launch NO-GO)**
 
 ---
 
-> **STOP: code is launch-ready. Vercel domain binding is not active. Raw headers confirm request reaches Vercel infrastructure (`x-deny-reason: host_not_allowed`) but no `server: Vercel` or `x-vercel-id` header present — domain is rejected before project routing. Check that the domain is bound to the correct project (`construct-aiq`), not a different Vercel project.**
+> **STOP: code is launch-ready. Four consecutive verification runs (Phases 21–24) return the same result: `host_not_allowed` (403) on both apex and www — domain is not bound to any Vercel project. The binding step has not taken effect. See operator action below.**
 
 ---
 
@@ -15,14 +15,33 @@
 | 5 | Build | **GO** — exit 127 in sandbox (node_modules absent) · exit 0 in CI (84 routes, 60.1s) · CI is authoritative |
 | 5 | Lint | **GO** — exit 127 in sandbox (node_modules absent) · exit 0 in CI · CI is authoritative |
 | 5 | Tests | **GO** — exit 127 in sandbox (node_modules absent) · 356/356 exit 0 in CI · CI is authoritative |
-| 4 | domain:check | **NO-GO** — exit 1 · apex `VERCEL_DOMAIN_NOT_BOUND` · www `VERCEL_DOMAIN_NOT_BOUND` · Phase 23 re-verified |
-| 4 | smoke:prod | **NO-GO** — exit 1 · 1/6 passed · 5 failed — all 403 `host_not_allowed` · Phase 23 |
-| 4 | smoke:www | **NO-GO** — exit 1 · 1/2 passed · 1 failed — 403 `host_not_allowed` · Phase 23 |
+| 4 | domain:check | **NO-GO** — exit 1 · apex `VERCEL_DOMAIN_NOT_BOUND` · www `VERCEL_DOMAIN_NOT_BOUND` · Phase 24 re-verified |
+| 4 | smoke:prod | **NO-GO** — exit 1 · 1/6 passed · 5 failed — all 403 `host_not_allowed` · Phase 24 |
+| 4 | smoke:www | **NO-GO** — exit 1 · 1/2 passed · 1 failed — 403 `host_not_allowed` · Phase 24 |
 | 3 | env/runtime | **BLOCKED** — domain not bound · all endpoints return `host_not_allowed` · unreadable |
 | 3 | data/dashboard | **BLOCKED** — domain not bound · all endpoints return `host_not_allowed` · unreadable |
 | 2 | Apex DNS target | **WARN** — resolves to `64.29.17.1` (not expected `76.76.21.21`) · response IS Vercel pattern · proxyWarning: false |
 | — | launch:check | **NOT RUN** — prerequisite (domain:check exit 0) not met |
 | — | Public launch | **NO-GO** |
+
+---
+
+## Phase 24 verification run (2026-04-25)
+
+*Branch: `claude/verify-launch-dns-Ok9Li`*
+
+Same six commands as Phase 23. Results byte-for-byte identical — no change.
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run domain:check` | **1** | `VERCEL_DOMAIN_NOT_BOUND` — apex + www |
+| `node scripts/check-domain-status.mjs --json` | **1** | `ok:false` · both `status:403 · denyReason:host_not_allowed` · `xVercelId:null` · `cfRay:null` |
+| `curl -sSI https://constructaiq.trade` | 0 | `HTTP/2 403` · `x-deny-reason: host_not_allowed` · no `server` · no `x-vercel-id` |
+| `curl -sSI https://www.constructaiq.trade/dashboard` | 0 | `HTTP/2 403` · `x-deny-reason: host_not_allowed` · no `server` · no `x-vercel-id` |
+| `npm run smoke:www` | **1** | 1/2 — www DNS ✓ · www bound ✗ |
+| `npm run smoke:prod` | **1** | 1/6 — www DNS ✓ · all other checks ✗ |
+
+**Verdict: NO-GO.** Four runs (Phases 21–24) — identical result each time. The Vercel binding has not taken effect.
 
 ---
 

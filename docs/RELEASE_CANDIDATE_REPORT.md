@@ -4861,3 +4861,24 @@ Absence of `server: Vercel` and `x-vercel-id` is consistent with Vercel's pre-ro
 **Exact next operator action:** Vercel dashboard → `construct-aiq` project → Settings → Domains. If `constructaiq.trade` is absent: add it. If present with a red error: remove, wait 10 s, re-add. Confirm no redirect configured on either domain. After saving: re-run `npm run domain:check` — must exit 0.
 
 `docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO. *(2026-04-25 · claude/verify-launch-dns-Ok9Li · Phase 23)*
+
+---
+
+## Post-Vercel Binding Verification — 2026-04-25 (Phase 24)
+
+*Branch: `claude/verify-launch-dns-Ok9Li`*
+
+Same six commands as Phase 23. Results identical — no change in any field.
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run domain:check` | **1** | `VERCEL_DOMAIN_NOT_BOUND` — apex + www |
+| `node scripts/check-domain-status.mjs --json` | **1** | `ok:false` · both `status:403 · denyReason:host_not_allowed` · `xVercelId:null` · `cfRay:null` |
+| `curl -sSI https://constructaiq.trade` | 0 | `HTTP/2 403` · `x-deny-reason:host_not_allowed` · no `server` · no `x-vercel-id` |
+| `curl -sSI https://www.constructaiq.trade/dashboard` | 0 | `HTTP/2 403` · `x-deny-reason:host_not_allowed` · no `server` · no `x-vercel-id` |
+| `npm run smoke:www` | **1** | 1/2 — www DNS ✓ · www bound ✗ |
+| `npm run smoke:prod` | **1** | 1/6 — www DNS ✓ · all other checks ✗ |
+
+**NO-GO.** Four consecutive runs (Phases 21–24) — identical result each time. Vercel binding has not taken effect. No product code issue. Single blocker: domain not bound to any Vercel project.
+
+`docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO. *(2026-04-25 · claude/verify-launch-dns-Ok9Li · Phase 24)*
