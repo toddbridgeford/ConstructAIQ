@@ -4,6 +4,12 @@
 
 ---
 
+> **STOP: code is launch-ready. The only active blocker is external Vercel domain
+> binding. Do not add more app changes before binding `constructaiq.trade` and
+> `www.constructaiq.trade` in Vercel.**
+
+---
+
 ## Verdict
 
 | Dimension | Status |
