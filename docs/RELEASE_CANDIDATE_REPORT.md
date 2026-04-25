@@ -4821,3 +4821,43 @@ All five requested commands run in order following Phase 21 operator action.
 **Exact next operator action:** Vercel dashboard → `construct-aiq` project → Settings → Domains. Verify both `constructaiq.trade` and `www.constructaiq.trade` are present with "Valid configuration" and no redirect. If absent or errored, remove and re-add. Re-run `npm run domain:check` — must exit 0 before any further gate.
 
 `docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO. *(2026-04-25 · claude/verify-launch-dns-Ok9Li · Phase 22)*
+
+---
+
+## Post-Vercel Binding Verification — 2026-04-25 (Phase 23 — raw-header diagnostic)
+
+*Branch: `claude/verify-launch-dns-Ok9Li`*
+
+Added `curl -sSI` raw header inspection to confirm request routing.
+
+### Command table
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run domain:check` | **1** | `VERCEL_DOMAIN_NOT_BOUND` — apex + www |
+| `node scripts/check-domain-status.mjs --json` | **1** | `ok:false` · both `status:403 · denyReason:host_not_allowed` · `xVercelId:null` · `cfRay:null` |
+| `curl -sSI https://constructaiq.trade` | 0 | `HTTP/2 403` · `x-deny-reason:host_not_allowed` · no `server` · no `x-vercel-id` |
+| `curl -sSI https://www.constructaiq.trade/dashboard` | 0 | `HTTP/2 403` · `x-deny-reason:host_not_allowed` · no `server` · no `x-vercel-id` |
+| `npm run smoke:www` | **1** | 1/2 — www DNS ✓ · www bound ✗ |
+| `npm run smoke:prod` | **1** | 1/6 — www DNS ✓ · all other checks ✗ |
+
+### Header observations
+
+| Header | apex | www |
+|--------|------|-----|
+| `x-deny-reason` | `host_not_allowed` | `host_not_allowed` |
+| `server` | absent | absent |
+| `x-vercel-id` | absent | absent |
+| `cf-ray` | absent | absent |
+| `location` | absent | absent |
+| `content-length` | `21` ("Host not in allowlist") | `21` |
+
+Absence of `server: Vercel` and `x-vercel-id` is consistent with Vercel's pre-routing denial path — the request never reaches a project deployment. The domain is not bound to any project in Vercel's routing table.
+
+### Final verdict
+
+**NO-GO.** Results unchanged. Domain binding is not active in Vercel for either hostname. Requests reach Vercel's edge network but are rejected before project routing. DNS-only confirmed (no `cf-ray`). No product code issue.
+
+**Exact next operator action:** Vercel dashboard → `construct-aiq` project → Settings → Domains. If `constructaiq.trade` is absent: add it. If present with a red error: remove, wait 10 s, re-add. Confirm no redirect configured on either domain. After saving: re-run `npm run domain:check` — must exit 0.
+
+`docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO. *(2026-04-25 · claude/verify-launch-dns-Ok9Li · Phase 23)*
