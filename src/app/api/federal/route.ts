@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server'
-import { getStateAllocations, type StateAllocation } from '@/lib/federal'
+import {
+  getStateAllocations,
+  getFederalLeaderboard,
+  type StateAllocation,
+  type ContractorLeader,
+  type AgencyShare,
+} from '@/lib/federal'
 
 export const maxDuration = 10
 
@@ -12,15 +18,17 @@ interface Program {
   name: string; authorized: number; obligated: number; spent: number
   executionPct: number; agency: string; color: string
 }
-interface Agency      { name: string; obligatedPct: number; color: string }
-interface Contractor  { rank: number; name: string; awardValue: number; contracts: number; agency: string; state: string }
 interface MonthlyAward { month: string; value: number }
 
-// ── Static data — appropriations/legislation, not from a live API ──────────
-
-function agencyColor(pct: number) {
-  return pct >= 70 ? '#30d158' : pct >= 50 ? '#f5a623' : '#ff453a'
-}
+// ── Static legislative authorization table ─────────────────────────────────
+// Source: IIJA / IRA / DoD MILCON authorization figures from public CBO and
+// Treasury reports. These are statutory authorization & cumulative obligation
+// totals at the program level — NOT live award execution data, and not
+// expected to change daily. They are kept here as a defensible reference
+// table; the leaderboard / agency proxies are now live (see below).
+//
+// Reviewer note: if/when CFO Act program-execution data is wired up, replace
+// this table with that feed and drop the static comment.
 
 const PROGRAMS: Program[] = [
   { name:'IIJA — Highway Formula Funds',   authorized:110000, obligated:74800, spent:52300, executionPct:68.0, agency:'FHWA',    color:'#0a84ff' },
@@ -33,40 +41,6 @@ const PROGRAMS: Program[] = [
   { name:'IRA — Clean Energy Construction', authorized:180000, obligated:124800, spent:84200, executionPct:69.3, agency:'DOE', color:'#30d158' },
   { name:'IRA — Manufacturing Investment', authorized:280000, obligated:168400, spent:98400, executionPct:60.1, agency:'Treasury', color:'#30d158' },
   { name:'DoD — Military Construction',  authorized:14000,  obligated:11400, spent:8400,  executionPct:81.4, agency:'DoD',     color:'#30d158' },
-]
-
-const AGENCIES: Agency[] = [
-  { name:'FHWA',        obligatedPct:78, color:agencyColor(78) },
-  { name:'Army Corps',  obligatedPct:71, color:agencyColor(71) },
-  { name:'GSA',         obligatedPct:58, color:agencyColor(58) },
-  { name:'DoD MILCON',  obligatedPct:82, color:agencyColor(82) },
-  { name:'EPA Water',   obligatedPct:44, color:agencyColor(44) },
-  { name:'FTA Transit', obligatedPct:67, color:agencyColor(67) },
-  { name:'FAA Airports',obligatedPct:72, color:agencyColor(72) },
-  { name:'HUD',         obligatedPct:38, color:agencyColor(38) },
-]
-
-const CONTRACTORS: Contractor[] = [
-  { rank:1,  name:'Bechtel Group',         awardValue:8420, contracts:23, agency:'DOT',  state:'CA' },
-  { rank:2,  name:'Turner Construction',   awardValue:6840, contracts:31, agency:'GSA',  state:'NY' },
-  { rank:3,  name:'Fluor Corporation',     awardValue:6240, contracts:18, agency:'DOE',  state:'TX' },
-  { rank:4,  name:'Kiewit Corporation',    awardValue:5980, contracts:27, agency:'FHWA', state:'NE' },
-  { rank:5,  name:'Jacobs Engineering',    awardValue:5420, contracts:34, agency:'EPA',  state:'TX' },
-  { rank:6,  name:'AECOM',                awardValue:5180, contracts:42, agency:'DOT',  state:'CA' },
-  { rank:7,  name:'Skanska USA',           awardValue:4840, contracts:22, agency:'GSA',  state:'NY' },
-  { rank:8,  name:'PCL Construction',      awardValue:4280, contracts:19, agency:'FHWA', state:'CO' },
-  { rank:9,  name:'Whiting-Turner',        awardValue:3980, contracts:28, agency:'GSA',  state:'MD' },
-  { rank:10, name:'Gilbane Building',      awardValue:3720, contracts:24, agency:'GSA',  state:'RI' },
-  { rank:11, name:'McCarthy Building',     awardValue:3480, contracts:21, agency:'DOE',  state:'MO' },
-  { rank:12, name:'DPR Construction',      awardValue:3240, contracts:17, agency:'NIH',  state:'CA' },
-  { rank:13, name:'Suffolk Construction',  awardValue:3080, contracts:23, agency:'GSA',  state:'MA' },
-  { rank:14, name:'Clark Construction',    awardValue:2940, contracts:19, agency:'GSA',  state:'MD' },
-  { rank:15, name:'Hensel Phelps',         awardValue:2780, contracts:16, agency:'DoD',  state:'CO' },
-  { rank:16, name:'Mortenson Construction',awardValue:2580, contracts:14, agency:'DOE',  state:'MN' },
-  { rank:17, name:'JE Dunn Construction',  awardValue:2340, contracts:18, agency:'GSA',  state:'MO' },
-  { rank:18, name:'Barton Malow',          awardValue:2180, contracts:15, agency:'DoD',  state:'MI' },
-  { rank:19, name:'Holder Construction',   awardValue:1980, contracts:13, agency:'GSA',  state:'GA' },
-  { rank:20, name:'Austin Industries',     awardValue:1840, contracts:16, agency:'FHWA', state:'TX' },
 ]
 
 function buildMonthlyAwards(): MonthlyAward[] {
@@ -117,23 +91,37 @@ function staticStateAllocations(): StateAllocation[] {
 
 export async function GET() {
   try {
-    const { data: liveStates, fromCache, fetchedAt, error } =
-      await getStateAllocations()
+    const [statesRes, leaderRes] = await Promise.all([
+      getStateAllocations(),
+      getFederalLeaderboard(),
+    ])
 
-    const stateAllocations = liveStates.length > 0
-      ? liveStates
+    const stateAllocations: StateAllocation[]   = statesRes.data.length > 0
+      ? statesRes.data
       : staticStateAllocations()
+    const contractors: ContractorLeader[]       = leaderRes.data.contractors
+    const agencies:    AgencyShare[]            = leaderRes.data.agencies
 
-    const monthlyAwards  = buildMonthlyAwards()
+    const monthlyAwards   = buildMonthlyAwards()
     const totalAuthorized = PROGRAMS.reduce((s, p) => s + p.authorized, 0)
     const totalObligated  = PROGRAMS.reduce((s, p) => s + p.obligated,  0)
     const totalSpent      = PROGRAMS.reduce((s, p) => s + p.spent,      0)
 
+    // Provenance — every public-facing field traces back to a live source or
+    // is explicitly labeled static-fallback. We require BOTH live feeds (geo
+    // + leaderboard) to claim "usaspending.gov".
+    const liveGeo    = statesRes.data.length > 0
+    const liveLeader = contractors.length > 0 || agencies.length > 0
+    const dataSource = liveGeo && liveLeader ? 'usaspending.gov' : 'static-fallback'
+    const fetchError = statesRes.error ?? leaderRes.error
+    const fromCache  = Boolean(statesRes.fromCache && leaderRes.fromCache)
+    const updatedAt  = leaderRes.fetchedAt || statesRes.fetchedAt
+
     return NextResponse.json(
       {
         programs:         PROGRAMS,
-        agencies:         AGENCIES,
-        contractors:      CONTRACTORS,
+        agencies,
+        contractors,
         monthlyAwards,
         stateAllocations,
         solicitations:    [],
@@ -141,15 +129,17 @@ export async function GET() {
         totalObligated,
         totalSpent,
         // Provenance fields — visible in API response
-        dataSource:   liveStates.length > 0 ? 'usaspending.gov' : 'static-fallback',
+        dataSource,
         fromCache,
-        updatedAt:    fetchedAt,
-        ...(error ? { fetchError: error } : {}),
+        updatedAt,
+        ...(fetchError ? { fetchError } : {}),
       },
-      { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } }
+      { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } },
     )
   } catch (err) {
-    // Last-resort fallback — never error the dashboard
+    // Last-resort fallback — never error the dashboard. Public-facing
+    // contractor/agency tables are intentionally empty here so we never
+    // present fabricated leaderboard data as if it were live.
     console.error('[/api/federal]', err)
     const stateAllocations = staticStateAllocations()
     const monthlyAwards    = buildMonthlyAwards()
@@ -157,10 +147,19 @@ export async function GET() {
     const totalObligated   = PROGRAMS.reduce((s, p) => s + p.obligated,  0)
     const totalSpent       = PROGRAMS.reduce((s, p) => s + p.spent,      0)
     return NextResponse.json({
-      programs:PROGRAMS, agencies:AGENCIES, contractors:CONTRACTORS,
-      monthlyAwards, stateAllocations, totalAuthorized, totalObligated, totalSpent,
-      dataSource:'static-fallback', fromCache:false,
-      updatedAt: new Date().toISOString(),
+      programs:         PROGRAMS,
+      agencies:         [],
+      contractors:      [],
+      monthlyAwards,
+      stateAllocations,
+      solicitations:    [],
+      totalAuthorized,
+      totalObligated,
+      totalSpent,
+      dataSource: 'static-fallback',
+      fromCache:  false,
+      updatedAt:  new Date().toISOString(),
+      fetchError: err instanceof Error ? err.message : String(err),
     })
   }
 }
