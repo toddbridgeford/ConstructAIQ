@@ -690,6 +690,122 @@ outcome after domain binding (assuming env vars are also set) is:
 
 ---
 
+## Phase 6 full launch gate — 2026-04-25 18:17 UTC
+
+Full command: `npm run launch:check -- --include-smoke`
+
+### Sandbox dependency note
+
+The first invocation of this gate failed immediately because `node_modules/`
+did not exist in this sandbox session — `next`, `vitest`, and all other
+binaries returned exit 127 (`not found`). This is a sandbox initialization
+gap, not a code defect. Dependencies were installed with `npm ci` (exit 0)
+and the gate was re-run. The second run is the authoritative record below.
+
+### Gate 5 — build / lint / unit tests
+
+| Step | Exit | Wall time | Result |
+|------|------|-----------|--------|
+| `npm run build` | **0** | 134.8 s | `✓ Compiled successfully in 79s` — routes built, 0 errors |
+| `npm run lint` | **0** | 3.4 s | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | 4.1 s | `23 passed (23)` · `317 passed (317)` |
+
+Gate 5 summary: `✓  build  ✓  lint  ✓  unit tests`
+
+Notable from build output:
+- `⚠ Using edge runtime on a page currently disables static generation for that page` — pre-existing; expected on `/api/og/*` routes.
+- `next lint` deprecation notice (`next lint will be removed in Next.js 16`) — pre-existing; not introduced by this work.
+
+### Gate 4 — production smoke (`--include-smoke`)
+
+| Step | Exit | Wall time | Checks |
+|------|------|-----------|--------|
+| `npm run smoke:prod` | **1** | 0.8 s | 1 passed, 5 failed |
+| `npm run smoke:www` | **1** | 0.4 s | 1 passed, 1 failed |
+
+#### `smoke:prod` detail
+
+```
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+       www.constructaiq.trade resolves but is rejected (403).
+       Fix: add www.constructaiq.trade as a Vercel project domain.
+
+1 passed, 5 failed  ✗ Smoke test FAILED
+```
+
+#### `smoke:www` detail
+
+```
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+
+1 passed, 1 failed  ✗ Smoke test FAILED
+```
+
+### `npm run lint` (standalone)
+
+Also run standalone per phase requirements. `next lint` exits 0 with
+`✔ No ESLint warnings or errors` (same result as the gate run above).
+
+| Tool | Exit | Result |
+|------|------|--------|
+| `npm run lint` (standalone) | **0** | `✔ No ESLint warnings or errors` |
+
+### Final launch gate summary
+
+```
+  ✓  build
+  ✓  lint
+  ✓  unit tests
+  ✗  smoke:prod
+  ✗  smoke:www
+
+✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www
+```
+
+| Field | Value |
+|-------|-------|
+| Final exit code | **1** |
+| Failing gate | `smoke gates: smoke:prod, smoke:www` |
+| Root cause | Vercel project domain binding not completed — all requests return HTTP 403 `x-deny-reason: host_not_allowed` |
+| Gate 5 | build ✓ · lint ✓ · unit tests ✓ — fully green |
+| Gate 4 | smoke:prod ✗ · smoke:www ✗ — sole blocker is Vercel domain binding |
+
+### Phase 6 launch gate interpretation
+
+**Gate 5 is fully green.** Build compiles cleanly (79 s, 0 errors), ESLint
+exits 0, and all 317 unit tests pass across 23 test files. The codebase is
+launch-ready from a code, build, and test perspective.
+
+**Gate 4 fails on both smoke checks.** The sole cause is the unresolved Vercel
+domain binding — identical to every prior phase. DNS resolves correctly
+(`www DNS resolves` passes on both runs). No code or configuration change is
+required on the application side.
+
+**Public launch: NO-GO.** The only remaining automatable blocker is:
+complete the Vercel domain binding (Vercel UI → ConstructAIQ project →
+Settings → Domains → Add `constructaiq.trade` and `www.constructaiq.trade`).
+See `docs/VERCEL_DOMAIN_FIX.md` Steps 1–4.
+
+Once domain binding is complete and both smoke tests exit 0, the launch gate
+verdict becomes eligible to change to **GO** — subject to env variable
+verification (`/api/status | jq .env`) also passing.
+
+---
+
 ## Phase 6 data-source verification — 2026-04-25 18:12 UTC
 
 This section records the Phase 6 attempt to verify live production data-source
@@ -1628,4 +1744,4 @@ The last known-good code SHA documented in this report is `8c1cd98d`.
 ---
 
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:12 UTC by `claude/verify-domain-binding-gvssO`.*
+Last updated: 2026-04-25 18:18 UTC by `claude/verify-domain-binding-gvssO`.*
