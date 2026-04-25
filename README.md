@@ -67,6 +67,29 @@ cp .env.example .env.local
 npm run dev
 ```
 
+## Launch readiness
+
+Before declaring a release "launch-ready" — public announcement, DNS
+cutover, paid-traffic ramp — walk through
+[`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md). It groups the
+gates into Domain/DNS, Environment, Data integrity, Smoke tests, and
+Build/test. The automatable parts run with:
+
+```bash
+npm run launch:check                  # build + lint + tests, prints manual gates
+npm run launch:check -- --include-smoke   # also runs smoke:prod and smoke:www
+```
+
+Other operational docs:
+- [`docs/PRODUCTION_SMOKE.md`](docs/PRODUCTION_SMOKE.md) — what the
+  smoke checks cover, www failure modes, and the exact Vercel UI +
+  DNS steps to fix each one.
+- [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md) — runtime env vars
+  whose absence silently degrades a feature (currently
+  `ANTHROPIC_API_KEY` for the Weekly Brief).
+- [`docs/STABILIZATION_REPORT.md`](docs/STABILIZATION_REPORT.md) —
+  audit baseline / pre-existing risks.
+
 ## Triggering a manual data refresh
 
 From GitHub → Actions → "Daily Data Refresh" →
