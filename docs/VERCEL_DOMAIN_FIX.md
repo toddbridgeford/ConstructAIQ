@@ -30,56 +30,119 @@ the corresponding DNS records at the DNS provider.
 
 ## Vercel Domain Steps
 
-Both steps must be completed before any DNS change will take effect at the
-application layer.
+Both domains must be added to the Vercel project before any DNS record will
+have any effect. Do these steps first, before touching DNS.
 
-1. Sign in at <https://vercel.com/dashboard> and open the **ConstructAIQ**
-   project.
+### Step 1 — Open the project
 
-2. Click **Settings** (top nav) → **Domains** (left rail).
+1. Go to <https://vercel.com/dashboard> and sign in.
+2. Find and click the project named **construct-aiq** (or ConstructAIQ).
+3. Click **Settings** in the top navigation bar.
+4. Click **Domains** in the left-hand sidebar. You will see a list of domains
+   currently assigned to this project.
 
-3. Click **Add Domain**, enter `constructaiq.trade`, and submit. Vercel will
-   display the DNS record it needs to verify the domain — note the value for
-   the next section.
+### Step 2 — Add the apex domain
 
-4. Click **Add Domain** again, enter `www.constructaiq.trade`, and submit.
-   Vercel will display a CNAME target (typically `cname.vercel-dns.com`) —
-   copy the exact value shown; it may differ per region.
+1. Click the **Add** button (or **Add Domain** — the label varies by Vercel
+   plan).
+2. In the input field, type exactly:
+   ```
+   constructaiq.trade
+   ```
+3. Click **Add**. Vercel will show a verification panel with the DNS record
+   value it expects. Leave this panel open and note the values — you will
+   need them in the DNS Steps below.
 
-5. After DNS propagates (see DNS Steps below), return to this panel. Each
-   domain should transition from "Invalid Configuration" to a green checkmark.
-   Vercel auto-issues an SSL certificate once it validates the records.
+### Step 3 — Add the www domain
+
+1. Click **Add** again (do not close the panel from Step 2 yet).
+2. In the input field, type exactly:
+   ```
+   www.constructaiq.trade
+   ```
+3. Click **Add**. Vercel will display a CNAME target for this subdomain —
+   typically `cname.vercel-dns.com`. **Copy this exact value** before
+   proceeding; it may differ per Vercel region.
+
+### Step 4 — Confirm both domains are listed
+
+After adding both, the Domains panel should show two rows:
+
+| Domain                       | Status                          |
+|------------------------------|---------------------------------|
+| `constructaiq.trade`         | Invalid Configuration (for now) |
+| `www.constructaiq.trade`     | Invalid Configuration (for now) |
+
+"Invalid Configuration" is expected at this point — it means DNS has not yet
+been updated. The status will change to a green checkmark after the DNS steps
+below are complete and Vercel validates the records.
 
 ## DNS Steps
 
-Make these changes at whichever provider hosts the `constructaiq.trade` zone
-(Cloudflare, Route 53, registrar nameservers, etc.). Vercel does not manage
-these records unless the domain was registered through Vercel.
+Make these changes at whichever provider hosts the `constructaiq.trade` DNS
+zone. This is wherever the domain was registered or wherever the nameservers
+are pointed — commonly Cloudflare, Route 53, GoDaddy, Namecheap, or similar.
+Vercel does **not** manage these records unless the domain was purchased
+through Vercel.
 
-### Apex record (`constructaiq.trade`)
+Log in to your DNS provider's control panel and find the DNS records for
+`constructaiq.trade` before continuing.
 
-The apex cannot be a plain CNAME under standard DNS. Choose based on your
-provider:
+### Record 1 — Apex (`constructaiq.trade`)
 
-| Provider capability              | Record to add                                              |
-|----------------------------------|------------------------------------------------------------|
-| ALIAS or CNAME flattening        | `ALIAS` / flattened `CNAME` → `cname.vercel-dns.com`      |
-| A records only                   | `A` → `76.76.21.21` (verify this IP in the Vercel UI — it may change) |
+The root/apex domain (`constructaiq.trade` with no subdomain prefix) cannot
+use a plain CNAME record under standard DNS rules. Choose the option your
+provider supports:
 
-### www record (`www.constructaiq.trade`)
+**Option A — If your provider supports ALIAS or CNAME flattening**
+(Cloudflare calls this a "CNAME" on the root; Route 53 calls it "ALIAS"):
+
+```
+Type:  ALIAS  (or CNAME, if your provider flattens at the apex)
+Name:  @       ← the "@" symbol means the root/apex domain
+Value: cname.vercel-dns.com
+TTL:   3600    (or Auto / provider default)
+```
+
+**Option B — If your provider only supports A records at the apex**
+(most traditional registrars):
+
+```
+Type:  A
+Name:  @        ← the "@" symbol means the root/apex domain
+Value: 76.76.21.21
+TTL:   3600     (or provider default)
+```
+
+> The IP `76.76.21.21` is Vercel's anycast address. Verify it matches what
+> the Vercel Domains panel shows for your project — it is unlikely to change
+> but the panel is the authoritative source.
+
+### Record 2 — www subdomain (`www.constructaiq.trade`)
 
 ```
 Type:  CNAME
-Name:  www                      ← just "www", not the full hostname
-Value: cname.vercel-dns.com     ← exact value Vercel showed in Domain Step 4
-TTL:   3600 (or provider default)
+Name:  www                       ← type just "www", not "www.constructaiq.trade"
+Value: cname.vercel-dns.com      ← use the exact value Vercel showed in Domain Step 3
+TTL:   3600                      (or provider default)
 ```
 
-### Propagation
+Save both records. Most DNS providers show a "Save" or "Add Record" button
+per row — make sure both records are saved before continuing.
 
-DNS changes typically propagate within 1–10 minutes. The Vercel Domains panel
-refreshes automatically and will show a green checkmark once it can validate
-the records and issue SSL.
+### Waiting for propagation and SSL
+
+1. DNS changes typically take **1–10 minutes** to reach Vercel's validation
+   servers. In rare cases it can take up to an hour.
+
+2. Return to the Vercel **Settings → Domains** panel. Refresh the page every
+   minute or two. When Vercel detects valid DNS records:
+   - The status changes from "Invalid Configuration" to a green checkmark.
+   - Vercel automatically requests and installs an SSL certificate (this
+     happens in the background — no action required).
+
+3. Once **both** rows show a green checkmark, the domains are live and SSL
+   is active. Continue to the Verification Commands section.
 
 ## Verification Commands
 
