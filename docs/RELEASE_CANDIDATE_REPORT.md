@@ -3322,3 +3322,34 @@ Both domains still return `HTTP 403 · x-deny-reason: host_not_allowed`. Despite
 **Next action:** Re-confirm in Vercel UI that both `constructaiq.trade` and `www.constructaiq.trade` are bound to the **ConstructAIQ** project (not another project). After confirming, re-run `npm run domain:check` — it must exit 0 with `APEX_OK + WWW_REDIRECT_OK` before any GO status is granted.
 
 *Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 20:45 UTC*
+
+---
+
+## Phase 14 smoke verification — 2026-04-25 20:55 UTC
+
+### Prerequisite check
+
+`npm run domain:check` was re-run before attempting smoke. Result unchanged from Phase 14 canonical domain check above.
+
+| Gate | Required | Result |
+|------|----------|--------|
+| `domain:check` exits 0 · APEX_OK + WWW_REDIRECT_OK | Yes | **FAIL — exit 1** |
+
+### Smoke tests
+
+**Not run.** Smoke tests require a reachable production host. Both `constructaiq.trade` and `www.constructaiq.trade` still return `HTTP 403 · x-deny-reason: host_not_allowed`. Running smoke against an unreachable host would produce meaningless results and was skipped per stop-on-failure policy.
+
+| Command | Status |
+|---------|--------|
+| `npm run smoke:www` | **NOT RUN** — prerequisite not met |
+| `npm run smoke:prod` | **NOT RUN** — prerequisite not met |
+
+### Verdict
+
+**NO-GO — smoke gate blocked by unresolved VERCEL_DOMAIN_NOT_BOUND.**
+
+Public launch status unchanged: **NO-GO**.
+
+**Next action:** Operator must resolve Vercel domain binding. After `npm run domain:check` exits 0, re-run smoke:www then smoke:prod.
+
+*Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 20:55 UTC*
