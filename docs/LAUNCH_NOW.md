@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 19 data/dashboard — BLOCKED · smoke:prod exits 1 · all API endpoints 403 · Cloudflare proxy still active)**
+**Updated: 2026-04-25 (Phase 19 final launch gate — launch:check exit 1 · smoke FAILED · Cloudflare proxy still active · Public launch NO-GO)**
 
 ---
 
@@ -12,15 +12,16 @@
 
 | Gate | Dimension | Status |
 |------|-----------|--------|
-| 5 | Build | **GO** — previously verified exit 0 · 84 routes · 60.1s (node_modules absent in sandbox; CI confirmed) |
-| 5 | Lint | **GO** — previously verified exit 0 · no warnings (node_modules absent in sandbox; CI confirmed) |
-| 5 | Tests | **GO** — previously verified 356/356 exit 0 (node_modules absent in sandbox; CI confirmed) |
+| 5 | Build | **GO** — exit 127 in sandbox (node_modules absent) · exit 0 in CI (84 routes, 60.1s) · CI is authoritative |
+| 5 | Lint | **GO** — exit 127 in sandbox (node_modules absent) · exit 0 in CI · CI is authoritative |
+| 5 | Tests | **GO** — exit 127 in sandbox (node_modules absent) · 356/356 exit 0 in CI · CI is authoritative |
 | 4 | domain:check | **NO-GO** — exit 1 · apex `VERCEL_DOMAIN_NOT_BOUND` · www `VERCEL_DOMAIN_NOT_BOUND` |
-| 4 | smoke:www | **BLOCKED** — domain not bound; all checks 403 |
 | 4 | smoke:prod | **NO-GO** — exit 1 · 1/6 passed · 5 failed · all 403 `host_not_allowed` |
+| 4 | smoke:www | **NO-GO** — exit 1 · 1/2 passed · 1 failed · 403 `host_not_allowed` |
 | 3 | env/runtime | **BLOCKED** — `/api/status` returns 403; booleans unreadable |
 | 3 | data/dashboard | **BLOCKED** — all API endpoints return 403; shapes unverifiable |
 | 2 | Apex DNS target | **NO-GO** — resolves to `104.21.50.117` (Cloudflare proxy), not `76.76.21.21` (Vercel) |
+| — | launch:check | **FAILED** — exit 1 · failing gates: smoke:prod, smoke:www |
 | — | Public launch | **NO-GO** |
 
 ---
