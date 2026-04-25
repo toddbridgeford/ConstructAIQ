@@ -37,6 +37,7 @@ before the Next.js app runs. DNS is correct. No code change is needed.
 1. **Add Domain** → `constructaiq.trade` → confirm.
 2. **Add Domain** → `www.constructaiq.trade` → confirm.
 3. Wait for a green checkmark on both (SSL provisions in 1–10 minutes).
+4. **Remove any apex → www redirect in Vercel.** The repo expects www → apex. An apex → www Vercel redirect combined with the app-layer www → apex rule creates a redirect loop. See [docs/CANONICAL_DOMAIN_DECISION.md](./CANONICAL_DOMAIN_DECISION.md).
 
 Step-by-step walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md)
 

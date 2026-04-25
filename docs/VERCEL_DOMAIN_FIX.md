@@ -393,6 +393,49 @@ other than `https://constructaiq.trade/…`.
 destination: "https://constructaiq.trade/:path*",
 ```
 
+### `curl https://constructaiq.trade` redirects to `www.constructaiq.trade` (apex → www loop)
+
+**Symptom:** The apex domain returns a `301` or `308` with a `Location` header
+pointing to `https://www.constructaiq.trade/…` instead of serving content.
+`domain:check` reports `UNKNOWN_FAILURE` on the apex; smoke tests fail.
+
+**Cause:** A Vercel-level "Redirect to www" rule has been enabled on the
+`constructaiq.trade` domain entry. This fires before the Next.js application
+runs. Combined with the `next.config.ts` rule that redirects `www → apex`, the
+result is an infinite redirect loop:
+
+```
+constructaiq.trade → (Vercel) → www.constructaiq.trade
+                   ← (Next.js next.config.ts) ←
+```
+
+Browsers abort with "Too many redirects". The site is unreachable.
+
+**Canonical decision:** `constructaiq.trade` is the canonical domain. See
+[CANONICAL_DOMAIN_DECISION.md](./CANONICAL_DOMAIN_DECISION.md).
+
+**Fix:**
+1. Open **Vercel → ConstructAIQ project → Settings → Domains**.
+2. Find the `constructaiq.trade` row.
+3. If there is a "Redirect to www" toggle or a redirect entry, **disable or
+   delete it**.
+4. Ensure both `constructaiq.trade` and `www.constructaiq.trade` are listed as
+   plain connected domains — no Vercel-level redirect on either row.
+5. The `next.config.ts` `redirects()` rule handles `www → apex` at the
+   application layer automatically. No Vercel-level redirect rule is needed.
+6. After saving, verify:
+
+   ```bash
+   curl -sSI https://constructaiq.trade
+   # Expected: HTTP/2 200 — no Location header, no x-deny-reason
+
+   curl -sSI https://www.constructaiq.trade/dashboard
+   # Expected: HTTP/2 308  location: https://constructaiq.trade/dashboard
+
+   npm run domain:check
+   # Expected: APEX_OK + WWW_REDIRECT_OK, exit 0
+   ```
+
 ### `smoke:prod` pages return 200 but `/api/status` returns 500
 
 **Cause:** Domain binding is working but required Vercel Production

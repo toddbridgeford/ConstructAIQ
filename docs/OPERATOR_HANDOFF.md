@@ -41,8 +41,14 @@ because neither has been added to the project's domain list.
 2. Click **Add Domain** again → enter `www.constructaiq.trade` → confirm.
 3. Wait for Vercel to show a green checkmark next to both domains
    (SSL auto-provisions; takes 1–10 minutes).
+4. **Do not enable "Redirect to www" on the apex domain.** The canonical
+   domain is `constructaiq.trade` (apex). Enabling that toggle creates a
+   redirect loop: Vercel sends apex → www, then the app sends www → apex.
+   Both domains must be connected directly; `next.config.ts` handles
+   `www → apex` at the application layer.
 
 Full step-by-step walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md)
+Canonical decision rationale: [docs/CANONICAL_DOMAIN_DECISION.md](./CANONICAL_DOMAIN_DECISION.md)
 
 ---
 

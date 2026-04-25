@@ -1,16 +1,39 @@
 # Canonical Domain Decision
 
 **Created: 2026-04-25**
-**Branch: claude/document-domain-mismatch-vtm2h**
-**Status: Decision pending product owner confirmation — no code changes made**
+**Updated: 2026-04-25**
+**Status: DECIDED — apex canonical (`constructaiq.trade`). No code changes required.**
+
+---
+
+## Decision
+
+**Canonical URL: `https://constructaiq.trade`** (apex, no `www`)
+
+- `www.constructaiq.trade` must redirect to `constructaiq.trade`.
+- Vercel must **not** be configured to redirect `constructaiq.trade` → `www.constructaiq.trade`.
+- The application-layer redirect in `next.config.ts` handles `www → apex` automatically once both domains are bound to the project.
+
+---
+
+## Required Vercel Configuration
+
+Connect both domains to the ConstructAIQ project, then leave all redirect logic to the application layer:
+
+| Domain | Vercel setting | Notes |
+|---|---|---|
+| `constructaiq.trade` | Connected directly to the project | **No** "Redirect to www" — leave it off |
+| `www.constructaiq.trade` | Connected directly to the project | No Vercel-level redirect rule; `next.config.ts` issues `www → apex` 308 |
+
+> **Warning:** If Vercel's "Redirect to www" toggle is enabled on the apex domain, it creates a redirect loop: Vercel sends apex → www, then the app sends www → apex. The site becomes unreachable.
 
 ---
 
 ## Summary
 
-There is a mismatch between the canonical domain direction configured in the
+There was a mismatch between the canonical domain direction configured in the
 repository and the canonical domain direction observed in the Vercel UI. This
-document records the conflict and recommends a resolution path.
+document records the conflict and its resolution.
 
 ---
 
@@ -126,9 +149,9 @@ penalties.
 
 ---
 
-## Recommendation: Apex Canonical
+## Confirmed Decision: Apex Canonical
 
-**Recommended canonical URL:** `https://constructaiq.trade` (no `www`)
+**Canonical URL:** `https://constructaiq.trade` (no `www`)
 
 **Reasoning:**
 
@@ -195,4 +218,5 @@ product owner sign-off.**
 
 | Date | Author | Decision |
 |---|---|---|
-| 2026-04-25 | Claude Code (Phase 13 documentation) | Mismatch documented. **No code changed.** Awaiting operator to correct Vercel domain configuration or product owner to confirm www canonical preference. |
+| 2026-04-25 | Claude Code (Phase 13 — doc pass 1) | Mismatch documented. No code changed. Awaiting product owner confirmation. |
+| 2026-04-25 | Product owner (Phase 13 — doc pass 2) | **DECIDED: apex canonical.** Use `constructaiq.trade`. Do not configure Vercel apex → www redirect. App-layer `next.config.ts` handles `www → apex`. No code changes required. |
