@@ -4784,3 +4784,40 @@ Operator reported completing Vercel UI steps (domains attached as Production, no
 **Exact next operator action:** Go to Vercel dashboard → `construct-aiq` project → Settings → Domains. Confirm `constructaiq.trade` and `www.constructaiq.trade` are listed with "Valid configuration". If either shows an error or is absent, remove and re-add. Ensure neither has a redirect configured — both must be direct Production domains with no apex-to-www redirect. After confirming, re-run `npm run domain:check` (must exit 0 before any further verification step).
 
 `docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO. *(2026-04-25 · claude/verify-launch-dns-Ok9Li · Phase 21)*
+
+---
+
+## Post-Vercel Binding Verification — 2026-04-25 (Phase 22)
+
+*Branch: `claude/verify-launch-dns-Ok9Li`*
+
+All five requested commands run in order following Phase 21 operator action.
+
+### Command table
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run domain:check` | **1** | `VERCEL_DOMAIN_NOT_BOUND` — apex + www |
+| `node scripts/check-domain-status.mjs --json` | **1** | `ok:false` · apex `status:403 · denyReason:host_not_allowed` · www same · `proxyWarning:false` · `cfRay:null` |
+| `npm run smoke:www` | **1** | 1/2 passed — www DNS resolves ✓ · www bound ✗ (403) |
+| `npm run smoke:prod` | **1** | 1/6 passed — www DNS resolves ✓ · all other checks ✗ (403) |
+| `npm run launch:check -- --include-smoke` | **1** | build/lint/tests exit 127 in sandbox (CI authoritative GO) · smoke:prod ✗ · smoke:www ✗ |
+
+### Smoke detail
+
+| Check | smoke:prod | smoke:www |
+|-------|-----------|-----------|
+| GET / returns 200 | FAIL — 403 | — |
+| GET /dashboard returns 200 | FAIL — 403 | — |
+| /api/status returns 200 | FAIL — 403 | — |
+| /api/dashboard returns 200 | FAIL — 403 | — |
+| www DNS resolves | PASS | PASS |
+| www bound to Vercel project | FAIL — 403 | FAIL — 403 |
+
+### Final verdict
+
+**NO-GO.** All five commands exit 1. Root cause is unchanged: Vercel domain binding is not active for `constructaiq.trade` or `www.constructaiq.trade`. Every 403 `host_not_allowed` response is the same single failure. DNS-only mode confirmed active (`proxyWarning:false`, `cfRay:null`). Build/lint/tests exit 127 in sandbox only; CI is authoritative (exit 0, previously verified).
+
+**Exact next operator action:** Vercel dashboard → `construct-aiq` project → Settings → Domains. Verify both `constructaiq.trade` and `www.constructaiq.trade` are present with "Valid configuration" and no redirect. If absent or errored, remove and re-add. Re-run `npm run domain:check` — must exit 0 before any further gate.
+
+`docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO. *(2026-04-25 · claude/verify-launch-dns-Ok9Li · Phase 22)*

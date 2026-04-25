@@ -1,10 +1,10 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 21 post-operator-binding verification — domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND · apex resolves to 64.29.17.1 (not 76.76.21.21) · Public launch NO-GO)**
+**Updated: 2026-04-25 (Phase 22 — full command run · domain:check exit 1 · smoke:prod exit 1 · smoke:www exit 1 · launch:check exit 1 · VERCEL_DOMAIN_NOT_BOUND · Public launch NO-GO)**
 
 ---
 
-> **STOP: code is launch-ready. Vercel domain binding is still not active for this project — both `constructaiq.trade` and `www.constructaiq.trade` return `host_not_allowed` (403). DNS apex resolves to `64.29.17.1` (Vercel infrastructure confirmed by response pattern), not the expected `76.76.21.21`. Operator must confirm domain is bound to the correct Vercel project (`construct-aiq`) with no apex-to-www redirect, then re-run verification.**
+> **STOP: code is launch-ready. Vercel domain binding is still not active — both `constructaiq.trade` and `www.constructaiq.trade` return `host_not_allowed` (403). All smoke checks fail for the same single reason: domain not bound in Vercel. Operator must verify and re-bind the domain in the correct Vercel project (`construct-aiq`) with no apex-to-www redirect.**
 
 ---
 
@@ -15,14 +15,47 @@
 | 5 | Build | **GO** — exit 127 in sandbox (node_modules absent) · exit 0 in CI (84 routes, 60.1s) · CI is authoritative |
 | 5 | Lint | **GO** — exit 127 in sandbox (node_modules absent) · exit 0 in CI · CI is authoritative |
 | 5 | Tests | **GO** — exit 127 in sandbox (node_modules absent) · 356/356 exit 0 in CI · CI is authoritative |
-| 4 | domain:check | **NO-GO** — exit 1 · apex `VERCEL_DOMAIN_NOT_BOUND` · www `VERCEL_DOMAIN_NOT_BOUND` · Phase 21 re-verified |
-| 4 | smoke:prod | **BLOCKED** — prerequisite (domain:check) not met · not re-run |
-| 4 | smoke:www | **BLOCKED** — prerequisite (domain:check) not met · not re-run |
+| 4 | domain:check | **NO-GO** — exit 1 · apex `VERCEL_DOMAIN_NOT_BOUND` · www `VERCEL_DOMAIN_NOT_BOUND` · Phase 22 re-verified |
+| 4 | smoke:prod | **NO-GO** — exit 1 · 1/6 passed · 5 failed — all 403 `host_not_allowed` · Phase 22 |
+| 4 | smoke:www | **NO-GO** — exit 1 · 1/2 passed · 1 failed — 403 `host_not_allowed` · Phase 22 |
 | 3 | env/runtime | **BLOCKED** — domain not bound · all endpoints return `host_not_allowed` · unreadable |
 | 3 | data/dashboard | **BLOCKED** — domain not bound · all endpoints return `host_not_allowed` · unreadable |
 | 2 | Apex DNS target | **WARN** — resolves to `64.29.17.1` (not expected `76.76.21.21`) · response IS Vercel pattern · proxyWarning: false |
 | — | launch:check | **NOT RUN** — prerequisite (domain:check exit 0) not met |
 | — | Public launch | **NO-GO** |
+
+---
+
+## Phase 22 full command run (2026-04-25)
+
+*Branch: `claude/verify-launch-dns-Ok9Li`*
+
+All five requested commands run in order. Results are consistent — single root cause: domain not bound in Vercel.
+
+### Command results
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run domain:check` | **1** | apex `VERCEL_DOMAIN_NOT_BOUND` · www `VERCEL_DOMAIN_NOT_BOUND` |
+| `node scripts/check-domain-status.mjs --json` | **1** | `ok:false` · apex `status:403 · denyReason:host_not_allowed` · www same |
+| `npm run smoke:www` | **1** | 1/2 passed — www DNS resolves ✓ · www bound to project ✗ (403) |
+| `npm run smoke:prod` | **1** | 1/6 passed — www DNS resolves ✓ · GET / ✗ · GET /dashboard ✗ · /api/status ✗ · /api/dashboard ✗ · www bound ✗ |
+| `npm run launch:check -- --include-smoke` | **1** | build ✗ exit 127 (CI authoritative GO) · lint ✗ exit 127 (CI authoritative GO) · tests ✗ exit 127 (CI authoritative GO) · smoke:prod ✗ · smoke:www ✗ |
+
+### Smoke detail
+
+| Check | smoke:prod | smoke:www |
+|-------|-----------|-----------|
+| GET / returns 200 | FAIL — 403 | — |
+| GET /dashboard returns 200 | FAIL — 403 | — |
+| /api/status returns 200 | FAIL — 403 | — |
+| /api/dashboard returns 200 | FAIL — 403 | — |
+| www DNS resolves | PASS | PASS |
+| www bound to Vercel project | FAIL — 403 | FAIL — 403 |
+
+### Verdict
+
+**Public launch: NO-GO.** All five commands run. Every failure shares one root cause: Vercel has not accepted the domain binding for `constructaiq.trade` or `www.constructaiq.trade`. Build/lint/tests exit 127 in sandbox only — CI previously verified exit 0 and remains authoritative. No product code issue.
 
 ---
 
