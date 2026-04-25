@@ -4738,3 +4738,49 @@ Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 ·
 Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI · final launch gate)*
 
 Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI · GO checklist phase)*
+
+---
+
+## Post-Vercel Binding Verification — 2026-04-25 (Phase 21)
+
+*Branch: `claude/verify-launch-dns-Ok9Li`*
+
+Operator reported completing Vercel UI steps (domains attached as Production, no redirect). Verification run immediately after.
+
+### Command table
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `python3 -c "import socket; print(socket.gethostbyname('constructaiq.trade'))"` | 0 | `64.29.17.1` — NOT expected `76.76.21.21` |
+| `npm run domain:check` | **1** | `VERCEL_DOMAIN_NOT_BOUND` — apex + www |
+| `node scripts/check-domain-status.mjs --json` | **1** | apex `status:403 · denyReason:host_not_allowed · classification:VERCEL_DOMAIN_NOT_BOUND` · www same · `ok:false` |
+| `npm run smoke:prod` | NOT RUN | prerequisite `domain:check` exit 0 not met |
+| `npm run smoke:www` | NOT RUN | prerequisite `domain:check` exit 0 not met |
+| `npm run launch:check -- --include-smoke` | NOT RUN | prerequisite `domain:check` exit 0 not met |
+| `npm run build` | NOT RUN | prerequisite gates not met |
+| `npm run lint` | NOT RUN | prerequisite gates not met |
+| `npm test` | NOT RUN | prerequisite gates not met |
+
+### DNS/binding observations
+
+| Probe | Value |
+|-------|-------|
+| apex IP (socket) | `64.29.17.1` |
+| apex IP expected | `76.76.21.21` |
+| apex HTTP status | 403 |
+| apex `x-deny-reason` | `host_not_allowed` |
+| apex classification | `VERCEL_DOMAIN_NOT_BOUND` |
+| www HTTP status | 403 |
+| www `x-deny-reason` | `host_not_allowed` |
+| www classification | `VERCEL_DOMAIN_NOT_BOUND` |
+| `proxyWarning` | false — no Cloudflare proxy active |
+| `cfRay` | null |
+| Vercel infrastructure reached | YES — `host_not_allowed` is Vercel-specific; request hits Vercel |
+
+### Final verdict
+
+**NO-GO.** `domain:check` exits 1. Both `constructaiq.trade` and `www.constructaiq.trade` return `host_not_allowed` (403) — Vercel project domain binding is not yet active despite operator completing Vercel UI steps. DNS-only mode is confirmed active (`proxyWarning: false`, no `cfRay`). Apex resolves to `64.29.17.1` (differs from expected `76.76.21.21`; Vercel infrastructure is reached as evidenced by the response pattern). All downstream gates (smoke, env/runtime, data/dashboard) blocked.
+
+**Exact next operator action:** Go to Vercel dashboard → `construct-aiq` project → Settings → Domains. Confirm `constructaiq.trade` and `www.constructaiq.trade` are listed with "Valid configuration". If either shows an error or is absent, remove and re-add. Ensure neither has a redirect configured — both must be direct Production domains with no apex-to-www redirect. After confirming, re-run `npm run domain:check` (must exit 0 before any further verification step).
+
+`docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO. *(2026-04-25 · claude/verify-launch-dns-Ok9Li · Phase 21)*
