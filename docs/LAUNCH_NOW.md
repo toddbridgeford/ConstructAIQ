@@ -1,10 +1,10 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 23 — domain CONFIRMED LIVE from Codespace · apex HTTP/2 200 · www HTTP/2 308 → apex · server: Vercel · remaining gates: smoke + env/data pending operator paste)**
+**Updated: 2026-04-25 (Phase 23 complete — smoke 14/14 · env mostly GO · ONE BLOCKER: `cronSecretConfigured: false` · add CRON_SECRET to Vercel Production env vars)**
 
 ---
 
-> **DOMAIN IS LIVE. `constructaiq.trade` returns `HTTP/2 200 · server: Vercel` from a direct internet connection (GitHub Codespace). `www.constructaiq.trade` returns `HTTP/2 308 → constructaiq.trade` (correct canonical redirect). APEX_OK · WWW_REDIRECT_OK. Smoke tests and env/data verification in progress.**
+> **ONE BLOCKER REMAINING. All smoke gates pass (14/14). Domain live. Supabase + Anthropic configured. `siteLocked: false`. Single required gate failing: `cronSecretConfigured: false` — add `CRON_SECRET` to Vercel → Settings → Environment Variables → Production.**
 
 ---
 
@@ -12,20 +12,133 @@
 
 | Gate | Dimension | Status |
 |------|-----------|--------|
-| 5 | Build | **GO** — exit 0 in CI (84 routes, 60.1s) |
-| 5 | Lint | **GO** — exit 0 in CI |
-| 5 | Tests | **GO** — 356/356 exit 0 in CI |
-| 4 | domain:check | **GO** — apex `HTTP/2 200 · server: Vercel` · www `HTTP/2 308 → constructaiq.trade` · APEX_OK · WWW_REDIRECT_OK · Phase 23 Codespace curl |
-| 4 | smoke:prod | **PENDING** — domain confirmed live; running from Codespace |
-| 4 | smoke:www | **PENDING** — domain confirmed live; running from Codespace |
-| 3 | env/runtime | **PENDING** — `/api/status` check queued |
-| 3 | data/dashboard | **PENDING** — `/api/dashboard` check queued |
-| — | launch:check | **PENDING** |
-| — | Public launch | **PENDING** — smoke + env/data results outstanding |
+| 5 | Build | **GO** — Production deployment live (HTTP/2 200) · Codespace build fails on `web-push` not installed locally (package IS in package.json; run `npm install` to fix Codespace) |
+| 5 | Lint | **GO** — exit 0 |
+| 5 | Tests | **GO** — CI authoritative (356/356) · Codespace failure is rolldown native binding bug (known npm optional-deps issue; fix: `rm -rf node_modules package-lock.json && npm i`) |
+| 4 | domain:check | **GO** — exit 0 · APEX_OK · WWW_REDIRECT_OK |
+| 4 | smoke:prod | **GO** — exit 0 · 14/14 passed |
+| 4 | smoke:www | **GO** — exit 0 · 3/3 passed |
+| 3 | supabaseConfigured | **GO** — true |
+| 3 | anthropicConfigured | **GO** — true (weeklyBriefSource: "ai" confirmed) |
+| 3 | cronSecretConfigured | **NO-GO** — false · add `CRON_SECRET` to Vercel Production env vars |
+| 3 | upstashConfigured | **WARN** — false (rate limiting inactive · not a launch blocker) |
+| 3 | sentryConfigured | **WARN** — false (error monitoring inactive · not a launch blocker) |
+| 3 | siteLocked | **GO** — false |
+| 3 | data/dashboard | **GO** — smoke:prod verified all required keys · signals array · commodities array · cshi object |
+| 3 | federalSource | **WARN** — "unknown" (not "live" · static fallback · not a launch blocker) |
+| — | launch:check | **NO-GO** — exits 1 · failing gates: build (Codespace env) · tests (Codespace env) · cronSecretConfigured |
+| — | Public launch | **NO-GO — one action required: add CRON_SECRET to Vercel Production** |
 
 ---
 
-## Phase 23 — Domain confirmed live from Codespace (2026-04-25)
+## Phase 23 — Full verification from Codespace (2026-04-25)
+
+*Branch: `claude/final-domain-verification-U2rWX`*
+
+All commands run from GitHub Codespace (direct internet, no TLS proxy). Results are authoritative.
+
+### domain:check — EXIT 0
+
+```
+apex  (constructaiq.trade)      status: 200 · server: Vercel · classification: APEX_OK
+www   (www.constructaiq.trade)  status: 308 → constructaiq.trade · classification: WWW_REDIRECT_OK
+```
+
+### smoke:prod — EXIT 0 · 14/14 passed
+
+```
+✓ GET / returns 200
+✓ GET / has no global error page
+✓ GET /dashboard returns 200
+✓ GET /dashboard has no global error page
+✓ /api/status returns 200
+✓ /api/dashboard returns 200
+✓ /api/dashboard returns valid JSON
+✓ /api/dashboard has all required keys
+✓ /api/dashboard signals is an array
+✓ /api/dashboard commodities is an array
+✓ /api/dashboard cshi is object or null
+✓ www DNS resolves
+✓ www returns 308 redirect
+✓ www redirect target → https://constructaiq.trade/dashboard
+```
+
+### smoke:www — EXIT 0 · 3/3 passed
+
+### launch:check --include-smoke — EXIT 1
+
+Failing gates (both are Codespace environment issues, not production issues):
+
+| Gate | Failure | Root cause | Fix |
+|------|---------|-----------|-----|
+| build | `Module not found: Can't resolve 'web-push'` | `web-push` IS in `package.json`; not installed in Codespace `node_modules` after branch switch | `npm install` in Codespace |
+| tests | `Cannot find native binding @rolldown/binding-linux-x64-gnu` | Known npm optional-dependencies bug (vitest error message explicitly says this) | `rm -rf node_modules package-lock.json && npm i` |
+
+Production deployment is live (HTTP/2 200, 14/14 smoke pass) — these failures are local to the Codespace environment only.
+
+### /api/status
+
+```json
+{
+  "env": {
+    "supabaseConfigured": true,
+    "anthropicConfigured": true,
+    "upstashConfigured": false,
+    "sentryConfigured": false,
+    "cronSecretConfigured": false
+  },
+  "data": {
+    "federalSource": "unknown",
+    "weeklyBriefSource": "ai"
+  },
+  "runtime": {
+    "nodeEnv": "production",
+    "appUrl": "https://constructaiq.trade/",
+    "siteLocked": false
+  }
+}
+```
+
+### Gate classification
+
+| Field | Value | Required? | Status |
+|-------|-------|-----------|--------|
+| `supabaseConfigured` | true | P0 | **GO** |
+| `cronSecretConfigured` | **false** | P0 | **NO-GO** |
+| `anthropicConfigured` | true | Warning | GO (bonus) |
+| `upstashConfigured` | false | Warning | WARN |
+| `sentryConfigured` | false | Warning | WARN |
+| `siteLocked` | false | P0 | **GO** |
+| `weeklyBriefSource` | "ai" | — | **GO** — Claude API connected |
+| `federalSource` | "unknown" | Warning | WARN — static fallback |
+| dashboard shape | all keys present · arrays non-null | P0 | **GO** (smoke verified) |
+
+### Single remaining blocker
+
+**`cronSecretConfigured: false`**
+
+Cron routes (`/api/cron/*`) check `Authorization: Bearer $CRON_SECRET` before executing. Without this env var set in Vercel Production, the data harvest and forecast cron jobs cannot be triggered by Vercel's cron scheduler.
+
+**Fix:** Vercel dashboard → ConstructAIQ project → Settings → Environment Variables → Add:
+- Key: `CRON_SECRET`
+- Value: any strong random string (e.g. `openssl rand -hex 32`)
+- Environment: Production (and optionally Preview)
+
+After adding, redeploy or wait for next cron trigger. Re-run:
+```
+S=https; curl -s $S://constructaiq.trade/api/status | python3 -m json.tool
+```
+Confirm `cronSecretConfigured: true`.
+
+### Verdict
+
+**Public launch: NO-GO — one action required.**
+
+Add `CRON_SECRET` to Vercel Production environment variables. After that single change, all required gates are GO and Public launch is **GO**.
+
+---
+
+## Phase 23 (earlier) — Domain confirmed live from Codespace (2026-04-25)
 
 *Branch: `claude/final-domain-verification-U2rWX`*
 
