@@ -1,6 +1,6 @@
 # Release Candidate Report
 
-> **Operator:** next manual action → [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md) · current verdict → [docs/LAUNCH_NOW.md](./LAUNCH_NOW.md)
+> **Operator:** Phase 22 (2026-04-25) — Anthropic sandbox TLS proxy confirmed; all prior HTTP verification was measuring the proxy, not Vercel. Vercel dashboard shows both domains as Valid Configuration + Production. Run [docs/POST_BINDING_VERIFICATION_20260425.md](./POST_BINDING_VERIFICATION_20260425.md) from your own terminal to complete launch gates. Current verdict → [docs/LAUNCH_NOW.md](./LAUNCH_NOW.md)
 
 ## Release Candidate Code SHA
 
