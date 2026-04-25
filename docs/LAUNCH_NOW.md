@@ -1,10 +1,10 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 20 DNS-only propagation verification — domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND · DNS propagated to Vercel IP · Public launch NO-GO)**
+**Updated: 2026-04-25 (Phase 20 smoke verification — smoke:prod exit 1 · 1/6 passed · smoke:www exit 1 · 1/2 passed · prerequisite domain:check exit 1 not met · Public launch NO-GO)**
 
 ---
 
-> **STOP: code is launch-ready. DNS-only propagation confirmed (apex → `76.76.21.21`). Sole remaining blocker: Vercel domain not bound to this project — add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains.**
+> **STOP: code is launch-ready. DNS-only propagation confirmed (apex → `76.76.21.21`). Sole remaining blocker: Vercel domain not bound to this project — add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains. Smoke cannot pass until domain is bound.**
 
 ---
 
@@ -16,13 +16,31 @@
 | 5 | Lint | **GO** — exit 127 in sandbox (node_modules absent) · exit 0 in CI · CI is authoritative |
 | 5 | Tests | **GO** — exit 127 in sandbox (node_modules absent) · 356/356 exit 0 in CI · CI is authoritative |
 | 4 | domain:check | **NO-GO** — exit 1 · apex `VERCEL_DOMAIN_NOT_BOUND` · www `VERCEL_DOMAIN_NOT_BOUND` |
-| 4 | smoke:prod | **NO-GO** — exit 1 · all endpoints return 403 `host_not_allowed` |
-| 4 | smoke:www | **NO-GO** — exit 1 · 403 `host_not_allowed` |
+| 4 | smoke:prod | **NO-GO** — exit 1 · 1/6 passed · 5 failed · root cause: domain not bound |
+| 4 | smoke:www | **NO-GO** — exit 1 · 1/2 passed · 1 failed · root cause: domain not bound |
 | 3 | env/runtime | **BLOCKED** — `/api/status` returns 403; booleans unreadable |
 | 3 | data/dashboard | **BLOCKED** — all API endpoints return 403; shapes unverifiable |
 | 2 | Apex DNS target | **GO** — resolves to `76.76.21.21` (Vercel) · DNS-only confirmed · proxyWarning: false |
 | — | launch:check | **FAILED** — exit 1 · failing gates: smoke:prod, smoke:www |
 | — | Public launch | **NO-GO** |
+
+---
+
+## Phase 20 smoke verification (2026-04-25)
+
+| Check | smoke:prod | smoke:www |
+|-------|-----------|-----------|
+| Prerequisite: domain:check exits 0 | **NOT MET** — exits 1 | **NOT MET** — exits 1 |
+| `GET /` returns 200 | **FAIL** — 403 | — |
+| `GET /dashboard` returns 200 | **FAIL** — 403 | — |
+| `/api/status` returns 200 | **FAIL** — 403 | — |
+| `/api/dashboard` returns 200 | **FAIL** — 403 | — |
+| www DNS resolves | **PASS** | **PASS** |
+| www is bound to this Vercel project | **FAIL** — 403 | **FAIL** — 403 |
+| **Exit code** | **1** | **1** |
+| **Summary** | 1 passed, 5 failed | 1 passed, 1 failed |
+
+**Root cause (all failures):** Domain not bound in Vercel project. Every 403 `host_not_allowed` response is the same single failure — Vercel rejects requests for `constructaiq.trade` and `www.constructaiq.trade` because neither is added to the project. Smoke cannot pass until the domain binding is complete.
 
 ---
 
@@ -61,19 +79,19 @@
 
 ## Next action — do this now
 
-**DNS is correct. Add the domain in Vercel:**
+**DNS is correct and propagated. The only remaining action is adding the domain in Vercel:**
 
 1. Go to Vercel dashboard → ConstructAIQ project → Settings → Domains
-2. Add `constructaiq.trade` (apex)
-3. Add `www.constructaiq.trade`
-4. Vercel will verify DNS automatically — it should pass immediately because `76.76.21.21` is already in place
+2. Add `constructaiq.trade` (apex) — Vercel should verify instantly (`76.76.21.21` already points to Vercel)
+3. Add `www.constructaiq.trade` — Vercel should verify instantly (`cname.vercel-dns.com` already in place)
 
-After binding, re-run:
+After binding, re-run **in order**:
 
 ```bash
-npm run domain:check          # Must exit 0: APEX_OK + WWW_REDIRECT_OK
-npm run smoke:prod            # Must exit 0
-npm run launch:check -- --include-smoke   # Must exit 0
+npm run domain:check          # Must exit 0: APEX_OK + WWW_REDIRECT_OK (prerequisite for smoke)
+npm run smoke:www             # Must exit 0: 2/2 passed
+npm run smoke:prod            # Must exit 0: 6/6 passed
+npm run launch:check -- --include-smoke   # Must exit 0 for GO
 ```
 
 Full walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md) · Remediation detail: [docs/VERCEL_CANONICAL_REMEDIATION.md](./VERCEL_CANONICAL_REMEDIATION.md)

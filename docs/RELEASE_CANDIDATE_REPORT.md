@@ -4600,3 +4600,42 @@ Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 ·
 **Outcome:** DNS-only propagation is confirmed. Apex resolves to `76.76.21.21` (Vercel), not a Cloudflare 104.x/172.x proxy IP. `proxyWarning: false` and null `cf-ray` confirm DNS-only is active. Root cause of remaining NO-GO: domain not bound in Vercel project (`VERCEL_DOMAIN_NOT_BOUND`). Next action: add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains.
 
 Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI)*
+
+---
+
+## Phase 20 smoke verification — 2026-04-25
+
+*Branch: `claude/verify-dns-propagation-OEExI`*
+
+**Prerequisite check:** `domain:check` exit 1 — prerequisite NOT MET. Smoke ran regardless to capture current state.
+
+### smoke:www (exit 1 · 1 passed, 1 failed)
+
+| Check | Result |
+|-------|--------|
+| www DNS resolves | PASS |
+| www is bound to this Vercel project | FAIL — got 403 `host_not_allowed` |
+
+### smoke:prod (exit 1 · 1 passed, 5 failed)
+
+| Check | Result |
+|-------|--------|
+| GET / returns 200 | FAIL — got 403 |
+| GET /dashboard returns 200 | FAIL — got 403 |
+| /api/status returns 200 | FAIL — got 403 |
+| /api/dashboard returns 200 | FAIL — got 403 |
+| www DNS resolves | PASS |
+| www is bound to this Vercel project | FAIL — got 403 `host_not_allowed` |
+
+### npm run lint
+
+| Field | Value |
+|-------|-------|
+| Exit code | 127 — `next` not found; node_modules absent in sandbox |
+| CI result | Authoritative exit 0 (previously verified) |
+
+### Verdict
+
+**NO-GO.** Both smoke commands exit 1. Single root cause: domain not bound in Vercel project (`VERCEL_DOMAIN_NOT_BOUND`). All 5 prod failures and the www failure share the same `host_not_allowed` 403 response. DNS is correct (`76.76.21.21`, DNS-only confirmed). Next action: add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains, then re-run `domain:check` → `smoke:www` → `smoke:prod` in order.
+
+Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI)*
