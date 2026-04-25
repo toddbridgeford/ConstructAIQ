@@ -3353,3 +3353,50 @@ Public launch status unchanged: **NO-GO**.
 **Next action:** Operator must resolve Vercel domain binding. After `npm run domain:check` exits 0, re-run smoke:www then smoke:prod.
 
 *Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 20:55 UTC*
+
+---
+
+## Phase 14 env verification — 2026-04-25 21:05 UTC
+
+### Prerequisite check
+
+`npm run smoke:prod` requires the domain to be reachable. Domain check still exits 1.
+
+| Gate | Required | Result |
+|------|----------|--------|
+| `domain:check` exits 0 | Yes | **FAIL — exit 1, VERCEL_DOMAIN_NOT_BOUND** |
+| `npm run smoke:prod` exits 0 | Yes | **NOT RUN** |
+
+### /api/status probe
+
+`curl -s https://constructaiq.trade/api/status` attempted directly.
+
+| Field | Value |
+|-------|-------|
+| HTTP status | 403 |
+| Response body | `Host not in allowlist` |
+| `.env` fields | **Not retrievable** |
+| `.runtime` fields | **Not retrievable** |
+
+### Env boolean status
+
+Cannot be determined — endpoint unreachable due to unresolved domain binding.
+
+| Variable | Required | Status |
+|----------|----------|--------|
+| supabaseConfigured | Launch blocker | **UNKNOWN** |
+| cronSecretConfigured | Launch blocker | **UNKNOWN** |
+| runtime.siteLocked | Must be false | **UNKNOWN** |
+| anthropicConfigured | Warning | **UNKNOWN** |
+| upstashConfigured | Warning | **UNKNOWN** |
+| sentryConfigured | Warning | **UNKNOWN** |
+
+### Verdict
+
+**NO-GO — env verification blocked by unresolved VERCEL_DOMAIN_NOT_BOUND.**
+
+Public launch status: **NO-GO**.
+
+**Next action:** Resolve Vercel domain binding → `domain:check` exits 0 → `smoke:prod` exits 0 → re-run env check.
+
+*Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 21:05 UTC*

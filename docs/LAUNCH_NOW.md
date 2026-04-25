@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 14)**
+**Updated: 2026-04-25 (Phase 14 — env check pending domain binding)**
 
 ---
 
