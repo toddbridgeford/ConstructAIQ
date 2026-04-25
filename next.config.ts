@@ -1,7 +1,5 @@
 import type { NextConfig } from "next"
 import { withSentryConfig } from "@sentry/nextjs"
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const withPWA = require("next-pwa")
 
 const isProd = process.env.NODE_ENV === "production";
 const ORIGIN  = isProd ? "https://constructaiq.trade" : "http://localhost:3000";
@@ -79,23 +77,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-// TODO: Re-enable PWA only after production smoke tests cover service-worker update behavior and API/dashboard cache invalidation.
-const pwaConfig = withPWA({
-  dest: "public",
-  register: false,
-  skipWaiting: true,
-  disable: true,
-  fallbacks: {
-    document: "/offline.html",
-    image:    "/icons/icon-192.png",
-    audio:    "",
-    video:    "",
-    font:     "",
-  },
-  // runtimeCaching intentionally omitted while PWA is disabled — restore alongside re-enabling above.
-})(nextConfig);
-
-export default withSentryConfig(pwaConfig, {
+export default withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   silent: true,
