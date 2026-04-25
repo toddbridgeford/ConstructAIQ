@@ -10,6 +10,8 @@ tested; a missing env var can't be verified by the dashboard).
 
 > **Run it as one command:**  `npm run launch:check`
 > See the [launch:check](#launchcheck-helper) section at the bottom.
+>
+> **Current launch state and next manual action:** [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
 
 ---
 

@@ -1,5 +1,7 @@
 # Release Candidate Report
 
+> **Operator:** next manual action → [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
+
 ## Current SHA
 
 | Field           | Value                                        |
@@ -1764,5 +1766,450 @@ Full procedure: [Rollback Procedure](#rollback-procedure).
 
 ---
 
+---
+
+## Phase 7 post-domain binding check — 2026-04-25 18:30 UTC
+
+This section records the Phase 7 verification pass. Its purpose is to confirm
+whether the Vercel domain binding directed in `docs/VERCEL_DOMAIN_FIX.md` and
+`docs/OPERATOR_HANDOFF.md` has been completed by the operator.
+
+### Commands run
+
+```
+curl -sSI https://constructaiq.trade
+curl -sSI https://www.constructaiq.trade/dashboard
+npm run smoke:www
+npm run smoke:prod
+```
+
+### `curl -sSI https://constructaiq.trade`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 18:30:27 GMT
+```
+
+| Field         | Value                  |
+|---------------|------------------------|
+| HTTP status   | **403**                |
+| x-deny-reason | **host_not_allowed**   |
+| Location      | (none)                 |
+
+### `curl -sSI https://www.constructaiq.trade/dashboard`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 18:30:27 GMT
+```
+
+| Field                | Value                |
+|----------------------|----------------------|
+| HTTP status          | **403**              |
+| x-deny-reason        | **host_not_allowed** |
+| Location (www→apex)  | (none)               |
+
+### `npm run smoke:www`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade  (--www-only)
+──────────────────────────────────────────────────
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+       www.constructaiq.trade resolves but is rejected (403).
+
+──────────────────────────────────────────────────
+1 passed, 1 failed
+
+✗ Smoke test FAILED
+```
+
+| Field     | Value |
+|-----------|-------|
+| Exit code | **1** |
+| Passed    | 1     |
+| Failed    | 1     |
+
+### `npm run smoke:prod`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade
+──────────────────────────────────────────────────
+
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+
+──────────────────────────────────────────────────
+1 passed, 5 failed
+
+✗ Smoke test FAILED
+```
+
+| Field     | Value |
+|-----------|-------|
+| Exit code | **1** |
+| Passed    | 1     |
+| Failed    | 5     |
+
+### Phase 7 interpretation
+
+**`host_not_allowed` is unchanged on both domains.** The Vercel domain binding
+has not been completed. Every request to `constructaiq.trade` and
+`www.constructaiq.trade` is rejected at the Vercel edge before the Next.js
+application runs, identical to all prior phases.
+
+DNS continues to resolve correctly — `www DNS resolves` passes on both smoke
+runs, unchanged since 2026-04-25 04:00 UTC.
+
+**Domain blocker: OPEN — not resolved.**
+
+| Domain | DNS | HTTP status | x-deny-reason |
+|--------|-----|-------------|---------------|
+| `constructaiq.trade` | Resolves | **403** | **host_not_allowed** |
+| `www.constructaiq.trade` | Resolves | **403** | **host_not_allowed** |
+
+### Updated launch verdict
+
+| Dimension | Verdict | Rationale |
+|-----------|---------|-----------|
+| **Codebase** | **GO** | Unchanged — build ✓, lint ✓, 317/317 tests ✓. SHA `b392c37`. |
+| **Public launch** | **NO-GO** | Vercel domain binding still incomplete. `host_not_allowed` on both apex and www as of 2026-04-25 18:30 UTC. |
+
+**Public launch: NO-GO.** No code change is required. The sole remaining
+blocker is the operator action:
+
+> **Vercel UI → ConstructAIQ project → Settings → Domains**
+> → Add `constructaiq.trade`
+> → Add `www.constructaiq.trade`
+> → Wait for green checkmarks (1–10 min).
+
+Full walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md)
+Next action summary: [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
+
+---
+
+---
+
+## Phase 7 env and data verification — 2026-04-25 18:31 UTC
+
+### Prerequisite check
+
+Before running env and data probes, the prerequisite was confirmed:
+
+```bash
+curl -sSo /dev/null -w "%{http_code}" https://constructaiq.trade/api/status
+```
+
+Result: **403** — prerequisite **not met**.
+
+`constructaiq.trade` still returns `x-deny-reason: host_not_allowed`. The
+Vercel domain binding has not been completed. All seven env/data probes were
+run to produce a complete evidence record; every result is unobservable for
+the same reason.
+
+Full response from `/api/status` (representative of all endpoints):
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 18:31:57 GMT
+
+Host not in allowlist
+```
+
+### Probe results
+
+All seven probes received the plain-text body `Host not in allowlist`, not
+JSON. jq exited 5 (parse error) on every command.
+
+| Probe | Command | HTTP | jq exit | Result |
+|-------|---------|------|---------|--------|
+| env booleans | `curl -s …/api/status \| jq .env` | 403 | 5 | **UNOBSERVABLE** |
+| runtime | `curl -s …/api/status \| jq .runtime` | 403 | 5 | **UNOBSERVABLE** |
+| data sources | `curl -s …/api/status \| jq .data` | 403 | 5 | **UNOBSERVABLE** |
+| deep shape | `curl -s …/api/status?deep=1 \| jq .data` | 403 | 5 | **UNOBSERVABLE** |
+| federal | `curl -s …/api/federal \| jq {dataSource…}` | 403 | 5 | **UNOBSERVABLE** |
+| weekly-brief | `curl -s …/api/weekly-brief \| jq {source…}` | 403 | 5 | **UNOBSERVABLE** |
+| dashboard shape | `curl -s …/api/dashboard \| jq {fetched_at…}` | 403 | 5 | **UNOBSERVABLE** |
+
+### Expected values (from code analysis — to be confirmed once live)
+
+#### `/api/status | jq .env`
+
+| Boolean | Env var(s) | Expected | Observed | Classification |
+|---------|------------|----------|----------|----------------|
+| `supabaseConfigured` | `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` | `true` | **UNOBSERVABLE** | 🔴 **Launch blocker** if `false` — all data routes fail |
+| `cronSecretConfigured` | `CRON_SECRET` | `true` | **UNOBSERVABLE** | 🔴 **Launch blocker** if `false` — data-refresh cron cannot authenticate |
+| `anthropicConfigured` | `ANTHROPIC_API_KEY` | `true` | **UNOBSERVABLE** | 🟡 Warning if `false` — Weekly Brief falls back to static |
+| `upstashConfigured` | `UPSTASH_REDIS_REST_URL` + `_TOKEN` | `true` | **UNOBSERVABLE** | 🟡 Warning if `false` — rate limiting is DB-only |
+| `sentryConfigured` | `NEXT_PUBLIC_SENTRY_DSN` | `true` | **UNOBSERVABLE** | 🟡 Warning if `false` — error capture is console-only |
+
+#### `/api/status | jq .runtime`
+
+| Field | Expected | Observed | Classification |
+|-------|----------|----------|----------------|
+| `siteLocked` | `false` | **UNOBSERVABLE** | 🔴 **Launch blocker** if `true` — all visitors hit Basic Auth |
+| `nodeEnv` | `"production"` | **UNOBSERVABLE** | 🟡 Warning if not `"production"` |
+| `appUrl` | `"https://constructaiq.trade"` | **UNOBSERVABLE** | Survivable if absent |
+
+#### `/api/status | jq .data`
+
+| Field | Expected | Observed | Classification |
+|-------|----------|----------|----------------|
+| `federalSource` | `"usaspending.gov"` | **UNOBSERVABLE** | 🟡 Warning if `"static-fallback"` — leaderboard and agency rows will be empty |
+| `weeklyBriefSource` | `"ai"` | **UNOBSERVABLE** | 🟡 Warning if `"static-fallback"` — brief panel shows UNAVAILABLE badge |
+
+#### `/api/status?deep=1 | jq .data`
+
+| Field | Expected | Observed | Classification |
+|-------|----------|----------|----------------|
+| `dashboardShapeOk` | `true` | **UNOBSERVABLE** | 🔴 **Launch blocker** if `false` — primary screen is broken |
+
+#### `/api/federal | jq {dataSource, fromCache, contractors, agencies, fetchError}`
+
+| Field | Expected | Observed | Classification |
+|-------|----------|----------|----------------|
+| `dataSource` | `"usaspending.gov"` | **UNOBSERVABLE** | 🟡 Warning if `"static-fallback"` |
+| `fromCache` | `true` or `false` | **UNOBSERVABLE** | Informational |
+| `contractors` count | `> 0` | **UNOBSERVABLE** | 🟡 Warning if `0` |
+| `agencies` count | `> 0` | **UNOBSERVABLE** | 🟡 Warning if `0` |
+| `fetchError` | `null` / absent | **UNOBSERVABLE** | 🟡 Warning if set |
+
+#### `/api/weekly-brief | jq {source, live, configured, warning, error}`
+
+| Field | Expected | Observed | Classification |
+|-------|----------|----------|----------------|
+| `source` | `"ai"` | **UNOBSERVABLE** | 🟡 Warning if `"static-fallback"` |
+| `live` | `true` | **UNOBSERVABLE** | 🟡 Warning if `false` |
+| `configured` | `true` | **UNOBSERVABLE** | 🟡 Warning if `false` |
+| `warning` | absent | **UNOBSERVABLE** | Informational if present |
+| `error` | absent | **UNOBSERVABLE** | 🟡 Warning if set |
+
+#### `/api/dashboard | jq {fetched_at, cshi, signals, commodities, forecast}`
+
+| Field | Expected | Observed | Classification |
+|-------|----------|----------|----------------|
+| `fetched_at` | ISO timestamp | **UNOBSERVABLE** | — |
+| `cshi` type | `"object"` | **UNOBSERVABLE** | 🔴 **Launch blocker** if not `"object"` |
+| `signals` length | `> 0` | **UNOBSERVABLE** | 🔴 **Launch blocker** if `0` |
+| `commodities` length | `> 0` | **UNOBSERVABLE** | 🟡 Warning if `0` |
+| `forecast` type | `"object"` | **UNOBSERVABLE** | 🔴 **Launch blocker** if not `"object"` |
+
+### Classification summary
+
+| Priority | Item | Trigger condition | Status |
+|----------|------|-------------------|--------|
+| 🔴 P0 | `supabaseConfigured` | `false` | UNOBSERVABLE |
+| 🔴 P0 | `cronSecretConfigured` | `false` | UNOBSERVABLE |
+| 🔴 P0 | `siteLocked` | `true` | UNOBSERVABLE |
+| 🔴 P0 | `dashboardShapeOk` | `false` | UNOBSERVABLE |
+| 🔴 P0 | `cshi` type | not `"object"` | UNOBSERVABLE |
+| 🔴 P0 | `signals` length | `0` | UNOBSERVABLE |
+| 🔴 P0 | `forecast` type | not `"object"` | UNOBSERVABLE |
+| 🟡 P1 | `anthropicConfigured` | `false` | UNOBSERVABLE — Weekly Brief degrades to static |
+| 🟡 P1 | `upstashConfigured` | `false` | UNOBSERVABLE — rate limiting is DB-only |
+| 🟡 P1 | `sentryConfigured` | `false` | UNOBSERVABLE — errors are console-only |
+| 🟡 P1 | `federalSource` | `"static-fallback"` | UNOBSERVABLE — leaderboard empty, banner shown |
+| 🟡 P1 | `weeklyBriefSource` | `"static-fallback"` | UNOBSERVABLE — UNAVAILABLE badge shown |
+| 🟡 P1 | `commodities` length | `0` | UNOBSERVABLE |
+
+No secrets are recorded in this section. Env var names are listed as keys
+only; no values appear.
+
+### Phase 7 env/data interpretation
+
+**All env booleans and data-source states are unobservable.** The Vercel
+domain binding must be completed before any probe can reach the Next.js
+application. Until `/api/status` returns HTTP 200 with a JSON body, the
+classification table above cannot be populated with observed values.
+
+This verification pass must be repeated in full once the domain is live.
+The exact commands to rerun:
+
+```bash
+curl -s https://constructaiq.trade/api/status | jq .env
+curl -s https://constructaiq.trade/api/status | jq .runtime
+curl -s https://constructaiq.trade/api/status | jq .data
+curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data
+curl -s https://constructaiq.trade/api/federal \
+  | jq '{dataSource, fromCache, contractors: (.contractors|length), agencies: (.agencies|length), fetchError}'
+curl -s https://constructaiq.trade/api/weekly-brief \
+  | jq '{source, live, configured, warning, error}'
+curl -s https://constructaiq.trade/api/dashboard \
+  | jq '{fetched_at, cshi: (.cshi|type), signals: (.signals|length), commodities: (.commodities|length), forecast: (.forecast|type)}'
+```
+
+**Public launch: NO-GO.** Sole prerequisite: complete Vercel domain binding.
+
+See [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md) Steps 1–4.
+See [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md) for current action summary.
+
+---
+
+---
+
+## Phase 7 final launch gate — 2026-04-25 18:35 UTC
+
+Full command: `npm run launch:check -- --include-smoke`
+Final exit code: **1**
+
+---
+
+### Gate 5 — build / lint / unit tests
+
+| Step | Exit | Wall time | Result |
+|------|------|-----------|--------|
+| `npm run build` | **0** | 103.2 s | `✓ Compiled successfully in 61s` — 84 routes, 0 errors |
+| `npm run lint` | **0** | 2.6 s | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | 3.2 s | `Test Files 23 passed (23)` · `Tests 317 passed (317)` |
+
+Gate 5 summary line from launch:check: `✓  build  ✓  lint  ✓  unit tests`
+
+Notable from build output:
+- `⚠ Using edge runtime on a page currently disables static generation for that page` — pre-existing; expected on `/api/og/*` routes.
+- `next lint` deprecation notice (`next lint will be removed in Next.js 16`) — pre-existing; not introduced by this work.
+
+**Gate 5: CLOSED ✓** — codebase is launch-ready from a code, build, and test perspective.
+
+---
+
+### Gate 4 — production smoke
+
+| Step | Exit | Wall time | Passed | Failed |
+|------|------|-----------|--------|--------|
+| `npm run smoke:prod` | **1** | 1.0 s | 1 | 5 |
+| `npm run smoke:www` | **1** | 0.3 s | 1 | 1 |
+
+#### `smoke:prod` detail
+
+```
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project — HTTP 403
+
+1 passed, 5 failed  ✗ Smoke test FAILED
+```
+
+#### `smoke:www` detail
+
+```
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project — HTTP 403
+
+1 passed, 1 failed  ✗ Smoke test FAILED
+```
+
+**Gate 4: OPEN ✗** — sole cause is unresolved Vercel domain binding.
+
+---
+
+### Standalone build / lint / test (run separately)
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run build` | **0** | `✓ Compiled successfully` — 84 routes, 0 errors |
+| `npm run lint` | **0** | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | `23 passed (23)` · `317 passed (317)` |
+
+All three green on standalone runs, consistent with the launch:check gate output.
+
+---
+
+### launch:check summary output
+
+```
+  ✓  build
+  ✓  lint
+  ✓  unit tests
+  ✗  smoke:prod
+  ✗  smoke:www
+
+✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www
+```
+
+---
+
+### Failing gate — exact evidence
+
+| Gate | Failing check | Root cause |
+|------|--------------|------------|
+| `smoke:prod` | `GET / returns 200` | HTTP 403 `x-deny-reason: host_not_allowed` |
+| `smoke:prod` | `GET /dashboard returns 200` | HTTP 403 `x-deny-reason: host_not_allowed` |
+| `smoke:prod` | `/api/status returns 200` | HTTP 403 `x-deny-reason: host_not_allowed` |
+| `smoke:prod` | `/api/dashboard returns 200` | HTTP 403 `x-deny-reason: host_not_allowed` |
+| `smoke:prod` | `www is bound to this Vercel project` | HTTP 403 `x-deny-reason: host_not_allowed` |
+| `smoke:www` | `www is bound to this Vercel project` | HTTP 403 `x-deny-reason: host_not_allowed` |
+
+Single root cause across all six failing checks: the Vercel project domain
+binding has not been completed. The Next.js application never receives any
+request — Vercel rejects at its edge layer before application code runs.
+
+DNS continues to resolve correctly. `www DNS resolves` passes on both smoke
+runs, unchanged since 2026-04-25 04:00 UTC — no DNS action is needed.
+
+---
+
+### Updated launch verdict
+
+| Dimension | Verdict | Detail |
+|-----------|---------|--------|
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · SHA `b392c37` · unchanged across all phases |
+| **Public launch** | **◼ NO-GO** | `smoke:prod` exit 1 · `smoke:www` exit 1 · sole cause: Vercel domain binding incomplete |
+
+**Public launch: NO-GO.**
+
+No code change is required. The sole blocking action is:
+
+> **Vercel UI → ConstructAIQ project → Settings → Domains**
+> → Add `constructaiq.trade` → wait for green checkmark
+> → Add `www.constructaiq.trade` → wait for green checkmark
+
+After binding (1–10 minutes for SSL auto-provision), rerun:
+
+```bash
+npm run smoke:www   # must exit 0
+npm run smoke:prod  # must exit 0
+```
+
+Both must exit 0 before this verdict may be changed to GO.
+
+Full walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md)
+Operator action summary: [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
+First-24-hour watch guide: [docs/POST_LAUNCH_WATCH.md](./POST_LAUNCH_WATCH.md)
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:20 UTC by `claude/verify-domain-binding-gvssO`.*
+Last updated: 2026-04-25 18:36 UTC by `claude/fix-doc-sha-consistency-7Y01M`.*

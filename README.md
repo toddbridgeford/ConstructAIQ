@@ -81,6 +81,9 @@ npm run launch:check -- --include-smoke   # also runs smoke:prod and smoke:www
 ```
 
 Other operational docs:
+- [`docs/OPERATOR_HANDOFF.md`](docs/OPERATOR_HANDOFF.md) — **current
+  launch verdict and next manual action** (start here if handing off
+  to ops).
 - [`docs/PRODUCTION_SMOKE.md`](docs/PRODUCTION_SMOKE.md) — what the
   smoke checks cover, www failure modes, and the exact Vercel UI +
   DNS steps to fix each one.

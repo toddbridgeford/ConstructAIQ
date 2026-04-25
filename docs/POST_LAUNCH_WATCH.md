@@ -301,7 +301,9 @@ for a second occurrence — these are hard stops.
 
 Via CLI: `vercel rollback <deployment-url-or-id> --prod`
 
-Last known-good code SHA: **`8c1cd98d`**. See
+Last known-good code SHA: **`b392c37`**
+(`b392c3759fb5051197203c3e050584b37d0b90e1`). Confirm this SHA against
+[RELEASE_CANDIDATE_REPORT.md](./RELEASE_CANDIDATE_REPORT.md) before using rollback. See
 [RELEASE_CANDIDATE_REPORT.md § Rollback Procedure](./RELEASE_CANDIDATE_REPORT.md#rollback-procedure)
 for the full procedure.
 

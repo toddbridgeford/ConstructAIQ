@@ -1,5 +1,7 @@
 # Vercel Domain Fix
 
+> **Launch state and remaining actions:** [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
+
 ## Problem
 
 `constructaiq.trade` and `www.constructaiq.trade` return HTTP 403 with the
