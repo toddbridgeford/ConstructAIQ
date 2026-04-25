@@ -3,6 +3,7 @@ import { supabase, supabaseAdmin, getLatestObs } from '@/lib/supabase'
 import { runEnsemble }                          from '@/lib/models/ensemble'
 import { computeCshi }                          from '@/lib/cshi'
 import type { CshiResult }                      from '@/lib/cshi'
+import { logApiError, logApiWarn }              from '@/lib/observability'
 
 export const runtime     = 'nodejs'
 export const dynamic     = 'force-dynamic'
@@ -65,6 +66,18 @@ async function tryQuery<T>(p: Promise<T>): Promise<T | null> {
 
 // ── GET /api/dashboard ────────────────────────────────────────────────────────
 export async function GET() {
+  try {
+    return await aggregate()
+  } catch (err) {
+    // Top-level aggregation failure — captured via Sentry. Existing per-source
+    // tryQuery / try-catch helpers absorb expected empty states; this only
+    // fires for true bugs (e.g. Supabase connection refusal at the URL level).
+    logApiError('dashboard', err, { stage: 'aggregate' })
+    throw err
+  }
+}
+
+async function aggregate() {
   const now = Date.now()
 
   const [
@@ -185,9 +198,16 @@ export async function GET() {
 
   // ── Pricewatch ────────────────────────────────────────────────────────────
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://constructaiq.trade'
-  const priceRes = await fetch(`${base}/api/pricewatch`, { cache: 'no-store' })
-  const priceData = priceRes.ok ? await priceRes.json() : null
-  const commodities = priceData?.items ?? []
+  let commodities: unknown[] = []
+  try {
+    const priceRes  = await fetch(`${base}/api/pricewatch`, { cache: 'no-store' })
+    const priceData = priceRes.ok ? await priceRes.json() : null
+    commodities = priceData?.items ?? []
+  } catch (err) {
+    logApiWarn('dashboard', 'pricewatch sub-fetch failed', {
+      error: err instanceof Error ? err.message : String(err),
+    })
+  }
 
   // ── Brief ─────────────────────────────────────────────────────────────────
   const briefText = (briefRow as { brief_text?: string } | null)?.brief_text ?? null

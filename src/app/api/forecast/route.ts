@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { runEnsemble, type EnsembleResult, type ModelResult } from '@/lib/models/ensemble'
 import { supabase, upsertForecasts, type ForecastRow } from '@/lib/supabase'
+import { logApiError, logApiWarn } from '@/lib/observability'
 
 export const maxDuration = 10
 
@@ -93,7 +94,9 @@ export async function GET(request: Request) {
     }
 
     // 4. Persist to Supabase (best-effort, don't fail if DB unavailable)
-    persistForecast(seriesId, result, periods).catch(e => console.warn('persist failed:', e))
+    persistForecast(seriesId, result, periods).catch(e =>
+      logApiWarn('forecast', 'persist failed', { error: e instanceof Error ? e.message : String(e) }),
+    )
 
     // 5. Build response
     const today = new Date()
@@ -117,7 +120,7 @@ export async function GET(request: Request) {
       headers: { 'Cache-Control': 'public, s-maxage=3600' },
     })
   } catch (err) {
-    console.error('[/api/forecast]', err)
+    logApiError('forecast', err, { stage: 'compute', seriesId, periods })
     return NextResponse.json(
       { error: 'Forecast computation failed', detail: String(err) },
       { status: 500 }

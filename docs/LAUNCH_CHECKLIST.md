@@ -120,6 +120,25 @@ curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data.dashboardShape
 # expected: true
 ```
 
+- [ ] **Sentry server-side capture is wired**
+      Production-critical routes use the `logApiError` helper
+      (`src/lib/observability.ts`), which forwards to
+      `Sentry.captureException` whenever `NEXT_PUBLIC_SENTRY_DSN`
+      is set. Verify after a deploy by either:
+      1. **Inspect deployment logs.** Trigger any of the live
+         feeds with the upstream key intentionally absent (e.g.
+         visit `/api/weekly-brief` while `ANTHROPIC_API_KEY` is
+         unset) and confirm the `[weeklyBrief]` log line lands
+         in Vercel function logs.
+      2. **Check the Sentry project.** Open the Sentry project
+         and confirm at least one event exists in the last 24h
+         tagged `api_scope`. Stable scopes used today:
+         `dashboard`, `federal`, `weeklyBrief`, `status`,
+         `pricewatch`, `forecast`, `cshi`. Do not add a public
+         "/api/sentry-test" route — if a smoke trigger is
+         needed, gate it behind `CRON_SECRET` or
+         `NODE_ENV !== 'production'`.
+
 ---
 
 ## Gate 3 — Data integrity

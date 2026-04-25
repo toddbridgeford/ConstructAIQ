@@ -1,5 +1,6 @@
 import Anthropic     from '@anthropic-ai/sdk'
 import { supabaseAdmin, getLatestObs } from '@/lib/supabase'
+import { logApiError, logApiWarn } from '@/lib/observability'
 
 /**
  * Neutral fallback copy used when AI generation is not configured (or fails).
@@ -137,7 +138,9 @@ export async function generateBrief(): Promise<BriefResult> {
     dataText = result.text
     snapshot = result.snapshot
   } catch (err) {
-    console.warn('[weeklyBrief] Data fetch failed, generating without real data:', err)
+    logApiWarn('weeklyBrief', 'data fetch failed, generating without real data', {
+      error: err instanceof Error ? err.message : String(err),
+    })
     dataText = '(no live data available — use your general knowledge of recent market conditions)'
   }
 
@@ -165,7 +168,7 @@ export async function generateBrief(): Promise<BriefResult> {
       model:         MODEL,
       source:        'ai',
     }).then(({ error }) => {
-      if (error) console.warn('[weeklyBrief] DB write failed:', error.message)
+      if (error) logApiWarn('weeklyBrief', 'DB write failed', { error: error.message })
     })
 
     return {
@@ -177,7 +180,7 @@ export async function generateBrief(): Promise<BriefResult> {
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error('[weeklyBrief] Claude call failed:', msg)
+    logApiError('weeklyBrief', err, { stage: 'claude-call' })
     return fallbackResult(msg, true)
   }
 }

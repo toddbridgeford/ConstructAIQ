@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { getSourceHealthSummary } from '@/lib/sourceHealth'
 import { isWeeklyBriefConfigured } from '@/lib/weeklyBrief'
 import { LEADERBOARD_CACHE_KEY } from '@/lib/federal'
+import { logApiError, logApiWarn } from '@/lib/observability'
 
 export const maxDuration = 10
 
@@ -32,6 +33,15 @@ function staleness(lastUpdated: string | null): 'ok' | 'warn' | 'stale' {
 }
 
 export async function GET(request: Request) {
+  try {
+    return await buildStatus(request)
+  } catch (err) {
+    logApiError('status', err, { stage: 'aggregate' })
+    throw err
+  }
+}
+
+async function buildStatus(request: Request) {
   const { searchParams } = new URL(request.url)
   const deep = searchParams.get('deep') === '1'
 
@@ -133,6 +143,9 @@ export async function GET(request: Request) {
   // ── Data section — inspect cache tables only, no sub-route calls ──────────
   let federalSource: 'usaspending.gov' | 'static-fallback' | 'unknown'
   if (federalCacheRes.error) {
+    logApiWarn('status', 'federal_cache lookup failed', {
+      error: federalCacheRes.error.message,
+    })
     federalSource = 'unknown'
   } else if (federalCacheRes.data?.cached_at) {
     const ageHours = (Date.now() - new Date(federalCacheRes.data.cached_at).getTime()) / 3_600_000

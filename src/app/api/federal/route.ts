@@ -14,6 +14,7 @@ import {
   type AgencyShare,
   type MonthlyAward,
 } from '@/lib/federal'
+import { logApiError } from '@/lib/observability'
 
 export const maxDuration = 10
 
@@ -160,7 +161,7 @@ export async function GET() {
   } catch (err) {
     // Last-resort fallback — never error the dashboard. Leaderboard tables are
     // intentionally empty; monthlyAwards is [] rather than fabricated data.
-    console.error('[/api/federal]', err)
+    logApiError('federal', err, { stage: 'route-toplevel' })
     const stateAllocations = staticStateAllocations()
     const totalAuthorized  = PROGRAMS.reduce((s, p) => s + p.authorized, 0)
     const totalObligated   = PROGRAMS.reduce((s, p) => s + p.obligated,  0)

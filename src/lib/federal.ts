@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase'
+import { logApiError, logApiWarn } from '@/lib/observability'
 
 export const GEO_CACHE_KEY              = 'federal_geo_fy2025'
 export const LEADERBOARD_CACHE_KEY      = 'federal_leaderboard_v1'
@@ -144,13 +145,13 @@ export async function getStateAllocations(
       .from('federal_cache')
       .upsert({ key: GEO_CACHE_KEY, data_json: data, cached_at: fetchedAt })
       .then(({ error }) => {
-        if (error) console.warn('[federal] Cache write failed:', error.message)
+        if (error) logApiWarn('federal', 'states cache write failed', { error: error.message })
       })
 
     return { data, fromCache: false, fetchedAt }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error('[federal] USASpending fetch failed:', msg)
+    logApiError('federal', err, { endpoint: 'states' })
     return { data: [], fromCache: false, fetchedAt, error: msg }
   }
 }
@@ -364,13 +365,13 @@ export async function getFederalLeaderboard(
       .from('federal_cache')
       .upsert({ key: LEADERBOARD_CACHE_KEY, data_json: data, cached_at: fetchedAt })
       .then(({ error }) => {
-        if (error) console.warn('[federal] Leaderboard cache write failed:', error.message)
+        if (error) logApiWarn('federal', 'leaderboard cache write failed', { error: error.message })
       })
 
     return { data, fromCache: false, fetchedAt }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error('[federal] USASpending leaderboard fetch failed:', msg)
+    logApiError('federal', err, { endpoint: 'leaderboard' })
 
     // Last-resort: try to return *stale* cache rather than nothing
     try {
@@ -522,13 +523,13 @@ export async function getFederalMonthlyAwards(
       .from('federal_cache')
       .upsert({ key: MONTHLY_AWARDS_CACHE_KEY, data_json: data, cached_at: fetchedAt })
       .then(({ error }) => {
-        if (error) console.warn('[federal] Monthly awards cache write failed:', error.message)
+        if (error) logApiWarn('federal', 'monthly awards cache write failed', { error: error.message })
       })
 
     return { data, fromCache: false, fetchedAt }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error('[federal] USASpending monthly awards fetch failed:', msg)
+    logApiError('federal', err, { endpoint: 'monthly_awards' })
 
     // Last-resort: stale cache rather than nothing
     try {
