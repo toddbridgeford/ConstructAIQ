@@ -9,14 +9,22 @@ and e2e suites cannot detect.
 ## Running it
 
 ```bash
-# Against production
+# Full check — pages, API shape, and www redirect (against production)
 npm run smoke:prod
+
+# www-only — just the apex/www redirect chain. Use after a DNS or Vercel
+# domain change without re-running the full suite.
+npm run smoke:www
 
 # Against a preview deployment
 node scripts/smoke-prod.mjs https://my-branch.vercel.app
+
+# www-only against a custom URL
+node scripts/smoke-prod.mjs https://constructaiq.trade --www-only
 ```
 
-The script exits 0 on success, 1 on any failure.
+The script exits 0 on success, 1 on any failure (including any single
+www failure — see "www: full configuration steps" below).
 
 ---
 
@@ -104,38 +112,120 @@ layout threw before any boundary could catch it.
 
 ---
 
-### Missing www domain
+### www: full configuration steps
+
+The `www` redirect requires THREE separate things to be configured. The
+Next.js `redirects()` rule in `next.config.ts` only fires after the first
+two are in place — code alone cannot make `www.constructaiq.trade` work.
+
+**1. Vercel project domain alias** (one-time, manual)
+
+1. Open <https://vercel.com/dashboard> and select the **ConstructAIQ** project.
+2. **Settings → Domains** in the left nav.
+3. Click **Add Domain**.
+4. Enter `www.constructaiq.trade` and submit.
+5. Vercel shows a verification panel with a CNAME target — usually
+   `cname.vercel-dns.com`. Copy this exact value; it may differ per region.
+6. Leave the panel open while you do step 2.
+
+**2. DNS CNAME record** (one-time, manual)
+
+In your DNS provider (whatever hosts `constructaiq.trade`), add:
 
 ```
-✗  www subdomain is configured
-     Could not reach https://www.constructaiq.trade/dashboard — DNS likely not configured.
-     Add a CNAME record for www.constructaiq.trade and add it as a Vercel project domain.
+Type:    CNAME
+Name:    www                      ← just "www", not "www.constructaiq.trade"
+Value:   cname.vercel-dns.com     ← exact value Vercel showed in step 1.5
+TTL:     3600 (or provider default)
 ```
 
-**Cause:** `www.constructaiq.trade` is not pointed at Vercel.
+After ~1–10 minutes, return to the Vercel Domains panel — the verification
+warning should disappear and Vercel will auto-issue an SSL certificate.
 
-**Fix:**
-1. In your DNS provider, add a CNAME record: `www` → `cname.vercel-dns.com`.
-2. In the Vercel project settings → Domains, add `www.constructaiq.trade`.
-3. Vercel will issue an SSL certificate automatically.
-4. The redirect in `next.config.ts` handles the apex rewrite at the
-   application layer once DNS resolves.
+**3. Application-layer redirect** (already in repo)
+
+`next.config.ts` contains:
+
+```ts
+async redirects() {
+  return [{
+    source: "/:path*",
+    has: [{ type: "host", value: "www.constructaiq.trade" }],
+    destination: "https://constructaiq.trade/:path*",
+    permanent: true,
+  }]
+}
+```
+
+This only runs **after** steps 1 + 2 — Vercel must accept the request and
+hand it to the Next.js function before the redirects() rule can match.
+
+**Verification:**
+
+```bash
+npm run smoke:www
+# expected:
+#   ✓  www DNS resolves (www.constructaiq.trade responded)
+#   ✓  www returns 308 redirect
+#   ✓  www redirect target → https://constructaiq.trade/dashboard
+```
 
 ---
 
-### www redirect not redirecting
+### www failure modes — what each one means
+
+`smoke:www` distinguishes four distinct failures so you know exactly which
+of the three steps above is missing.
+
+#### (a) DNS does not resolve
 
 ```
-✗  www redirects to apex (expected 301/302, got 200)
+✗  www DNS resolves
+     www.constructaiq.trade does not resolve or is not assigned to this Vercel project.
+     Add www as a Vercel domain and DNS CNAME.
+     (DNS error: ENOTFOUND)
 ```
 
-**Cause:** The redirect rule in `next.config.ts` is present but the `www`
-domain has not been added to the Vercel project. Vercel serves the full app
-on `www` instead of redirecting.
+**Means:** No DNS record exists for `www.constructaiq.trade`. **Fix:** do
+both step 1 AND step 2 above.
 
-**Fix:** Add `www.constructaiq.trade` as a domain alias in Vercel project
-settings (not as the primary domain). Vercel must handle the DNS-level request
-before Next.js can fire the `redirects()` rule.
+#### (b) HTTP 403 — Vercel/project mismatch
+
+```
+✗  www is bound to this Vercel project
+     https://www.constructaiq.trade/dashboard returned HTTP 403.
+     www.constructaiq.trade resolves to Vercel but is not assigned to this project.
+```
+
+**Means:** DNS resolves correctly but Vercel does not recognize `www` as
+belonging to the ConstructAIQ project. **Fix:** step 1 above (add the domain
+in the Vercel UI). DNS is fine.
+
+#### (c) No redirect — got 200 / 301-to-wrong-thing
+
+```
+✗  www returns a 30x redirect
+     https://www.constructaiq.trade/dashboard returned HTTP 200 — the Next.js redirects() rule did not fire.
+```
+
+**Means:** Vercel is serving the full app on `www` instead of redirecting.
+The most likely cause is that `www` is configured in Vercel as a **primary
+domain** rather than a redirect-to-apex alias, OR the deployment containing
+the redirects() rule has not propagated. **Fix:** in Vercel → Settings →
+Domains, ensure `www.constructaiq.trade` is configured to redirect to
+`constructaiq.trade` (or relies on the application-layer redirect, in which
+case redeploy the latest `main`).
+
+#### (d) Wrong redirect target
+
+```
+✗  www redirect target is the apex domain
+     Location header was "https://example.com/" — expected something starting with "https://constructaiq.trade".
+```
+
+**Means:** The redirect fires but points somewhere unexpected. **Fix:** the
+`destination` in the `next.config.ts` `redirects()` block has been edited.
+Restore it to `https://constructaiq.trade/:path*`.
 
 ---
 
