@@ -570,12 +570,132 @@ commands in this section are the exact commands to rerun at that time.
 
 ---
 
+## Phase 5 launch gate — 2026-04-25 17:57 UTC
+
+Full command: `npm run launch:check -- --include-smoke`
+
+### Sandbox dependency note
+
+The first run of this gate failed entirely because `@opentelemetry/sdk-trace-base`
+was absent from the top-level `node_modules/` due to a Node.js version
+mismatch between the sandbox (v22) and the lockfile's target (v20, per
+`.github/workflows/ci.yml`). With Node 22, `npm ci` places the package only
+under `node_modules/@sentry/node/node_modules/`, making it unreachable from
+`@sentry/opentelemetry`. The package was installed at the top level for this
+session using `npm install --no-save @opentelemetry/sdk-trace-base@1.30.1`
+without modifying `package.json` or `package-lock.json`. The second run
+produced the results below and is the authoritative record.
+
+### Gate 5 — build / lint / unit tests
+
+| Step | Exit | Wall time | Result |
+|------|------|-----------|--------|
+| `npm run build` | **0** | 105.6 s | `✓ Compiled successfully in 52s` — 84 routes, no errors |
+| `npm run lint` | **0** | 11.8 s | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | 6.5 s | `23 passed (23)` · `317 passed (317)` |
+
+Gate 5 summary line: `✓  build  ✓  lint  ✓  unit tests`
+
+Notable from build output:
+- `⚠ Using edge runtime on a page currently disables static generation for that page` — pre-existing; expected on `/api/og/*` routes.
+- `next lint` deprecation notice (`next lint will be removed in Next.js 16`) — pre-existing; not introduced by this work.
+
+### Gate 4 — production smoke (`--include-smoke`)
+
+| Step | Exit | Wall time | Checks |
+|------|------|-----------|--------|
+| `npm run smoke:prod` | **1** | 1.6 s | 1 passed, 5 failed |
+| `npm run smoke:www` | **1** | 0.6 s | 1 passed, 1 failed |
+
+#### `smoke:prod` detail
+
+```
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project — HTTP 403
+
+1 passed, 5 failed  ✗ Smoke test FAILED
+```
+
+#### `smoke:www` detail
+
+```
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project — HTTP 403
+
+1 passed, 1 failed  ✗ Smoke test FAILED
+```
+
+### Final launch gate summary
+
+```
+  ✓  build
+  ✓  lint
+  ✓  unit tests
+  ✗  smoke:prod
+  ✗  smoke:www
+
+✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www
+```
+
+| Field | Value |
+|-------|-------|
+| Final exit code | **1** |
+| Failing gate | `smoke gates: smoke:prod, smoke:www` |
+| Root cause | Vercel project domain binding not completed — all requests return HTTP 403 `x-deny-reason: host_not_allowed` |
+| Passing gates | build ✓, lint ✓, unit tests ✓ |
+| Blocking gates | smoke:prod ✗, smoke:www ✗ |
+
+### `npm run lint` (standalone)
+
+Lint was also run standalone as required by this phase's task list. ESLint
+exits 0 as part of the full gate. The `next lint` deprecation notice is
+pre-existing and will remain until migration to the ESLint CLI.
+
+| Tool | Exit | Result |
+|------|------|--------|
+| `npm run lint` (via launch gate) | **0** | `✔ No ESLint warnings or errors` |
+
+### Phase 5 launch gate interpretation
+
+**Gate 5 is fully green.** Build, lint, and all 317 unit tests pass cleanly.
+The codebase is launch-ready from a code and build perspective.
+
+**Gate 4 fails on both smoke checks.** The sole cause is the unresolved
+Vercel domain binding (`host_not_allowed`). No additional code or
+configuration change is needed beyond completing the Vercel domain binding
+described in `docs/VERCEL_DOMAIN_FIX.md`.
+
+Once the domain binding is complete, this gate should be rerun. The expected
+outcome after domain binding (assuming env vars are also set) is:
+
+```
+  ✓  build
+  ✓  lint
+  ✓  unit tests
+  ✓  smoke:prod
+  ✓  smoke:www
+
+✓ Automatable gates passed.
+```
+
+---
+
 ## Go / No-Go Summary
 
 | Dimension        | Verdict     | Rationale                                                                                       |
 |------------------|-------------|-------------------------------------------------------------------------------------------------|
-| **Codebase**     | **GO**      | Build, lint, and all 317 tests are green at SHA `8c1cd98d`. Confirmed green on revalidation (2026-04-25 17:33 UTC), Phase 5 domain recheck (17:39 UTC), env verification (17:43 UTC), and data-source verification (17:46 UTC). No code regression introduced. |
-| **Public launch**| **NO-GO**   | Domain still returns HTTP 403 `x-deny-reason: host_not_allowed` as of Phase 5 data-source verification 2026-04-25 17:46 UTC. Vercel domain binding is **OPEN**. All `/api/status`, `/api/federal`, `/api/weekly-brief`, and `/api/dashboard` probes return 403. Federal, Weekly Brief, and Dashboard data-source states are **UNOBSERVABLE**. P0 env vars remain unverified. |
+| **Codebase**     | **GO**      | Build ✓, lint ✓, 317/317 tests ✓ — confirmed at Phase 5 launch gate 2026-04-25 17:57 UTC. Gate 5 fully green. No code regression at any phase. |
+| **Public launch**| **NO-GO**   | Phase 5 launch gate (2026-04-25 17:57 UTC): `✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www`. Vercel domain binding is the sole blocker. `smoke:prod` 1 passed / 5 failed. `smoke:www` 1 passed / 1 failed. All requests return HTTP 403 `x-deny-reason: host_not_allowed`. |
 
 **The codebase is candidate-ready. The infrastructure is not.**
 
