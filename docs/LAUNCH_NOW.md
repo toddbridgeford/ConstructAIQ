@@ -1,10 +1,10 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 20 smoke verification — smoke:prod exit 1 · 1/6 passed · smoke:www exit 1 · 1/2 passed · prerequisite domain:check exit 1 not met · Public launch NO-GO)**
+**Updated: 2026-04-25 (Phase 20 env/runtime verification — prerequisite smoke:prod exit 1 not met · /api/status unreachable · env booleans unreadable · Public launch NO-GO)**
 
 ---
 
-> **STOP: code is launch-ready. DNS-only propagation confirmed (apex → `76.76.21.21`). Sole remaining blocker: Vercel domain not bound to this project — add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains. Smoke cannot pass until domain is bound.**
+> **STOP: code is launch-ready. DNS-only propagation confirmed (apex → `76.76.21.21`). Sole remaining blocker: Vercel domain not bound to this project — add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains. Smoke and env verification cannot proceed until domain is bound.**
 
 ---
 
@@ -18,11 +18,38 @@
 | 4 | domain:check | **NO-GO** — exit 1 · apex `VERCEL_DOMAIN_NOT_BOUND` · www `VERCEL_DOMAIN_NOT_BOUND` |
 | 4 | smoke:prod | **NO-GO** — exit 1 · 1/6 passed · 5 failed · root cause: domain not bound |
 | 4 | smoke:www | **NO-GO** — exit 1 · 1/2 passed · 1 failed · root cause: domain not bound |
-| 3 | env/runtime | **BLOCKED** — `/api/status` returns 403; booleans unreadable |
+| 3 | env/runtime | **BLOCKED** — prerequisite smoke:prod exit 1 not met · `/api/status` returns `Host not in allowlist` · JSON parse error · all booleans unreadable |
 | 3 | data/dashboard | **BLOCKED** — all API endpoints return 403; shapes unverifiable |
 | 2 | Apex DNS target | **GO** — resolves to `76.76.21.21` (Vercel) · DNS-only confirmed · proxyWarning: false |
 | — | launch:check | **FAILED** — exit 1 · failing gates: smoke:prod, smoke:www |
 | — | Public launch | **NO-GO** |
+
+---
+
+## Phase 20 env/runtime verification (2026-04-25)
+
+**Prerequisite:** `smoke:prod` exits 0 — NOT MET (exits 1). Verification attempted regardless to document state.
+
+| Command | Result |
+|---------|--------|
+| `curl -s https://constructaiq.trade/api/status` | `Host not in allowlist` — not JSON |
+| `jq .env` | parse error — exit 5 |
+| `jq .runtime` | parse error — exit 5 |
+
+| Boolean | Value | Classification |
+|---------|-------|----------------|
+| `supabaseConfigured` | UNREADABLE — endpoint 403 | Cannot classify |
+| `cronSecretConfigured` | UNREADABLE — endpoint 403 | Cannot classify |
+| `anthropicConfigured` | UNREADABLE — endpoint 403 | Cannot classify |
+| `upstashConfigured` | UNREADABLE — endpoint 403 | Cannot classify |
+| `sentryConfigured` | UNREADABLE — endpoint 403 | Cannot classify |
+| `runtime.siteLocked` | UNREADABLE — endpoint 403 | Cannot classify |
+| `runtime.nodeEnv` | UNREADABLE — endpoint 403 | Cannot classify |
+| `runtime.appUrl` | UNREADABLE — endpoint 403 | Cannot classify |
+
+**Verdict:** All env/runtime booleans are unreadable. `/api/status` returns a plain-text 403 (`Host not in allowlist`) because the domain is not bound in Vercel. No launch-blocker or warning classification is possible until the domain is bound and smoke passes.
+
+**Next action:** Bind domain in Vercel → re-run `smoke:prod` (must exit 0) → then re-run env/runtime verification.
 
 ---
 

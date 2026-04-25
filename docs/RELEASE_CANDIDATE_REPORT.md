@@ -4639,3 +4639,33 @@ Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 ·
 **NO-GO.** Both smoke commands exit 1. Single root cause: domain not bound in Vercel project (`VERCEL_DOMAIN_NOT_BOUND`). All 5 prod failures and the www failure share the same `host_not_allowed` 403 response. DNS is correct (`76.76.21.21`, DNS-only confirmed). Next action: add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains, then re-run `domain:check` → `smoke:www` → `smoke:prod` in order.
 
 Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI)*
+
+---
+
+## Phase 20 env/runtime verification — 2026-04-25
+
+*Branch: `claude/verify-dns-propagation-OEExI`*
+
+**Prerequisite:** `smoke:prod` exits 0 — NOT MET (exits 1). Verification attempted to document state.
+
+| Command | Outcome |
+|---------|---------|
+| `curl -s https://constructaiq.trade/api/status` | `Host not in allowlist` — plain text 403, not JSON |
+| `jq .env` | parse error — exit 5 |
+| `jq .runtime` | parse error — exit 5 |
+| `npm run lint` | exit 127 — node_modules absent in sandbox; CI authoritative (exit 0) |
+
+| Boolean | Value |
+|---------|-------|
+| `supabaseConfigured` | UNREADABLE |
+| `cronSecretConfigured` | UNREADABLE |
+| `anthropicConfigured` | UNREADABLE |
+| `upstashConfigured` | UNREADABLE |
+| `sentryConfigured` | UNREADABLE |
+| `runtime.siteLocked` | UNREADABLE |
+| `runtime.nodeEnv` | UNREADABLE |
+| `runtime.appUrl` | UNREADABLE |
+
+**Verdict:** Cannot classify any boolean. All values unreadable because `/api/status` returns a plain-text 403 (`Host not in allowlist`) — domain not bound in Vercel. No launch-blocker or warning determination is possible. Public launch remains NO-GO. Next action: bind domain in Vercel, confirm `smoke:prod` exits 0, then re-run env/runtime verification.
+
+Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI · env/runtime)*
