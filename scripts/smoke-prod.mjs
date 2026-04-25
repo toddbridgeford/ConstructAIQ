@@ -4,16 +4,20 @@
  *
  * Usage:
  *   node scripts/smoke-prod.mjs https://constructaiq.trade
+ *   node scripts/smoke-prod.mjs https://constructaiq.trade --www-only
  *
  * Exit 0 = all checks passed.
  * Exit 1 = one or more checks failed.
  */
 
-const BASE = process.argv[2]
+const args = process.argv.slice(2)
+const BASE     = args.find(a => !a.startsWith('--'))
+const WWW_ONLY = args.includes('--www-only')
 
 if (!BASE) {
-  console.error('Usage: node scripts/smoke-prod.mjs <base-url>')
+  console.error('Usage: node scripts/smoke-prod.mjs <base-url> [--www-only]')
   console.error('  e.g. node scripts/smoke-prod.mjs https://constructaiq.trade')
+  console.error('  e.g. node scripts/smoke-prod.mjs https://constructaiq.trade --www-only')
   process.exit(1)
 }
 
@@ -165,64 +169,145 @@ async function checkApiDashboard() {
   }
 }
 
+// ── www diagnostics ────────────────────────────────────────────────────────
+//
+// The redirect at next.config.ts only fires AFTER three things are true:
+//   1. www.<apex> has a DNS record pointing at Vercel.
+//   2. www.<apex> is added to the Vercel project as a domain alias.
+//   3. The deployed app contains the redirects() rule.
+//
+// If any of those is missing the user sees one of four distinct symptoms.
+// This checker reports which one so the operator knows exactly what to fix.
+
+function classifyDnsError(err) {
+  const code = err?.cause?.code ?? err?.code
+  if (code === 'ENOTFOUND')        return 'ENOTFOUND'
+  if (code === 'EAI_AGAIN')        return 'EAI_AGAIN'
+  if (code === 'ECONNREFUSED')     return 'ECONNREFUSED'
+  if (code === 'CERT_HAS_EXPIRED') return 'CERT_HAS_EXPIRED'
+  // Node's undici wraps DNS errors as "TypeError: fetch failed" — fall through
+  // to a generic "unreachable" classification.
+  return null
+}
+
+const FIX_DNS = (host) =>
+  `Fix: add a CNAME record  ${host}  →  cname.vercel-dns.com  ` +
+  `at your DNS provider, then add ${host} to the Vercel project ` +
+  `under Settings → Domains. See docs/PRODUCTION_SMOKE.md.`
+
+const FIX_VERCEL_ALIAS = (host) =>
+  `Fix: add ${host} as a Vercel project domain. ` +
+  `Vercel dashboard → ConstructAIQ project → Settings → Domains → Add → "${host}". ` +
+  `See docs/PRODUCTION_SMOKE.md.`
+
+const FIX_REDIRECT_RULE = (apex, host) =>
+  `Fix: the next.config.ts redirects() rule should map host="${host}" → ` +
+  `"https://${apex}/:path*". Verify the rule, redeploy, and re-run smoke:www.`
+
 async function checkWwwRedirect() {
-  // Derive the www counterpart from BASE
   const parsed = new URL(BASE)
-  if (!parsed.hostname.startsWith('www.')) {
-    const wwwUrl = `${parsed.protocol}//www.${parsed.hostname}/dashboard`
-    const targetUrl = `${BASE}/dashboard`
-    let res
-    try {
-      res = await get(wwwUrl, { followRedirects: false })
-    } catch (err) {
-      // DNS did not resolve — this is a hard failure, not a skip
-      fail(
-        'www subdomain is configured',
-        `Could not reach ${wwwUrl} — DNS likely not configured. ` +
-        `Add a CNAME record for www.${parsed.hostname} and add it as a Vercel project domain. ` +
-        `Error: ${err.message}`,
-      )
-      return
-    }
 
-    const isRedirect = res.status >= 300 && res.status < 400
-    if (!isRedirect) {
-      fail(
-        `www redirects to apex (expected 301/302, got ${res.status})`,
-        `${wwwUrl} did not redirect — check Vercel domain settings`,
-      )
-      return
-    }
-    ok(`www subdomain returns ${res.status} redirect`)
-
-    const location = res.headers.get('location') ?? ''
-    if (!location.startsWith(targetUrl) && location !== targetUrl) {
-      fail(
-        'www redirect points to apex',
-        `Location: ${location || '(none)'} — expected prefix: ${targetUrl}`,
-      )
-    } else {
-      ok(`www redirect → ${location}`)
-    }
-  } else {
-    // BASE is already www — skip this check
+  if (parsed.hostname.startsWith('www.')) {
     ok('www redirect check skipped (BASE is already www)')
+    return
   }
+
+  const apexHost   = parsed.hostname
+  const wwwHost    = `www.${apexHost}`
+  const wwwUrl     = `${parsed.protocol}//${wwwHost}/dashboard`
+  const apexTarget = `${BASE}/dashboard`
+
+  // ── (a) DNS resolution ────────────────────────────────────────────────
+  let res
+  try {
+    res = await get(wwwUrl, { followRedirects: false })
+  } catch (err) {
+    const kind = classifyDnsError(err)
+    if (kind === 'ENOTFOUND' || kind === 'EAI_AGAIN') {
+      fail(
+        'www DNS resolves',
+        `${wwwHost} does not resolve or is not assigned to this Vercel project. ` +
+        `Add www as a Vercel domain and DNS CNAME. ` +
+        `${FIX_DNS(wwwHost)} (DNS error: ${kind})`,
+      )
+      return
+    }
+    fail(
+      'www is reachable',
+      `Could not reach ${wwwUrl}: ${err.message ?? err}. ` +
+      `${FIX_DNS(wwwHost)}`,
+    )
+    return
+  }
+  ok(`www DNS resolves (${wwwHost} responded)`)
+
+  // ── (b) Vercel project / domain alignment ─────────────────────────────
+  // Vercel returns HTTP 403 with an "DEPLOYMENT_NOT_FOUND" body when the
+  // host resolves to *.vercel-dns.com but isn't bound to any project.
+  if (res.status === 403) {
+    const body = res.text ?? ''
+    const looksLikeVercelMismatch =
+      /DEPLOYMENT_NOT_FOUND|deployment not found|vercel/i.test(body) ||
+      res.headers.get('server') === 'Vercel'
+    fail(
+      'www is bound to this Vercel project',
+      `${wwwUrl} returned HTTP 403. ${
+        looksLikeVercelMismatch
+          ? `${wwwHost} resolves to Vercel but is not assigned to this project.`
+          : `${wwwHost} resolves but is rejected (403).`
+      } ${FIX_VERCEL_ALIAS(wwwHost)}`,
+    )
+    return
+  }
+
+  // ── (c) No redirect at all (status 2xx / 4xx other than 403) ──────────
+  const isRedirect = res.status >= 300 && res.status < 400
+  if (!isRedirect) {
+    fail(
+      'www returns a 30x redirect',
+      `${wwwUrl} returned HTTP ${res.status} — the Next.js redirects() rule did not fire. ` +
+      `The most common cause is that ${wwwHost} is not registered as a Vercel project ` +
+      `domain so requests never reach the application layer. ` +
+      `${FIX_VERCEL_ALIAS(wwwHost)}`,
+    )
+    return
+  }
+  ok(`www returns ${res.status} redirect`)
+
+  // ── (d) Wrong redirect target ─────────────────────────────────────────
+  const location = res.headers.get('location') ?? ''
+  const targetIsApex =
+    location === apexTarget ||
+    location.startsWith(apexTarget) ||
+    location === BASE ||
+    location.startsWith(`${BASE}/`)
+
+  if (!targetIsApex) {
+    fail(
+      'www redirect target is the apex domain',
+      `Location header was "${location || '(none)'}" — expected something starting with "${BASE}". ` +
+      `${FIX_REDIRECT_RULE(apexHost, wwwHost)}`,
+    )
+    return
+  }
+  ok(`www redirect target → ${location}`)
 }
 
 // ── Runner ────────────────────────────────────────────────────────────────────
 
 console.log(`\nConstructAIQ production smoke test`)
-console.log(`Target: ${BASE}`)
+console.log(`Target: ${BASE}${WWW_ONLY ? '  (--www-only)' : ''}`)
 console.log('─'.repeat(50))
 
-section('Pages')
-await checkPage('/', 'GET /')
-await checkPage('/dashboard', 'GET /dashboard')
+if (!WWW_ONLY) {
+  section('Pages')
+  await checkPage('/', 'GET /')
+  await checkPage('/dashboard', 'GET /dashboard')
 
-section('API')
-await checkApiStatus()
-await checkApiDashboard()
+  section('API')
+  await checkApiStatus()
+  await checkApiDashboard()
+}
 
 section('www redirect')
 await checkWwwRedirect()

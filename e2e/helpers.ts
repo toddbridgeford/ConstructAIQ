@@ -24,3 +24,30 @@ export async function assertNoBlanks(
   const count = await cards.count()
   expect(count).toBeGreaterThan(0)
 }
+
+/**
+ * Assert the page is not showing the Next.js global error fallback.
+ * Use this anywhere we'd otherwise be tempted to assert "body has more
+ * than N characters" — that check passes for a totally broken page
+ * because nav/footer chrome alone clears the threshold.
+ */
+export async function assertNoGlobalErrorPage(page: Page, label?: string) {
+  const bodyText = (await page.locator('body').textContent()) ?? ''
+  const tag = label ? ` (${label})` : ''
+  expect(bodyText, `Global error page rendered${tag}`).not.toContain('Something went wrong')
+  expect(bodyText, `Rendering error escaped boundary${tag}`).not.toContain('A rendering error occurred')
+}
+
+/**
+ * Assert a page rendered a primary content landmark (a heading, main, or
+ * any element with role=main). Replaces meaningless `body.length > N`
+ * checks — passes only if the document tree actually contains content
+ * the user can see, not just nav chrome.
+ */
+export async function assertHasPrimaryContent(page: Page, label?: string) {
+  const tag = label ? ` (${label})` : ''
+  const primary = page.locator('main, [role="main"], h1, h2').first()
+  await expect(primary, `No primary content landmark rendered${tag}`).toBeVisible({
+    timeout: 10_000,
+  })
+}

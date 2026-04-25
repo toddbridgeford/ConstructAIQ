@@ -8,14 +8,19 @@ vi.mock('@/lib/weeklyBrief', () => ({
   generateBrief: vi.fn().mockResolvedValue({
     brief:       'HEADLINE SIGNAL: Test.',
     generatedAt: '2025-01-06T12:00:00Z',
-    source:      'static',
+    source:      'static-fallback',
+    live:        false,
+    configured:  false,
   }),
   getWeeklyBrief: vi.fn().mockResolvedValue({
     brief:       'HEADLINE SIGNAL: Test.',
     generatedAt: '2025-01-06T12:00:00Z',
-    source:      'static',
+    source:      'static-fallback',
+    live:        false,
+    configured:  false,
   }),
   STATIC_BRIEF: 'HEADLINE SIGNAL: Test.',
+  isWeeklyBriefConfigured: () => false,
 }))
 
 import { GET as briefGET } from '../brief/route'

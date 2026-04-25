@@ -6,21 +6,40 @@ import { ForecastChart } from "./ForecastChart"
 import { Skeleton } from "@/app/components/Skeleton"
 import { color, font, radius } from "@/lib/theme"
 import type { ForecastData } from "../types"
+import type {
+  BriefResponse,
+  FederalResponse,
+  PricewatchResponse,
+  SignalsResponse,
+  SignalItem,
+} from "@/lib/api-types"
 
 const SYS  = font.sys
 const MONO = font.mono
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
+/**
+ * Narrow shape for the slice of /api/satellite this dashboard reads.
+ * The full satellite response has many more fields — we only consume the
+ * top-3 MSAs by ground-disturbance change.
+ */
+interface SatelliteMsa {
+  msa_code:        string
+  msa_name?:       string
+  bsi_change_90d?: number | null
+  classification?: string | null
+}
+interface SatelliteSnapshot {
+  msas?: SatelliteMsa[]
+}
 
 interface MobileDashboardProps {
-  fore:          AnyData
-  brief:         AnyData
-  signals:       AnyData
-  federal:       AnyData
-  satellite:     AnyData
-  prices:        AnyData
-  briefHeadline: string | null
+  fore:          ForecastData       | null
+  brief:         BriefResponse      | null
+  signals:       SignalsResponse    | null
+  federal:       FederalResponse    | null
+  satellite:     SatelliteSnapshot  | null
+  prices:        PricewatchResponse | null
+  briefHeadline: string             | null
   spendVal:      number
   spendMom:      number
   empVal:        number
@@ -93,11 +112,10 @@ export function MobileDashboard({
       .catch(() => {})
   }, [])
 
-  const sigList   = signals?.signals ?? []
-  const topSignal = sigList[0] ?? null
+  const sigList: SignalItem[] = signals?.signals ?? []
+  const topSignal              = sigList[0] ?? null
 
-  const satMsas   = (satellite?.msas ?? [])
-    .slice(0, 3) as AnyData[]
+  const satMsas: SatelliteMsa[] = (satellite?.msas ?? []).slice(0, 3)
 
   const federalTotal = federal?.totalObligated ?? 0
 
@@ -343,7 +361,7 @@ export function MobileDashboard({
           <div style={{ fontFamily: MONO, fontSize: 9, color: color.t4, letterSpacing: "0.1em", marginBottom: 12 }}>
             SATELLITE GROUND ACTIVITY
           </div>
-          {satMsas.map((msa: AnyData) => (
+          {satMsas.map(msa => (
             <div key={msa.msa_code} style={{
               display:      "flex",
               alignItems:   "center",
@@ -391,7 +409,7 @@ export function MobileDashboard({
             MATERIALS
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {(prices.commodities as AnyData[]).slice(0, 4).map((c: AnyData) => (
+            {prices.commodities.slice(0, 4).map(c => (
               <div key={c.name} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
               }}>

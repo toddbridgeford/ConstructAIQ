@@ -3,14 +3,24 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { font, color } from "@/lib/theme"
 import { Skeleton } from "./Skeleton"
+import type {
+  CensusResponse,
+  SignalsResponse,
+  SignalItem,
+} from "@/lib/api-types"
 
 const MONO  = font.mono
 const SYS   = font.sys
 const { amber:AMBER, green:GREEN, red:RED, blue:BLUE,
         bg1:BG1, bg2:BG2, bd1:BD1, t1:T1, t4:T4 } = color
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = any
+// Narrow local shape for the slice of /api/forecast?series=TTLCONS this
+// component reads. The full response type lives elsewhere; we only need
+// `history` and the `ensemble` base values.
+interface ForecastSlice {
+  history?:  number[]
+  ensemble?: { base: number }[]
+}
 
 const SIG_COLOR: Record<string, string> = { BULLISH: GREEN, BEARISH: RED }
 const sigColor = (type: string) => SIG_COLOR[type] ?? AMBER
@@ -84,19 +94,22 @@ function ForecastPreview({ currentValue, liveHist, liveFcast, forecastPct }: {
 }
 
 export function HeroSection() {
-  const [spend,   setSpend]   = useState<AnyData>(null)
-  const [foreD,   setForeD]   = useState<AnyData>(null)
-  const [signals, setSignals] = useState<AnyData>(null)
+  const [spend,   setSpend]   = useState<CensusResponse  | null>(null)
+  const [foreD,   setForeD]   = useState<ForecastSlice   | null>(null)
+  const [signals, setSignals] = useState<SignalsResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function safe(url: string) {
-      try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
+    async function safe<T>(url: string): Promise<T | null> {
+      try {
+        const r = await fetch(url)
+        return r.ok ? (r.json() as Promise<T>) : null
+      } catch { return null }
     }
     Promise.all([
-      safe("/api/census"),
-      safe("/api/forecast?series=TTLCONS"),
-      safe("/api/signals"),
+      safe<CensusResponse>("/api/census"),
+      safe<ForecastSlice>("/api/forecast?series=TTLCONS"),
+      safe<SignalsResponse>("/api/signals"),
     ]).then(([sd, fd, sigsD]) => {
       if (sd)    setSpend(sd)
       if (fd)    setForeD(fd)
@@ -106,15 +119,15 @@ export function HeroSection() {
   }, [])
 
   const spendVal    = spend?.value ?? spend?.latest?.value ?? null
-  const spendMom    = spend?.mom   ?? spend?.latest?.mom   ?? 0.3
-  const liveHist    = foreD?.history as number[] | undefined
-  const liveFcast   = foreD?.ensemble?.map((p: { base: number }) => p.base) as number[] | undefined
+  const spendMom    = spend?.latest?.mom ?? 0.3
+  const liveHist    = foreD?.history
+  const liveFcast   = foreD?.ensemble?.map(p => p.base)
   const forecastPct = (() => {
     if (!liveHist?.length || !liveFcast?.length) return null
     const lh = liveHist[liveHist.length - 1], lf = liveFcast[liveFcast.length - 1]
     return lh > 0 ? ((lf - lh) / lh) * 100 : null
   })()
-  const sigList: AnyData[] = (signals?.signals ?? []).slice(0, 3)
+  const sigList: SignalItem[] = (signals?.signals ?? []).slice(0, 3)
 
   return (
     <section className="hero">
@@ -212,7 +225,7 @@ export function HeroSection() {
             ? [0,1,2].map(i => <Skeleton key={i} height={60} borderRadius={10}
                                           style={{ marginBottom:8 }} />)
             : sigList.length > 0
-              ? sigList.map((sig: AnyData, i: number) => (
+              ? sigList.map((sig, i) => (
                   <div key={i} style={{
                     display:"flex", alignItems:"center", gap:12,
                     background:BG2, borderRadius:10, padding:"14px 16px",

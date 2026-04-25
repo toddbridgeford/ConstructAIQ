@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { assertHasPrimaryContent, assertNoGlobalErrorPage } from './helpers'
 
 test.describe('/markets/tx — Texas state page', () => {
   test.beforeEach(async ({ page }) => {
@@ -21,39 +22,45 @@ test.describe('/markets/tx — Texas state page', () => {
 
   test('state verdict badge renders', async ({ page }) => {
     await page.waitForTimeout(5_000)
-    const bodyText = await page.locator('body').textContent()
 
-    // The state page shows a verdict badge or loading state
-    // Either way the page should have content
-    expect(bodyText!.trim().length).toBeGreaterThan(100)
+    // Real assertions: the page must (a) render a primary content
+    // landmark, (b) not have crashed into the global error boundary,
+    // and (c) contain either a verdict word or the state name. A
+    // body-length check would pass for a totally broken page because
+    // nav chrome alone clears the threshold.
+    await assertHasPrimaryContent(page, '/markets/tx')
+    await assertNoGlobalErrorPage(page, '/markets/tx')
 
-    // If API returned data, one of these verdict words appears
-    // (If API failed, the page shows an error state — also acceptable)
+    const bodyText = (await page.locator('body').textContent()) ?? ''
     const hasContent =
-      bodyText!.includes('EXPANDING') ||
-      bodyText!.includes('STABLE')    ||
-      bodyText!.includes('CONTRACTING') ||
-      bodyText!.includes('Texas')
-    expect(hasContent).toBe(true)
+      bodyText.includes('EXPANDING') ||
+      bodyText.includes('STABLE')    ||
+      bodyText.includes('CONTRACTING') ||
+      bodyText.includes('Texas')
+    expect(hasContent, 'Page should show a verdict word or the state name').toBe(true)
   })
 
   test('city cards section exists (Active Cities)', async ({ page }) => {
     await page.waitForTimeout(5_000)
-    const bodyText = await page.locator('body').textContent()
+    const bodyText = (await page.locator('body').textContent()) ?? ''
 
     // The state page should show cities tracked in Texas:
     // Dallas, Houston, Austin, Fort Worth, San Antonio, Plano
     const hasTxCity =
-      bodyText!.includes('Dallas')    ||
-      bodyText!.includes('Houston')   ||
-      bodyText!.includes('Austin')    ||
-      bodyText!.includes('Plano')     ||
-      bodyText!.includes('Fort Worth')
-    // If no cities appear, it may be that permit data hasn't
-    // been seeded yet — only fail if the page is totally empty
+      bodyText.includes('Dallas')    ||
+      bodyText.includes('Houston')   ||
+      bodyText.includes('Austin')    ||
+      bodyText.includes('Plano')     ||
+      bodyText.includes('Fort Worth')
+
+    // If no cities appear it may be that permit data hasn't been
+    // seeded yet — that's acceptable. The fail condition is the page
+    // having crashed into the global error boundary; a body-length
+    // floor passes for a totally broken page and is therefore not a
+    // valid fallback.
     if (!hasTxCity) {
-      // Acceptable: page rendered but no permit data yet
-      expect(bodyText!.length).toBeGreaterThan(200)
+      await assertNoGlobalErrorPage(page, '/markets/tx (no city data)')
+      await assertHasPrimaryContent(page, '/markets/tx (no city data)')
     }
   })
 

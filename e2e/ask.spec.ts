@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { assertNoGlobalErrorPage } from './helpers'
 
 // NLQ calls Claude — allow generous timeout
 const NLQ_TIMEOUT = 45_000
@@ -72,19 +73,21 @@ test.describe('/ask — NLQ interface', () => {
       { timeout: NLQ_TIMEOUT },
     )
 
+    // The page must not have crashed into the global error boundary.
+    // (A bare `body.textContent.length > 200` check passes even for a
+    // crashed page because nav/footer chrome alone clears that bar.)
+    await assertNoGlobalErrorPage(page, '/ask after submission')
+
+    // "Sources:" label and source pills appear after a successful response.
+    // This is the real correctness check for the answer rendering.
     const bodyAfter = await page.locator('body').textContent()
-
-    // Answer must be substantive
-    expect(bodyAfter!.length).toBeGreaterThan(200)
-
-    // "Sources:" label and source pills appear after a successful response
     const hasSources =
       bodyAfter!.includes('Sources:')  ||
       bodyAfter!.includes('/api/')     ||
       bodyAfter!.includes('Census')    ||
       bodyAfter!.includes('FRED')      ||
       bodyAfter!.includes('BLS')
-    expect(hasSources).toBe(true)
+    expect(hasSources, 'Answer should cite at least one source').toBe(true)
   })
 
   test('rate limit message appears gracefully on excess requests', async ({ page }) => {

@@ -181,11 +181,19 @@ export interface PricewatchResponse {
 
 // ── /api/weekly-brief ─────────────────────────────────────────────────────────
 // Fields match WeeklyBrief component props exactly (spread as {...brief}).
+// `source: 'static-fallback'` means AI generation is not configured / failed;
+// any UI that surfaces this brief MUST treat that state as "not live".
+
+export type BriefSource = 'ai' | 'static-fallback'
 
 export interface BriefResponse {
   brief?:       string
   generatedAt?: string
-  source?:      'ai' | 'static'
+  source?:      BriefSource
+  live?:        boolean
+  configured?:  boolean
+  warning?:     string
+  error?:       string
 }
 
 // ── /api/warn ─────────────────────────────────────────────────────────────────

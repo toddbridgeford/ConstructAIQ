@@ -258,11 +258,14 @@ export default function Dashboard() {
     signals_as_of: ttl12.at(-1)?.date ?? null,
   } : null
 
-  // BriefResponse expected by SignalsSection → WeeklyBrief
+  // BriefResponse expected by SignalsSection → WeeklyBrief.
+  // brief_excerpt is sourced from the weekly_briefs table, into which only
+  // Claude-generated rows are inserted (see cron/brief), so any non-null
+  // excerpt here is a real AI brief — not a static fallback.
   const brief: BriefResponse | null = dashCore?.brief_excerpt ? {
     brief:       dashCore.brief_excerpt,
     generatedAt: dashCore.brief_as_of ?? undefined,
-    source:      'static',
+    source:      'ai',
   } : null
 
   // PricewatchResponse expected by MaterialsSection loading gate
