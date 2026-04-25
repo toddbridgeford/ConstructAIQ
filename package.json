@@ -13,6 +13,7 @@
     "smoke:prod": "node scripts/smoke-prod.mjs https://constructaiq.trade",
     "smoke:www":  "node scripts/smoke-prod.mjs https://constructaiq.trade --www-only",
     "launch:check": "node scripts/launch-check.mjs",
+    "domain:check": "node scripts/check-domain-status.mjs",
     "e2e":        "playwright test",
     "e2e:headed": "playwright test --headed",
     "e2e:report": "playwright show-report"

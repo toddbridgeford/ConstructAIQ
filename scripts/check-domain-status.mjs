@@ -1,0 +1,159 @@
+#!/usr/bin/env node
+/**
+ * Domain health checker — diagnoses the current state of constructaiq.trade
+ * without requiring any Vercel credentials.
+ *
+ * Usage:  node scripts/check-domain-status.mjs
+ *         npm run domain:check
+ *
+ * Exit codes:
+ *   0 — apex reachable and www redirects correctly
+ *   1 — host_not_allowed (Vercel domain not bound to this project)
+ *   2 — other failure
+ */
+
+const TIMEOUT_MS = 15_000
+const APEX       = 'https://constructaiq.trade'
+const WWW        = 'https://www.constructaiq.trade/dashboard'
+const APEX_LABEL = 'apex  (constructaiq.trade)'
+const WWW_LABEL  = 'www   (www.constructaiq.trade/dashboard)'
+
+// ── Fetch helper (no redirect follow) ────────────────────────────────────────
+
+async function probe(url) {
+  const ctrl  = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
+  try {
+    const res = await fetch(url, {
+      redirect: 'manual',
+      signal:   ctrl.signal,
+      headers:  { 'User-Agent': 'ConstructAIQ-domain-check/1.0' },
+    })
+    return {
+      ok:          true,
+      status:      res.status,
+      denyReason:  res.headers.get('x-deny-reason') ?? null,
+      location:    res.headers.get('location')       ?? null,
+    }
+  } catch (err) {
+    const code = err?.cause?.code ?? err?.code ?? ''
+    return {
+      ok:    false,
+      error: err.message ?? String(err),
+      code,
+    }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+// ── Classification ────────────────────────────────────────────────────────────
+
+function classifyApex(result) {
+  if (!result.ok) {
+    const { code } = result
+    if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'DNS_MISSING'
+    return 'UNKNOWN_FAILURE'
+  }
+  if (result.denyReason?.includes('host_not_allowed')) return 'VERCEL_DOMAIN_NOT_BOUND'
+  if (result.status === 200 || result.status === 308 || result.status === 301) return 'APEX_OK'
+  return 'UNKNOWN_FAILURE'
+}
+
+function classifyWww(result) {
+  if (!result.ok) {
+    const { code } = result
+    if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'DNS_MISSING'
+    return 'UNKNOWN_FAILURE'
+  }
+  if (result.denyReason?.includes('host_not_allowed')) return 'VERCEL_DOMAIN_NOT_BOUND'
+
+  const isRedirect = result.status >= 300 && result.status < 400
+  if (!isRedirect) return 'UNKNOWN_FAILURE'
+
+  const loc = result.location ?? ''
+  if (loc.startsWith(APEX) || loc.startsWith('https://constructaiq.trade')) {
+    return 'WWW_REDIRECT_OK'
+  }
+  return 'WWW_REDIRECT_WRONG_TARGET'
+}
+
+// ── Diagnosis messages ────────────────────────────────────────────────────────
+
+const DIAGNOSIS = {
+  DNS_MISSING:
+    'DNS record not found. Add an A/CNAME record at your DNS provider ' +
+    'pointing to Vercel, then add the domain in Vercel → Settings → Domains.',
+  VERCEL_DOMAIN_NOT_BOUND:
+    'Vercel domain not bound to this project. ' +
+    'Go to Vercel dashboard → ConstructAIQ → Settings → Domains → Add the domain.',
+  WWW_REDIRECT_OK:
+    'www redirects correctly to the apex domain.',
+  WWW_REDIRECT_WRONG_TARGET:
+    'www redirects, but to the wrong target. ' +
+    'Check the redirects() rule in next.config.ts.',
+  APEX_OK:
+    'Apex domain is reachable.',
+  UNKNOWN_FAILURE:
+    'Unexpected response. Check the status and headers above for details.',
+}
+
+// ── Print helper ──────────────────────────────────────────────────────────────
+
+function printResult(label, result, classification) {
+  console.log(`\n  ${label}`)
+  console.log(`  ${'─'.repeat(50)}`)
+
+  if (!result.ok) {
+    console.log(`  status       : (no response — ${result.code || 'network error'})`)
+    console.log(`  error        : ${result.error}`)
+  } else {
+    console.log(`  status       : ${result.status}`)
+    if (result.denyReason) console.log(`  x-deny-reason: ${result.denyReason}`)
+    if (result.location)   console.log(`  location     : ${result.location}`)
+  }
+
+  console.log(`  classification: ${classification}`)
+  console.log(`  diagnosis    : ${DIAGNOSIS[classification]}`)
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+
+console.log('\nConstructAIQ — domain status check')
+console.log('═'.repeat(54))
+
+const [apexResult, wwwResult] = await Promise.all([
+  probe(APEX),
+  probe(WWW),
+])
+
+const apexClass = classifyApex(apexResult)
+const wwwClass  = classifyWww(wwwResult)
+
+printResult(APEX_LABEL, apexResult, apexClass)
+printResult(WWW_LABEL,  wwwResult,  wwwClass)
+
+// ── Summary & exit ────────────────────────────────────────────────────────────
+
+console.log('\n' + '═'.repeat(54))
+
+const hostNotAllowed =
+  apexResult.denyReason?.includes('host_not_allowed') ||
+  wwwResult.denyReason?.includes('host_not_allowed')
+
+const apexOk = apexClass === 'APEX_OK'
+const wwwOk  = wwwClass  === 'WWW_REDIRECT_OK'
+
+if (apexOk && wwwOk) {
+  console.log('\n  ✓ All good — apex reachable, www redirects correctly.\n')
+  process.exit(0)
+} else if (hostNotAllowed) {
+  console.log('\n  ✗ host_not_allowed — Vercel domain not bound to this project.\n')
+  process.exit(1)
+} else {
+  const issues = []
+  if (!apexOk) issues.push(`apex: ${apexClass}`)
+  if (!wwwOk)  issues.push(`www: ${wwwClass}`)
+  console.log(`\n  ✗ Domain issues detected: ${issues.join(', ')}\n`)
+  process.exit(2)
+}
