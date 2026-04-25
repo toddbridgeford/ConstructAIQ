@@ -4201,3 +4201,38 @@ After DNS propagates, re-run `npm run domain:check` (must exit 0), then `npm run
 *Updated by `claude/verify-dns-cloudflare-sKNiP` · 2026-04-25*
 
 Launch GO checklist skipped because Public launch remains NO-GO.
+
+---
+
+## Phase 18 smoke verification — 2026-04-25
+
+**Branch:** `claude/verify-dns-cloudflare-sKNiP`
+**Prerequisite state:** `domain:check` exits 1 — prerequisite NOT met. Smoke tests run and documented per task specification.
+
+### `npm run smoke:www` (exit 1)
+
+| Check | Result |
+|-------|--------|
+| www DNS resolves | PASS |
+| www is bound to this Vercel project | FAIL — HTTP 403 `host_not_allowed` |
+
+**Summary:** 1 passed, 1 failed
+
+### `npm run smoke:prod` (exit 1)
+
+| Check | Result |
+|-------|--------|
+| GET / returns 200 | FAIL — got 403 |
+| GET /dashboard returns 200 | FAIL — got 403 |
+| /api/status returns 200 | FAIL — got 403 |
+| /api/dashboard returns 200 | FAIL — got 403 |
+| www DNS resolves | PASS |
+| www is bound to this Vercel project | FAIL — HTTP 403 `host_not_allowed` |
+
+**Summary:** 1 passed, 5 failed
+
+### Verdict
+
+**NO-GO.** Both smoke commands exit 1. All failures share a single root cause: `host_not_allowed` — the domain is not bound to the Vercel project because DNS still routes through Cloudflare proxy. Smoke tests cannot pass until `domain:check` exits 0.
+
+*Updated by `claude/verify-dns-cloudflare-sKNiP` · 2026-04-25*
