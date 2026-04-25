@@ -375,6 +375,119 @@ Vercel project. The operator steps in `docs/VERCEL_DOMAIN_FIX.md` Steps 1–4
 
 ---
 
+## Phase 13 canonical-domain validation — 2026-04-25
+
+### Purpose
+
+Phase 13 added canonical-domain guardrails to scripts and docs after a Vercel
+UI screenshot suggested the apex domain may have been configured to redirect to
+`www`. This pass verifies the live HTTP state and records the outcome.
+
+### Commands run
+
+```
+npm run domain:check
+node scripts/check-domain-status.mjs --json
+npm run smoke:www
+npm run smoke:prod
+npm run build
+npm run lint
+npm test
+```
+
+### `npm run domain:check` / `--json`
+
+```json
+{
+  "apex": {
+    "url": "https://constructaiq.trade",
+    "status": 403,
+    "denyReason": "host_not_allowed",
+    "location": null,
+    "classification": "VERCEL_DOMAIN_NOT_BOUND"
+  },
+  "www": {
+    "url": "https://www.constructaiq.trade/dashboard",
+    "status": 403,
+    "denyReason": "host_not_allowed",
+    "location": null,
+    "classification": "VERCEL_DOMAIN_NOT_BOUND"
+  },
+  "ok": false,
+  "exitCode": 1
+}
+```
+
+| Domain | HTTP status | x-deny-reason | Location | Classification |
+|---|---|---|---|---|
+| `constructaiq.trade` | 403 | `host_not_allowed` | (none) | `VERCEL_DOMAIN_NOT_BOUND` |
+| `www.constructaiq.trade` | 403 | `host_not_allowed` | (none) | `VERCEL_DOMAIN_NOT_BOUND` |
+
+### `npm run smoke:www`
+
+```
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       returned HTTP 403. resolves but rejected (403).
+1 passed, 1 failed  ✗ Smoke test FAILED
+```
+
+Exit code: **1**
+
+### `npm run smoke:prod`
+
+```
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+www redirect
+  ✓  www DNS resolves
+  ✗  www is bound to this Vercel project — HTTP 403
+1 passed, 5 failed  ✗ Smoke test FAILED
+```
+
+Exit code: **1**
+
+### Build / lint / tests
+
+| Command | Exit | Result |
+|---|---|---|
+| `npm run build` | 0 | All routes compiled, 0 errors |
+| `npm run lint` | 0 | `✔ No ESLint warnings or errors` |
+| `npm test` | 0 | **344/344 tests passed** (24 test files) |
+
+Test count increased from 341 → 344: Phase 13 added 3 unit tests covering the
+new `APEX_REDIRECTS_TO_WWW` classification in `scripts/check-domain-status.mjs`.
+
+### Apex-to-www redirect: not present in live HTTP
+
+The Vercel screenshot that prompted Phase 13 showed a domain configuration
+suggesting apex may redirect to www. The live HTTP probes show **no such
+redirect**. Both domains return HTTP 403 `host_not_allowed` with no `Location`
+header. The `APEX_REDIRECTS_TO_WWW` classification was not triggered.
+
+**Interpretation:** The Vercel UI screenshot reflected a dashboard configuration
+setting (not yet active because the domains are not bound to the project). The
+Phase 13 guardrails are preventive — they will fire correctly if the operator
+enables a Vercel-level apex→www redirect after binding the domain. The canonical
+decision (apex canonical, no www redirect) is documented in
+`docs/CANONICAL_DOMAIN_DECISION.md`.
+
+### Phase 13 verdict
+
+**NO-GO — `host_not_allowed` remains on both domains.**
+
+The blocker is identical to Phase 5: neither `constructaiq.trade` nor
+`www.constructaiq.trade` is bound to the Vercel project. No apex→www redirect
+loop is active. The operator action in `docs/VERCEL_DOMAIN_FIX.md` (bind both
+domains, do not enable apex→www redirect) remains the single outstanding step.
+
+---
+
 ## Phase 5 env verification — 2026-04-25 17:43 UTC
 
 This section records the attempt to verify production environment variables
