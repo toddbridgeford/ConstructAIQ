@@ -1,6 +1,6 @@
 # Release Candidate Report
 
-> **Operator:** next manual action → [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
+> **Operator:** next manual action → [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md) · current verdict → [docs/LAUNCH_NOW.md](./LAUNCH_NOW.md)
 
 ## Release Candidate Code SHA
 

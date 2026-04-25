@@ -1,5 +1,7 @@
 # Operator Handoff
 
+> **One-page launch authority:** [docs/LAUNCH_NOW.md](./LAUNCH_NOW.md)
+
 **As of: 2026-04-25 18:20 UTC**
 **Prepared by: `claude/fix-doc-sha-consistency-7Y01M`**
 
