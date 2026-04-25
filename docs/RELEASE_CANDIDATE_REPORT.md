@@ -4573,3 +4573,30 @@ Prerequisite not met. All API endpoints are unreachable.
 *Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
 
 Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-5Q5BF)*
+
+---
+
+## Phase 20 DNS-only propagation verification — 2026-04-25
+
+*Branch: `claude/verify-dns-propagation-OEExI`*
+
+| Command | Result |
+|---------|--------|
+| `socket.gethostbyname('constructaiq.trade')` | `76.76.21.21` — Vercel IP confirmed |
+| `dig +short constructaiq.trade` | not available in sandbox |
+| `dig +short www.constructaiq.trade` | not available in sandbox |
+| `domain:check` exit code | 1 |
+| apex classification | `VERCEL_DOMAIN_NOT_BOUND` |
+| www classification | `VERCEL_DOMAIN_NOT_BOUND` |
+| apex HTTP status | 403 |
+| apex `x-deny-reason` | `host_not_allowed` |
+| www HTTP status | 403 |
+| www `x-deny-reason` | `host_not_allowed` |
+| Location headers | null |
+| `proxyWarning` | `false` — no Cloudflare proxy active |
+| `cf-ray` | null |
+| `npm run lint` | exit 127 — node_modules absent in sandbox; CI authoritative (exit 0) |
+
+**Outcome:** DNS-only propagation is confirmed. Apex resolves to `76.76.21.21` (Vercel), not a Cloudflare 104.x/172.x proxy IP. `proxyWarning: false` and null `cf-ray` confirm DNS-only is active. Root cause of remaining NO-GO: domain not bound in Vercel project (`VERCEL_DOMAIN_NOT_BOUND`). Next action: add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains.
+
+Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI)*

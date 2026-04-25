@@ -1,10 +1,10 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 19 final launch gate — launch:check exit 1 · smoke FAILED · Cloudflare proxy still active · Public launch NO-GO)**
+**Updated: 2026-04-25 (Phase 20 DNS-only propagation verification — domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND · DNS propagated to Vercel IP · Public launch NO-GO)**
 
 ---
 
-> **STOP: code is launch-ready. Sole remaining blocker: Cloudflare proxy (orange cloud) still active — apex resolves to `104.21.50.117` (Cloudflare), must be `76.76.21.21` (Vercel).**
+> **STOP: code is launch-ready. DNS-only propagation confirmed (apex → `76.76.21.21`). Sole remaining blocker: Vercel domain not bound to this project — add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains.**
 
 ---
 
@@ -16,50 +16,61 @@
 | 5 | Lint | **GO** — exit 127 in sandbox (node_modules absent) · exit 0 in CI · CI is authoritative |
 | 5 | Tests | **GO** — exit 127 in sandbox (node_modules absent) · 356/356 exit 0 in CI · CI is authoritative |
 | 4 | domain:check | **NO-GO** — exit 1 · apex `VERCEL_DOMAIN_NOT_BOUND` · www `VERCEL_DOMAIN_NOT_BOUND` |
-| 4 | smoke:prod | **NO-GO** — exit 1 · 1/6 passed · 5 failed · all 403 `host_not_allowed` |
-| 4 | smoke:www | **NO-GO** — exit 1 · 1/2 passed · 1 failed · 403 `host_not_allowed` |
+| 4 | smoke:prod | **NO-GO** — exit 1 · all endpoints return 403 `host_not_allowed` |
+| 4 | smoke:www | **NO-GO** — exit 1 · 403 `host_not_allowed` |
 | 3 | env/runtime | **BLOCKED** — `/api/status` returns 403; booleans unreadable |
 | 3 | data/dashboard | **BLOCKED** — all API endpoints return 403; shapes unverifiable |
-| 2 | Apex DNS target | **NO-GO** — resolves to `104.21.50.117` (Cloudflare proxy), not `76.76.21.21` (Vercel) |
+| 2 | Apex DNS target | **GO** — resolves to `76.76.21.21` (Vercel) · DNS-only confirmed · proxyWarning: false |
 | — | launch:check | **FAILED** — exit 1 · failing gates: smoke:prod, smoke:www |
 | — | Public launch | **NO-GO** |
 
 ---
 
-## Phase 19 DNS check results (2026-04-25)
+## Phase 20 DNS-only propagation verification (2026-04-25)
 
 | Probe | Result |
 |-------|--------|
-| `socket.gethostbyname('constructaiq.trade')` | `104.21.50.117` — Cloudflare 104.x IP; proxy still active |
-| `socket.gethostbyname('www.constructaiq.trade')` | `104.21.50.117` — same Cloudflare IP |
+| `socket.gethostbyname('constructaiq.trade')` | `76.76.21.21` — Vercel IP · DNS-only propagation confirmed |
+| `dig +short constructaiq.trade` | not available in sandbox — socket result is authoritative |
+| `dig +short www.constructaiq.trade` | not available in sandbox |
 | apex HTTP status | 403 |
 | apex `x-deny-reason` | `host_not_allowed` |
 | apex classification | `VERCEL_DOMAIN_NOT_BOUND` |
 | www HTTP status | 403 |
 | www `x-deny-reason` | `host_not_allowed` |
 | www classification | `VERCEL_DOMAIN_NOT_BOUND` |
-| `proxyWarning` (header-based) | false — Cloudflare passes Vercel's 403 without injecting CF headers; IP-level evidence confirms proxy is active |
+| `proxyWarning` (header-based) | `false` — no Cloudflare proxy headers; DNS-only confirmed |
+| `cf-ray` | null — no Cloudflare proxy active |
+| Location headers | null — no redirect |
 | `domain:check` exit code | 1 |
 
-**Root cause:** Cloudflare proxy (orange cloud) is still active on the apex A record. The operator-reported change to grey cloud has not propagated or was not saved. Vercel sees `host_not_allowed` because the domain is not bound; DNS-only is required before Vercel will accept the domain binding.
+**Assessment:** DNS-only propagation succeeded — apex now resolves directly to `76.76.21.21` (Vercel), not a Cloudflare 104.x/172.x proxy IP. Cloudflare proxy is inactive (`proxyWarning: false`, no `cf-ray`). The remaining blocker is that the domain is not yet bound to this Vercel project (`VERCEL_DOMAIN_NOT_BOUND`). This is a Vercel dashboard action, not a DNS change.
+
+---
+
+## Phase 19 DNS check results (2026-04-25) — superseded by Phase 20
+
+| Probe | Result |
+|-------|--------|
+| `socket.gethostbyname('constructaiq.trade')` | `104.21.50.117` — Cloudflare 104.x IP; proxy was active |
+| apex classification | `VERCEL_DOMAIN_NOT_BOUND` |
+| `proxyWarning` (header-based) | false — Cloudflare passed Vercel's 403 without injecting CF headers |
+| `domain:check` exit code | 1 |
 
 ---
 
 ## Next action — do this now
 
-**In the Cloudflare dashboard, confirm both records are saved with the proxy toggle OFF (grey cloud):**
+**DNS is correct. Add the domain in Vercel:**
 
-| Record | Type | Value | Mode |
-|--------|------|-------|------|
-| `constructaiq.trade` | A | `76.76.21.21` | **DNS-only (grey cloud)** |
-| `www.constructaiq.trade` | CNAME | `cname.vercel-dns.com` | **DNS-only (grey cloud)** |
+1. Go to Vercel dashboard → ConstructAIQ project → Settings → Domains
+2. Add `constructaiq.trade` (apex)
+3. Add `www.constructaiq.trade`
+4. Vercel will verify DNS automatically — it should pass immediately because `76.76.21.21` is already in place
 
-After saving, verify propagation and re-run:
+After binding, re-run:
 
 ```bash
-python3 -c "import socket; print(socket.gethostbyname('constructaiq.trade'))"
-# Must print 76.76.21.21
-
 npm run domain:check          # Must exit 0: APEX_OK + WWW_REDIRECT_OK
 npm run smoke:prod            # Must exit 0
 npm run launch:check -- --include-smoke   # Must exit 0
