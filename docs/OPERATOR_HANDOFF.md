@@ -11,7 +11,7 @@
 
 | Dimension | Status | Detail |
 |-----------|--------|--------|
-| Codebase | **GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ |
+| Codebase | **GO** | Build ✓ · Lint ✓ · 341/341 tests ✓ |
 | Public launch | **NO-GO** | Single P0 blocker — see below |
 
 ---
@@ -85,8 +85,7 @@ npm run smoke:prod
 | `npm run smoke:www` | Exit 0 — `✓ All checks passed` |
 | `npm run smoke:prod` | Exit 0 — `✓ All checks passed` |
 
-If all four pass, the infrastructure P0 is resolved and the launch verdict
-may be updated to **GO** — subject to env variable verification (see below).
+If all four pass, paste [docs/CLAUDE_POST_BINDING_PROMPT.md](./CLAUDE_POST_BINDING_PROMPT.md) into Claude Code for automated verification and doc updates before updating the verdict to **GO**.
 
 ---
 
@@ -129,6 +128,7 @@ Full env var list and instructions: [docs/RELEASE_CANDIDATE_REPORT.md — Enviro
 
 | Doc | Purpose |
 |-----|---------|
+| [docs/CLAUDE_POST_BINDING_PROMPT.md](./CLAUDE_POST_BINDING_PROMPT.md) | After smoke passes — paste into Claude Code for automated verification |
 | [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md) | Step-by-step Vercel domain binding walkthrough |
 | [docs/RELEASE_CANDIDATE_REPORT.md](./RELEASE_CANDIDATE_REPORT.md) | Full launch sign-off, env vars, rollback SHA, go/no-go summary |
 | [docs/POST_LAUNCH_WATCH.md](./POST_LAUNCH_WATCH.md) | First-24-hour monitoring checklist once traffic is live |
