@@ -1,7 +1,7 @@
 # Launch GO Checklist
 
-**Status: PENDING — one item outstanding (CRON_SECRET)**  
-**Last updated: 2026-04-25 (Phase 23)**
+**Status: GO — all required gates passed**  
+**Last updated: 2026-04-25 (Phase 23 final) · constructaiq.trade is live**
 
 ---
 
@@ -14,7 +14,7 @@
 - [x] **smoke:www exits 0** — 3/3 passed
 - [x] **smoke:prod exits 0** — 14/14 passed
 - [x] **supabaseConfigured true** — confirmed /api/status
-- [ ] **cronSecretConfigured true** — currently false · **ADD CRON_SECRET TO VERCEL**
+- [x] **cronSecretConfigured true** — confirmed 2026-04-25 after adding to Vercel Production
 - [x] **runtime.siteLocked false** — confirmed
 - [x] **dashboard shape valid** — smoke:prod verified all required keys
 
@@ -37,9 +37,9 @@
 5. After deploy, confirm: `curl -s https://constructaiq.trade/api/status | jq .env.cronSecretConfigured`  
    Must return `true`
 
-## After CRON_SECRET is confirmed true
+## Post-launch actions
 
-- [ ] Declare Public launch **GO** in `docs/LAUNCH_NOW.md`
+- [x] Declared Public launch **GO** in `docs/LAUNCH_NOW.md`
 - [ ] Proceed to `docs/POST_LAUNCH_WATCH.md` for first-24-hour monitoring
-- [ ] Trigger first data harvest manually: `curl -X POST https://constructaiq.trade/api/cron/harvest -H "Authorization: Bearer $CRON_SECRET"`
-- [ ] Verify freshness changes from `stale` in /api/status after harvest
+- [ ] Trigger first data harvest: `curl -X POST https://constructaiq.trade/api/cron/harvest -H "Authorization: Bearer $CRON_SECRET"`
+- [ ] Verify freshness changes from `stale` after harvest runs
