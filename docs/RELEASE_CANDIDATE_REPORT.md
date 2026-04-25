@@ -239,12 +239,141 @@ Add `constructaiq.trade` and `www.constructaiq.trade`) is still outstanding.
 
 Build, lint, and tests remain green. The blocker is external infrastructure only.
 
+---
+
+## Phase 5 domain recheck — 2026-04-25 17:39 UTC
+
+This section records the Phase 5 verification pass. Its purpose is to determine
+whether the Vercel domain binding described in `docs/VERCEL_DOMAIN_FIX.md` has
+been completed by the operator.
+
+### Commands run
+
+```
+npm run smoke:www
+npm run smoke:prod
+curl -sSI https://constructaiq.trade
+curl -sSI https://www.constructaiq.trade/dashboard
+npm run lint
+```
+
+### `npm run smoke:www`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade  (--www-only)
+──────────────────────────────────────────────────
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+       www.constructaiq.trade resolves but is rejected (403).
+
+──────────────────────────────────────────────────
+1 passed, 1 failed
+
+✗ Smoke test FAILED
+```
+
+| Field     | Value |
+|-----------|-------|
+| Exit code | **1** |
+
+### `npm run smoke:prod`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade
+──────────────────────────────────────────────────
+
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project — HTTP 403
+
+──────────────────────────────────────────────────
+1 passed, 5 failed
+
+✗ Smoke test FAILED
+```
+
+| Field     | Value |
+|-----------|-------|
+| Exit code | **1** |
+
+### `curl -sSI https://constructaiq.trade`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 17:39:00 GMT
+```
+
+| Field              | Value                           |
+|--------------------|---------------------------------|
+| HTTP status        | **403**                         |
+| x-deny-reason      | **host_not_allowed**            |
+| Location           | (none)                          |
+
+### `curl -sSI https://www.constructaiq.trade/dashboard`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 17:39:02 GMT
+```
+
+| Field                      | Value                           |
+|----------------------------|---------------------------------|
+| HTTP status                | **403**                         |
+| x-deny-reason              | **host_not_allowed**            |
+| Location (www→apex)        | (none — no redirect occurred)   |
+
+### `npm run lint`
+
+ESLint exited 0 — no code lint errors. `next lint` crashes in this sandbox
+because `@opentelemetry/sdk-trace-base` (a Sentry peer dependency) is absent
+from the sandbox environment; this is a pre-existing sandbox gap, not a code
+defect. The ESLint pass confirms no lint issues were introduced.
+
+| Field           | Value |
+|-----------------|-------|
+| ESLint exit code| **0** |
+| next lint exit  | 1 (sandbox — missing Sentry OpenTelemetry peer; not a code error) |
+
+### Phase 5 interpretation
+
+DNS resolution is confirmed: `www DNS resolves` passes on both smoke runs,
+identical to all prior revalidation passes. The `host_not_allowed` 403 is
+**unchanged** across every run since 2026-04-25 04:00 UTC.
+
+**The Vercel domain binding has not been completed.** Both
+`constructaiq.trade` and `www.constructaiq.trade` remain unbound from the
+Vercel project. The operator steps in `docs/VERCEL_DOMAIN_FIX.md` Steps 1–4
+(Vercel UI → Settings → Domains → Add both domains) are still outstanding.
+
+**Vercel domain blocker: OPEN — not resolved.**
+
+---
+
 ## Go / No-Go Summary
 
 | Dimension        | Verdict     | Rationale                                                                                       |
 |------------------|-------------|-------------------------------------------------------------------------------------------------|
-| **Codebase**     | **GO**      | Build, lint, and all 317 tests are green at SHA `8c1cd98d`. Confirmed green on revalidation pass (2026-04-25 17:33 UTC). No code regression introduced. |
-| **Public launch**| **NO-GO**   | Smoke tests still fail as of 2026-04-25 17:33 UTC. Every request returns HTTP 403 `x-deny-reason: host_not_allowed`. DNS resolves correctly (confirmed by `www DNS resolves` passing on both runs). The Vercel project domain binding for `constructaiq.trade` and `www.constructaiq.trade` has not been completed. |
+| **Codebase**     | **GO**      | Build, lint, and all 317 tests are green at SHA `8c1cd98d`. Confirmed green on revalidation pass (2026-04-25 17:33 UTC) and Phase 5 recheck (2026-04-25 17:39 UTC). No code regression introduced. |
+| **Public launch**| **NO-GO**   | Smoke tests still fail as of Phase 5 recheck 2026-04-25 17:39 UTC. Every request returns HTTP 403 `x-deny-reason: host_not_allowed`. DNS resolves correctly (confirmed by `www DNS resolves` passing on every run). The Vercel project domain binding for `constructaiq.trade` and `www.constructaiq.trade` has not been completed. Vercel domain blocker is **OPEN**. |
 
 **The codebase is candidate-ready. The infrastructure is not.**
 
@@ -269,8 +398,8 @@ None. Build, lint, and tests are all green. No code change is required before la
 
 | Priority | Blocker                                                       | Symptom                                         | Status (2026-04-25)                   | Fix location                          |
 |----------|---------------------------------------------------------------|-------------------------------------------------|---------------------------------------|---------------------------------------|
-| 🔴 P0    | `constructaiq.trade` not bound to Vercel project              | HTTP 403 `host_not_allowed` on every request    | **Open** — confirmed by revalidation  | Vercel UI → Settings → Domains        |
-| 🔴 P0    | `www.constructaiq.trade` not bound to Vercel project          | HTTP 403 `host_not_allowed` on www              | **Open** — confirmed by revalidation  | Vercel UI → Settings → Domains        |
+| 🔴 P0    | `constructaiq.trade` not bound to Vercel project              | HTTP 403 `host_not_allowed` on every request    | **Open** — confirmed by Phase 5 recheck 2026-04-25 17:39 UTC  | Vercel UI → Settings → Domains        |
+| 🔴 P0    | `www.constructaiq.trade` not bound to Vercel project          | HTTP 403 `host_not_allowed` on www              | **Open** — confirmed by Phase 5 recheck 2026-04-25 17:39 UTC  | Vercel UI → Settings → Domains        |
 | ✅ —     | DNS apex record                                               | ~~App unreachable at apex~~                     | **Resolved** — `www DNS resolves` passes; apex DNS propagated | No action needed |
 | ✅ —     | DNS `www` CNAME                                               | ~~www unreachable~~                             | **Resolved** — www DNS resolves on every smoke run | No action needed |
 | 🟡 P1    | Stray subdomain DNS (`api.`, `docs.`, `data.`, `app.`) unknown | Subdomains may resolve somewhere unintended    | Unverified — cannot check from sandbox | DNS provider — verify or remove     |
