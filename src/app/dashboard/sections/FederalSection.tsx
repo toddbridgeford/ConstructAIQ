@@ -8,6 +8,7 @@ import { ErrorState }         from "@/app/components/ui/ErrorState"
 import { FreshnessIndicator } from "@/app/components/ui/FreshnessIndicator"
 import { Skeleton }           from "@/app/components/Skeleton"
 import { color } from "@/lib/theme"
+import { federalProvenance }  from "@/lib/dashboardProvenance"
 import type { FederalResponse } from "@/lib/api-types"
 
 const BG1 = color.bg1, BD1 = color.bd1
@@ -27,16 +28,21 @@ export function FederalSection({ federal }: FederalSectionProps) {
       <Skeleton height={300} borderRadius={20} />
     </section>
   )
+
+  const prov = federalProvenance(federal)
+
   return (
     <section id="federal" style={{ paddingTop:48, paddingBottom:8 }}>
       <SectionHeader sectionId="06" title="Federal Infrastructure Tracker" badge="IIJA · IRA" onExportCSV={() => {}} shareSection="federal" />
 
-      {federal?.error && (
+      {(prov.state === 'error' || prov.state === 'fallback') && (
         <div style={{ marginBottom: 20 }}>
           <ErrorState
-            message="Federal data temporarily unavailable"
-            detail="USASpending.gov API returned an error. Showing most recently cached allocation data."
-            cached_at={federal?.cached_at}
+            message={prov.state === 'fallback'
+              ? 'Federal live feed unavailable'
+              : 'Federal data temporarily unavailable'}
+            detail={prov.message}
+            cached_at={prov.cachedAt}
           />
         </div>
       )}
@@ -59,7 +65,9 @@ export function FederalSection({ federal }: FederalSectionProps) {
       </Card>
 
       {federal?.cached_at && (
-        <FreshnessIndicator updated_at={federal.cached_at} label="Federal data cached" />
+        <FreshnessIndicator updated_at={federal.cached_at} label={
+          prov.state === 'cached' ? 'Federal data cached (USASpending.gov)' : 'Federal data cached'
+        } />
       )}
     </section>
   )

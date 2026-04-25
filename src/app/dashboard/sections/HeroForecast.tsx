@@ -12,7 +12,10 @@ import { SectionVerdict }  from "../components/SectionVerdict"
 import { DriverPanel }     from "../components/DriverPanel"
 import { BottomSheet }     from "@/app/components/BottomSheet"
 import { Skeleton }       from "@/app/components/Skeleton"
+import { EmptyState }     from "@/app/components/ui/EmptyState"
+import { CloudOff } from "lucide-react"
 import { color, font } from "@/lib/theme"
+import { forecastAvailability } from "@/lib/dashboardProvenance"
 import type { ForecastData } from "../types"
 import type { FreshnessInfo } from "@/lib/freshness"
 
@@ -37,9 +40,14 @@ interface HeroForecastProps {
   foreAccuracy: number | null
   foreMAPE:     number | null
   freshness?:   FreshnessInfo
+  /** True while the parent /api/dashboard fetch is in flight. When false and
+   *  `fore === null`, surface an honest "Forecast unavailable" empty state
+   *  instead of a perpetual skeleton. */
+  loading?:     boolean
 }
 
-export function HeroForecast({ fore, foreAccuracy, foreMAPE, freshness }: HeroForecastProps) {
+export function HeroForecast({ fore, foreAccuracy, foreMAPE, freshness, loading = false }: HeroForecastProps) {
+  const availability = forecastAvailability(fore, loading)
   const [activeSeries,  setActiveSeries]  = useState("TTLCONS")
   const [scenarioLine,  setScenarioLine]  = useState<number[] | null>(null)
   const [sheetOpen,     setSheetOpen]     = useState(false)
@@ -79,6 +87,22 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE, freshness }: HeroFo
   return (
     <section id="forecast" style={{ paddingTop:48, paddingBottom:8 }}>
       <SectionHeader sectionId="02" title="Forecast Intelligence Panel" subtitle="12-month ensemble AI forecast with confidence intervals" freshness={freshness} />
+
+      {availability === 'unavailable' && (
+        <div style={{ marginBottom: 20 }}>
+          <EmptyState
+            icon={<CloudOff size={32} />}
+            title="Forecast unavailable"
+            description={
+              "The 12-month ensemble forecast hasn't been computed yet, " +
+              "or the most recent run failed. ConstructAIQ won't show a " +
+              "stale or fabricated forecast — the chart will return once " +
+              "the next forecast cron run succeeds."
+            }
+            action={{ label: 'How forecasts are computed', href: '/methodology' }}
+          />
+        </div>
+      )}
 
       {/* Hero: ForecastChart + ScenarioBuilder */}
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:20 }}>

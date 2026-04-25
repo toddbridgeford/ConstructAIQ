@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getSourceHealthSummary } from '@/lib/sourceHealth'
 import { isWeeklyBriefConfigured } from '@/lib/weeklyBrief'
+import { LEADERBOARD_CACHE_KEY } from '@/lib/federal'
+import { logApiError, logApiWarn } from '@/lib/observability'
 
 export const maxDuration = 10
 
@@ -30,10 +32,38 @@ function staleness(lastUpdated: string | null): 'ok' | 'warn' | 'stale' {
   return 'stale'
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  try {
+    return await buildStatus(request)
+  } catch (err) {
+    logApiError('status', err, { stage: 'aggregate' })
+    throw err
+  }
+}
+
+async function buildStatus(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const deep = searchParams.get('deep') === '1'
+
   const now      = new Date()
   const day7ago  = new Date(now); day7ago.setDate(now.getDate() - 7)
   const day30ago = new Date(now); day30ago.setDate(now.getDate() - 30)
+
+  // ── Environment booleans (safe — no secret values exposed) ────────────────
+  const env = {
+    supabaseConfigured:   !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY),
+    anthropicConfigured:  !!process.env.ANTHROPIC_API_KEY,
+    upstashConfigured:    !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN),
+    sentryConfigured:     !!process.env.NEXT_PUBLIC_SENTRY_DSN,
+    cronSecretConfigured: !!process.env.CRON_SECRET,
+  }
+
+  // ── Runtime context ───────────────────────────────────────────────────────
+  const runtimeSection = {
+    nodeEnv:    process.env.NODE_ENV ?? 'unknown',
+    appUrl:     process.env.NEXT_PUBLIC_APP_URL ?? null,
+    siteLocked: process.env.SITE_LOCKED === 'true',
+  }
 
   const hasEiaKey  = !!process.env.EIA_API_KEY
   const hasBEAKey  = !!process.env.BEA_API_KEY
@@ -51,6 +81,7 @@ export async function GET() {
     edgeRes,
     eventRes,
     ttlconsRes,
+    federalCacheRes,
     sourceHealth,
   ] = await Promise.all([
     supabaseAdmin.from('series').select('source, last_updated').order('source'),
@@ -63,10 +94,11 @@ export async function GET() {
     supabaseAdmin.from('entity_edges').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('event_log').select('*', { count: 'exact', head: true }).gte('event_date', day30ago.toISOString().slice(0, 10)),
     supabaseAdmin.from('observations').select('*', { count: 'exact', head: true }).eq('series_id', 'TTLCONS'),
+    supabaseAdmin.from('federal_cache').select('cached_at').eq('key', LEADERBOARD_CACHE_KEY).maybeSingle(),
     getSourceHealthSummary(),
   ])
 
-  // ── Data freshness ───────────────────────────────────────────────────────
+  // ── Data freshness ────────────────────────────────────────────────────────
   const freshness: {
     source: string
     label: string
@@ -108,7 +140,45 @@ export async function GET() {
     ? Math.round((correctLast7 / evalLast7) * 1000) / 10
     : null
 
+  // ── Data section — inspect cache tables only, no sub-route calls ──────────
+  let federalSource: 'usaspending.gov' | 'static-fallback' | 'unknown'
+  if (federalCacheRes.error) {
+    logApiWarn('status', 'federal_cache lookup failed', {
+      error: federalCacheRes.error.message,
+    })
+    federalSource = 'unknown'
+  } else if (federalCacheRes.data?.cached_at) {
+    const ageHours = (Date.now() - new Date(federalCacheRes.data.cached_at).getTime()) / 3_600_000
+    federalSource = ageHours < 24 ? 'usaspending.gov' : 'static-fallback'
+  } else {
+    federalSource = 'static-fallback'
+  }
+
+  const dataSection: {
+    federalSource:      'usaspending.gov' | 'static-fallback' | 'unknown'
+    weeklyBriefSource:  'ai' | 'static-fallback'
+    dashboardShapeOk?:  boolean
+  } = {
+    federalSource,
+    weeklyBriefSource: isWeeklyBriefConfigured() ? 'ai' : 'static-fallback',
+  }
+
+  // ?deep=1 — additional Supabase queries to verify dashboard shape
+  if (deep) {
+    const [empRes, permitRes] = await Promise.all([
+      supabaseAdmin.from('observations').select('*', { count: 'exact', head: true }).eq('series_id', 'CES2000000001'),
+      supabaseAdmin.from('observations').select('*', { count: 'exact', head: true }).eq('series_id', 'PERMIT'),
+    ])
+    dataSection.dashboardShapeOk =
+      ttlconsCount > 0 &&
+      (empRes.count ?? 0) > 0 &&
+      (permitRes.count ?? 0) > 0
+  }
+
   return NextResponse.json({
+    env,
+    data:    dataSection,
+    runtime: runtimeSection,
     freshness,
     api_health: {
       pricewatch:    ttlconsCount > 0,
@@ -118,9 +188,6 @@ export async function GET() {
       solicitations: hasSamKey,
       equities:      hasPolyKey,
     },
-    // Live AI weekly brief generation requires ANTHROPIC_API_KEY in the
-    // runtime env. We expose only a boolean — the key value is never
-    // returned, logged, or otherwise leaked.
     weekly_brief: {
       configured: isWeeklyBriefConfigured(),
     },

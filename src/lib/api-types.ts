@@ -126,6 +126,28 @@ export interface FederalStateAllocation {
   yoy?:         number
 }
 
+/**
+ * Provenance metadata included in every /api/federal response.
+ * Consumers can log or display this to debug data-quality issues.
+ * No secrets are included — only configuration and source labels.
+ */
+export interface FederalMeta {
+  /** Lookback window used for contractor/agency leaderboard (months) */
+  leaderboardLookbackMonths: number
+  /** Maximum awards fetched for the leaderboard (pages × page-size) */
+  leaderboardAwardLimit: number
+  /** Construction NAICS codes used to filter USASpending queries */
+  naicsCodes: string[]
+  /** Supabase cache keys for the three feed types */
+  cacheKeys: { geo: string; leaderboard: string; monthlyAwards: string }
+  /** 'usaspending.gov/live' | 'usaspending.gov/cached' | 'static-fallback' */
+  geoSource: string
+  /** 'usaspending.gov/live' | 'usaspending.gov/cached' | 'none' */
+  leaderboardSource: string
+  /** 'usaspending.gov/live' | 'usaspending.gov/cached' | 'none' */
+  monthlyAwardsSource: string
+}
+
 export interface FederalResponse {
   programs:         FederalProgram[]
   agencies:         FederalAgency[]
@@ -139,6 +161,7 @@ export interface FederalResponse {
   dataSource:       string
   fromCache:        boolean
   updatedAt:        string
+  federalMeta?:     FederalMeta
   error?:           boolean
   cached_at?:       string
   fetchError?:      string

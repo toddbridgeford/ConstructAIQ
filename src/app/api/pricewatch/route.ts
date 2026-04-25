@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { logApiWarn } from '@/lib/observability'
 
 const FRED_KEY  = process.env.FRED_API_KEY  || ''
 const BLS_KEY   = process.env.BLS_API_KEY   || ''
@@ -54,12 +55,19 @@ async function fetchBLSSeries(seriesId: string): Promise<{ value: number; prev: 
       }),
       signal: AbortSignal.timeout(8000),
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      logApiWarn('pricewatch', 'BLS upstream non-OK', { seriesId, status: res.status })
+      return null
+    }
     const data = await res.json()
     const series = data?.Results?.series?.[0]?.data || []
     if (series.length < 2) return null
     return { value: parseFloat(series[0].value), prev: parseFloat(series[1].value) }
-  } catch {
+  } catch (err) {
+    logApiWarn('pricewatch', 'BLS fetch failed', {
+      seriesId,
+      error: err instanceof Error ? err.message : String(err),
+    })
     return null
   }
 }
@@ -72,7 +80,10 @@ async function fetchFREDSeries(seriesId: string): Promise<{ value: number; prev:
       '&api_key=' + FRED_KEY +
       '&file_type=json&sort_order=desc&limit=2'
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
-    if (!res.ok) return null
+    if (!res.ok) {
+      logApiWarn('pricewatch', 'FRED upstream non-OK', { seriesId, status: res.status })
+      return null
+    }
     const data = await res.json()
     const obs = data?.observations || []
     if (obs.length < 2) return null
@@ -80,7 +91,11 @@ async function fetchFREDSeries(seriesId: string): Promise<{ value: number; prev:
     const pv = parseFloat(obs[1].value)
     if (isNaN(v) || isNaN(pv)) return null
     return { value: v, prev: pv }
-  } catch {
+  } catch (err) {
+    logApiWarn('pricewatch', 'FRED fetch failed', {
+      seriesId,
+      error: err instanceof Error ? err.message : String(err),
+    })
     return null
   }
 }
