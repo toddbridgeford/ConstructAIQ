@@ -113,15 +113,18 @@ export default function GlobeClient() {
     return function(){clearInterval(t)}
   },[])
 
-  // Load API data
+  // Load API data — each overlay is optional and degrades gracefully when
+  // its endpoint fails. Each failure logs exactly once with a stable
+  // "[globe]" prefix so the cause is debuggable in production without
+  // spamming repeated warnings (load() runs once per mount).
   useEffect(function(){
     async function load(){
-      try{var r=await fetch("/api/map");       if(r.ok)setMapD(await r.json())}catch(e){}
-      try{var r=await fetch("/api/contracts");  if(r.ok){var d=await r.json();setCtrs(d.contracts||[])}}catch(e){}
-      try{var r=await fetch("/api/seismic");    if(r.ok){var d=await r.json();setSeis(d.events||[])}}catch(e){}
-      try{var r=await fetch("/api/weather");    if(r.ok){var d=await r.json();setWx(d.alerts||[])}}catch(e){}
-      try{var r=await fetch("/api/edgar");      if(r.ok)setEdgar(await r.json())}catch(e){}
-      try{var r=await fetch("/api/distress");   if(r.ok)setDistressD(await r.json())}catch(e){}
+      try{var r=await fetch("/api/map");       if(r.ok)setMapD(await r.json())}catch(e){console.warn("[globe] /api/map failed",e)}
+      try{var r=await fetch("/api/contracts");  if(r.ok){var d=await r.json();setCtrs(d.contracts||[])}}catch(e){console.warn("[globe] /api/contracts failed",e)}
+      try{var r=await fetch("/api/seismic");    if(r.ok){var d=await r.json();setSeis(d.events||[])}}catch(e){console.warn("[globe] /api/seismic failed",e)}
+      try{var r=await fetch("/api/weather");    if(r.ok){var d=await r.json();setWx(d.alerts||[])}}catch(e){console.warn("[globe] /api/weather failed",e)}
+      try{var r=await fetch("/api/edgar");      if(r.ok)setEdgar(await r.json())}catch(e){console.warn("[globe] /api/edgar failed",e)}
+      try{var r=await fetch("/api/distress");   if(r.ok)setDistressD(await r.json())}catch(e){console.warn("[globe] /api/distress failed",e)}
     }
     load()
   },[])
@@ -337,7 +340,7 @@ export default function GlobeClient() {
 
   async function loadFusion(region){
     setFus(null);setFusL(true)
-    try{var r=await fetch("/api/fusion?region="+(region||"US"));if(r.ok)setFus(await r.json())}catch(e){}
+    try{var r=await fetch("/api/fusion?region="+(region||"US"));if(r.ok)setFus(await r.json())}catch(e){console.warn("[globe] /api/fusion failed",e)}
     setFusL(false)
   }
 
