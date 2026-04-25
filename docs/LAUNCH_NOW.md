@@ -39,6 +39,11 @@ Step-by-step walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md)
 ## Verify — run these after binding
 
 ```bash
+# 1. Quick diagnosis — run this first
+npm run domain:check
+# If it reports VERCEL_DOMAIN_NOT_BOUND, the domains are not yet added to the project (see above).
+# Once it exits 0, continue:
+
 curl -sSI https://constructaiq.trade
 curl -sSI https://www.constructaiq.trade/dashboard
 npm run smoke:www

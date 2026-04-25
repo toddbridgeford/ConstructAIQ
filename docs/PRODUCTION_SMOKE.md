@@ -32,11 +32,12 @@ www failure — see "www: full configuration steps" below).
 
 | Trigger | Command |
 |---|---|
+| Diagnosing domain / binding issues | `npm run domain:check` (run first; exits 1 if `host_not_allowed`) |
 | After merging to main (post-deploy) | `npm run smoke:prod` |
 | After a preview deployment | `node scripts/smoke-prod.mjs <preview-url>` |
 | After changing `/api/dashboard` response shape | `npm run smoke:prod` |
 | After changing `next.config.ts` redirects | `npm run smoke:prod` |
-| Verifying a new Vercel domain/DNS setting | `npm run smoke:prod` |
+| Verifying a new Vercel domain/DNS setting | `npm run domain:check` then `npm run smoke:prod` |
 
 ---
 
