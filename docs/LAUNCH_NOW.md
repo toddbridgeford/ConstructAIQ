@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 19 smoke — BLOCKED · domain:check prerequisite not met · Cloudflare proxy still active)**
+**Updated: 2026-04-25 (Phase 19 env/runtime — BLOCKED · smoke:prod exits 1 · /api/status 403 · Cloudflare proxy still active)**
 
 ---
 
@@ -16,8 +16,9 @@
 | 5 | Lint | **GO** — previously verified exit 0 · no warnings (node_modules absent in sandbox; CI confirmed) |
 | 5 | Tests | **GO** — previously verified 356/356 exit 0 (node_modules absent in sandbox; CI confirmed) |
 | 4 | domain:check | **NO-GO** — exit 1 · apex `VERCEL_DOMAIN_NOT_BOUND` · www `VERCEL_DOMAIN_NOT_BOUND` |
-| 4 | smoke:www | **BLOCKED** — prerequisite not met (domain:check exit 1) |
-| 4 | smoke:prod | **BLOCKED** — prerequisite not met (domain:check exit 1) |
+| 4 | smoke:www | **BLOCKED** — domain not bound; all checks 403 |
+| 4 | smoke:prod | **NO-GO** — exit 1 · 1/6 passed · 5 failed · all 403 `host_not_allowed` |
+| 3 | env/runtime | **BLOCKED** — `/api/status` returns 403; booleans unreadable |
 | 2 | Apex DNS target | **NO-GO** — resolves to `104.21.50.117` (Cloudflare proxy), not `76.76.21.21` (Vercel) |
 | — | Public launch | **NO-GO** |
 

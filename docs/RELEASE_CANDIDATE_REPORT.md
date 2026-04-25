@@ -4431,3 +4431,39 @@ Phase 19 goal is "run production smoke only after DNS and domain routing pass." 
 **Next action:** Operator must confirm Cloudflare A record for `constructaiq.trade` is DNS-only (grey cloud, value `76.76.21.21`). Once `domain:check` exits 0, re-run Phase 19 smoke.
 
 *Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
+
+---
+
+## Phase 19 env/runtime verification — 2026-04-25T00:00:00Z
+
+**Branch:** `claude/verify-dns-propagation-5Q5BF`
+
+### Prerequisite check
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run smoke:prod` | 1 | 1/6 passed · 5 failed · all 403 `host_not_allowed` |
+| `curl https://constructaiq.trade/api/status` | — | HTTP 403 · "Host not in allowlist" |
+
+Prerequisite not met. `/api/status` is unreachable. All env/runtime booleans are unreadable.
+
+### Env booleans (not captured — endpoint blocked)
+
+| Boolean | Value | Classification |
+|---------|-------|----------------|
+| `supabaseConfigured` | unreadable | required — status unknown |
+| `cronSecretConfigured` | unreadable | required — status unknown |
+| `anthropicConfigured` | unreadable | warning — status unknown |
+| `upstashConfigured` | unreadable | warning — status unknown |
+| `sentryConfigured` | unreadable | warning — status unknown |
+| `runtime.siteLocked` | unreadable | required — status unknown |
+| `runtime.nodeEnv` | unreadable | informational |
+| `runtime.appUrl` | unreadable | informational |
+
+### Verdict
+
+**BLOCKED / NO-GO.** `/api/status` returns 403. Env and runtime booleans cannot be read until the domain is bound to the Vercel project and smoke:prod exits 0. No secrets were recorded.
+
+**Single next action:** Fix Cloudflare DNS to DNS-only (grey cloud, A → `76.76.21.21`). Once `domain:check` exits 0 and `smoke:prod` exits 0, re-run Phase 19 env/runtime verification.
+
+*Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
