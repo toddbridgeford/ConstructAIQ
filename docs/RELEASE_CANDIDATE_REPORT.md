@@ -694,8 +694,8 @@ outcome after domain binding (assuming env vars are also set) is:
 
 | Dimension        | Verdict     | Rationale                                                                                       |
 |------------------|-------------|-------------------------------------------------------------------------------------------------|
-| **Codebase**     | **GO**      | Build ✓, lint ✓, 317/317 tests ✓ — confirmed at Phase 5 launch gate 2026-04-25 17:57 UTC. Gate 5 fully green. No code regression at any phase. |
-| **Public launch**| **NO-GO**   | Phase 5 launch gate (2026-04-25 17:57 UTC): `✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www`. Vercel domain binding is the sole blocker. `smoke:prod` 1 passed / 5 failed. `smoke:www` 1 passed / 1 failed. All requests return HTTP 403 `x-deny-reason: host_not_allowed`. |
+| **Codebase**     | **GO**      | Build ✓, lint ✓, 317/317 tests ✓ — final sign-off run 2026-04-25 18:01 UTC. Gate 5 fully green on every Phase 5 pass. No code regression. SHA `8c1cd98d`. |
+| **Public launch**| **NO-GO**   | Final sign-off 2026-04-25 18:01 UTC. Smoke: `smoke:prod` 1/6 passed, `smoke:www` 1/2 passed — both exit 1. Sole blocker: Vercel domain binding not completed. All requests return HTTP 403 `x-deny-reason: host_not_allowed`. See [Final Launch Sign-Off](#final-launch-sign-off) for operator steps. |
 
 **The codebase is candidate-ready. The infrastructure is not.**
 
@@ -1034,3 +1034,195 @@ configuration blockers in this report instead.
   a git commit message or incident note.
 - Open a follow-up issue with the full symptom, the smoke/Sentry evidence, and a
   pointer to the regressing commit so the fix can be landed cleanly on a new branch.
+
+---
+
+## Final Launch Sign-Off
+
+**Captured: 2026-04-25 18:01 UTC**
+**Branch: `claude/verify-domain-fix-uDUrA`**
+**Docs SHA: `a47f309c` · Code SHA: `8c1cd98d`**
+
+---
+
+### Verdict
+
+```
+PUBLIC LAUNCH: ◼ NO-GO
+```
+
+The codebase is launch-ready. The infrastructure is not.
+One P0 external blocker prevents launch. No code change is required.
+
+---
+
+### Build / Lint / Test — final run (2026-04-25 18:01 UTC)
+
+| Command | Exit | Wall time | Result |
+|---------|------|-----------|--------|
+| `npm run build` | **0** | ~80 s | `✓ Compiled successfully` — 84 routes, 0 errors |
+| `npm run lint` | **0** | ~12 s | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | ~6 s | `23 passed (23)` · `317 passed (317)` |
+
+All three green. Gate 5 is fully closed.
+
+---
+
+### Smoke — final run (2026-04-25 17:57 UTC, via `npm run launch:check --include-smoke`)
+
+| Command | Exit | Checks | Root cause |
+|---------|------|--------|------------|
+| `npm run smoke:prod` | **1** | 1 passed / 5 failed | HTTP 403 `x-deny-reason: host_not_allowed` on all endpoints |
+| `npm run smoke:www` | **1** | 1 passed / 1 failed | HTTP 403 `x-deny-reason: host_not_allowed` on www |
+
+Gate 4 fails on both checks. The smoke script itself is correct.
+DNS resolves correctly (`www DNS resolves` passes on every run).
+The issue is exclusively the Vercel project domain binding.
+
+---
+
+### Highest-priority blocker (P0 — sole launch blocker)
+
+> **Vercel project domain binding not completed.**
+>
+> `constructaiq.trade` and `www.constructaiq.trade` have not been added
+> to the ConstructAIQ Vercel project under **Settings → Domains**.
+> Every inbound request is rejected at the Vercel edge before the
+> Next.js application runs. This is not a DNS issue, not a code issue,
+> and not a Cloudflare/firewall issue — DNS is already propagated.
+>
+> **Fix:** Complete Steps 1–4 in [`docs/VERCEL_DOMAIN_FIX.md`](./VERCEL_DOMAIN_FIX.md).
+
+---
+
+### Env / data-source status
+
+All env booleans and data-source states are **UNOBSERVABLE** because
+`/api/status` returns HTTP 403 before the application runs. They become
+verifiable the moment the Vercel domain binding is completed.
+
+| Check | Status |
+|-------|--------|
+| `supabaseConfigured` | UNOBSERVABLE — verify with `curl /api/status \| jq .env` after domain fix |
+| `cronSecretConfigured` | UNOBSERVABLE — P0 env var, must be `true` before launch |
+| `anthropicConfigured` | UNOBSERVABLE — P1; Weekly Brief falls back to static if absent |
+| `upstashConfigured` | UNOBSERVABLE — P1; rate limiting is DB-only if absent |
+| `sentryConfigured` | UNOBSERVABLE — P1; error capture is console-only if absent |
+| `federalSource` | UNOBSERVABLE — expected `"usaspending.gov"` |
+| `weeklyBriefSource` | UNOBSERVABLE — expected `"ai"` after first cron run |
+| `dashboardShapeOk` | UNOBSERVABLE — expected `true` |
+
+---
+
+### Pending operator actions — complete in this order
+
+**Step 1 (required — blocks everything):**
+
+```
+Vercel UI → ConstructAIQ project → Settings → Domains
+  → Add: constructaiq.trade
+  → Add: www.constructaiq.trade
+Wait for green checkmarks (1–10 min after DNS validates).
+```
+
+Full walkthrough: [`docs/VERCEL_DOMAIN_FIX.md`](./VERCEL_DOMAIN_FIX.md) Steps 1–4.
+
+**Step 2 (required — run after Step 1):**
+
+```bash
+curl -sSI https://constructaiq.trade | head -1
+# must return HTTP/2 200 (not 403)
+```
+
+**Step 3 (required — set in Vercel Production scope, then redeploy):**
+
+```
+NEXT_PUBLIC_SUPABASE_URL     = <your Supabase project URL>
+NEXT_PUBLIC_SUPABASE_ANON_KEY = <anon/public key>
+SUPABASE_SERVICE_ROLE_KEY    = <service role key>
+CRON_SECRET                  = <long random string>
+SITE_LOCKED                  = false
+```
+
+Walkthrough: [`docs/ENVIRONMENT.md`](./ENVIRONMENT.md).
+
+**Step 4 (required — verify env after redeploy):**
+
+```bash
+curl -s https://constructaiq.trade/api/status | jq .env
+# supabaseConfigured and cronSecretConfigured must be true
+```
+
+**Step 5 (required — final smoke gate):**
+
+```bash
+npm run smoke:prod   # must exit 0
+npm run smoke:www    # must exit 0
+```
+
+Only after both exit 0 may the verdict change to **GO**.
+
+**Step 6 (recommended — full launch gate):**
+
+```bash
+npm run launch:check -- --include-smoke
+# must end: ✓ Automatable gates passed.
+```
+
+---
+
+### Post-launch monitoring (first 30 minutes)
+
+Run from any machine with outbound network immediately after going live:
+
+```bash
+# Smoke — must both exit 0
+npm run smoke:prod
+npm run smoke:www
+
+# Env booleans — all five must be true
+curl -s https://constructaiq.trade/api/status | jq .env
+
+# Data sources — verify live (not fallback)
+curl -s https://constructaiq.trade/api/status | jq .data
+# federalSource: "usaspending.gov"
+# weeklyBriefSource: "ai"
+
+# Freshness — count of stale series (target 0)
+curl -s https://constructaiq.trade/api/status | jq '[.freshness[] | select(.status=="stale")] | length'
+
+# Dashboard shape
+curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data.dashboardShapeOk
+# must be true
+```
+
+See [Post-Launch Monitoring Checklist](#post-launch-monitoring-checklist) above for the full list.
+
+---
+
+### Rollback
+
+If a regression appears after launch, promote the last known-good
+Vercel deployment via the Vercel UI (`Deployments → … → Promote to
+Production`) or via `vercel rollback <id> --prod`. Then rerun
+`npm run smoke:prod` to confirm. Full procedure:
+[Rollback Procedure](#rollback-procedure).
+
+The last known-good code SHA documented in this report is `8c1cd98d`.
+
+---
+
+### How to change this verdict to GO
+
+1. Complete the five operator steps above.
+2. Confirm `npm run smoke:prod` and `npm run smoke:www` both exit 0.
+3. Confirm `curl /api/status | jq .env` shows `supabaseConfigured: true`
+   and `cronSecretConfigured: true` at minimum.
+4. Update this section: replace `◼ NO-GO` with `◆ GO`, add timestamp,
+   record the smoke pass output, and sign with the operator name or
+   GitHub handle that confirmed the live checks.
+
+---
+
+*This document is the single source of truth for ConstructAIQ launch state.
+Last updated: 2026-04-25 18:01 UTC by `claude/verify-domain-fix-uDUrA`.*
