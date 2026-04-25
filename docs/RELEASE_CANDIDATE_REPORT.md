@@ -3818,3 +3818,32 @@ The Vercel UI screenshot (Phase 16 context) showed both domains appearing connec
 **Next action:** Vercel UI → ConstructAIQ → Settings → Domains — confirm both domains are bound to the correct project with green SSL checkmarks. Remove any apex→www redirect. Disable DNS proxy (Cloudflare DNS-only) if applicable. Re-run `npm run domain:check` (must exit 0) then the full smoke suite.
 
 *Updated by `claude/update-launch-docs-MXJjd` · 2026-04-25*
+
+---
+
+## Phase 16 stop condition — 2026-04-25
+
+**This is the final Phase 16 entry. No further code changes are planned.**
+
+### Current verdict
+
+**NO-GO** — `domain:check` exits 1. Both `constructaiq.trade` and `www.constructaiq.trade` return HTTP 403 `x-deny-reason: host_not_allowed` (`VERCEL_DOMAIN_NOT_BOUND`).
+
+All code-quality gates pass: build exit 0 · lint exit 0 · tests 356/356.
+
+### Exact next operator action
+
+Bind both domains directly in Vercel. No code changes required.
+
+1. Vercel → construct-aiq → Settings → Domains
+2. Confirm `constructaiq.trade` has a green SSL checkmark and **no redirect to www**
+3. Confirm `www.constructaiq.trade` has a green SSL checkmark and no Vercel-level redirect rule
+4. If DNS provider is Cloudflare: set both records to DNS-only (grey cloud)
+5. Run `npm run domain:check` — must exit 0 with `APEX_OK + WWW_REDIRECT_OK`
+6. Paste `docs/CLAUDE_POST_CANONICAL_REMEDIATION_PROMPT.md` into Claude Code for automated verification
+
+### Resume point
+
+When `domain:check` exits 0, resume from `docs/CLAUDE_POST_CANONICAL_REMEDIATION_PROMPT.md`. That prompt drives the env/data/smoke verification and will flip the verdict to GO if all gates pass.
+
+*Updated by `claude/update-launch-docs-MXJjd` · 2026-04-25*
