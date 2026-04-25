@@ -3069,5 +3069,35 @@ All three gates remain green. No regressions introduced by Phase 10.
 
 ---
 
+## Phase 11 Validation — 2026-04-25 ~19:38 UTC
+
+### Domain checker — normal and JSON mode
+
+| Mode | Exit | Result |
+|------|------|--------|
+| `npm run domain:check` | **1** | apex + www both `HTTP 403 · host_not_allowed · VERCEL_DOMAIN_NOT_BOUND` |
+| `node scripts/check-domain-status.mjs --json` | **1** | JSON emitted; `ok: false`, `exitCode: 1`, both classifications `VERCEL_DOMAIN_NOT_BOUND` |
+
+Both modes function correctly. Exit 1 is the expected result while Vercel domain binding remains incomplete. JSON shape confirmed: `apex.{url,status,denyReason,location,classification}`, `www.{…}`, `ok`, `exitCode`.
+
+### Build / lint / tests — 2026-04-25 ~19:38 UTC
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run build` | **0** | `✓ Compiled successfully` · 84 static pages · 0 errors |
+| `npm run lint` | **0** | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | 24 files · 341/341 passed |
+
+Test count increased from 317 → 341: Phase 11 added 24 new unit tests covering `classifyApex`, `classifyWww`, `parseArgs`, and `buildJsonOutput` in `scripts/__tests__/check-domain-status.test.ts`. No regressions.
+
+### Launch status
+
+**Public launch: NO-GO** — unchanged. Sole blocker remains Vercel domain binding.
+`host_not_allowed` present on both apex and www. No code change required.
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → Add `constructaiq.trade` and `www.constructaiq.trade`. After binding, paste `docs/CLAUDE_POST_BINDING_PROMPT.md` into Claude Code to run full verification and update this document.
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
 Last updated: 2026-04-25 ~19:22 UTC by `claude/add-domain-checker-x6F6K`.*
