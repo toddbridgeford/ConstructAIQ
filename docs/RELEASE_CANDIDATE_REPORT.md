@@ -2069,5 +2069,147 @@ See [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md) for current action summary
 
 ---
 
+---
+
+## Phase 7 final launch gate — 2026-04-25 18:35 UTC
+
+Full command: `npm run launch:check -- --include-smoke`
+Final exit code: **1**
+
+---
+
+### Gate 5 — build / lint / unit tests
+
+| Step | Exit | Wall time | Result |
+|------|------|-----------|--------|
+| `npm run build` | **0** | 103.2 s | `✓ Compiled successfully in 61s` — 84 routes, 0 errors |
+| `npm run lint` | **0** | 2.6 s | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | 3.2 s | `Test Files 23 passed (23)` · `Tests 317 passed (317)` |
+
+Gate 5 summary line from launch:check: `✓  build  ✓  lint  ✓  unit tests`
+
+Notable from build output:
+- `⚠ Using edge runtime on a page currently disables static generation for that page` — pre-existing; expected on `/api/og/*` routes.
+- `next lint` deprecation notice (`next lint will be removed in Next.js 16`) — pre-existing; not introduced by this work.
+
+**Gate 5: CLOSED ✓** — codebase is launch-ready from a code, build, and test perspective.
+
+---
+
+### Gate 4 — production smoke
+
+| Step | Exit | Wall time | Passed | Failed |
+|------|------|-----------|--------|--------|
+| `npm run smoke:prod` | **1** | 1.0 s | 1 | 5 |
+| `npm run smoke:www` | **1** | 0.3 s | 1 | 1 |
+
+#### `smoke:prod` detail
+
+```
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project — HTTP 403
+
+1 passed, 5 failed  ✗ Smoke test FAILED
+```
+
+#### `smoke:www` detail
+
+```
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project — HTTP 403
+
+1 passed, 1 failed  ✗ Smoke test FAILED
+```
+
+**Gate 4: OPEN ✗** — sole cause is unresolved Vercel domain binding.
+
+---
+
+### Standalone build / lint / test (run separately)
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run build` | **0** | `✓ Compiled successfully` — 84 routes, 0 errors |
+| `npm run lint` | **0** | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | `23 passed (23)` · `317 passed (317)` |
+
+All three green on standalone runs, consistent with the launch:check gate output.
+
+---
+
+### launch:check summary output
+
+```
+  ✓  build
+  ✓  lint
+  ✓  unit tests
+  ✗  smoke:prod
+  ✗  smoke:www
+
+✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www
+```
+
+---
+
+### Failing gate — exact evidence
+
+| Gate | Failing check | Root cause |
+|------|--------------|------------|
+| `smoke:prod` | `GET / returns 200` | HTTP 403 `x-deny-reason: host_not_allowed` |
+| `smoke:prod` | `GET /dashboard returns 200` | HTTP 403 `x-deny-reason: host_not_allowed` |
+| `smoke:prod` | `/api/status returns 200` | HTTP 403 `x-deny-reason: host_not_allowed` |
+| `smoke:prod` | `/api/dashboard returns 200` | HTTP 403 `x-deny-reason: host_not_allowed` |
+| `smoke:prod` | `www is bound to this Vercel project` | HTTP 403 `x-deny-reason: host_not_allowed` |
+| `smoke:www` | `www is bound to this Vercel project` | HTTP 403 `x-deny-reason: host_not_allowed` |
+
+Single root cause across all six failing checks: the Vercel project domain
+binding has not been completed. The Next.js application never receives any
+request — Vercel rejects at its edge layer before application code runs.
+
+DNS continues to resolve correctly. `www DNS resolves` passes on both smoke
+runs, unchanged since 2026-04-25 04:00 UTC — no DNS action is needed.
+
+---
+
+### Updated launch verdict
+
+| Dimension | Verdict | Detail |
+|-----------|---------|--------|
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · SHA `b392c37` · unchanged across all phases |
+| **Public launch** | **◼ NO-GO** | `smoke:prod` exit 1 · `smoke:www` exit 1 · sole cause: Vercel domain binding incomplete |
+
+**Public launch: NO-GO.**
+
+No code change is required. The sole blocking action is:
+
+> **Vercel UI → ConstructAIQ project → Settings → Domains**
+> → Add `constructaiq.trade` → wait for green checkmark
+> → Add `www.constructaiq.trade` → wait for green checkmark
+
+After binding (1–10 minutes for SSL auto-provision), rerun:
+
+```bash
+npm run smoke:www   # must exit 0
+npm run smoke:prod  # must exit 0
+```
+
+Both must exit 0 before this verdict may be changed to GO.
+
+Full walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md)
+Operator action summary: [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
+First-24-hour watch guide: [docs/POST_LAUNCH_WATCH.md](./POST_LAUNCH_WATCH.md)
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:31 UTC by `claude/fix-doc-sha-consistency-7Y01M`.*
+Last updated: 2026-04-25 18:36 UTC by `claude/fix-doc-sha-consistency-7Y01M`.*
