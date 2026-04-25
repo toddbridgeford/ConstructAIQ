@@ -690,6 +690,113 @@ outcome after domain binding (assuming env vars are also set) is:
 
 ---
 
+## Phase 6 environment verification — 2026-04-25 18:11 UTC
+
+This section records the Phase 6 attempt to verify production environment
+variables through `/api/status`. The prerequisite for this phase is that
+`constructaiq.trade` no longer returns `x-deny-reason: host_not_allowed`
+and that `/api/status` returns JSON. That condition has **not been met**.
+
+### Prerequisite check
+
+```bash
+curl -sSI https://constructaiq.trade/api/status
+```
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 18:11:25 GMT
+```
+
+The Vercel edge rejects the request before the Next.js application runs.
+The response body is the plain-text string `Host not in allowlist`, not JSON.
+
+### `curl -s https://constructaiq.trade/api/status | jq .env`
+
+```
+jq: parse error: Invalid numeric literal at line 1, column 5
+```
+
+jq exit: **5** (parse error — response body is not JSON)
+
+### `curl -s https://constructaiq.trade/api/status | jq .runtime`
+
+```
+jq: parse error: Invalid numeric literal at line 1, column 5
+```
+
+jq exit: **5** (parse error — response body is not JSON)
+
+### Observed env variable values
+
+All values are **UNOBSERVABLE**. `/api/status` returns HTTP 403 before the
+application runs. No JSON is returned.
+
+| Boolean | Env var(s) | Expected | Observed | Launch classification |
+|---------|------------|----------|----------|-----------------------|
+| `supabaseConfigured` | `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` | `true` | **UNOBSERVABLE** | 🔴 **Launch blocker** — all data routes fail without Supabase |
+| `cronSecretConfigured` | `CRON_SECRET` | `true` | **UNOBSERVABLE** | 🔴 **Launch blocker** — data-refresh cron cannot authenticate |
+| `runtime.siteLocked` | `SITE_LOCKED` | `false` | **UNOBSERVABLE** | 🔴 **Launch blocker if true** — `true` puts all visitors behind Basic Auth |
+| `anthropicConfigured` | `ANTHROPIC_API_KEY` | `true` | **UNOBSERVABLE** | 🟡 Launch warning — Weekly Brief falls back to static if absent |
+| `upstashConfigured` | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | `true` | **UNOBSERVABLE** | 🟡 Launch warning — per-key rate limiting is DB-only if absent |
+| `sentryConfigured` | `NEXT_PUBLIC_SENTRY_DSN` | `true` | **UNOBSERVABLE** | 🟡 Launch warning — error capture is console-only if absent |
+
+Additional runtime values unobservable:
+
+| Field | Env var | Expected | Observed |
+|-------|---------|----------|----------|
+| `runtime.nodeEnv` | `NODE_ENV` | `production` | **UNOBSERVABLE** |
+| `runtime.appUrl` | `NEXT_PUBLIC_APP_URL` | `https://constructaiq.trade` | **UNOBSERVABLE** |
+
+### `npm run lint`
+
+`npm run lint` invokes `next lint`, which exits 127 (`next: not found`) — the
+same pre-existing sandbox gap recorded in all prior phases. No code was
+changed in Phase 6.
+
+| Tool | Exit | Result |
+|------|------|--------|
+| `npm run lint` | 127 | Sandbox: `next: not found` — pre-existing; not a code defect |
+
+### Phase 6 environment verification interpretation
+
+**All env booleans and runtime values are unobservable.** The Vercel domain
+binding must be completed first. Until `/api/status` returns HTTP 200 with a
+JSON body, it is impossible to confirm any production environment variable
+from the live endpoint.
+
+**Classification of missing env vars (current status):**
+
+| Priority | Blocker type | Variable(s) | Status |
+|----------|--------------|-------------|--------|
+| 🔴 P0 | **Launch blocker** | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | UNOBSERVABLE — prerequisite domain fix not done |
+| 🔴 P0 | **Launch blocker** | `CRON_SECRET` | UNOBSERVABLE — prerequisite domain fix not done |
+| 🔴 P0 | **Launch blocker if true** | `SITE_LOCKED` | UNOBSERVABLE — prerequisite domain fix not done |
+| 🟡 P1 | Launch warning | `ANTHROPIC_API_KEY` | UNOBSERVABLE — Weekly Brief degrades to static fallback |
+| 🟡 P1 | Launch warning | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | UNOBSERVABLE — rate limiting is DB-only |
+| 🟡 P1 | Launch warning | `NEXT_PUBLIC_SENTRY_DSN` | UNOBSERVABLE — error capture is console-only |
+
+This verification pass must be repeated in full after the Vercel domain
+binding is completed and `/api/status` returns HTTP 200 JSON. The commands
+to rerun at that time:
+
+```bash
+curl -s https://constructaiq.trade/api/status | jq .env
+# expected: { supabaseConfigured: true, cronSecretConfigured: true,
+#             anthropicConfigured: true, upstashConfigured: true,
+#             sentryConfigured: true }
+
+curl -s https://constructaiq.trade/api/status | jq .runtime
+# expected: { siteLocked: false, nodeEnv: "production",
+#             appUrl: "https://constructaiq.trade" }
+```
+
+**Public launch: NO-GO.** Sole prerequisite: complete Vercel domain binding.
+
+---
+
 ## Phase 6 smoke check — 2026-04-25 18:08 UTC
 
 This section records smoke test results run immediately after the Phase 6 domain
@@ -1414,4 +1521,4 @@ The last known-good code SHA documented in this report is `8c1cd98d`.
 ---
 
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:09 UTC by `claude/verify-domain-binding-gvssO`.*
+Last updated: 2026-04-25 18:11 UTC by `claude/verify-domain-binding-gvssO`.*
