@@ -4882,3 +4882,41 @@ Same six commands as Phase 23. Results identical — no change in any field.
 **NO-GO.** Four consecutive runs (Phases 21–24) — identical result each time. Vercel binding has not taken effect. No product code issue. Single blocker: domain not bound to any Vercel project.
 
 `docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO. *(2026-04-25 · claude/verify-launch-dns-Ok9Li · Phase 24)*
+
+---
+
+## Post-Vercel Binding Verification — 2026-04-25 (Phase 25 — post remove-and-re-add)
+
+*Branch: `claude/verify-launch-dns-Ok9Li`*
+
+Operator removed and re-added both domains; Vercel UI shows "Valid Configuration" on both. Verification run immediately after.
+
+### Command table
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `socket.gethostbyname('constructaiq.trade')` | 0 | `216.198.79.65` — third distinct IP (Ph20: `76.76.21.21` · Ph21–24: `64.29.17.1`) |
+| `npm run domain:check` | **1** | `VERCEL_DOMAIN_NOT_BOUND` — apex + www |
+| `node scripts/check-domain-status.mjs --json` | **1** | `ok:false` · both `status:403 · denyReason:host_not_allowed` · `xVercelId:null` · `cfRay:null` |
+| `curl -sSI https://constructaiq.trade` | 0 | `HTTP/2 403 · x-deny-reason:host_not_allowed` · no `server` · no `x-vercel-id` |
+| `curl -sSI https://www.constructaiq.trade/dashboard` | 0 | `HTTP/2 403 · x-deny-reason:host_not_allowed` · no `server` · no `x-vercel-id` |
+| `npm run smoke:www` | **1** | 1/2 — www DNS ✓ · www bound ✗ |
+| `npm run smoke:prod` | **1** | 1/6 — www DNS ✓ · all other checks ✗ |
+
+### Apex IP history across all phases
+
+| Phase | IP | Notes |
+|-------|----|-------|
+| 20 | `76.76.21.21` | Expected Vercel A record |
+| 21–24 | `64.29.17.1` | Unexpected |
+| 25 | `216.198.79.65` | Third distinct value — multiple A records likely |
+
+### Final verdict
+
+**NO-GO.** DNS is correct (Vercel edge reached, confirmed by `x-deny-reason:host_not_allowed`). Vercel UI shows "Valid Configuration". Vercel edge still rejects both domains — binding has not propagated to the edge in five runs across ~1 hour. Unstable apex IP (three distinct values) suggests multiple A records in Cloudflare that should be resolved. No product code issue.
+
+**Exact next operator actions:**
+1. Cloudflare DNS → confirm exactly one A record for apex pointing to `76.76.21.21`, DNS-only (grey cloud). Delete any duplicates.
+2. If IP stabilises at `76.76.21.21` but edge still returns `host_not_allowed`: contact Vercel support with project `construct-aiq`, domain `constructaiq.trade`, and the `curl -sSI` output showing "Valid Configuration" in UI but `host_not_allowed` at edge.
+
+`docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO. *(2026-04-25 · claude/verify-launch-dns-Ok9Li · Phase 25)*

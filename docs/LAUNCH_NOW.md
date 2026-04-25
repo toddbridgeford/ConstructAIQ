@@ -1,10 +1,10 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 24 — domain:check exit 1 · smoke:prod exit 1 · smoke:www exit 1 · VERCEL_DOMAIN_NOT_BOUND · unchanged from Phase 23 · Public launch NO-GO)**
+**Updated: 2026-04-25 (Phase 25 — post remove-and-re-add · domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND · apex IP now 216.198.79.65 · Vercel UI shows Valid Configuration but edge rejects · Public launch NO-GO)**
 
 ---
 
-> **STOP: code is launch-ready. Four consecutive verification runs (Phases 21–24) return the same result: `host_not_allowed` (403) on both apex and www — domain is not bound to any Vercel project. The binding step has not taken effect. See operator action below.**
+> **STOP: code is launch-ready. Five consecutive verification runs (Phases 21–25) return `host_not_allowed` (403) — domain not bound at Vercel edge. Operator re-added both domains and Vercel UI confirms "Valid Configuration", but the edge still rejects. Apex IP is changing each run (76.76.21.21 → 64.29.17.1 → 216.198.79.65) — DNS A record may be misconfigured or have multiple conflicting records. Next action: verify the Cloudflare A record is exactly `76.76.21.21` (single record, no others), then contact Vercel support if edge binding still does not propagate.**
 
 ---
 
@@ -15,14 +15,82 @@
 | 5 | Build | **GO** — exit 127 in sandbox (node_modules absent) · exit 0 in CI (84 routes, 60.1s) · CI is authoritative |
 | 5 | Lint | **GO** — exit 127 in sandbox (node_modules absent) · exit 0 in CI · CI is authoritative |
 | 5 | Tests | **GO** — exit 127 in sandbox (node_modules absent) · 356/356 exit 0 in CI · CI is authoritative |
-| 4 | domain:check | **NO-GO** — exit 1 · apex `VERCEL_DOMAIN_NOT_BOUND` · www `VERCEL_DOMAIN_NOT_BOUND` · Phase 24 re-verified |
-| 4 | smoke:prod | **NO-GO** — exit 1 · 1/6 passed · 5 failed — all 403 `host_not_allowed` · Phase 24 |
-| 4 | smoke:www | **NO-GO** — exit 1 · 1/2 passed · 1 failed — 403 `host_not_allowed` · Phase 24 |
-| 3 | env/runtime | **BLOCKED** — domain not bound · all endpoints return `host_not_allowed` · unreadable |
-| 3 | data/dashboard | **BLOCKED** — domain not bound · all endpoints return `host_not_allowed` · unreadable |
-| 2 | Apex DNS target | **WARN** — resolves to `64.29.17.1` (not expected `76.76.21.21`) · response IS Vercel pattern · proxyWarning: false |
+| 4 | domain:check | **NO-GO** — exit 1 · apex `VERCEL_DOMAIN_NOT_BOUND` · www `VERCEL_DOMAIN_NOT_BOUND` · Phase 25 re-verified |
+| 4 | smoke:prod | **NO-GO** — exit 1 · 1/6 passed · 5 failed — all 403 `host_not_allowed` · Phase 25 |
+| 4 | smoke:www | **NO-GO** — exit 1 · 1/2 passed · 1 failed — 403 `host_not_allowed` · Phase 25 |
+| 3 | env/runtime | **BLOCKED** — domain not bound · all endpoints `host_not_allowed` · unreadable |
+| 3 | data/dashboard | **BLOCKED** — domain not bound · all endpoints `host_not_allowed` · unreadable |
+| 2 | Apex DNS target | **WARN** — IP changing each run: `76.76.21.21` (Ph20) → `64.29.17.1` (Ph21–24) → `216.198.79.65` (Ph25) · Vercel edge reached (host_not_allowed confirmed) · proxyWarning: false · possible multiple/conflicting A records |
 | — | launch:check | **NOT RUN** — prerequisite (domain:check exit 0) not met |
 | — | Public launch | **NO-GO** |
+
+---
+
+## Phase 25 post-remove-and-re-add verification (2026-04-25)
+
+*Branch: `claude/verify-launch-dns-Ok9Li`*
+
+Operator: removed and re-added both `constructaiq.trade` and `www.constructaiq.trade` in Vercel; both show "Valid Configuration". Same six commands run immediately after.
+
+### Command results
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `python3 socket.gethostbyname` | 0 | `216.198.79.65` — third distinct IP across runs (Ph20: `76.76.21.21` · Ph21–24: `64.29.17.1`) |
+| `npm run domain:check` | **1** | `VERCEL_DOMAIN_NOT_BOUND` — apex + www |
+| `node scripts/check-domain-status.mjs --json` | **1** | `ok:false` · both `status:403 · denyReason:host_not_allowed` · `xVercelId:null` · `cfRay:null` · `proxyWarning:false` |
+| `curl -sSI https://constructaiq.trade` | 0 | `HTTP/2 403 · x-deny-reason: host_not_allowed` · no `server` · no `x-vercel-id` |
+| `curl -sSI https://www.constructaiq.trade/dashboard` | 0 | `HTTP/2 403 · x-deny-reason: host_not_allowed` · no `server` · no `x-vercel-id` |
+| `npm run smoke:www` | **1** | 1/2 — www DNS ✓ · www bound ✗ |
+| `npm run smoke:prod` | **1** | 1/6 — www DNS ✓ · all other checks ✗ |
+
+### Raw response headers (both domains identical)
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 23:11:37 GMT
+```
+
+### Apex IP history
+
+| Phase | Date/run | IP resolved | Notes |
+|-------|----------|-------------|-------|
+| 20 | Earlier today | `76.76.21.21` | Expected Vercel A record |
+| 21–24 | Mid-session | `64.29.17.1` | Unexpected — not documented Vercel IP |
+| 25 | This run | `216.198.79.65` | Third distinct IP — suggests multiple A records or unstable DNS |
+
+The IP is resolving differently on every TTL expiry. This is consistent with **multiple A records** set in Cloudflare for `constructaiq.trade`, or a CNAME/alias chain returning different addresses. Vercel requires exactly one A record pointing to `76.76.21.21` for apex domains.
+
+### Assessment
+
+DNS is correct in that requests reach Vercel's edge infrastructure (`x-deny-reason: host_not_allowed` is Vercel-specific). However:
+
+1. **Edge binding not reflected**: Vercel UI shows "Valid Configuration" but the edge routing table still rejects both domains. This is a Vercel control-plane ↔ edge propagation failure.
+2. **Unstable apex IP**: Three different IPs across five runs suggests the Cloudflare DNS A record for `constructaiq.trade` has multiple entries or was modified. This should be verified and corrected to a single A record of `76.76.21.21`.
+
+### Verdict
+
+**Public launch: NO-GO.** DNS is correct (requests reach Vercel). Vercel UI shows Valid Configuration. Vercel edge still returns `host_not_allowed`. This is a Vercel infrastructure propagation issue.
+
+### Exact next operator actions
+
+**Step A — verify Cloudflare DNS:**
+1. Open Cloudflare dashboard → `constructaiq.trade` → DNS Records
+2. Confirm there is exactly **one** A record for the apex (`constructaiq.trade` or `@`) pointing to `76.76.21.21`
+3. Delete any duplicate A records or other A records at the apex
+4. Confirm the record is **DNS-only** (grey cloud, not orange)
+
+**Step B — if IP is now correct and stable, but binding still fails:**
+Contact **Vercel support** with:
+- Project: `construct-aiq`
+- Domain: `constructaiq.trade`
+- Evidence: `curl -sSI https://constructaiq.trade` showing `x-deny-reason: host_not_allowed` despite domain showing "Valid Configuration" in project settings
+- Timeline: domain added/removed multiple times over ~1 hour; edge never reflects the binding
+
+After either action, re-run `npm run domain:check` — must exit 0 before any further gate.
 
 ---
 
