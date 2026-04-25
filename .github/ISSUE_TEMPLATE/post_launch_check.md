@@ -208,6 +208,8 @@ curl -X POST https://constructaiq.trade/api/cron/forecast \
 
 Last known-good code SHA: **`b392c37`** — see [Release Candidate Report § Rollback Procedure](../docs/RELEASE_CANDIDATE_REPORT.md#rollback-procedure).
 
+> **Note:** Confirm this SHA against RELEASE_CANDIDATE_REPORT.md before using rollback.
+
 ---
 
 ## 7. Notes
