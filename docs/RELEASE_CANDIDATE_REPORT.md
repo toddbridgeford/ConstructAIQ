@@ -4092,3 +4092,69 @@ Both records must be DNS-only (grey cloud) in Cloudflare after pointing to the c
 **NO-GO** — env/data verification blocked by DNS misconfiguration. Apex A record must be updated to `76.76.21.21` before any further checks can pass.
 
 *Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*
+
+---
+
+## Phase 17 final launch gate — 2026-04-25 21:42 UTC
+
+### Command results
+
+| Command | Exit | Time | Result |
+|---------|------|------|--------|
+| `npm run build` | **0** | 60.1 s | ✓ 84 routes · Compiled in 21.4 s · 0 errors |
+| `npm run lint` | **0** | 2.9 s | ✓ No ESLint warnings or errors |
+| `npm test` | **0** | 3.5 s | ✓ 356/356 · 24 files |
+| `npm run smoke:prod` | **1** | 1.0 s | ✗ 1/6 passed · 5 failed |
+| `npm run smoke:www` | **1** | 0.3 s | ✗ 1/2 passed · 1 failed |
+| `npm run launch:check -- --include-smoke` | **1** | ~68 s | ✗ FAILED — smoke gates |
+
+### Gate 5 detail (code quality — all pass)
+
+Build: `✓ Compiled successfully in 21.4s` · 84 routes (static + dynamic + edge) · no type errors · pre-existing edge-runtime warning on `/api/og/*` (expected).
+
+Lint: `✔ No ESLint warnings or errors` · pre-existing deprecation notice `next lint will be removed in Next.js 16`.
+
+Tests: `Test Files 24 passed (24)` · `Tests 356 passed (356)` · 3.06 s.
+
+### Gate 4 detail (smoke — both failed)
+
+`smoke:prod` failing checks:
+
+| Check | Result |
+|-------|--------|
+| `GET / returns 200` | FAIL — got 403 |
+| `GET /dashboard returns 200` | FAIL — got 403 |
+| `/api/status returns 200` | FAIL — got 403 |
+| `/api/dashboard returns 200` | FAIL — got 403 |
+| `www DNS resolves` | PASS |
+| `www is bound to this Vercel project` | FAIL — got 403 |
+
+`smoke:www` failing checks:
+
+| Check | Result |
+|-------|--------|
+| `www DNS resolves` | PASS |
+| `www is bound to this Vercel project` | FAIL — got 403 |
+
+Root cause: all 403 responses carry `x-deny-reason: host_not_allowed`. TLS handshake confirms apex resolves to Cloudflare IPs (104.21.50.117 / 172.67.206.20), not Vercel's 76.76.21.21. The A record must be updated.
+
+### launch:check final line
+
+```
+✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www
+```
+
+### Verdict
+
+**NO-GO** — `launch:check --include-smoke` exits 1. Gate 5 (build/lint/tests) fully passes. Gate 4 (smoke) fails due to DNS misconfiguration: apex A record points to Cloudflare IPs, not Vercel.
+
+**Single next action:** Update Cloudflare DNS:
+
+| Record | Type | Value | Mode |
+|--------|------|-------|------|
+| `constructaiq.trade` | A | `76.76.21.21` | DNS-only |
+| `www.constructaiq.trade` | CNAME | `cname.vercel-dns.com` | DNS-only |
+
+After DNS propagates, re-run `npm run domain:check` (must exit 0), then `npm run launch:check -- --include-smoke` (must exit 0).
+
+*Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*

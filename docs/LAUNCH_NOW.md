@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 17 env/data — BLOCKED · wrong DNS target · VERCEL_DOMAIN_NOT_BOUND)**
+**Updated: 2026-04-25 (Phase 17 final gate — launch:check exit 1 · smoke FAILED · DNS blocker)**
 
 ---
 
@@ -10,18 +10,17 @@
 
 ## Verdict
 
-| Dimension | Status |
-|-----------|--------|
-| Build | **GO** — 84 routes · 0 errors |
-| Lint | **GO** — no ESLint warnings or errors (last verified Phase 16; node_modules absent in sandbox) |
-| Tests | **GO** — 356/356 · 24 files |
-| Cloudflare proxy headers | `proxyWarning: false` — no CF response headers |
-| Apex DNS target | **NO-GO** — resolves to Cloudflare IPs (`104.21.50.117`, `172.67.206.20`), not Vercel (`76.76.21.21`) |
-| domain:check | **NO-GO** — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` on both |
-| smoke:prod | **NO-GO** — 1/6 passed (all 403 `host_not_allowed`) |
-| smoke:www | **NO-GO** — 1/2 passed (all 403 `host_not_allowed`) |
-| env/data | **BLOCKED** — all API endpoints return `Host not in allowlist`; not evaluable |
-| Public launch | **NO-GO** |
+| Gate | Dimension | Status |
+|------|-----------|--------|
+| 5 | Build | **GO** — 84 routes · compiled in 60.1s · exit 0 |
+| 5 | Lint | **GO** — no ESLint warnings or errors · exit 0 |
+| 5 | Tests | **GO** — 356/356 · 24 files · exit 0 |
+| 4 | smoke:prod | **NO-GO** — 1/6 passed · exit 1 · all 403 `host_not_allowed` |
+| 4 | smoke:www | **NO-GO** — 1/2 passed · exit 1 · all 403 `host_not_allowed` |
+| 3 | env/data | **BLOCKED** — all API endpoints return `Host not in allowlist` |
+| 2 | Apex DNS target | **NO-GO** — resolves to Cloudflare IPs (`104.21.50.117`, `172.67.206.20`), not Vercel (`76.76.21.21`) |
+| — | launch:check | **FAILED** — exit 1 · failing gates: smoke:prod, smoke:www |
+| — | Public launch | **NO-GO** |
 
 ---
 
