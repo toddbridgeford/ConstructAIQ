@@ -2897,5 +2897,116 @@ curl -s https://constructaiq.trade/api/dashboard | jq '{fetched_at, cshi: (.cshi
 
 ---
 
+## Phase 9 final launch gate — 2026-04-25 19:12 UTC
+
+Full command: `npm run launch:check -- --include-smoke`
+
+### Gate 5 — build / lint / unit tests
+
+| Step | Exit | Wall time | Result |
+|------|------|-----------|--------|
+| `npm run build` | **0** | 99.3 s | `✓ Compiled successfully in 59 s` — 84 routes, 0 errors |
+| `npm run lint` | **0** | 2.7 s | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | 3.4 s | `Test Files 23 passed (23)` · `Tests 317 passed (317)` |
+
+Gate 5 summary: `✓  build  ✓  lint  ✓  unit tests`
+
+Standalone verification (run separately, same session):
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run build` | **0** | `✓ Compiled successfully` — 84 routes, 0 errors |
+| `npm run lint` | **0** | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | 23 files · 317/317 passed |
+
+### Gate 4 — production smoke
+
+| Step | Exit | Wall time | Result |
+|------|------|-----------|--------|
+| `npm run smoke:prod` | **1** | 0.8 s | 1 passed, 5 failed |
+| `npm run smoke:www` | **1** | 0.3 s | 1 passed, 1 failed |
+
+#### `npm run smoke:prod` — failing checks
+
+| Check | Expected | Got |
+|-------|----------|-----|
+| `GET / returns 200` | 200 | **403** `x-deny-reason: host_not_allowed` |
+| `GET /dashboard returns 200` | 200 | **403** `x-deny-reason: host_not_allowed` |
+| `/api/status returns 200` | 200 | **403** `x-deny-reason: host_not_allowed` |
+| `/api/dashboard returns 200` | 200 | **403** `x-deny-reason: host_not_allowed` |
+| `www is bound to this Vercel project` | 301/308 | **403** `x-deny-reason: host_not_allowed` |
+
+Passing: `www DNS resolves` ✓
+
+#### `npm run smoke:www` — failing check
+
+| Check | Expected | Got |
+|-------|----------|-----|
+| `www is bound to this Vercel project` | 301/308 | **403** `x-deny-reason: host_not_allowed` |
+
+Passing: `www DNS resolves` ✓
+
+### `launch:check` final output
+
+```
+Summary
+───────
+  ✓  build
+  ✓  lint
+  ✓  unit tests
+  ✗  smoke:prod
+  ✗  smoke:www
+
+✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Root cause | Vercel domain binding — `host_not_allowed` on apex and www |
+| Code regression | None — Gate 5 fully green; codebase unchanged |
+
+### Phase 9 final launch gate interpretation
+
+**The codebase is launch-ready. The infrastructure is not.**
+
+Gate 5 is fully green for the tenth consecutive check since 2026-04-25 04:00
+UTC. The build compiles 84 routes without error, lint is clean, and all 317
+unit tests pass. The sole failing gate is Gate 4 (smoke), and the sole cause
+of those failures is that neither `constructaiq.trade` nor
+`www.constructaiq.trade` has been added to the Vercel project's domain list.
+
+No code change is required.
+
+### Updated launch verdict
+
+| Dimension | Verdict | Detail |
+|-----------|---------|--------|
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · RC code SHA `8c1cd98d` · Gate 5 green across all 9 phases |
+| **Smoke** | **◼ FAIL** | `smoke:prod` exit 1 (1/6 passed) · `smoke:www` exit 1 (1/2 passed) · all failures: `host_not_allowed` |
+| **Env/data** | **UNVERIFIABLE** | All endpoints return HTTP 403 — domain binding must be completed first |
+| **Public launch** | **◼ NO-GO** | Sole blocker: Vercel domain binding incomplete as of 2026-04-25 19:12 UTC |
+
+**Public launch: NO-GO.** No code change is required.
+
+> **Next action — do this now:**
+> Vercel UI → ConstructAIQ project → Settings → Domains
+> → Add `constructaiq.trade` → wait for green checkmark
+> → Add `www.constructaiq.trade` → wait for green checkmark
+
+Full step-by-step walkthrough: [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md)
+
+After binding (1–10 minutes for SSL auto-provision), rerun:
+
+```bash
+npm run launch:check -- --include-smoke   # must exit 0
+```
+
+If it exits 0, proceed to env/data verification per
+[docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md), then
+first-24-hour monitoring per [docs/POST_LAUNCH_WATCH.md](./POST_LAUNCH_WATCH.md).
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 19:10 UTC by `claude/fix-launch-docs-Gxt9P`.*
+Last updated: 2026-04-25 19:12 UTC by `claude/fix-launch-docs-Gxt9P`.*

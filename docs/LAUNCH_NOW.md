@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 19:10 UTC**
+**Updated: 2026-04-25 19:12 UTC**
 
 ---
 
@@ -140,26 +140,24 @@ The next action remains: Vercel UI → Settings → Domains → Add both domains
 
 ---
 
-## Last verified — 2026-04-25 18:55 UTC (`npm run launch:check -- --include-smoke`)
+## Last verified — 2026-04-25 19:12 UTC (`npm run launch:check -- --include-smoke`)
 
-| Gate | Command | Exit | Result |
-|------|---------|------|--------|
-| 5 | `npm run build` | **0** | `✓ Compiled successfully in 56 s` · 84 routes · 0 errors |
-| 5 | `npm run lint` | **0** | `✔ No ESLint warnings or errors` |
-| 5 | `npm test` | **0** | 23 files · 317/317 tests passed |
-| 4 | `npm run smoke:prod` | **1** | 1 passed, 5 failed — `x-deny-reason: host_not_allowed` |
-| 4 | `npm run smoke:www` | **1** | 1 passed, 1 failed — `x-deny-reason: host_not_allowed` |
+| Gate | Command | Exit | Wall time | Result |
+|------|---------|------|-----------|--------|
+| 5 | `npm run build` | **0** | 99.3 s | `✓ Compiled successfully in 59 s` · 84 routes · 0 errors |
+| 5 | `npm run lint` | **0** | 2.7 s | `✔ No ESLint warnings or errors` |
+| 5 | `npm test` | **0** | 3.4 s | 23 files · 317/317 passed |
+| 4 | `npm run smoke:prod` | **1** | 0.8 s | 1 passed, 5 failed — `x-deny-reason: host_not_allowed` |
+| 4 | `npm run smoke:www` | **1** | 0.3 s | 1 passed, 1 failed — `x-deny-reason: host_not_allowed` |
 
-`launch:check` summary line: `✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www`
+`launch:check` summary: `✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www`
 `launch:check` exit code: **1**
 
-DNS resolves on both domains (`www DNS resolves` passes on both smoke runs).
-The Vercel domain binding has not been completed.
+Standalone confirms: `npm run build` exit 0 · `npm run lint` exit 0 · `npm test` exit 0.
 
-Env/data verification (Supabase, CRON_SECRET, federal source, weekly-brief
-source) was not attempted — all endpoints return HTTP 403 before the
-application runs, so those probes carry no signal. They will be run once
-smoke exits 0.
+Gate 5 is fully green. Gate 4 (smoke) fails solely because neither domain
+has been added to the Vercel project. DNS resolves on both (`www DNS resolves`
+passes in every run). No code change is required.
 
 ---
 
