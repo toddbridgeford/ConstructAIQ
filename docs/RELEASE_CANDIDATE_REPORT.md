@@ -2611,5 +2611,111 @@ proceed to env/data verification per
 
 ---
 
+## Phase 9 smoke test run — 2026-04-25 19:05 UTC
+
+Smoke tests run immediately after the Phase 9 domain binding check.
+
+### Commands run
+
+```
+npm run smoke:www
+npm run smoke:prod
+```
+
+### `npm run smoke:www`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade  (--www-only)
+──────────────────────────────────────────────────
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+       www.constructaiq.trade resolves but is rejected (403).
+       Fix: add www.constructaiq.trade as a Vercel project domain.
+
+──────────────────────────────────────────────────
+1 passed, 1 failed
+
+✗ Smoke test FAILED
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Passed | 1 (`www DNS resolves`) |
+| Failed | 1 (`www is bound to this Vercel project`) |
+
+### `npm run smoke:prod`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade
+──────────────────────────────────────────────────
+
+Pages
+  ✗  GET / returns 200
+       got 403
+  ✗  GET /dashboard returns 200
+       got 403
+
+API
+  ✗  /api/status returns 200
+       got 403
+  ✗  /api/dashboard returns 200
+       got 403
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+
+──────────────────────────────────────────────────
+1 passed, 5 failed
+
+✗ Smoke test FAILED
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Passed | 1 (`www DNS resolves`) |
+| Failed | 5 (all application checks + www binding) |
+
+### Phase 9 smoke interpretation
+
+**The Vercel domain binding has not been completed.** Both smoke runs produce
+the same outcome as every prior phase since 2026-04-25 04:00 UTC. Every
+application endpoint returns HTTP 403 before the Next.js app runs. DNS
+resolution is confirmed (`www DNS resolves` passes on both runs) — no DNS
+action is needed.
+
+The sole remaining action is the one-time Vercel UI step:
+
+> **Vercel UI → ConstructAIQ project → Settings → Domains**
+> → Add `constructaiq.trade` → wait for green checkmark
+> → Add `www.constructaiq.trade` → wait for green checkmark
+
+After binding (1–10 minutes for SSL auto-provision), rerun:
+
+```bash
+npm run smoke:www   # must exit 0
+npm run smoke:prod  # must exit 0
+```
+
+### Updated launch verdict
+
+| Dimension | Verdict | Detail |
+|-----------|---------|--------|
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · RC code SHA `8c1cd98d` · Gate 5 green across all phases |
+| **Smoke** | **◼ FAIL** | `smoke:www` exit 1 (1/2 passed) · `smoke:prod` exit 1 (1/6 passed) · all failures caused by `host_not_allowed` |
+| **Public launch** | **◼ NO-GO** | Sole blocker: Vercel domain binding incomplete as of 2026-04-25 19:05 UTC |
+
+**Public launch: NO-GO.** No code change is required.
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 19:01 UTC by `claude/fix-launch-docs-Gxt9P`.*
+Last updated: 2026-04-25 19:05 UTC by `claude/fix-launch-docs-Gxt9P`.*

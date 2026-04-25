@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 19:01 UTC**
+**Updated: 2026-04-25 19:05 UTC**
 
 ---
 
@@ -53,6 +53,29 @@ npm run smoke:prod
 
 If all four pass, the P0 is resolved. Update the verdict to **GO** and proceed
 with env-variable verification (see [OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)).
+
+---
+
+## Last smoke run — 2026-04-25 19:05 UTC
+
+| Command | Exit | Passed | Failed | Root cause |
+|---------|------|--------|--------|------------|
+| `npm run smoke:www` | **1** | 1 | 1 | `host_not_allowed` — www not bound in Vercel |
+| `npm run smoke:prod` | **1** | 1 | 5 | `host_not_allowed` — apex and www not bound in Vercel |
+
+**Failing checks — `smoke:www`:**
+- ✗ `www is bound to this Vercel project` — `https://www.constructaiq.trade/dashboard` returned HTTP 403
+
+**Failing checks — `smoke:prod`:**
+- ✗ `GET / returns 200` — got 403
+- ✗ `GET /dashboard returns 200` — got 403
+- ✗ `/api/status returns 200` — got 403
+- ✗ `/api/dashboard returns 200` — got 403
+- ✗ `www is bound to this Vercel project` — HTTP 403
+
+**Passing check (both runs):** `www DNS resolves` ✓ — DNS is correct; no DNS action needed.
+
+**Smoke gate: NO-GO.** Next operator action: Vercel UI → Settings → Domains → Add both domains.
 
 ---
 
