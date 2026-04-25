@@ -4282,3 +4282,39 @@ curl -s https://constructaiq.trade/api/status | jq .runtime  # jq exit 5
 **Single root cause:** DNS still routes through Cloudflare proxy — fix the A record to DNS-only and re-run env verification once `smoke:prod` exits 0.
 
 *Updated by `claude/verify-dns-cloudflare-sKNiP` · 2026-04-25*
+
+---
+
+## Phase 18 data/dashboard verification — 2026-04-25
+
+**Branch:** `claude/verify-dns-cloudflare-sKNiP`
+**Prerequisite state:** `smoke:prod` exits 1 and `/api/status` returns plain text — prerequisites NOT met. All data commands run and documented per task specification.
+
+### Commands and results
+
+| Command | HTTP | jq exit | Result |
+|---------|------|---------|--------|
+| `curl /api/status \| jq .data` | 403 | 5 | Parse error — `Host not in allowlist` |
+| `curl /api/status?deep=1 \| jq .data` | 403 | 5 | Parse error — `Host not in allowlist` |
+| `curl /api/federal \| jq '{dataSource,contractors,agencies,fetchError}'` | 403 | 5 | Parse error — `Host not in allowlist` |
+| `curl /api/weekly-brief \| jq '{source,live,configured,warning,error}'` | 403 | 5 | Parse error — `Host not in allowlist` |
+| `curl /api/dashboard \| jq '{fetched_at,cshi,signals,commodities,forecast}'` | 403 | 5 | Parse error — `Host not in allowlist` |
+
+### Classification
+
+| Field | Value | Classification |
+|-------|-------|----------------|
+| `dashboard` shape | UNKNOWN — blocked | **LAUNCH BLOCKER** (cannot verify) |
+| `cshi` type | UNKNOWN — blocked | **LAUNCH BLOCKER** if string (cannot verify) |
+| `federal.dataSource` | UNKNOWN — blocked | Warning (cannot verify) |
+| `weekly-brief.source` / `live` | UNKNOWN — blocked | Warning (cannot verify) |
+| `signals` count | UNKNOWN — blocked | Warning (cannot verify) |
+| `commodities` count | UNKNOWN — blocked | Warning (cannot verify) |
+
+### Verdict
+
+**BLOCKED / NO-GO.** All five data endpoints return HTTP 403 (`host_not_allowed`). No data shapes, fallback indicators, or live/static classifications are readable. Dashboard shape cannot be verified as valid. Launch remains blocked by the single DNS root cause.
+
+**Single next action:** Fix Cloudflare DNS to DNS-only (grey cloud, A record → `76.76.21.21`). Once `smoke:prod` exits 0, re-run all Phase 18 data checks.
+
+*Updated by `claude/verify-dns-cloudflare-sKNiP` · 2026-04-25*
