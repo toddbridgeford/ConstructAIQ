@@ -3,8 +3,13 @@
  * Domain health checker — diagnoses the current state of constructaiq.trade
  * without requiring any Vercel credentials.
  *
- * Usage:  node scripts/check-domain-status.mjs
+ * Usage:  node scripts/check-domain-status.mjs [--json] [--apex <url>] [--www <url>]
  *         npm run domain:check
+ *
+ * Flags:
+ *   --json          Print machine-readable JSON instead of human text
+ *   --apex <url>    Override the apex URL to probe (default: https://constructaiq.trade)
+ *   --www  <url>    Override the www URL to probe  (default: https://www.constructaiq.trade/dashboard)
  *
  * Exit codes:
  *   0 — apex reachable and www redirects correctly
@@ -12,11 +17,33 @@
  *   2 — other failure
  */
 
+import { fileURLToPath } from 'url'
+
 const TIMEOUT_MS = 15_000
 const APEX       = 'https://constructaiq.trade'
 const WWW        = 'https://www.constructaiq.trade/dashboard'
 const APEX_LABEL = 'apex  (constructaiq.trade)'
 const WWW_LABEL  = 'www   (www.constructaiq.trade/dashboard)'
+
+// ── Argument parsing ──────────────────────────────────────────────────────────
+
+export function parseArgs(argv) {
+  let json    = false
+  let apexUrl = APEX
+  let wwwUrl  = WWW
+
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--json') {
+      json = true
+    } else if (argv[i] === '--apex' && argv[i + 1]) {
+      apexUrl = argv[++i]
+    } else if (argv[i] === '--www' && argv[i + 1]) {
+      wwwUrl = argv[++i]
+    }
+  }
+
+  return { json, apexUrl, wwwUrl }
+}
 
 // ── Fetch helper (no redirect follow) ────────────────────────────────────────
 
@@ -49,7 +76,7 @@ async function probe(url) {
 
 // ── Classification ────────────────────────────────────────────────────────────
 
-function classifyApex(result) {
+export function classifyApex(result) {
   if (!result.ok) {
     const { code } = result
     if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'DNS_MISSING'
@@ -60,7 +87,7 @@ function classifyApex(result) {
   return 'UNKNOWN_FAILURE'
 }
 
-function classifyWww(result) {
+export function classifyWww(result) {
   if (!result.ok) {
     const { code } = result
     if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'DNS_MISSING'
@@ -76,6 +103,38 @@ function classifyWww(result) {
     return 'WWW_REDIRECT_OK'
   }
   return 'WWW_REDIRECT_WRONG_TARGET'
+}
+
+// ── JSON output builder ───────────────────────────────────────────────────────
+
+export function buildJsonOutput({ apexUrl, apexResult, apexClass, wwwUrl, wwwResult, wwwClass }) {
+  const apexOk = apexClass === 'APEX_OK'
+  const wwwOk  = wwwClass  === 'WWW_REDIRECT_OK'
+
+  const hostNotAllowed =
+    apexResult.denyReason?.includes('host_not_allowed') ||
+    wwwResult.denyReason?.includes('host_not_allowed')
+
+  const exitCode = (apexOk && wwwOk) ? 0 : hostNotAllowed ? 1 : 2
+
+  return {
+    apex: {
+      url:            apexUrl,
+      status:         apexResult.ok ? apexResult.status : null,
+      denyReason:     apexResult.denyReason  ?? null,
+      location:       apexResult.location    ?? null,
+      classification: apexClass,
+    },
+    www: {
+      url:            wwwUrl,
+      status:         wwwResult.ok ? wwwResult.status : null,
+      denyReason:     wwwResult.denyReason   ?? null,
+      location:       wwwResult.location     ?? null,
+      classification: wwwClass,
+    },
+    ok:       apexOk && wwwOk,
+    exitCode,
+  }
 }
 
 // ── Diagnosis messages ────────────────────────────────────────────────────────
@@ -117,43 +176,56 @@ function printResult(label, result, classification) {
   console.log(`  diagnosis    : ${DIAGNOSIS[classification]}`)
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+// ── Main (CLI only) ───────────────────────────────────────────────────────────
 
-console.log('\nConstructAIQ — domain status check')
-console.log('═'.repeat(54))
+async function main() {
+  const { json, apexUrl, wwwUrl } = parseArgs(process.argv.slice(2))
 
-const [apexResult, wwwResult] = await Promise.all([
-  probe(APEX),
-  probe(WWW),
-])
+  if (!json) {
+    console.log('\nConstructAIQ — domain status check')
+    console.log('═'.repeat(54))
+  }
 
-const apexClass = classifyApex(apexResult)
-const wwwClass  = classifyWww(wwwResult)
+  const [apexResult, wwwResult] = await Promise.all([
+    probe(apexUrl),
+    probe(wwwUrl),
+  ])
 
-printResult(APEX_LABEL, apexResult, apexClass)
-printResult(WWW_LABEL,  wwwResult,  wwwClass)
+  const apexClass = classifyApex(apexResult)
+  const wwwClass  = classifyWww(wwwResult)
 
-// ── Summary & exit ────────────────────────────────────────────────────────────
+  const output = buildJsonOutput({ apexUrl, apexResult, apexClass, wwwUrl, wwwResult, wwwClass })
 
-console.log('\n' + '═'.repeat(54))
+  if (json) {
+    console.log(JSON.stringify(output, null, 2))
+    process.exit(output.exitCode)
+  }
 
-const hostNotAllowed =
-  apexResult.denyReason?.includes('host_not_allowed') ||
-  wwwResult.denyReason?.includes('host_not_allowed')
+  const apexLabel = apexUrl === APEX ? APEX_LABEL : `apex  (${apexUrl})`
+  const wwwLabel  = wwwUrl  === WWW  ? WWW_LABEL  : `www   (${wwwUrl})`
 
-const apexOk = apexClass === 'APEX_OK'
-const wwwOk  = wwwClass  === 'WWW_REDIRECT_OK'
+  printResult(apexLabel, apexResult, apexClass)
+  printResult(wwwLabel,  wwwResult,  wwwClass)
 
-if (apexOk && wwwOk) {
-  console.log('\n  ✓ All good — apex reachable, www redirects correctly.\n')
-  process.exit(0)
-} else if (hostNotAllowed) {
-  console.log('\n  ✗ host_not_allowed — Vercel domain not bound to this project.\n')
-  process.exit(1)
-} else {
-  const issues = []
-  if (!apexOk) issues.push(`apex: ${apexClass}`)
-  if (!wwwOk)  issues.push(`www: ${wwwClass}`)
-  console.log(`\n  ✗ Domain issues detected: ${issues.join(', ')}\n`)
-  process.exit(2)
+  console.log('\n' + '═'.repeat(54))
+
+  if (output.ok) {
+    console.log('\n  ✓ All good — apex reachable, www redirects correctly.\n')
+  } else if (apexResult.denyReason?.includes('host_not_allowed') || wwwResult.denyReason?.includes('host_not_allowed')) {
+    console.log('\n  ✗ host_not_allowed — Vercel domain not bound to this project.\n')
+  } else {
+    const issues = []
+    if (apexClass !== 'APEX_OK')          issues.push(`apex: ${apexClass}`)
+    if (wwwClass  !== 'WWW_REDIRECT_OK')  issues.push(`www: ${wwwClass}`)
+    console.log(`\n  ✗ Domain issues detected: ${issues.join(', ')}\n`)
+  }
+
+  process.exit(output.exitCode)
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch(err => {
+    console.error('Unexpected error:', err)
+    process.exit(2)
+  })
 }
