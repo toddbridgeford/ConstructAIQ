@@ -45,8 +45,11 @@ npm run smoke:www
 npm run smoke:prod
 ```
 
-**Pass state:** both curl calls return `HTTP/2 200` (no `x-deny-reason` header);
-both smoke scripts exit 0 and print `✓ All checks passed`.
+**Pass state:**
+- `curl -sSI https://constructaiq.trade` returns `HTTP/2 200` (or a valid canonical redirect) — no `x-deny-reason` header.
+- `curl -sSI https://www.constructaiq.trade/dashboard` returns `HTTP/2 301`, `302`, or `308` with a `location` header pointing to `https://constructaiq.trade/dashboard` — no `x-deny-reason` header.
+- `npm run smoke:www` exits 0 and prints `✓ All checks passed`.
+- `npm run smoke:prod` exits 0 and prints `✓ All checks passed`.
 
 If all four pass, the P0 is resolved. Update the verdict to **GO** and proceed
 with env-variable verification (see [OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)).
