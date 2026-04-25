@@ -15,45 +15,138 @@ tested; a missing env var can't be verified by the dashboard).
 
 ## Gate 1 — Domain / DNS
 
-- [ ] **`constructaiq.trade` resolves and serves the app**
+> **External actions only — no code changes required for any item in this
+> gate.** Every step lives in the Vercel UI or in your DNS provider's
+> control panel. Treat each box as "verify"; do not tick it from
+> intent. The smoke script at the bottom of this gate is the only
+> authoritative pass-signal.
+
+### 1.1 Vercel domain alias setup
+
+Both the apex and `www` subdomain must be assigned to the
+ConstructAIQ Vercel project before any DNS configuration will take
+effect at the application layer.
+
+- [ ] **Verify `constructaiq.trade` is added in Vercel**
+      1. <https://vercel.com/dashboard> → **ConstructAIQ** project.
+      2. **Settings → Domains** in the left rail.
+      3. Confirm `constructaiq.trade` is present and shows a green
+         checkmark (Vercel validated DNS + issued an SSL cert).
+      4. If missing: click **Add Domain**, enter `constructaiq.trade`,
+         and follow the apex DNS prompt (typically an `A` record to
+         `76.76.21.21`, or — preferred when your DNS provider supports
+         CNAME flattening / ALIAS — a flattened CNAME to
+         `cname.vercel-dns.com`).
+
+- [ ] **Verify `www.constructaiq.trade` is added in Vercel**
+      Same UI as above. Click **Add Domain**, enter
+      `www.constructaiq.trade`. Vercel will display a CNAME target
+      (typically `cname.vercel-dns.com`) — copy it for step 1.2.
+
+### 1.2 DNS records at your DNS provider
+
+The DNS provider here is whoever hosts the `constructaiq.trade`
+zone (Cloudflare, Route 53, registrar nameservers, etc.). Vercel
+does **not** manage these unless the domain was bought through
+Vercel.
+
+- [ ] **Verify `www` CNAME record exists**
+      Add (or confirm) at the DNS provider:
+      ```
+      Type:  CNAME
+      Name:  www                    ← just "www", not the FQDN
+      Value: cname.vercel-dns.com   ← exact value Vercel showed in 1.1
+      TTL:   3600 (or provider default)
+      ```
+      Verify with:
+      ```bash
+      dig +short www.constructaiq.trade
+      # expected: a CNAME to cname.vercel-dns.com
+      ```
+
+- [ ] **Verify the apex record exists**
+      The apex (`constructaiq.trade` with no subdomain) **cannot** be
+      a plain CNAME under standard DNS. Pick one based on your
+      provider:
+
+      | Provider supports        | Recommended record                                     |
+      |--------------------------|--------------------------------------------------------|
+      | ALIAS / CNAME flattening | ALIAS or flattened CNAME → `cname.vercel-dns.com`      |
+      | A records only           | `A` → `76.76.21.21` (Vercel's anycast IP — verify in Vercel UI in case it changed) |
+
+      Verify with:
+      ```bash
+      dig +short constructaiq.trade
+      # expected: 76.76.21.21 (or a Vercel A record), or a flattened
+      #           CNAME hop ending at a Vercel anycast IP.
+      ```
+
+### 1.3 Wait for propagation, then run the smoke script
+
+- [ ] **Wait for DNS propagation** — typically 1–10 minutes once
+      records are saved. Vercel's Domains panel will refresh from
+      "Invalid Configuration" → green checkmark when it can validate
+      the records, and will then auto-issue an SSL certificate.
+
+- [ ] **Verify with `npm run smoke:www`** — this is the only
+      authoritative pass signal for this gate:
+      ```bash
+      npm run smoke:www
+      # expected:
+      #   ✓ www DNS resolves
+      #   ✓ www returns 30x redirect
+      #   ✓ redirect target → https://constructaiq.trade/...
+      ```
+      Do **not** mark Gate 1 complete unless this command exits 0.
+      Each individual failure mode (DNS / Vercel alias / no redirect /
+      wrong target) is documented with its specific manual fix in
+      [docs/PRODUCTION_SMOKE.md](./PRODUCTION_SMOKE.md).
+
+- [ ] **Verify the apex serves the app**
       ```bash
       curl -sSI https://constructaiq.trade | head -1
       # expected: HTTP/2 200 (or 301/302 to the canonical path)
       ```
-- [ ] **`www.constructaiq.trade` resolves**
-      ```bash
-      dig +short www.constructaiq.trade
-      # expected: a CNAME to cname.vercel-dns.com (or an A record from Vercel)
-      ```
-- [ ] **`www` redirects to the apex domain**
-      ```bash
-      npm run smoke:www
-      # expected: ✓ www DNS resolves, ✓ www returns 30x redirect,
-      #           ✓ redirect target → https://constructaiq.trade/...
-      ```
-      If any of those fail, [docs/PRODUCTION_SMOKE.md](./PRODUCTION_SMOKE.md)
-      lists each failure mode (DNS / Vercel alias / no redirect / wrong
-      target) with the specific manual fix.
 
-- [ ] **Other subdomain behavior is documented (or absent)**
-      The `next.config.ts` redirects rule only matches host
-      `www.constructaiq.trade`. There is no current product handling
-      for `api.`, `docs.`, or `data.` subdomains. If those are
-      registered in DNS, decide before launch whether to:
-      - leave them unconfigured (DNS NXDOMAIN — clean), or
-      - point them at the apex Vercel project and add explicit
-        redirect rules to `next.config.ts`, or
-      - park them on a placeholder host.
-      Confirm the chosen behavior with `dig` and document the
-      decision here once made.
+### 1.4 Known Vercel aliases — single source of truth
+
+This project's intentional alias map:
+
+| Host                       | Behavior        | Notes                                       |
+|----------------------------|-----------------|---------------------------------------------|
+| `constructaiq.trade`       | **Canonical**   | Serves the app; all links resolve here.     |
+| `www.constructaiq.trade`   | **301 → apex**  | Application-layer redirect in `next.config.ts`. |
+
+There is no current product handling for `api.`, `docs.`, or `data.`
+subdomains. If any of those exist in DNS, **either remove them or
+configure them deliberately** before launch — do not leave a
+subdomain pointed somewhere ambiguous.
+
+- [ ] **Verify no stray subdomain DNS records**
+      ```bash
+      for sub in api docs data app; do
+        echo "${sub}.constructaiq.trade → $(dig +short ${sub}.constructaiq.trade | head -1)"
+      done
+      # expected: each line prints empty after "→" (NXDOMAIN), unless
+      # you've intentionally configured one. Empty is the clean state.
+      ```
+      If any line is non-empty and you do not control where it
+      points, decide:
+      - leave NXDOMAIN by **removing the DNS record**, or
+      - point at the apex Vercel project and **add an explicit
+        `redirects()` rule** in `next.config.ts`, or
+      - park on a placeholder host.
 
 ---
 
 ## Gate 2 — Environment variables
 
 These are checked at the **runtime environment** (Vercel Production),
-not just `.env.local`. After setting any of them in Vercel you must
-trigger a redeploy for serverless functions to pick them up.
+not just `.env.local`. The exact UI walkthrough — Project → Settings →
+Environment Variables → Production → Save → Redeploy — is in
+[`docs/ENVIRONMENT.md`](./ENVIRONMENT.md#vercel-production-setup--generic-walkthrough).
+After setting any variable in Vercel **a redeploy is mandatory** for
+serverless functions to pick it up.
 
 The full plain-English list lives in [`.env.example`](../.env.example).
 The required keys are:
@@ -251,10 +344,12 @@ everything that *can* be automated.
 
 Each gate references the doc that explains the failure mode in detail:
 
-| Failure                                  | Reference                                  |
-|------------------------------------------|--------------------------------------------|
-| www does not resolve / 403 / no redirect | [docs/PRODUCTION_SMOKE.md](./PRODUCTION_SMOKE.md) |
-| Weekly Brief stuck on static fallback    | [docs/ENVIRONMENT.md](./ENVIRONMENT.md)             |
-| `/api/dashboard` shape regression        | [docs/PRODUCTION_SMOKE.md](./PRODUCTION_SMOKE.md) |
-| Hardcoded contractor leaderboard re-emerges | `src/app/api/federal/__tests__/route.test.ts` source-level guard fails CI |
-| Pre-existing audit context               | [docs/STABILIZATION_REPORT.md](./STABILIZATION_REPORT.md) |
+| Failure                                     | Reference                                                                  |
+|---------------------------------------------|----------------------------------------------------------------------------|
+| www does not resolve / 403 / no redirect    | [docs/PRODUCTION_SMOKE.md](./PRODUCTION_SMOKE.md)                          |
+| Weekly Brief stuck on static fallback       | [docs/ENVIRONMENT.md](./ENVIRONMENT.md)                                    |
+| `/api/dashboard` shape regression           | [docs/PRODUCTION_SMOKE.md](./PRODUCTION_SMOKE.md)                          |
+| Vercel env var not picked up                | [docs/ENVIRONMENT.md § Vercel Production setup](./ENVIRONMENT.md#vercel-production-setup--generic-walkthrough) |
+| Bad deploy in Production / `/dashboard` global error | [docs/OPERATOR_RUNBOOK.md](./OPERATOR_RUNBOOK.md)                  |
+| Hardcoded contractor leaderboard re-emerges | `src/app/api/federal/__tests__/route.test.ts` source-level guard fails CI  |
+| Pre-existing audit context                  | [docs/STABILIZATION_REPORT.md](./STABILIZATION_REPORT.md)                  |
