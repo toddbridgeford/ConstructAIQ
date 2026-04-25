@@ -3447,3 +3447,57 @@ Public launch status: **NO-GO**.
 **Next action:** Resolve Vercel domain binding → `domain:check` exits 0 → `smoke:prod` exits 0 → re-run data verification.
 
 *Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 21:15 UTC*
+
+---
+
+## Phase 14 final launch gate — 2026-04-25 21:30 UTC
+
+### `npm run launch:check -- --include-smoke` (exit code: 1)
+
+#### Gate 5 — build / lint / unit tests
+
+| Check | Exit | Detail |
+|-------|------|--------|
+| `npm run build` | **0** | `✓ Compiled successfully` · 84 routes · 0 errors · 92.2s |
+| `npm run lint` | **0** | `✔ No ESLint warnings or errors` · 2.8s |
+| `npm test` | **0** | 24 files · 344/344 passed · 3.3s |
+
+#### Gate 4 — production smoke
+
+| Check | Result | Detail |
+|-------|--------|--------|
+| `GET /` returns 200 | **FAIL** | got 403 |
+| `GET /dashboard` returns 200 | **FAIL** | got 403 |
+| `/api/status` returns 200 | **FAIL** | got 403 |
+| `/api/dashboard` returns 200 | **FAIL** | got 403 |
+| www DNS resolves | **PASS** | `www.constructaiq.trade` responded |
+| www bound to Vercel project | **FAIL** | 403 `host_not_allowed` |
+
+| Command | Exit | Passed | Failed |
+|---------|------|--------|--------|
+| `npm run smoke:prod` | **1** | 1/6 | 5/6 |
+| `npm run smoke:www` | **1** | 1/2 | 1/2 |
+
+#### Launch:check summary
+
+```
+✓  build
+✓  lint
+✓  unit tests
+✗  smoke:prod
+✗  smoke:www
+
+✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www
+```
+
+### Verdict
+
+**NO-GO — launch:check exits 1.**
+
+All code-quality gates pass. Sole failure: Vercel domain not bound. Both `constructaiq.trade` and `www.constructaiq.trade` return `HTTP 403 · x-deny-reason: host_not_allowed` at the Vercel edge. Zero product code changes are needed.
+
+**Failing gate:** `smoke:prod` + `smoke:www` — `host_not_allowed` on apex and www.
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → confirm both `constructaiq.trade` and `www.constructaiq.trade` are bound here with green SSL checkmarks. Re-run `npm run domain:check` (must exit 0), then `npm run launch:check -- --include-smoke` (must exit 0) to flip verdict to GO.
+
+*Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 21:30 UTC*
