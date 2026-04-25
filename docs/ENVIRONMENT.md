@@ -38,8 +38,8 @@ the moment they were committed and is no longer used.
 ### Verification
 
 ```bash
-# Should report configured: true
-curl -s https://constructaiq.trade/api/status | jq .weekly_brief
+# Should report true
+curl -s https://constructaiq.trade/api/status | jq .env.anthropicConfigured
 
 # Should return source: "ai", live: true (after the first generation)
 curl -s https://constructaiq.trade/api/weekly-brief | jq '{source, live, configured}'
@@ -55,7 +55,7 @@ function logs do not show a Claude API error (rate limit, invalid key, etc.).
 cp .env.example .env.local
 # Edit .env.local and paste your ANTHROPIC_API_KEY value
 npm run dev
-curl -s http://localhost:3000/api/status | jq .weekly_brief
+curl -s http://localhost:3000/api/status | jq .env.anthropicConfigured
 ```
 
 The key value is never logged or returned by any API surface. Only the

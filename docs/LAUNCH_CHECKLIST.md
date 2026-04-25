@@ -71,8 +71,8 @@ The required keys are:
       [docs/ENVIRONMENT.md](./ENVIRONMENT.md) for the full setup walkthrough.
       Verify:
       ```bash
-      curl -s https://constructaiq.trade/api/status | jq .weekly_brief
-      # expected: { "configured": true }
+      curl -s https://constructaiq.trade/api/status | jq .env.anthropicConfigured
+      # expected: true
       curl -s https://constructaiq.trade/api/weekly-brief | jq '{source, live, configured}'
       # expected: source="ai", live=true (after the first generation), configured=true
       ```
@@ -101,8 +101,23 @@ The required keys are:
 
 A quick "what's actually configured" sanity sweep:
 ```bash
+# Required infrastructure — all five must be true before launch
+curl -s https://constructaiq.trade/api/status | jq .env
+# expected: { supabaseConfigured: true, anthropicConfigured: true,
+#             upstashConfigured: true, sentryConfigured: true,
+#             cronSecretConfigured: true }
+
+# Optional data-source keys and pricewatch/benchmark connectivity
 curl -s https://constructaiq.trade/api/status | jq .api_health
 # Boolean per source: pricewatch, benchmark, eia, bea, solicitations, equities
+
+# Federal + weekly-brief live data status
+curl -s https://constructaiq.trade/api/status | jq .data
+# expected: { federalSource: "usaspending.gov", weeklyBriefSource: "ai" }
+
+# Deep check — verifies dashboard KPI series exist in observations table
+curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data.dashboardShapeOk
+# expected: true
 ```
 
 ---
