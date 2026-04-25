@@ -15,6 +15,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://constructaiq.trade'),
   title: "ConstructAIQ — Construction Market Intelligence",
   description: "AI-powered construction forecasting platform. 312 federal and state data sources unified into actionable market intelligence.",
   keywords: "construction forecasting, construction data, building permits, construction AI, market intelligence",

@@ -1,241 +1,34 @@
 "use client"
-import { useState, useEffect, Fragment } from "react"
-import Image                             from "next/image"
-import Link                              from "next/link"
-import dynamic                           from "next/dynamic"
-import { color, font, type as TS, signal as SIG, layout as L } from "@/lib/theme"
+import { useState, useEffect } from "react"
+import Image from "next/image"
+import Link  from "next/link"
+import { signal as SIG } from "@/lib/theme"
+import {
+  safeFetch, fmtMillions, verdictFor, blsSeries,
+  WHITE, BG, BD, T1, T3, BLUE, MONO, SYS,
+  type Card, type PlatformStats, type VerdictData,
+} from "./home/home-utils"
+import { HomeVerdictBanner } from "./home/HomeVerdictBanner"
+import { HomeNav }           from "./home/HomeNav"
+import { HomeHero }          from "./home/HomeHero"
+import { HomeNewsletter }    from "./home/HomeNewsletter"
+import { HomeStatusCards }   from "./home/HomeStatusCards"
+import { HomeLiveStats }     from "./home/HomeLiveStats"
+import { HomeTrust }         from "./home/HomeTrust"
+import { HomeMapSection }    from "./home/HomeMapSection"
+import type { MapState } from "./components/HomeMap"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyStats = any
-
-const HomeMap = dynamic(
-  () => import("./components/HomeMap").then(m => m.HomeMap),
-  { ssr: false, loading: () => <MapPlaceholder /> },
-)
-
-const SYS  = font.sys
-const MONO = font.mono
-
-// Light-mode palette from existing theme tokens
-const WHITE = color.t1       // #fff
-const BG    = color.lightBg  // #f8f8f8
-const BD    = color.lightBd  // #e5e5e5
-const T1    = color.bg1      // #0d0d0d  — primary text on white
-const T3    = color.t4       // #6e6e73  — muted text
-const GREEN = color.green    // #30d158
-const RED   = color.red      // #ff453a
-const AMBER = color.amber    // #f5a623
-const BD1   = color.lightBd  // #e5e5e5 — alias used in banner
-const T2    = color.bg1      // #0d0d0d — readable on light banner backgrounds
-const T4    = color.t4       // #6e6e73 — muted, used in banner link
-const BLUE  = color.blue     // #0a84ff
-const BG1   = color.lightBg  // #f8f8f8 — live stats strip background
-const BD2   = color.lightBd  // #e5e5e5 — secondary button border
-
-async function safeFetch(url: string) {
-  try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
-}
-
-function fmtMillions(v: number): string {
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}T`
-  if (v >= 1_000)     return `$${(v / 1_000).toFixed(0)}B`
-  return `$${v.toFixed(0)}M`
-}
-
-function trendColor(v: number): string {
-  return v > 0.05 ? SIG.expand : v < -0.05 ? SIG.contract : SIG.watch
-}
-
-function verdictFor(mom: number, posLabel: string, negLabel: string): { label: string; col: string } {
-  if (mom >  0.15) return { label: posLabel, col: SIG.expand   }
-  if (mom < -0.15) return { label: negLabel, col: SIG.contract }
-  return              { label: 'WATCH',    col: SIG.watch    }
-}
-
-function blsSeries(raw: Record<string, unknown> | null, id: string) {
-  const series = (raw as { data?: { Results?: { series?: Array<{ seriesID: string; data: Array<{ value: string }> }> } } } | null)
-    ?.data?.Results?.series ?? []
-  return series.find(s => s.seriesID === id)
-}
-
-function MapPlaceholder() {
-  return (
-    <div style={{
-      width: '100%', height: 380,
-      background: color.lightBgSkel,
-      animation: 'shimmer 1.5s infinite',
-      backgroundImage: `linear-gradient(90deg, ${color.lightBgSkel} 25%, ${color.lightBgSub} 50%, ${color.lightBgSkel} 75%)`,
-      backgroundSize: '200% 100%',
-    }} />
-  )
-}
-
-interface Card {
-  label:   string
-  verdict: string | null
-  col:     string
-  metric:  string
-  sub:     string
-}
-
-function StatusCard({ label, verdict, col, metric, sub }: Card) {
-  return (
-    <div style={{
-      background:      WHITE,
-      borderRadius:    L.cardRadius,
-      border:          `1px solid ${BD}`,
-      borderLeft:      `3px solid ${col}`,
-      padding:         L.cardPad,
-      boxShadow:       '0 2px 8px rgba(0,0,0,0.06)',
-      display:         'flex',
-      flexDirection:   'column',
-      gap:             10,
-    }}>
-      <div style={{ ...TS.label, color: T3 }}>{label}</div>
-      {verdict && (
-        <span style={{
-          alignSelf:     'flex-start',
-          background:    `${col}18`,
-          border:        `1px solid ${col}40`,
-          borderRadius:  6,
-          padding:       '3px 10px',
-          fontSize:      11,
-          fontFamily:    MONO,
-          fontWeight:    600,
-          color:         col,
-          letterSpacing: '0.08em',
-        }}>
-          {verdict}
-        </span>
-      )}
-      <div style={{ fontSize: 36, fontFamily: MONO, fontWeight: 700, color: T1, lineHeight: 1.1 }}>
-        {metric}
-      </div>
-      <div style={{ fontSize: 13, fontFamily: MONO, color: T3 }}>{sub}</div>
-    </div>
-  )
-}
-
-function NewsletterSignup() {
-  const [email,  setEmail]  = useState("")
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    setStatus("loading")
-    try {
-      const res = await fetch("/api/subscribe", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ email, source: "homepage", plan: "newsletter" }),
-      })
-      setStatus(res.ok ? "success" : "error")
-    } catch {
-      setStatus("error")
-    }
-  }
-
-  return (
-    <div style={{ maxWidth: 560, margin: "0 auto", textAlign: "center" }}>
-      <div style={{
-        fontFamily:    MONO,
-        fontSize:      10,
-        color:         color.amber,
-        letterSpacing: "0.14em",
-        textTransform: "uppercase",
-        marginBottom:  12,
-      }}>
-        The Signal — Free Weekly
-      </div>
-      <h2 style={{
-        fontSize:      22,
-        fontWeight:    700,
-        letterSpacing: "-0.02em",
-        color:         T1,
-        margin:        "0 0 8px",
-      }}>
-        Construction market intelligence, every Monday.
-      </h2>
-      <p style={{ fontSize: 14, color: T3, margin: "0 0 24px", lineHeight: 1.6 }}>
-        Verdict, key numbers, and the week&apos;s top signal — delivered free.
-      </p>
-
-      {status === "success" ? (
-        <p style={{
-          fontSize:   14,
-          fontFamily: MONO,
-          color:      color.green,
-          fontWeight: 600,
-        }}>
-          You&apos;re on the list. First issue next Monday.
-        </p>
-      ) : (
-        <form onSubmit={submit} style={{
-          display:        "flex",
-          gap:            8,
-          justifyContent: "center",
-          flexWrap:       "wrap",
-        }}>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="your@email.com"
-            required
-            style={{
-              background:   color.bg0,
-              border:       `1px solid ${BD}`,
-              borderRadius: 10,
-              padding:      "11px 16px",
-              fontSize:     14,
-              color:        T1,
-              fontFamily:   SYS,
-              outline:      "none",
-              width:        240,
-            }}
-          />
-          <button
-            type="submit"
-            disabled={status === "loading"}
-            style={{
-              background:   color.amber,
-              color:        "#000",
-              border:       "none",
-              borderRadius: 10,
-              padding:      "11px 20px",
-              fontSize:     14,
-              fontWeight:   600,
-              cursor:       status === "loading" ? "wait" : "pointer",
-              fontFamily:   SYS,
-            }}
-          >
-            {status === "loading" ? "..." : "Subscribe free"}
-          </button>
-        </form>
-      )}
-
-      {status === "error" && (
-        <p style={{ fontSize: 12, color: color.red, marginTop: 8 }}>
-          Something went wrong. <Link href="/subscribe" style={{ color: color.blue }}>Try here</Link>.
-        </p>
-      )}
-    </div>
-  )
-}
+type AnyData = any
 
 export default function HomePage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [census,  setCensus]  = useState<AnyStats>(null)
-  const [bls,     setBls]     = useState<AnyStats>(null)
-  const [federal, setFederal] = useState<AnyStats>(null)
-  const [mapData, setMapData] = useState<AnyStats>(null)
+  const [census,  setCensus]  = useState<AnyData>(null)
+  const [bls,     setBls]     = useState<AnyData>(null)
+  const [federal, setFederal] = useState<AnyData>(null)
+  const [mapData, setMapData] = useState<AnyData>(null)
   const [mapDate, setMapDate] = useState('')
-  const [stats,   setStats]   = useState<AnyStats>(null)
-  const [verdict,        setVerdict]        = useState<{
-    overall:    string
-    confidence: string
-    headline:   string
-  } | null>(null)
+  const [stats,   setStats]   = useState<PlatformStats | null>(null)
+  const [verdict,        setVerdict]        = useState<VerdictData | null>(null)
   const [verdictLoading, setVerdictLoading] = useState(true)
 
   useEffect(() => {
@@ -250,9 +43,8 @@ export default function HomePage() {
       if (b) setBls(b)
       if (f) setFederal(f)
       if (m) setMapData(m)
-      if (s) setStats(s)
+      if (s) setStats(s as PlatformStats)
     })
-    // Fire verdict fetch independently so it doesn't block the main data load
     safeFetch('/api/verdict')
       .then(d => {
         setVerdict(d)
@@ -263,9 +55,9 @@ export default function HomePage() {
   }, [])
 
   // ── Census spending ──
-  const obs0     = parseFloat(census?.observations?.[0]?.value ?? '0')
-  const obs1     = parseFloat(census?.observations?.[1]?.value ?? '0')
-  const spendMom = obs0 > 0 && obs1 > 0 ? ((obs0 - obs1) / obs1) * 100 : 0
+  const obs0      = parseFloat(census?.observations?.[0]?.value ?? '0')
+  const obs1      = parseFloat(census?.observations?.[1]?.value ?? '0')
+  const spendMom  = obs0 > 0 && obs1 > 0 ? ((obs0 - obs1) / obs1) * 100 : 0
   const spendDisp = census ? fmtMillions(obs0) : null
 
   // ── BLS series ──
@@ -278,20 +70,16 @@ export default function HomePage() {
   const ppiPrev = parseFloat(ppiSer?.data?.[1]?.value ?? '0')
   const ppiMom  = ppiPrev > 0 ? ((ppiV - ppiPrev) / ppiPrev) * 100 : 0
 
-  const empDisp  = empK >= 1000 ? `${(empK / 1000).toFixed(1)}M` : empK > 0 ? `${empK.toFixed(0)}K` : '—'
-  const laborV   = verdictFor(empMom, 'EXPANDING', 'CONTRACTING')
-  const matsV    = verdictFor(-ppiMom, 'EXPANDING', 'CONTRACTING')
+  const empDisp = empK >= 1000 ? `${(empK / 1000).toFixed(1)}M` : empK > 0 ? `${empK.toFixed(0)}K` : '—'
+  const laborV  = verdictFor(empMom,  'EXPANDING', 'CONTRACTING')
+  const matsV   = verdictFor(-ppiMom, 'EXPANDING', 'CONTRACTING')
 
-  // ── Federal pipeline ──
   const fedObl  = federal?.totalObligated ?? 0
   const fedDisp = fedObl > 0 ? fmtMillions(fedObl) : '—'
 
-  // ── Live stats strip values (null when data not yet loaded) ──
-  const spendVal = census ? obs0 : null
-  const empVal   = bls    ? empK : null
-
-  // ── Map states ──
-  const mapStates = mapData?.states ?? []
+  const spendVal  = census ? obs0 : null
+  const empVal    = bls    ? empK : null
+  const mapStates = (mapData?.states ?? []) as MapState[]
 
   const cards: Card[] = [
     {
@@ -317,19 +105,6 @@ export default function HomePage() {
     },
   ]
 
-  /*
-   * HOMEPAGE SECTIONS (in render order):
-   *   1. VERDICT BANNER    — PRIMARY   market signal: EXPAND / HOLD / CONTRACT
-   *   2. NAV               — PRIMARY   sticky nav with logo + links
-   *   3. HERO              — PRIMARY   h1, subhead, spending KPI, CTAs
-   *   4. NEWSLETTER        — SECONDARY inline subscribe form
-   *   5. STATUS CARDS      — SECONDARY labor, materials, pipeline KPI cards
-   *   6. TRUST SIGNALS     — SECONDARY data provenance + methodology + free forever
-   *   7. LIVE MAP          — SECONDARY state-level activity heatmap
-   *   8. FINAL CTA         — TERTIARY  duplicate dashboard CTA — candidate for removal
-   *   9. FOOTER            — PRIMARY
-   */
-
   return (
     <div id="main-content" style={{ background: WHITE, color: T1, fontFamily: SYS, minHeight: '100vh' }}>
       <style>{`
@@ -349,432 +124,53 @@ export default function HomePage() {
         }
       `}</style>
 
-      {/* ── VERDICT BANNER ── */}
-      {!verdictLoading && verdict && (
-        <div style={{
-          width: '100%',
-          background:
-            verdict.overall === 'EXPAND'   ? `${GREEN}18` :
-            verdict.overall === 'CONTRACT' ? `${RED}18`   :
-            `${AMBER}18`,
-          borderBottom: `1px solid ${
-            verdict.overall === 'EXPAND'   ? `${GREEN}44` :
-            verdict.overall === 'CONTRACT' ? `${RED}44`   :
-            `${AMBER}44`
-          }`,
-          padding: '12px 40px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 16,
-          minHeight: 48,
-        }}>
-          <span style={{
-            fontFamily: MONO,
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            color:
-              verdict.overall === 'EXPAND'   ? GREEN :
-              verdict.overall === 'CONTRACT' ? RED   :
-              AMBER,
-          }}>
-            MARKET SIGNAL: {verdict.overall}
-          </span>
-          <span style={{
-            width: 1, height: 14,
-            background: BD1,
-            display: 'inline-block',
-          }} />
-          <span style={{
-            fontFamily: SYS,
-            fontSize: 13,
-            color: T2,
-            lineHeight: 1.5,
-          }}>
-            {verdict.headline}
-          </span>
-          <Link href="/dashboard"
-            style={{
-              marginLeft: 'auto',
-              fontFamily: SYS,
-              fontSize: 12,
-              color: T4,
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
-            }}>
-            Full analysis →
-          </Link>
-        </div>
-      )}
+      <HomeVerdictBanner verdict={verdict} loading={verdictLoading} />
+      <HomeNav />
+      <HomeHero spendDisp={spendDisp} spendMom={spendMom} />
 
-      {/* Verdict skeleton while loading */}
-      {verdictLoading && (
-        <div style={{
-          width: '100%',
-          height: 48,
-          background: BG,
-          borderBottom: `1px solid ${BD}`,
-        }} />
-      )}
-
-      {/* ── NAV ── */}
-      <nav style={{
-        position:       'sticky', top: 0, zIndex: 100,
-        background:     'rgba(255,255,255,0.94)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderBottom:   `1px solid ${BD}`,
-        padding:        '0 40px',
-        display:        'flex', alignItems: 'center', justifyContent: 'space-between',
-        height:         60,
-      }}>
-        <Link href="/">
-          <Image src="/ConstructAIQBlackLogo.svg" width={124} height={22} alt="ConstructAIQ"
-                 style={{ height: 20, width: 'auto', display: 'block' }} />
-        </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <Link href="/methodology"
-                style={{ fontSize: 14, fontWeight: 500, color: T3, textDecoration: 'none' }}>
-            Methodology
-          </Link>
-          <Link href="/dashboard" style={{
-            display:        'inline-flex', alignItems: 'center', justifyContent: 'center',
-            background:     color.blue, color: WHITE,
-            fontSize:       14, fontWeight: 600,
-            padding:        '8px 20px', borderRadius: 10, minHeight: 44,
-            textDecoration: 'none', letterSpacing: '-0.01em',
-          }}>
-            Open Dashboard
-          </Link>
-        </div>
-      </nav>
-
-      {/* ── HERO ── */}
-      <section style={{
-        minHeight:     'calc(100vh - 60px)',
-        display:       'flex', alignItems: 'center', justifyContent: 'center',
-        padding:       '80px 40px',
-        background:    WHITE,
-      }}>
-        <div style={{ maxWidth: 800, width: '100%', textAlign: 'center' }}>
-          <div style={{ ...TS.label, color: T3, marginBottom: 24 }}>CONSTRUCTAIQ</div>
-
-          <h1 className="hp-h1" style={{
-            fontSize:      'clamp(36px,5vw,52px)',
-            fontFamily:    SYS, fontWeight: 700,
-            lineHeight:    1.15, letterSpacing: '-0.03em',
-            color:         T1, marginBottom: 16,
-          }}>
-            The US construction economy,<br />in real time.
-          </h1>
-
-          <p style={{
-            fontSize: 18, fontFamily: SYS, fontWeight: 400,
-            color:    T3, lineHeight: 1.65,
-            maxWidth: 460, margin: '0 auto 56px',
-          }}>
-            For contractors, lenders, and suppliers. Free.
-          </p>
-
-          {/* ── Spending KPI ── */}
-          <div style={{ marginBottom: 48 }}>
-            <div style={{ ...TS.label, color: T3, marginBottom: 12 }}>
-              Total US Construction Spending
-            </div>
-
-            {spendDisp ? (
-              <>
-                <div className="hp-kpi" style={{
-                  fontSize:   'clamp(64px,10vw,96px)',
-                  fontFamily: MONO, fontWeight: 700,
-                  color:      T1, lineHeight: 1, marginBottom: 12,
-                }}>
-                  {spendDisp}
-                </div>
-                <div style={{
-                  display:    'inline-flex', alignItems: 'center', gap: 6,
-                  fontSize:   15, fontFamily: MONO,
-                  color:      trendColor(spendMom),
-                  fontWeight: 600,
-                }}>
-                  <span>{spendMom >= 0 ? '↑' : '↓'}</span>
-                  <span>{spendMom >= 0 ? '+' : ''}{spendMom.toFixed(2)}% MoM</span>
-                </div>
-              </>
-            ) : (
-              <div style={{
-                height: 88, width: 220, margin: '0 auto 12px',
-                borderRadius: 8, background: color.lightBgSkel,
-                backgroundImage: `linear-gradient(90deg,${color.lightBgSkel} 25%,${color.lightBgSub} 50%,${color.lightBgSkel} 75%)`,
-                backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite',
-              }} />
-            )}
-          </div>
-
-          {/* CTAs */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            <Link href="/dashboard" style={{
-              display:        'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background:     BLUE, color: WHITE,
-              fontSize:       16, fontWeight: 600,
-              padding:        '14px 32px', borderRadius: 12, minHeight: 52,
-              textDecoration: 'none', letterSpacing: '-0.01em',
-              boxShadow:      '0 4px 20px rgba(10,132,255,0.28)',
-            }}>
-              Open Dashboard →
-            </Link>
-            <Link href="/subscribe" style={{
-              display:        'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background:     'transparent', color: T2,
-              fontSize:       15, fontWeight: 500,
-              padding:        '13px 24px', borderRadius: 12, minHeight: 48,
-              border:         `1px solid ${BD2}`,
-              letterSpacing:  '-0.01em', textDecoration: 'none',
-            }}>
-              Subscribe to The Signal
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── NEWSLETTER ── */}
       <section style={{ background: BG, borderTop: `1px solid ${BD}`, padding: '48px 40px' }}>
-        <NewsletterSignup />
+        <HomeNewsletter />
       </section>
 
-      {/* ── STATUS CARDS ── */}
       <section style={{ background: BG, borderTop: `1px solid ${BD}`, padding: '64px 40px' }}>
-        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-          <div className="hp-cards">{cards.map(c => <StatusCard key={c.label} {...c} />)}</div>
-        </div>
+        <HomeStatusCards cards={cards} />
       </section>
 
-      {/* ── LIVE STATS STRIP ── */}
-      {(spendVal !== null || empVal !== null) && (
-        <div style={{
-          maxWidth: 1100, margin: '0 auto',
-          padding: '0 40px',
-        }}>
-          <div style={{
-            background: BG1,
-            borderRadius: 20,
-            border: `1px solid ${BD1}`,
-            padding: '28px 32px',
-            display: 'flex',
-            gap: 40,
-            flexWrap: 'wrap',
-            alignItems: 'center',
-          }}>
-            {spendVal !== null && (
-              <div>
-                <div style={{ fontFamily: SYS, fontSize: 10,
-                  color: T4, fontWeight: 600, letterSpacing: '0.06em',
-                  textTransform: 'uppercase', marginBottom: 6 }}>
-                  Construction Spending
-                </div>
-                <div style={{ fontFamily: MONO, fontSize: 28,
-                  fontWeight: 700, color: AMBER, lineHeight: 1 }}>
-                  ${(spendVal / 1000).toFixed(1)}B
-                </div>
-                {spendMom !== null && spendMom !== undefined && (
-                  <div style={{ fontFamily: MONO, fontSize: 12,
-                    color: spendMom >= 0 ? GREEN : RED,
-                    marginTop: 4 }}>
-                    {spendMom >= 0 ? '+' : ''}{spendMom?.toFixed(2)}% MoM
-                  </div>
-                )}
-              </div>
-            )}
+      <HomeLiveStats spendVal={spendVal} empVal={empVal} spendMom={spendMom} empMom={empMom} />
 
-            {spendVal !== null && empVal !== null && (
-              <div style={{ width: 1, height: 48, background: BD1 }} />
-            )}
+      <HomeTrust stats={stats} />
 
-            {empVal !== null && (
-              <div>
-                <div style={{ fontFamily: SYS, fontSize: 10,
-                  color: T4, fontWeight: 600, letterSpacing: '0.06em',
-                  textTransform: 'uppercase', marginBottom: 6 }}>
-                  Construction Employment
-                </div>
-                <div style={{ fontFamily: MONO, fontSize: 28,
-                  fontWeight: 700, color: GREEN, lineHeight: 1 }}>
-                  {empVal >= 1000
-                    ? `${(empVal / 1000).toFixed(1)}M`
-                    : `${empVal}K`}
-                </div>
-                {empMom !== null && empMom !== undefined && (
-                  <div style={{ fontFamily: MONO, fontSize: 12,
-                    color: empMom >= 0 ? GREEN : RED,
-                    marginTop: 4 }}>
-                    {empMom >= 0 ? '+' : ''}{empMom?.toFixed(2)}% MoM
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div style={{ marginLeft: 'auto', display: 'flex',
-              alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <Link href="/dashboard"
-                style={{ fontFamily: SYS, fontSize: 14,
-                  fontWeight: 600, color: BLUE,
-                  textDecoration: 'none' }}>
-                Open full dashboard →
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── TRUST SIGNALS ── */}
-      <section style={{ background: BG, borderTop: `1px solid ${BD}`, padding: '64px 40px' }}>
-        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-          <div style={{ ...TS.label, color: T3, textAlign: 'center', marginBottom: 36 }}>
-            BUILT ON TRUSTED SOURCES
-          </div>
-
-          <div className="hp-trust">
-            {/* Column 1 — Data Provenance */}
-            <div style={{
-              background: WHITE, border: `1px solid ${BD}`,
-              borderRadius: 14, padding: '28px 24px',
-            }}>
-              <div style={{ fontSize: 11, fontFamily: MONO, color: T3, letterSpacing: '0.1em', marginBottom: 14 }}>
-                DATA PROVENANCE
-              </div>
-              <div style={{ fontSize: 14, fontFamily: SYS, color: T1, fontWeight: 600, lineHeight: 1.7, marginBottom: 12 }}>
-                Census Bureau · BLS · FRED · BEA
-                <br />EIA · USASpending.gov · ESA Copernicus
-              </div>
-              <div style={{ fontSize: 13, fontFamily: SYS, color: T3, lineHeight: 1.6, marginBottom: 16 }}>
-                38+ official U.S. government and recognized industry sources. No scraped, unverified, or synthetic data.
-              </div>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: `${color.green}12`, border: `1px solid ${color.green}40`,
-                borderRadius: 7, padding: '5px 12px',
-              }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: color.green, display: 'inline-block' }} />
-                <span style={{ fontSize: 12, fontFamily: MONO, color: color.green }}>
-                  {stats ? `${stats.observations_label}+ observations indexed` : '38+ data sources'}
-                </span>
-              </div>
-            </div>
-
-            {/* Column 2 — Methodology */}
-            <div style={{
-              background: WHITE, border: `1px solid ${BD}`,
-              borderRadius: 14, padding: '28px 24px',
-            }}>
-              <div style={{ fontSize: 11, fontFamily: MONO, color: T3, letterSpacing: '0.1em', marginBottom: 14 }}>
-                METHODOLOGY
-              </div>
-              <div style={{ fontSize: 14, fontFamily: SYS, color: T1, fontWeight: 600, lineHeight: 1.7, marginBottom: 12 }}>
-                Open methodology.
-                <br />Every calculation documented.
-                <br />Every source cited.
-              </div>
-              <div style={{ fontSize: 13, fontFamily: SYS, color: T3, lineHeight: 1.6, marginBottom: 16 }}>
-                3-model ensemble: Holt-Winters + SARIMA + Gradient-Boosted Tree. Accuracy-weighted. Published confidence intervals.
-              </div>
-              <Link href="/methodology" style={{
-                fontSize: 13, fontFamily: SYS, fontWeight: 500,
-                color: color.blue, textDecoration: 'none',
-              }}>
-                Read methodology →
-              </Link>
-            </div>
-
-            {/* Column 3 — Free Forever */}
-            <div style={{
-              background: WHITE, border: `1px solid ${BD}`,
-              borderRadius: 14, padding: '28px 24px',
-            }}>
-              <div style={{ fontSize: 11, fontFamily: MONO, color: T3, letterSpacing: '0.1em', marginBottom: 14 }}>
-                FREE FOREVER
-              </div>
-              <div style={{ fontSize: 14, fontFamily: SYS, color: T1, fontWeight: 600, lineHeight: 1.7, marginBottom: 12 }}>
-                No subscription.
-                <br />No credit card.
-                <br />No data sold. Open API.
-              </div>
-              <div style={{ fontSize: 13, fontFamily: SYS, color: T3, lineHeight: 1.6, marginBottom: 16 }}>
-                Dashboard: free forever. API: 1,000 req/day free, 10,000/day for .edu researchers.
-              </div>
-              <Link href="/api-access" style={{
-                fontSize: 13, fontFamily: SYS, fontWeight: 500,
-                color: color.blue, textDecoration: 'none',
-              }}>
-                Get API access →
-              </Link>
-            </div>
-          </div>
-
-          {/* Live stats bar */}
-          <div style={{
-            marginTop: 28, borderTop: `1px solid ${BD}`, paddingTop: 20,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 32, flexWrap: 'wrap',
-          }}>
-            {[
-              { label: 'Cities tracked',       value: stats ? String(stats.cities_tracked)  : '40'  },
-              { label: 'Satellite MSAs',        value: stats ? String(stats.msas_tracked)    : '20'  },
-              { label: 'Gov. data sources',     value: stats ? `${stats.data_sources}+`      : '38+' },
-              { label: 'Observations indexed',  value: stats?.observations_label ? `${stats.observations_label}+` : '—' },
-            ].map(({ label, value }, i) => (
-              <Fragment key={label}>
-                {i > 0 && <div style={{ width: 1, height: 18, background: BD }} />}
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontFamily: MONO, fontWeight: 700, color: T1 }}>{value}</div>
-                  <div style={{ fontSize: 12, fontFamily: SYS, color: T3, marginTop: 2 }}>{label}</div>
-                </div>
-              </Fragment>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── LIVE MAP ── */}
-      <section style={{ background: WHITE, borderTop: `1px solid ${BD}` }}>
-        <HomeMap states={mapStates} />
-        <div style={{
-          textAlign: 'center', padding: '14px 40px 20px',
-          ...TS.caption, color: T3,
-        }}>
-          Hot markets as of {mapDate || '—'}
-        </div>
-      </section>
+      <HomeMapSection mapStates={mapStates} mapDate={mapDate} />
 
       {/* ── FINAL CTA ── */}
       <section style={{ padding: '80px 40px', textAlign: 'center', background: WHITE }}>
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
           <p style={{
             fontSize: 18, fontFamily: SYS, fontWeight: 400,
-            color:    T3, lineHeight: 1.7, marginBottom: 32,
+            color: T3, lineHeight: 1.7, marginBottom: 32,
           }}>
             Used by contractors, lenders, and suppliers across the US.
             Start with the dashboard.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/dashboard" style={{
-              display:        'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background:     BLUE, color: WHITE,
-              fontSize:       16, fontWeight: 600,
-              padding:        '14px 32px', borderRadius: 12, minHeight: 52,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              background: BLUE, color: WHITE,
+              fontSize: 16, fontWeight: 600,
+              padding: '14px 32px', borderRadius: 12, minHeight: 52,
               textDecoration: 'none', letterSpacing: '-0.01em',
-              boxShadow:      '0 4px 20px rgba(10,132,255,0.28)',
+              boxShadow: '0 4px 20px rgba(10,132,255,0.28)',
             }}>
               Open Dashboard →
             </Link>
-            <Link href="/methodology"
-              style={{ display: 'inline-flex', alignItems: 'center',
-                justifyContent: 'center',
-                background: 'transparent', color: T2,
-                fontSize: 15, fontWeight: 500,
-                padding: '13px 24px', borderRadius: 12,
-                minHeight: 48, border: `1px solid ${BD2}`,
-                letterSpacing: '-0.01em', textDecoration: 'none' }}>
+            <Link href="/methodology" style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              background: 'transparent', color: T1,
+              fontSize: 15, fontWeight: 500,
+              padding: '13px 24px', borderRadius: 12, minHeight: 48,
+              border: `1px solid ${BD}`,
+              letterSpacing: '-0.01em', textDecoration: 'none',
+            }}>
               Read Methodology →
             </Link>
           </div>
@@ -784,13 +180,17 @@ export default function HomePage() {
       {/* ── FOOTER ── */}
       <footer style={{
         borderTop: `1px solid ${BD}`,
-        padding:   '24px 40px',
-        display:   'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexWrap:  'wrap', gap: 12,
+        padding: '24px 40px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: 12,
         background: BG,
       }}>
-        <Image src="/ConstructAIQBlackLogo.svg" width={100} height={18} alt="ConstructAIQ"
-               style={{ height: 16, width: 'auto', display: 'block' }} />
+        <Image
+          src="/ConstructAIQBlackLogo.svg"
+          width={100} height={18}
+          alt="ConstructAIQ"
+          style={{ height: 16, width: 'auto', display: 'block' }}
+        />
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
           {[
             { label: 'Dashboard',   href: '/dashboard'   },

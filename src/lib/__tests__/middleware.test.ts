@@ -3,15 +3,15 @@ import { NextRequest } from 'next/server'
 
 // Mock dependencies before importing middleware
 vi.mock('@/lib/auth')
-vi.mock('@/lib/ratelimit')
+vi.mock('@/lib/ratelimit-edge')
 
 import { validateApiKey } from '@/lib/auth'
-import { checkRateLimit, incrementUsage } from '@/lib/ratelimit'
+import { checkRateLimitEdge, incrementUsageEdge } from '@/lib/ratelimit-edge'
 import { middleware } from '../../middleware'
 
 const mockValidate    = vi.mocked(validateApiKey)
-const mockCheckRL     = vi.mocked(checkRateLimit)
-const mockIncrement   = vi.mocked(incrementUsage)
+const mockCheckRL     = vi.mocked(checkRateLimitEdge)
+const mockIncrement   = vi.mocked(incrementUsageEdge)
 
 function makeReq(pathname: string, headers: Record<string, string> = {}): NextRequest {
   const req = new NextRequest(`http://localhost${pathname}`)

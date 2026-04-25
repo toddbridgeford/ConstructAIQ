@@ -45,11 +45,23 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             color: '#a0a0ab',
             fontSize: 14,
             lineHeight: 1.6,
-            margin: '0 0 28px',
+            margin: '0 0 12px',
           }}>
             A rendering error occurred. The error has been
             logged automatically. Please try again.
           </p>
+          {process.env.NODE_ENV === 'production'
+            ? error.digest && (
+                <p style={{ fontFamily: 'monospace', fontSize: 11, color: '#555', margin: '0 0 16px' }}>
+                  Ref: {error.digest}
+                </p>
+              )
+            : (
+                <p style={{ fontFamily: 'monospace', fontSize: 11, color: '#e07b54', margin: '0 0 16px', wordBreak: 'break-word' }}>
+                  {error.message}
+                </p>
+              )
+          }
           <button
             onClick={reset}
             style={{

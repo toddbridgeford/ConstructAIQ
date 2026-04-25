@@ -1,7 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { color, font, type as TS, signal as SIG, layout as L, fmtB } from "@/lib/theme"
 import { BenchmarkBadge, type BenchmarkResult } from "@/app/components/ui/BenchmarkBadge"
 import { InsightChip } from "@/app/components/ui/InsightChip"
@@ -104,6 +103,103 @@ function ChangeBadge({ value }: { value: number }) {
     }}>
       {arrow} {value > 0 ? '+' : ''}{value.toFixed(2)}% MoM
     </span>
+  )
+}
+
+// Pure-SVG spending trend — replaces recharts LineChart to keep recharts
+// out of the initial /dashboard bundle.
+function SpendingTrend({ data }: { data: { month: string; value: number }[] }) {
+  const [hovered, setHovered] = useState<number | null>(null)
+
+  if (data.length < 2) {
+    return (
+      <div style={{
+        height: 200, borderRadius: 8,
+        background: `linear-gradient(90deg,${color.bg2} 25%,${color.bg3} 50%,${color.bg2} 75%)`,
+        backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite',
+      }} />
+    )
+  }
+
+  const VW = 600, VH = 200
+  const PL = 4, PR = 4, PT = 8, PB = 22
+  const cW = VW - PL - PR
+  const cH = VH - PT - PB
+  const n  = data.length
+
+  const vals = data.map(d => d.value)
+  const min  = Math.min(...vals)
+  const max  = Math.max(...vals)
+  const rng  = max - min || 1
+
+  const px = (i: number) => PL + (i / (n - 1)) * cW
+  const py = (v: number) => PT + cH - ((v - min) / rng) * cH
+  const pts = data.map((d, i) => `${px(i).toFixed(1)},${py(d.value).toFixed(1)}`).join(' ')
+
+  const step = Math.max(1, Math.ceil((n - 1) / 5))
+
+  const tip = hovered !== null ? (() => {
+    const d  = data[hovered]
+    const cx = px(hovered), cy = py(d.value)
+    const tw = 72, th = 34
+    const tx = cx > VW * 0.7 ? cx - tw - 6 : cx + 6
+    const ty = Math.max(PT, cy - th - 2)
+    return { cx, cy, tx, ty, tw, th, month: d.month, label: fmtB(d.value) }
+  })() : null
+
+  return (
+    <svg
+      viewBox={`0 0 ${VW} ${VH}`}
+      width="100%"
+      style={{ display: 'block', overflow: 'visible' }}
+      onMouseLeave={() => setHovered(null)}
+    >
+      <polyline
+        points={pts} fill="none"
+        stroke={color.amber} strokeWidth={1.5}
+        strokeLinejoin="round" strokeLinecap="round"
+      />
+      <line x1={PL} y1={PT + cH} x2={VW - PR} y2={PT + cH}
+            stroke={color.bd1} strokeWidth={0.5} />
+
+      {/* X-axis labels */}
+      {data.map((d, i) => {
+        if (i % step !== 0 && i !== n - 1) return null
+        return (
+          <text key={i} x={px(i)} y={VH - 4}
+                textAnchor="middle" fontSize={9} fill={color.t4} fontFamily={MONO}>
+            {d.month}
+          </text>
+        )
+      })}
+
+      {/* Hover hit-targets */}
+      {data.map((_, i) => {
+        const slW = cW / (n - 1)
+        return (
+          <rect key={i}
+                x={Math.max(0, px(i) - slW / 2)} y={PT}
+                width={slW} height={cH}
+                fill="transparent"
+                onMouseEnter={() => setHovered(i)}
+                style={{ cursor: 'crosshair' }} />
+        )
+      })}
+
+      {/* Tooltip */}
+      {tip && (
+        <g>
+          <rect x={tip.tx} y={tip.ty} width={tip.tw} height={tip.th}
+                rx={4} ry={4} fill={color.bg2} stroke={color.bd2} strokeWidth={0.5} />
+          <text x={tip.tx + 6} y={tip.ty + 12}
+                fontSize={9} fill={color.t3} fontFamily={MONO}>{tip.month}</text>
+          <text x={tip.tx + 6} y={tip.ty + 27}
+                fontSize={11} fill={color.t1} fontFamily={MONO} fontWeight="600">{tip.label}</text>
+          <circle cx={tip.cx} cy={tip.cy} r={3.5}
+                  fill={color.amber} stroke={color.bg1} strokeWidth={1.5} />
+        </g>
+      )}
+    </svg>
   )
 }
 
@@ -386,44 +482,7 @@ export function OverviewSection({
           gap:           16,
         }}>
           <div style={{ ...TS.label, color: color.t3 }}>Construction Spending — 12 Months</div>
-          {chartData.length >= 2 ? (
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 10, fill: color.t4, fontFamily: MONO }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background:   color.bg2,
-                    border:       `1px solid ${color.bd2}`,
-                    borderRadius: 8,
-                    fontSize:     12,
-                    fontFamily:   MONO,
-                    color:        color.t1,
-                  }}
-                  labelStyle={{ color: color.t3 }}
-                  formatter={(v: number) => [fmtB(v), 'Spending']}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke={color.amber}
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4, fill: color.amber, strokeWidth: 0 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div style={{
-              height: 200, borderRadius: 8,
-              background: `linear-gradient(90deg,${color.bg2} 25%,${color.bg3} 50%,${color.bg2} 75%)`,
-              backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite',
-            }} />
-          )}
+          <SpendingTrend data={chartData} />
         </div>
 
         {/* RIGHT — Top 3 signals */}

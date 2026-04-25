@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateApiKey } from '@/lib/auth'
-import { checkRateLimit, incrementUsage } from '@/lib/ratelimit'
+import { checkRateLimitEdge, incrementUsageEdge } from '@/lib/ratelimit-edge'
 
 // Middleware runs in Edge Runtime — no `export const runtime` needed.
 
@@ -66,7 +66,7 @@ export async function middleware(req: NextRequest) {
 
   const rpm = keyInfo.rpm_limit ?? 60
   const rpd = keyInfo.rpd_limit ?? 1000
-  const rl  = await checkRateLimit(keyInfo.key_hash!, rpm, rpd)
+  const rl  = await checkRateLimitEdge(keyInfo.key_hash!, rpm, rpd)
 
   if (!rl.allowed) {
     const retryAfter = rl.reset ? Math.ceil((rl.reset - Date.now()) / 1000) : 60
@@ -84,7 +84,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // Fire-and-forget usage increment — never blocks the request
-  incrementUsage(keyInfo.key_hash!).catch(() => undefined)
+  incrementUsageEdge(keyInfo.key_hash!).catch(() => undefined)
 
   const res = NextResponse.next()
   res.headers.set('x-key-plan', keyInfo.plan ?? '')

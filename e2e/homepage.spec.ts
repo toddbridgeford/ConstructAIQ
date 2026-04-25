@@ -3,109 +3,97 @@ import { test, expect } from '@playwright/test'
 test.describe('Homepage', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
+    await page.waitForLoadState('domcontentloaded')
   })
 
-  test('verdict banner loads within 15 seconds', async ({ page }) => {
-    // The verdict banner fetches /api/verdict on mount.
-    // It either shows EXPAND/HOLD/CONTRACT or is hidden if
-    // the API fails. Wait for the page to settle first.
-    await page.waitForLoadState('networkidle', { timeout: 20_000 })
+  // ── Brand and title ────────────────────────────────────────────────────────
 
-    // The banner is present (even if hidden when verdict is null)
-    // OR the headline h1 is visible — page loaded either way
-    const headline = page.locator('h1').first()
-    await expect(headline).toBeVisible({ timeout: 15_000 })
+  test('page has correct title and logo is visible', async ({ page }) => {
+    await expect(page).toHaveTitle(/ConstructAIQ/i)
 
-    // Headline should contain the product description
-    const text = await headline.textContent()
-    expect(text).toBeTruthy()
-    expect(text!.length).toBeGreaterThan(5)
+    // Logo img with alt="ConstructAIQ" must be in the DOM and visible.
+    // The global error page renders a monospace text label, not an image —
+    // so a visible logo proves the real page rendered.
+    const logo = page.locator('img[alt="ConstructAIQ"]').first()
+    await expect(logo).toBeVisible({ timeout: 10_000 })
   })
 
-  test('shows verdict signal text when API responds', async ({ page }) => {
-    // Wait for the API call to complete
-    await page.waitForLoadState('networkidle', { timeout: 25_000 })
+  // ── Hero h1 ────────────────────────────────────────────────────────────────
 
-    // The verdict banner text should include one of the signal words
-    // OR be absent (if API call failed — which is acceptable for smoke test)
-    const bodyText = await page.locator('body').textContent()
-    expect(bodyText).toBeTruthy()
+  test('main h1 is visible with substantive content', async ({ page }) => {
+    const h1 = page.locator('h1').first()
+    await expect(h1).toBeVisible({ timeout: 10_000 })
 
-    // One of these must appear on the page (verdict or product name)
-    const hasSignal =
-      bodyText!.includes('EXPAND')    ||
-      bodyText!.includes('HOLD')      ||
-      bodyText!.includes('CONTRACT')  ||
-      bodyText!.includes('ConstructAIQ')
-    expect(hasSignal).toBe(true)
+    const text = await h1.textContent()
+    // Must not be a placeholder — the real headline is a full sentence
+    expect(text?.trim().length).toBeGreaterThan(10)
+  })
+
+  // ── Primary CTA ────────────────────────────────────────────────────────────
+
+  test('Open Dashboard link exists and points to /dashboard', async ({ page }) => {
+    // Multiple "Open Dashboard →" links are rendered in the hero section.
+    // This assertion has no fallback: if no link is present the test must fail.
+    const cta = page.locator('a[href="/dashboard"]').first()
+    await expect(cta).toBeVisible({ timeout: 10_000 })
   })
 
   test('Open Dashboard CTA navigates to /dashboard', async ({ page }) => {
-    await page.waitForLoadState('domcontentloaded')
-
-    // Try several label variants the CTA may render as in production
-    const candidates = [
-      page.getByRole('link', { name: /open dashboard/i }),
-      page.getByRole('link', { name: /dashboard →/i }),
-      page.getByRole('link', { name: /get started/i }),
-      page.getByRole('link', { name: /go to dashboard/i }),
-      page.locator('a[href="/dashboard"]'),
-    ]
-
-    let cta = null
-    for (const candidate of candidates) {
-      const count = await candidate.count()
-      if (count > 0) {
-        cta = candidate.first()
-        break
-      }
-    }
-
-    if (cta) {
-      await expect(cta).toBeVisible({ timeout: 10_000 })
-      await cta.click()
-      await page.waitForURL('**/dashboard**', { timeout: 15_000 })
-      expect(page.url()).toContain('/dashboard')
-    } else {
-      // No link found — verify at minimum the page loaded with content
-      const body = await page.locator('body').textContent()
-      expect(body!.trim().length).toBeGreaterThan(100)
-    }
+    const cta = page.locator('a[href="/dashboard"]').first()
+    await expect(cta).toBeVisible({ timeout: 10_000 })
+    await cta.click()
+    await page.waitForURL('**/dashboard**', { timeout: 15_000 })
+    expect(page.url()).toContain('/dashboard')
   })
 
-  test('page has correct title', async ({ page }) => {
-    await expect(page).toHaveTitle(/ConstructAIQ/i)
+  // ── Subscribe CTA ──────────────────────────────────────────────────────────
+
+  test('subscribe link is present in the hero', async ({ page }) => {
+    // The hero section renders an explicit <Link href="/subscribe"> —
+    // no body-text fallback; if the link is gone the test must fail.
+    const subscribeLink = page.locator('a[href="/subscribe"]').first()
+    await expect(subscribeLink).toBeVisible({ timeout: 10_000 })
   })
 
-  test('subscribe link is reachable from homepage', async ({ page }) => {
+  // ── Error page guard ───────────────────────────────────────────────────────
+
+  test('page does not show the global error page', async ({ page }) => {
+    // domcontentloaded is sufficient; networkidle never fires on this app
+    // because background API polling keeps open connections indefinitely.
     await page.waitForLoadState('domcontentloaded')
 
-    // Try link and button roles — the subscribe element may render as either
-    const candidates = [
-      page.getByRole('link',   { name: /subscribe/i }),
-      page.getByRole('link',   { name: /the signal/i }),
-      page.getByRole('button', { name: /subscribe/i }),
-      page.locator('a[href="/subscribe"]'),
-    ]
+    const body = await page.locator('body').textContent()
 
-    let found = false
-    for (const candidate of candidates) {
-      const count = await candidate.count()
-      if (count > 0) {
-        found = true
-        await expect(candidate.first()).toBeVisible({ timeout: 10_000 })
-        break
-      }
-    }
+    // "Something went wrong" is unique to global-error.tsx — its presence
+    // means the real page crashed and the fallback error screen is showing.
+    expect(body).not.toContain('Something went wrong')
 
-    if (!found) {
-      // Fall back: confirm the word "subscribe" appears somewhere on the page,
-      // proving the feature is present even if the element isn't a role-accessible link.
-      const body = await page.locator('body').textContent()
-      expect(
-        body!.toLowerCase().includes('subscribe') ||
-        body!.toLowerCase().includes('the signal')
-      ).toBe(true)
-    }
+    // The error page renders only an h2, not an h1; a visible h1 confirms
+    // that the actual homepage shell rendered correctly.
+    const h1 = page.locator('h1').first()
+    await expect(h1).toBeVisible()
+  })
+
+  // ── Verdict banner (data-dependent, does not fail if API is slow) ──────────
+
+  test('verdict banner or hero section shows construction-related content', async ({ page }) => {
+    // Wait for initial render + client-side hydration; skip networkidle
+    // because background polling keeps the connection count above zero.
+    await page.waitForTimeout(3_000)
+
+    const body = await page.locator('body').textContent()
+
+    // The hero section renders a spending KPI and CTAs regardless of
+    // whether /api/verdict has responded. Check for content that is
+    // structurally present in the hero and absent from the error page.
+    const hasHeroContent =
+      body!.includes('Open Dashboard') ||
+      body!.includes('Construction')   ||
+      body!.includes('Forecast')       ||
+      body!.includes('EXPAND')         ||
+      body!.includes('HOLD')           ||
+      body!.includes('CONTRACT')
+
+    expect(hasHeroContent).toBe(true)
   })
 })
