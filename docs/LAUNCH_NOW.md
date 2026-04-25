@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 19:12 UTC**
+**Updated: 2026-04-25 20:30 UTC**
 
 ---
 
@@ -17,7 +17,7 @@
 | Build | **GO** — 84 routes · 0 errors |
 | Lint | **GO** — no warnings or errors |
 | Tests | **GO** — 341/341 passed |
-| Smoke | **NO-GO** — sole blocker: Vercel domain binding |
+| Smoke | **NO-GO** — gate failed: `domain:check` exit 1 · `host_not_allowed` on apex + www |
 | Public launch | **NO-GO** |
 
 ---

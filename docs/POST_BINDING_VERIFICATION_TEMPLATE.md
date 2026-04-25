@@ -9,8 +9,8 @@
 
 | Field | Value |
 |-------|-------|
-| Timestamp | |
-| Operator | |
+| Timestamp | 2026-04-25 20:30 UTC |
+| Operator | claude/verify-production-domains-w0Ibi |
 
 ---
 
@@ -28,10 +28,31 @@ node scripts/check-domain-status.mjs --json
 
 **Output:**
 ```
-(paste here)
+ConstructAIQ — domain status check
+══════════════════════════════════════════════════════
+
+  apex  (constructaiq.trade)
+  ──────────────────────────────────────────────────
+  status       : 403
+  x-deny-reason: host_not_allowed
+  classification: VERCEL_DOMAIN_NOT_BOUND
+  diagnosis    : Vercel domain not bound to this project. Go to Vercel dashboard → ConstructAIQ → Settings → Domains → Add the domain.
+
+  www   (www.constructaiq.trade/dashboard)
+  ──────────────────────────────────────────────────
+  status       : 403
+  x-deny-reason: host_not_allowed
+  classification: VERCEL_DOMAIN_NOT_BOUND
+  diagnosis    : Vercel domain not bound to this project. Go to Vercel dashboard → ConstructAIQ → Settings → Domains → Add the domain.
+
+══════════════════════════════════════════════════════
+
+  ✗ host_not_allowed — Vercel domain not bound to this project.
+
+Exit code: 1
 ```
 
-**Result:** `APEX_OK` + `WWW_REDIRECT_OK` → GO / FAIL →
+**Result:** APEX_OK + WWW_REDIRECT_OK → **FAIL** (both domains: VERCEL_DOMAIN_NOT_BOUND)
 
 ---
 
@@ -43,10 +64,10 @@ npm run smoke:www
 
 **Output:**
 ```
-(paste here)
+NOT RUN — domain:check gate failed. Stopped per stop-on-failure policy.
 ```
 
-**Result:** exit 0 → GO / exit 1 →
+**Result:** NOT RUN
 
 ---
 
@@ -58,10 +79,10 @@ npm run smoke:prod
 
 **Output:**
 ```
-(paste here)
+NOT RUN — domain:check gate failed. Stopped per stop-on-failure policy.
 ```
 
-**Result:** exit 0 → GO / exit 1 →
+**Result:** NOT RUN
 
 ---
 
@@ -73,18 +94,18 @@ curl -s https://constructaiq.trade/api/status | jq .env
 
 **Output:**
 ```json
-(paste here)
+NOT RUN — domain:check gate failed. Stopped per stop-on-failure policy.
 ```
 
 Expected all `true`. Required for GO: `supabaseConfigured`, `cronSecretConfigured`.
 
 | Key | Value | Required |
 |-----|-------|----------|
-| `supabaseConfigured` | | P0 |
-| `cronSecretConfigured` | | P0 |
-| `anthropicConfigured` | | Warning |
-| `upstashConfigured` | | Warning |
-| `sentryConfigured` | | Warning |
+| `supabaseConfigured` | NOT RUN | P0 |
+| `cronSecretConfigured` | NOT RUN | P0 |
+| `anthropicConfigured` | NOT RUN | Warning |
+| `upstashConfigured` | NOT RUN | Warning |
+| `sentryConfigured` | NOT RUN | Warning |
 
 ---
 
@@ -96,7 +117,7 @@ curl -s https://constructaiq.trade/api/status | jq .data
 
 **Output:**
 ```json
-(paste here)
+NOT RUN — domain:check gate failed. Stopped per stop-on-failure policy.
 ```
 
 ---
@@ -109,7 +130,7 @@ curl -s https://constructaiq.trade/api/federal | jq '{dataSource, contractors: (
 
 **Output:**
 ```json
-(paste here)
+NOT RUN — domain:check gate failed. Stopped per stop-on-failure policy.
 ```
 
 `dataSource: "live"` = GO · `dataSource: "static"` = Warning (not a blocker).
@@ -124,7 +145,7 @@ curl -s https://constructaiq.trade/api/weekly-brief | jq '{source, live, configu
 
 **Output:**
 ```json
-(paste here)
+NOT RUN — domain:check gate failed. Stopped per stop-on-failure policy.
 ```
 
 `live: true` = GO · `live: false` = Warning (not a blocker).
@@ -139,7 +160,7 @@ curl -s https://constructaiq.trade/api/dashboard | jq '{fetched_at, cshi: (.cshi
 
 **Output:**
 ```json
-(paste here)
+NOT RUN — domain:check gate failed. Stopped per stop-on-failure policy.
 ```
 
 `cshi` must not be `"string"`. `signals` and `commodities` must be > 0. `forecast` must be `"object"`.
@@ -150,19 +171,18 @@ curl -s https://constructaiq.trade/api/dashboard | jq '{fetched_at, cshi: (.cshi
 
 | Check | Result |
 |-------|--------|
-| Domain check | |
-| smoke:www | |
-| smoke:prod | |
-| `supabaseConfigured` | |
-| `cronSecretConfigured` | |
-| Dashboard shape | |
+| Domain check | **FAIL** — 403 host_not_allowed · VERCEL_DOMAIN_NOT_BOUND on both domains |
+| smoke:www | NOT RUN |
+| smoke:prod | NOT RUN |
+| `supabaseConfigured` | NOT RUN |
+| `cronSecretConfigured` | NOT RUN |
+| Dashboard shape | NOT RUN |
 
-**Overall: GO / NO-GO**
+**Overall: NO-GO**
 
 ---
 
 ## Remaining blockers
 
-*(list any NO-GO items and their fix)*
-
--
+- **P0 — Vercel domain binding incomplete.** Both `constructaiq.trade` and `www.constructaiq.trade` return `HTTP 403 · x-deny-reason: host_not_allowed`. The Vercel project still does not recognise these domains.  
+  **Fix:** Vercel UI → ConstructAIQ project → Settings → Domains → confirm both entries show a green checkmark and valid SSL certificate. Then re-run `npm run domain:check` (must exit 0 with APEX_OK + WWW_REDIRECT_OK) before proceeding with any further gate checks.

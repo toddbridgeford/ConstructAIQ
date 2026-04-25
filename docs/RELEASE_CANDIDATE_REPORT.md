@@ -3122,3 +3122,42 @@ The only remaining action is **external and non-code**:
 
 *This document is the single source of truth for ConstructAIQ launch state.
 Last updated: 2026-04-25 19:55 UTC by `claude/add-launch-blocker-notice-53k11`.*
+
+---
+
+## Post-Binding Verification — 2026-04-25 20:30 UTC
+
+Initiated per `docs/CLAUDE_POST_BINDING_PROMPT.md` after operator reported domain binding complete.
+
+### Gate 1 — domain:check
+
+```
+npm run domain:check
+```
+
+| Domain | HTTP status | x-deny-reason | Classification |
+|--------|-------------|---------------|----------------|
+| constructaiq.trade | 403 | host_not_allowed | VERCEL_DOMAIN_NOT_BOUND |
+| www.constructaiq.trade | 403 | host_not_allowed | VERCEL_DOMAIN_NOT_BOUND |
+
+**Exit code: 1**  
+**Result: FAIL — required gate not met.**
+
+Subsequent gates (smoke:www, smoke:prod, launch:check --include-smoke, /api/status, /api/federal, /api/weekly-brief, /api/dashboard) were **not run** per stop-on-failure policy.
+
+### Final verdict
+
+**NO-GO — domain:check failed.**  
+Both `constructaiq.trade` and `www.constructaiq.trade` are still returning `HTTP 403 · x-deny-reason: host_not_allowed · VERCEL_DOMAIN_NOT_BOUND`. Vercel has not yet recognised either domain as belonging to this project.
+
+### Diagnosis
+
+DNS resolution is not the issue; Vercel is rejecting at the edge before any Next.js code runs. The Vercel dashboard binding step has not propagated (or was not saved). Re-verify in Vercel UI: ConstructAIQ project → Settings → Domains — both entries must show a green checkmark and SSL. After confirming, re-run `npm run domain:check` (must exit 0).
+
+### Failing gate
+
+| Gate | Required | Result |
+|------|----------|--------|
+| `domain:check` exits 0 · APEX_OK + WWW_REDIRECT_OK | Yes | **FAIL** |
+
+*Updated by `claude/verify-production-domains-w0Ibi` · 2026-04-25 20:30 UTC*
