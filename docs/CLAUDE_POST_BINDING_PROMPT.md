@@ -17,6 +17,13 @@ Prerequisite: the operator has added constructaiq.trade and
 www.constructaiq.trade to the ConstructAIQ Vercel project under
 Settings → Domains, and both rows show a green checkmark.
 
+IMPORTANT CONSTRAINTS:
+- Do not change product code during this verification. Only update launch
+  docs with observed results unless a command failure clearly identifies a
+  documentation bug.
+- If a required check fails, stop after updating docs with the failing
+  evidence. Do not attempt speculative fixes.
+
 Run every command below in order. Capture the exit code and relevant output
 for each one.
 
