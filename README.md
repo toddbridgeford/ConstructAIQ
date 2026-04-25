@@ -3,6 +3,8 @@
 Free US construction market intelligence platform.
 Live at: https://constructaiq.trade
 
+> **Launch status:** [docs/LAUNCH_NOW.md](./docs/LAUNCH_NOW.md)
+
 ## What it does
 Tracks 38+ government data sources and shows you:
 - 12-month AI forecast for US construction spending

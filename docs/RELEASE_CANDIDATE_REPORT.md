@@ -1,8 +1,8 @@
 # Release Candidate Report
 
-> **Operator:** next manual action → [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
+> **Operator:** next manual action → [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md) · current verdict → [docs/LAUNCH_NOW.md](./LAUNCH_NOW.md)
 
-## Current SHA
+## Release Candidate Code SHA
 
 | Field           | Value                                        |
 |-----------------|----------------------------------------------|
@@ -12,6 +12,11 @@
 | Working tree    | Clean — `git status --porcelain` empty       |
 | Last commit     | `feat(dashboard): honest fallback states for federal/brief/forecast` |
 | Captured        | 2026-04-25 04:00 UTC                         |
+
+> **SHA glossary for this report:**
+> - **RC code SHA `8c1cd98d`** — last application code commit; validated with build ✓ lint ✓ 317/317 tests ✓.
+> - **Sign-off capture SHA `b392c37`** — HEAD when the Final Launch Sign-Off was written; docs-only commit. All commits between the two SHAs are docs-only; the deployed application is byte-for-byte identical at both.
+> - **Last known-good rollback SHA** — use `b392c37` as the git reference when identifying a Vercel deployment to promote. Confirm the deployment SHA in Vercel before promoting a rollback.
 
 ## Command Results
 
@@ -1502,8 +1507,9 @@ Vercel function logs.
 2. Click **Deployments** in the left nav.
 3. Locate the most recent deployment whose status was **Ready** before the
    regression appeared. Note its deployment ID and the commit SHA it was built from.
-4. Cross-reference the SHA against this report (`8c1cd98d`) or the git log to
-   confirm it predates the regression.
+4. Cross-reference the SHA against this report (RC code SHA `8c1cd98d`;
+   sign-off capture SHA `b392c37`) or the git log to confirm it predates the
+   regression. **Confirm the deployment SHA in Vercel before promoting a rollback.**
 
 ### 2. Promote / rollback to that deployment
 
@@ -1562,7 +1568,7 @@ configuration blockers in this report instead.
 
 **Captured: 2026-04-25 18:20 UTC**
 **Branch: `claude/verify-domain-binding-gvssO`**
-**SHA: `b392c3759fb5051197203c3e050584b37d0b90e1` (short: `b392c37`)**
+**Sign-off capture SHA: `b392c3759fb5051197203c3e050584b37d0b90e1` (short: `b392c37`) — docs-only commit; RC code SHA is `8c1cd98d`. All commits between these two SHAs are docs-only; the deployed application is identical at both.**
 
 ---
 
@@ -1741,8 +1747,12 @@ curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data.dashboardShape
 
 ### Rollback reminder
 
-Last known-good code SHA: **`b392c37`**
+Last known-good rollback SHA: **`b392c37`**
 (`b392c3759fb5051197203c3e050584b37d0b90e1`)
+
+This is a docs-only commit; the RC code SHA is `8c1cd98d`. All commits between the two
+SHAs are docs-only — the deployed application is identical at both. Confirm the
+deployment SHA in Vercel before promoting a rollback.
 
 If a regression appears after launch: **Vercel → ConstructAIQ →
 Deployments → find last Ready build → `…` → Promote to Production**.
@@ -1893,7 +1903,7 @@ runs, unchanged since 2026-04-25 04:00 UTC.
 
 | Dimension | Verdict | Rationale |
 |-----------|---------|-----------|
-| **Codebase** | **GO** | Unchanged — build ✓, lint ✓, 317/317 tests ✓. SHA `b392c37`. |
+| **Codebase** | **GO** | Unchanged — build ✓, lint ✓, 317/317 tests ✓. Sign-off capture SHA `b392c37` (docs-only; RC code SHA `8c1cd98d`). |
 | **Public launch** | **NO-GO** | Vercel domain binding still incomplete. `host_not_allowed` on both apex and www as of 2026-04-25 18:30 UTC. |
 
 **Public launch: NO-GO.** No code change is required. The sole remaining
@@ -2185,7 +2195,7 @@ runs, unchanged since 2026-04-25 04:00 UTC — no DNS action is needed.
 
 | Dimension | Verdict | Detail |
 |-----------|---------|--------|
-| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · SHA `b392c37` · unchanged across all phases |
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · sign-off capture SHA `b392c37` (docs-only; RC code SHA `8c1cd98d`) · unchanged across all phases |
 | **Public launch** | **◼ NO-GO** | `smoke:prod` exit 1 · `smoke:www` exit 1 · sole cause: Vercel domain binding incomplete |
 
 **Public launch: NO-GO.**
@@ -2211,5 +2221,309 @@ First-24-hour watch guide: [docs/POST_LAUNCH_WATCH.md](./POST_LAUNCH_WATCH.md)
 
 ---
 
+## Phase 8 domain binding check — 2026-04-25 18:50 UTC
+
+This section records the Phase 8 verification pass following the operator's
+reported domain-binding action. Its purpose is to confirm whether
+`host_not_allowed` has been resolved.
+
+### Commands run
+
+```
+curl -sSI https://constructaiq.trade
+curl -sSI https://www.constructaiq.trade/dashboard
+npm run smoke:www
+npm run smoke:prod
+```
+
+### `curl -sSI https://constructaiq.trade`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 18:50:04 GMT
+```
+
+| Field | Value |
+|-------|-------|
+| HTTP status | **403** |
+| `x-deny-reason` | **host_not_allowed** |
+| `Location` | (none) |
+
+### `curl -sSI https://www.constructaiq.trade/dashboard`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 18:50:05 GMT
+```
+
+| Field | Value |
+|-------|-------|
+| HTTP status | **403** |
+| `x-deny-reason` | **host_not_allowed** |
+| `Location` | (none) |
+
+### `npm run smoke:www`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade  (--www-only)
+──────────────────────────────────────────────────
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+
+──────────────────────────────────────────────────
+1 passed, 1 failed
+✗ Smoke test FAILED
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Passed | 1 |
+| Failed | 1 |
+
+### `npm run smoke:prod`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade
+──────────────────────────────────────────────────
+
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+
+──────────────────────────────────────────────────
+1 passed, 5 failed
+✗ Smoke test FAILED
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Passed | 1 |
+| Failed | 5 |
+
+### Phase 8 interpretation
+
+**The Vercel domain binding has not been completed.** Both
+`constructaiq.trade` and `www.constructaiq.trade` continue to return
+`HTTP 403 x-deny-reason: host_not_allowed` — identical to every prior
+verification pass since 2026-04-25 04:00 UTC. DNS resolution is confirmed
+(`www DNS resolves` passes on both smoke runs). No DNS action is needed.
+
+The operator action in [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md)
+Steps 1–4 (Vercel UI → Settings → Domains → Add both domains) remains
+outstanding.
+
+### Updated launch verdict
+
+| Dimension | Verdict | Detail |
+|-----------|---------|--------|
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · sign-off capture SHA `b392c37` (docs-only; RC code SHA `8c1cd98d`) · unchanged across all phases |
+| **Public launch** | **◼ NO-GO** | `smoke:prod` exit 1 · `smoke:www` exit 1 · sole cause: Vercel domain binding still incomplete as of 2026-04-25 18:50 UTC |
+
+**Public launch: NO-GO.** No code change is required.
+
+> **Vercel UI → ConstructAIQ project → Settings → Domains**
+> → Add `constructaiq.trade` → wait for green checkmark
+> → Add `www.constructaiq.trade` → wait for green checkmark
+
+After binding (1–10 minutes for SSL auto-provision), rerun:
+
+```bash
+npm run smoke:www   # must exit 0
+npm run smoke:prod  # must exit 0
+```
+
+Both must exit 0 before this verdict may be changed to GO.
+
+---
+
+## Phase 8 env/data verification — 2026-04-25 19:00 UTC
+
+### Prerequisite check
+
+Before running the seven env/data probes, `smoke:prod` must exit 0 and
+`x-deny-reason: host_not_allowed` must be absent from the response.
+
+```
+npm run smoke:prod
+```
+
+```
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project   HTTP 403
+
+1 passed, 5 failed  ✗ Smoke test FAILED  (exit 1)
+```
+
+**Prerequisite not met.** `host_not_allowed` is unchanged as of 2026-04-25
+19:00 UTC. Every application endpoint returns HTTP 403 before the Next.js
+app runs — the probe responses would be `Host not in allowlist` plain text,
+not JSON, and carry no diagnostic signal.
+
+### Probes deferred
+
+| Probe | Deferred reason |
+|-------|-----------------|
+| `curl .../api/status \| jq .env` | Returns HTTP 403 — not parseable |
+| `curl .../api/status \| jq .runtime` | Returns HTTP 403 — not parseable |
+| `curl .../api/status \| jq .data` | Returns HTTP 403 — not parseable |
+| `curl .../api/status?deep=1 \| jq .data` | Returns HTTP 403 — not parseable |
+| `curl .../api/federal \| jq …` | Returns HTTP 403 — not parseable |
+| `curl .../api/weekly-brief \| jq …` | Returns HTTP 403 — not parseable |
+| `curl .../api/dashboard \| jq …` | Returns HTTP 403 — not parseable |
+
+All seven probes will be run immediately after `smoke:prod` exits 0.
+
+### Classification of checks (for when probes become observable)
+
+| Check | Pass condition | Failure classification |
+|-------|---------------|------------------------|
+| `supabaseConfigured: true` | env `.supabaseConfigured === true` | **Launch blocker** — all data routes fail |
+| `cronSecretConfigured: true` | env `.cronSecretConfigured === true` | **Launch blocker** — data-refresh cron cannot authenticate |
+| `siteLocked: false` | runtime `.siteLocked === false` | **Launch blocker** — all visitors hit Basic Auth |
+| `cshi` type is `object` or `null` | dashboard `.cshi` type ≠ `"string"` | **Launch blocker** — shape regression |
+| `federalSource: "usaspending.gov"` | federal `.dataSource === "usaspending.gov"` | Warning — static fallback is labeled; not a hard blocker |
+| `weeklyBriefSource: "ai"` | brief `.source === "ai"` | Warning — static fallback is labeled; not a hard blocker |
+
+### Updated launch verdict
+
+| Dimension | Verdict | Detail |
+|-----------|---------|--------|
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · RC code SHA `8c1cd98d` · unchanged |
+| **Env/data** | **UNVERIFIABLE** | All endpoints return HTTP 403 — domain binding must be completed first |
+| **Public launch** | **◼ NO-GO** | `smoke:prod` exit 1 · `smoke:www` exit 1 · sole cause: Vercel domain binding incomplete |
+
+---
+
+## Phase 8 final launch gate — 2026-04-25 18:55 UTC
+
+Full command: `npm run launch:check -- --include-smoke`
+
+### Gate 5 — build / lint / unit tests
+
+| Step | Exit | Wall time | Result |
+|------|------|-----------|--------|
+| `npm run build` | **0** | 94.6 s | `✓ Compiled successfully in 56s` — 84 routes, 0 errors |
+| `npm run lint` | **0** | 2.7 s | `✔ No ESLint warnings or errors` |
+| `npm test` | **0** | 3.3 s | `Test Files 23 passed (23)` · `Tests 317 passed (317)` |
+
+Gate 5 summary: `✓  build  ✓  lint  ✓  unit tests`
+
+### Gate 4 — production smoke
+
+| Step | Exit | Wall time | Result |
+|------|------|-----------|--------|
+| `npm run smoke:prod` | **1** | 0.7 s | 1 passed, 5 failed |
+| `npm run smoke:www` | **1** | 0.3 s | 1 passed, 1 failed |
+
+#### `npm run smoke:prod` — failing checks
+
+| Check | Expected | Got |
+|-------|----------|-----|
+| `GET / returns 200` | 200 | **403** `x-deny-reason: host_not_allowed` |
+| `GET /dashboard returns 200` | 200 | **403** `x-deny-reason: host_not_allowed` |
+| `/api/status returns 200` | 200 | **403** `x-deny-reason: host_not_allowed` |
+| `/api/dashboard returns 200` | 200 | **403** `x-deny-reason: host_not_allowed` |
+| `www is bound to this Vercel project` | 200/301 | **403** `x-deny-reason: host_not_allowed` |
+
+Passing check: `www DNS resolves` ✓
+
+#### `npm run smoke:www` — failing check
+
+| Check | Expected | Got |
+|-------|----------|-----|
+| `www is bound to this Vercel project` | 200/301 | **403** `x-deny-reason: host_not_allowed` |
+
+Passing check: `www DNS resolves` ✓
+
+### `launch:check` final output
+
+```
+Summary
+───────
+  ✓  build
+  ✓  lint
+  ✓  unit tests
+  ✗  smoke:prod
+  ✗  smoke:www
+
+✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Root cause | Vercel domain binding — `host_not_allowed` on apex and www |
+| Code regression | None — codebase is unchanged and Gate 5 is fully green |
+
+### Phase 8 interpretation
+
+**The codebase is launch-ready. The infrastructure is not.**
+
+Gate 5 is fully green for the first time with all probes captured: build
+compiles 84 routes without error, lint is clean, and all 317 unit tests pass.
+The sole failing gate is Gate 4 (smoke), and the sole cause of those failures
+is that neither `constructaiq.trade` nor `www.constructaiq.trade` has been
+added to the Vercel project's domain list.
+
+This is the **eighth consecutive pass** of Gate 5 since 2026-04-25 04:00 UTC.
+No code change is required.
+
+### Updated launch verdict
+
+| Dimension | Verdict | Detail |
+|-----------|---------|--------|
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · RC code SHA `8c1cd98d` · Gate 5 green across all 8 phases |
+| **Smoke** | **◼ FAIL** | `smoke:prod` exit 1 (1/6 passed) · `smoke:www` exit 1 (1/2 passed) · `host_not_allowed` on all application checks |
+| **Public launch** | **◼ NO-GO** | Smoke must exit 0. Sole blocker: Vercel domain binding incomplete as of 2026-04-25 18:55 UTC |
+
+**Public launch: NO-GO.** No code change is required.
+
+> **Next action:**
+> Vercel UI → ConstructAIQ project → Settings → Domains
+> → Add `constructaiq.trade` → wait for green checkmark
+> → Add `www.constructaiq.trade` → wait for green checkmark
+
+After binding (1–10 minutes for SSL auto-provision), rerun:
+
+```bash
+npm run launch:check -- --include-smoke   # must exit 0
+```
+
+If it exits 0, proceed to env/data verification per
+[docs/POST_LAUNCH_WATCH.md](./POST_LAUNCH_WATCH.md).
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:36 UTC by `claude/fix-doc-sha-consistency-7Y01M`.*
+Last updated: 2026-04-25 18:55 UTC by `claude/audit-sha-references-OpiT1`.*
