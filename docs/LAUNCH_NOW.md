@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 19:05 UTC**
+**Updated: 2026-04-25 19:07 UTC**
 
 ---
 
@@ -53,6 +53,35 @@ npm run smoke:prod
 
 If all four pass, the P0 is resolved. Update the verdict to **GO** and proceed
 with env-variable verification (see [OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)).
+
+---
+
+## Env/data verification — 2026-04-25 19:07 UTC (DEFERRED)
+
+**Prerequisite not met.** `https://constructaiq.trade` still returns
+`HTTP/2 403 x-deny-reason: host_not_allowed` as of 19:04 UTC.
+
+```
+curl -s https://constructaiq.trade/api/status | jq .env
+# → jq: parse error: Invalid numeric literal at line 1, column 5 (exit 5)
+
+curl -s https://constructaiq.trade/api/status | jq .runtime
+# → jq: parse error: Invalid numeric literal at line 1, column 5 (exit 5)
+```
+
+The endpoint body is the Vercel plain-text error string, not JSON. All env
+booleans are unobservable until domain binding is complete.
+
+| Probe | Status | Classification when false |
+|-------|--------|---------------------------|
+| `supabaseConfigured` | **UNVERIFIABLE** | Launch blocker |
+| `cronSecretConfigured` | **UNVERIFIABLE** | Launch blocker |
+| `siteLocked` | **UNVERIFIABLE** | Launch blocker if `true` |
+| `anthropicConfigured` | **UNVERIFIABLE** | Warning |
+| `upstashConfigured` | **UNVERIFIABLE** | Warning |
+| `sentryConfigured` | **UNVERIFIABLE** | Warning |
+
+These probes will be run immediately after `smoke:prod` exits 0.
 
 ---
 

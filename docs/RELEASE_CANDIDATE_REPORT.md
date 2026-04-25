@@ -2717,5 +2717,100 @@ npm run smoke:prod  # must exit 0
 
 ---
 
+## Phase 9 env/data verification — 2026-04-25 19:07 UTC
+
+### Prerequisite check
+
+Before running the env/data probes, the domain must serve the application
+(no `x-deny-reason: host_not_allowed`). The prerequisite was checked first:
+
+```
+curl -sSI https://constructaiq.trade
+```
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 19:04:34 GMT
+```
+
+**Prerequisite not met.** Domain binding is still incomplete.
+
+### Probes attempted
+
+Both probes were run to capture exact evidence:
+
+```
+curl -s https://constructaiq.trade/api/status | jq .env
+```
+
+```
+jq: parse error: Invalid numeric literal at line 1, column 5
+```
+
+Exit: **5** (jq parse failure — body is plain-text Vercel 403, not JSON)
+
+```
+curl -s https://constructaiq.trade/api/status | jq .runtime
+```
+
+```
+jq: parse error: Invalid numeric literal at line 1, column 5
+```
+
+Exit: **5** (same cause)
+
+### Env variable status
+
+| Probe | Observed value | Classification |
+|-------|---------------|----------------|
+| `supabaseConfigured` | **UNVERIFIABLE** — HTTP 403 | Launch blocker if false |
+| `cronSecretConfigured` | **UNVERIFIABLE** — HTTP 403 | Launch blocker if false |
+| `siteLocked` | **UNVERIFIABLE** — HTTP 403 | Launch blocker if true |
+| `anthropicConfigured` | **UNVERIFIABLE** — HTTP 403 | Warning if false |
+| `upstashConfigured` | **UNVERIFIABLE** — HTTP 403 | Warning if false |
+| `sentryConfigured` | **UNVERIFIABLE** — HTTP 403 | Warning if false |
+| `runtime.nodeEnv` | **UNVERIFIABLE** — HTTP 403 | Informational |
+| `runtime.appUrl` | **UNVERIFIABLE** — HTTP 403 | Informational |
+
+No secret values were recorded. No JSON was returned by the endpoint.
+
+### Phase 9 env/data interpretation
+
+All seven env probes are blocked by the Vercel edge before the Next.js
+application runs. The plain-text `403` body is not parseable as JSON — `jq`
+exits with code 5 (parse error) on both probes. The probe responses carry
+no diagnostic signal about the actual environment variable state.
+
+These probes will be run immediately after `smoke:prod` exits 0.
+
+### Updated launch verdict
+
+| Dimension | Verdict | Detail |
+|-----------|---------|--------|
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · RC code SHA `8c1cd98d` · unchanged |
+| **Smoke** | **◼ FAIL** | Phase 9 result: `smoke:www` exit 1 (1/2) · `smoke:prod` exit 1 (1/6) · all failures: `host_not_allowed` |
+| **Env/data** | **UNVERIFIABLE** | All endpoints return HTTP 403 — domain binding must be completed first |
+| **Public launch** | **◼ NO-GO** | Sole blocker: Vercel domain binding incomplete as of 2026-04-25 19:07 UTC |
+
+**Public launch: NO-GO.** No code change is required. Next action:
+
+> **Vercel UI → ConstructAIQ project → Settings → Domains**
+> → Add `constructaiq.trade` → wait for green checkmark
+> → Add `www.constructaiq.trade` → wait for green checkmark
+
+After binding, rerun in order:
+
+```bash
+npm run smoke:www                              # must exit 0
+npm run smoke:prod                             # must exit 0
+curl -s https://constructaiq.trade/api/status | jq .env      # verify env booleans
+curl -s https://constructaiq.trade/api/status | jq .runtime  # verify runtime flags
+```
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 19:05 UTC by `claude/fix-launch-docs-Gxt9P`.*
+Last updated: 2026-04-25 19:07 UTC by `claude/fix-launch-docs-Gxt9P`.*
