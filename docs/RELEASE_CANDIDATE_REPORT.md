@@ -690,6 +690,84 @@ outcome after domain binding (assuming env vars are also set) is:
 
 ---
 
+## Phase 6 domain binding check — 2026-04-25 18:08 UTC
+
+This section records the Phase 6 verification pass. Its purpose is to determine
+whether the operator has completed the Vercel domain binding described in
+`docs/VERCEL_DOMAIN_FIX.md` — specifically whether `x-deny-reason: host_not_allowed`
+is gone from both `constructaiq.trade` and `www.constructaiq.trade`.
+
+### Commands run
+
+```
+curl -sSI https://constructaiq.trade
+curl -sSI https://www.constructaiq.trade/dashboard
+npm run lint
+```
+
+### `curl -sSI https://constructaiq.trade`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 18:08:24 GMT
+```
+
+| Field              | Value                           |
+|--------------------|---------------------------------|
+| HTTP status        | **403**                         |
+| x-deny-reason      | **host_not_allowed**            |
+| Location           | (none — no redirect)            |
+
+### `curl -sSI https://www.constructaiq.trade/dashboard`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 18:08:25 GMT
+```
+
+| Field                      | Value                           |
+|----------------------------|---------------------------------|
+| HTTP status                | **403**                         |
+| x-deny-reason              | **host_not_allowed**            |
+| Location (www→apex)        | (none — no redirect occurred)   |
+
+### `npm run lint`
+
+`npm run lint` (which invokes `next lint`) exits with error `next: not found` —
+the same pre-existing sandbox gap recorded in every prior phase. ESLint is not
+runnable standalone in this sandbox because ESLint v9 requires `eslint.config.js`
+while the project uses `.eslintrc.json`. No code was changed in Phase 6, so
+lint state is unchanged from the last clean run recorded in Phase 5 (ESLint
+exit 0, `✔ No ESLint warnings or errors`).
+
+| Tool | Exit code | Result |
+|------|-----------|--------|
+| `npm run lint` | error | Sandbox: `next: not found` — pre-existing sandbox gap, not a code defect |
+| ESLint (direct v9) | 2 | Sandbox: no `eslint.config.js` — project uses `.eslintrc.json` format; not a code defect |
+
+### Phase 6 interpretation
+
+**`host_not_allowed` is unchanged.** Both domains return HTTP 403 with
+`x-deny-reason: host_not_allowed`. Neither apex nor www issues a redirect.
+DNS continues to resolve (the TCP/TLS handshake completes and Vercel's edge
+responds), but the Vercel project domain binding has not been completed.
+
+The operator was directed to add both domains in Vercel UI → Settings → Domains.
+As of 2026-04-25 18:08 UTC that action has **not been taken**.
+
+**Vercel domain binding blocker: OPEN — not resolved.**
+
+**Public launch: NO-GO** — sole remaining blocker is the Vercel project domain
+binding. No code or configuration change is required on the application side.
+
+---
+
 ## Go / No-Go Summary
 
 | Dimension        | Verdict     | Rationale                                                                                       |
@@ -1227,4 +1305,4 @@ The last known-good code SHA documented in this report is `8c1cd98d`.
 ---
 
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:01 UTC by `claude/verify-domain-fix-uDUrA`.*
+Last updated: 2026-04-25 18:08 UTC by `claude/verify-domain-binding-gvssO`.*
