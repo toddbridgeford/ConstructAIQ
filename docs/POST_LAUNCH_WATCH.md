@@ -301,9 +301,10 @@ for a second occurrence — these are hard stops.
 
 Via CLI: `vercel rollback <deployment-url-or-id> --prod`
 
-Last known-good code SHA: **`b392c37`**
-(`b392c3759fb5051197203c3e050584b37d0b90e1`). Confirm this SHA against
-[RELEASE_CANDIDATE_REPORT.md](./RELEASE_CANDIDATE_REPORT.md) before using rollback. See
+Last known-good rollback SHA: **`b392c37`**
+(`b392c3759fb5051197203c3e050584b37d0b90e1`) — this is a docs-only commit; the RC
+code SHA is `8c1cd98d`, and the deployed application is identical at both.
+Confirm the deployment SHA in Vercel before promoting a rollback. See
 [RELEASE_CANDIDATE_REPORT.md § Rollback Procedure](./RELEASE_CANDIDATE_REPORT.md#rollback-procedure)
 for the full procedure.
 

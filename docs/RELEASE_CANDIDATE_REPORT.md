@@ -2,7 +2,7 @@
 
 > **Operator:** next manual action → [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
 
-## Current SHA
+## Release Candidate Code SHA
 
 | Field           | Value                                        |
 |-----------------|----------------------------------------------|
@@ -12,6 +12,11 @@
 | Working tree    | Clean — `git status --porcelain` empty       |
 | Last commit     | `feat(dashboard): honest fallback states for federal/brief/forecast` |
 | Captured        | 2026-04-25 04:00 UTC                         |
+
+> **SHA glossary for this report:**
+> - **RC code SHA `8c1cd98d`** — last application code commit; validated with build ✓ lint ✓ 317/317 tests ✓.
+> - **Sign-off capture SHA `b392c37`** — HEAD when the Final Launch Sign-Off was written; docs-only commit. All commits between the two SHAs are docs-only; the deployed application is byte-for-byte identical at both.
+> - **Last known-good rollback SHA** — use `b392c37` as the git reference when identifying a Vercel deployment to promote. Confirm the deployment SHA in Vercel before promoting a rollback.
 
 ## Command Results
 
@@ -1502,8 +1507,9 @@ Vercel function logs.
 2. Click **Deployments** in the left nav.
 3. Locate the most recent deployment whose status was **Ready** before the
    regression appeared. Note its deployment ID and the commit SHA it was built from.
-4. Cross-reference the SHA against this report (`8c1cd98d`) or the git log to
-   confirm it predates the regression.
+4. Cross-reference the SHA against this report (RC code SHA `8c1cd98d`;
+   sign-off capture SHA `b392c37`) or the git log to confirm it predates the
+   regression. **Confirm the deployment SHA in Vercel before promoting a rollback.**
 
 ### 2. Promote / rollback to that deployment
 
@@ -1562,7 +1568,7 @@ configuration blockers in this report instead.
 
 **Captured: 2026-04-25 18:20 UTC**
 **Branch: `claude/verify-domain-binding-gvssO`**
-**SHA: `b392c3759fb5051197203c3e050584b37d0b90e1` (short: `b392c37`)**
+**Sign-off capture SHA: `b392c3759fb5051197203c3e050584b37d0b90e1` (short: `b392c37`) — docs-only commit; RC code SHA is `8c1cd98d`. All commits between these two SHAs are docs-only; the deployed application is identical at both.**
 
 ---
 
@@ -1741,8 +1747,12 @@ curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data.dashboardShape
 
 ### Rollback reminder
 
-Last known-good code SHA: **`b392c37`**
+Last known-good rollback SHA: **`b392c37`**
 (`b392c3759fb5051197203c3e050584b37d0b90e1`)
+
+This is a docs-only commit; the RC code SHA is `8c1cd98d`. All commits between the two
+SHAs are docs-only — the deployed application is identical at both. Confirm the
+deployment SHA in Vercel before promoting a rollback.
 
 If a regression appears after launch: **Vercel → ConstructAIQ →
 Deployments → find last Ready build → `…` → Promote to Production**.
@@ -1893,7 +1903,7 @@ runs, unchanged since 2026-04-25 04:00 UTC.
 
 | Dimension | Verdict | Rationale |
 |-----------|---------|-----------|
-| **Codebase** | **GO** | Unchanged — build ✓, lint ✓, 317/317 tests ✓. SHA `b392c37`. |
+| **Codebase** | **GO** | Unchanged — build ✓, lint ✓, 317/317 tests ✓. Sign-off capture SHA `b392c37` (docs-only; RC code SHA `8c1cd98d`). |
 | **Public launch** | **NO-GO** | Vercel domain binding still incomplete. `host_not_allowed` on both apex and www as of 2026-04-25 18:30 UTC. |
 
 **Public launch: NO-GO.** No code change is required. The sole remaining
@@ -2185,7 +2195,7 @@ runs, unchanged since 2026-04-25 04:00 UTC — no DNS action is needed.
 
 | Dimension | Verdict | Detail |
 |-----------|---------|--------|
-| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · SHA `b392c37` · unchanged across all phases |
+| **Codebase** | **◆ GO** | Build ✓ · Lint ✓ · 317/317 tests ✓ · sign-off capture SHA `b392c37` (docs-only; RC code SHA `8c1cd98d`) · unchanged across all phases |
 | **Public launch** | **◼ NO-GO** | `smoke:prod` exit 1 · `smoke:www` exit 1 · sole cause: Vercel domain binding incomplete |
 
 **Public launch: NO-GO.**

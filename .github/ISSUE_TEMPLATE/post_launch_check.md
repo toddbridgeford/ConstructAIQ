@@ -206,9 +206,7 @@ curl -X POST https://constructaiq.trade/api/cron/forecast \
 5. `npm run smoke:prod` → must exit 0
 6. Record regressing SHA and promoted SHA in a comment on this issue
 
-Last known-good code SHA: **`b392c37`** — see [Release Candidate Report § Rollback Procedure](../docs/RELEASE_CANDIDATE_REPORT.md#rollback-procedure).
-
-> **Note:** Confirm this SHA against RELEASE_CANDIDATE_REPORT.md before using rollback.
+Last known-good rollback SHA: **`b392c37`** (`b392c3759fb5051197203c3e050584b37d0b90e1`) — docs-only commit; RC code SHA is `8c1cd98d`, deployed application is identical at both. Confirm the deployment SHA in Vercel before promoting a rollback. See [Release Candidate Report § Rollback Procedure](../docs/RELEASE_CANDIDATE_REPORT.md#rollback-procedure).
 
 ---
 

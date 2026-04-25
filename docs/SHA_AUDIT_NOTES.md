@@ -1,5 +1,11 @@
 # SHA Audit Notes
 
+> **Status: Recommendations applied.** All doc edits described in this file have been
+> implemented in `docs/RELEASE_CANDIDATE_REPORT.md`, `docs/OPERATOR_HANDOFF.md`,
+> `docs/POST_LAUNCH_WATCH.md`, and `.github/ISSUE_TEMPLATE/post_launch_check.md`
+> on branch `claude/audit-sha-references-OpiT1`. This file is retained as the raw
+> audit record and relationship diagram; it is not an active action list.
+
 **Prepared:** 2026-04-25
 **Branch:** `claude/audit-sha-references-OpiT1`
 **Purpose:** Pre-launch audit of SHA references across operational docs. No product code was changed.

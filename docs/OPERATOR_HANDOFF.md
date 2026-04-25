@@ -132,9 +132,13 @@ Full env var list and instructions: [docs/RELEASE_CANDIDATE_REPORT.md — Enviro
 
 ## Rollback SHA
 
-If a regression appears after launch, the last known-good code SHA is:
+If a regression appears after launch, the last known-good rollback SHA is:
 
 **`b392c37`** (`b392c3759fb5051197203c3e050584b37d0b90e1`)
+
+This is a docs-only commit; the RC code SHA is `8c1cd98d` — all commits between them
+are docs-only and the deployed application is identical at both.
+Confirm the deployment SHA in Vercel before promoting a rollback.
 
 Vercel → ConstructAIQ → Deployments → find the last **Ready** build → `…`
 → **Promote to Production**.
