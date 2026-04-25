@@ -4370,3 +4370,206 @@ curl -s https://constructaiq.trade/api/status | jq .runtime  # jq exit 5
 **Single next action:** Set Cloudflare A record for `constructaiq.trade` to `76.76.21.21` with proxy OFF (grey cloud). Re-run `npm run launch:check -- --include-smoke`; must exit 0 for GO.
 
 *Updated by `claude/verify-dns-cloudflare-sKNiP` · 2026-04-25*
+
+---
+
+## Phase 19 DNS-only verification — 2026-04-25T00:00:00Z
+
+**Branch:** `claude/verify-dns-propagation-5Q5BF`
+
+### Result table
+
+| Probe | Result |
+|-------|--------|
+| `socket.gethostbyname('constructaiq.trade')` | `104.21.50.117` — Cloudflare 104.x IP |
+| `socket.gethostbyname('www.constructaiq.trade')` | `104.21.50.117` — Cloudflare 104.x IP |
+| `domain:check` exit code | 1 |
+| apex HTTP status | 403 |
+| apex `x-deny-reason` | `host_not_allowed` |
+| apex classification | `VERCEL_DOMAIN_NOT_BOUND` |
+| www HTTP status | 403 |
+| www `x-deny-reason` | `host_not_allowed` |
+| www classification | `VERCEL_DOMAIN_NOT_BOUND` |
+| apex `proxyWarning` (header-based) | false |
+| www `proxyWarning` (header-based) | false |
+| apex `cf-ray` | null |
+| apex `location` | null |
+
+### Analysis
+
+The operator reported grey-clouding both Cloudflare records, but the apex still resolves to `104.21.50.117` — a Cloudflare-owned IP in the `104.16.0.0/12` range. The proxy is still active. `proxyWarning: false` is an artefact of header-only detection: Cloudflare passes Vercel's 403 response through without injecting `cf-ray` or `server: cloudflare` headers, so the script sees no proxy headers. IP resolution is the authoritative signal.
+
+Both domains return HTTP 403 `host_not_allowed` from Vercel, confirming the domain is not yet bound.
+
+### Verdict
+
+**NO-GO.** Cloudflare proxy not disabled. Apex must resolve to `76.76.21.21` before `domain:check` can exit 0 and the domain can be bound in Vercel.
+
+**Next action:** Confirm Cloudflare A record for `constructaiq.trade` is saved as DNS-only (grey cloud) with value `76.76.21.21`. Allow up to 5 minutes for propagation, then re-run Phase 19 verification.
+
+*Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
+
+---
+
+## Phase 19 smoke verification — 2026-04-25T00:00:00Z
+
+**Branch:** `claude/verify-dns-propagation-5Q5BF`
+
+### Result
+
+| Check | Result |
+|-------|--------|
+| `domain:check` prerequisite | **NOT MET** — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` (apex + www) |
+| `smoke:www` | **NOT RUN** — blocked by prerequisite failure |
+| `smoke:prod` | **NOT RUN** — blocked by prerequisite failure |
+| Public launch | **NO-GO** |
+
+### Reason
+
+Phase 19 goal is "run production smoke only after DNS and domain routing pass." The prerequisite — `domain:check` exits 0 with `APEX_OK` and `WWW_REDIRECT_OK` — was not satisfied. Apex still resolves to `104.21.50.117` (Cloudflare proxy); `domain:check` exits 1 with `VERCEL_DOMAIN_NOT_BOUND` on both apex and www. Smoke was not run.
+
+**Next action:** Operator must confirm Cloudflare A record for `constructaiq.trade` is DNS-only (grey cloud, value `76.76.21.21`). Once `domain:check` exits 0, re-run Phase 19 smoke.
+
+*Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
+
+---
+
+## Phase 19 env/runtime verification — 2026-04-25T00:00:00Z
+
+**Branch:** `claude/verify-dns-propagation-5Q5BF`
+
+### Prerequisite check
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run smoke:prod` | 1 | 1/6 passed · 5 failed · all 403 `host_not_allowed` |
+| `curl https://constructaiq.trade/api/status` | — | HTTP 403 · "Host not in allowlist" |
+
+Prerequisite not met. `/api/status` is unreachable. All env/runtime booleans are unreadable.
+
+### Env booleans (not captured — endpoint blocked)
+
+| Boolean | Value | Classification |
+|---------|-------|----------------|
+| `supabaseConfigured` | unreadable | required — status unknown |
+| `cronSecretConfigured` | unreadable | required — status unknown |
+| `anthropicConfigured` | unreadable | warning — status unknown |
+| `upstashConfigured` | unreadable | warning — status unknown |
+| `sentryConfigured` | unreadable | warning — status unknown |
+| `runtime.siteLocked` | unreadable | required — status unknown |
+| `runtime.nodeEnv` | unreadable | informational |
+| `runtime.appUrl` | unreadable | informational |
+
+### Verdict
+
+**BLOCKED / NO-GO.** `/api/status` returns 403. Env and runtime booleans cannot be read until the domain is bound to the Vercel project and smoke:prod exits 0. No secrets were recorded.
+
+**Single next action:** Fix Cloudflare DNS to DNS-only (grey cloud, A → `76.76.21.21`). Once `domain:check` exits 0 and `smoke:prod` exits 0, re-run Phase 19 env/runtime verification.
+
+*Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
+
+---
+
+## Phase 19 data/dashboard verification — 2026-04-25T00:00:00Z
+
+**Branch:** `claude/verify-dns-propagation-5Q5BF`
+
+### Prerequisite check
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run smoke:prod` | 1 | 1/6 passed · 5 failed · all 403 `host_not_allowed` |
+| `curl /api/status` | — | HTTP 403 · "Host not in allowlist" |
+| Apex DNS | — | `104.21.50.117` (Cloudflare proxy still active) |
+
+Prerequisite not met. All API endpoints are unreachable.
+
+### API probes (all blocked)
+
+| Endpoint | Result |
+|----------|--------|
+| `GET /api/status` | 403 — unreadable |
+| `GET /api/status?deep=1` | 403 — unreadable |
+| `GET /api/federal` | 403 — unreadable |
+| `GET /api/weekly-brief` | 403 — unreadable |
+| `GET /api/dashboard` | 403 — unreadable |
+
+### Data shape classifications (not captured — all blocked)
+
+| Field | Value | Classification |
+|-------|-------|----------------|
+| `dashboard` shape | unreadable | required — status unknown |
+| `dashboardShapeOk` | unreadable | required — status unknown |
+| `cshi` type | unreadable | required — status unknown |
+| `federal.dataSource` | unreadable | warning — status unknown |
+| `weekly-brief.source` | unreadable | warning — status unknown |
+| `signals` count | unreadable | warning — status unknown |
+| `commodities` count | unreadable | warning — status unknown |
+
+### Verdict
+
+**BLOCKED / NO-GO.** All five API probes return HTTP 403. No data shapes are readable. Dashboard shape cannot be verified as valid or invalid. Launch remains blocked by the single DNS root cause: Cloudflare proxy still active (`104.21.50.117`); domain not bound to Vercel project.
+
+**Single next action:** Set Cloudflare A record for `constructaiq.trade` to `76.76.21.21` DNS-only (grey cloud). Once `smoke:prod` exits 0, re-run Phase 19 data/dashboard verification.
+
+*Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
+
+---
+
+## Phase 19 final launch gate — 2026-04-25T00:00:00Z
+
+**Branch:** `claude/verify-dns-propagation-5Q5BF`
+
+### Command results
+
+| Command | Exit | Notes |
+|---------|------|-------|
+| `npm run build` | 127 | `next` not found — node_modules absent in sandbox; previously verified exit 0 in CI (84 routes, 60.1s) |
+| `npm run lint` | 127 | `next lint` not found — node_modules absent in sandbox; previously verified exit 0 in CI |
+| `npm test` | 127 | `vitest` not found — node_modules absent in sandbox; previously verified 356/356 exit 0 in CI |
+| `npm run smoke:prod` | 1 | 1/6 passed · 5 failed · all 403 `host_not_allowed` |
+| `npm run smoke:www` | 1 | 1/2 passed · 1 failed · 403 `host_not_allowed` |
+| `npm run launch:check -- --include-smoke` | 1 | Failing gates: smoke:prod, smoke:www |
+
+### launch:check final summary
+
+```
+✗  build     (exit 127 — sandbox)
+✗  lint      (exit 127 — sandbox)
+✗  unit tests (exit 127 — sandbox)
+✗  smoke:prod (exit 1)
+✗  smoke:www  (exit 1)
+
+✗ Launch readiness FAILED — required gates: build, lint, unit tests
+```
+
+> Gate 5 (build/lint/tests) reports FAILED because node_modules is absent in this sandbox.
+> CI has previously verified all three as passing (exit 0). The authoritative live blocker is Gate 4 (smoke).
+
+### smoke:prod detail (exit 1 · 1 passed, 5 failed)
+
+| Check | Result |
+|-------|--------|
+| GET / returns 200 | FAIL — got 403 |
+| GET /dashboard returns 200 | FAIL — got 403 |
+| /api/status returns 200 | FAIL — got 403 |
+| /api/dashboard returns 200 | FAIL — got 403 |
+| www DNS resolves | PASS |
+| www is bound to this Vercel project | FAIL — got 403 |
+
+### smoke:www detail (exit 1 · 1 passed, 1 failed)
+
+| Check | Result |
+|-------|--------|
+| www DNS resolves | PASS |
+| www is bound to this Vercel project | FAIL — got 403 |
+
+### Final verdict
+
+**NO-GO.** `launch:check --include-smoke` exits 1. Gate 5 (build/lint/tests) confirmed GO by CI. Gate 4 (smoke) fails on both prod and www — single root cause: apex DNS still resolves to `104.21.50.117` (Cloudflare proxy, orange cloud), not `76.76.21.21` (Vercel). Domain is not bound to this Vercel project. All downstream gates (env, data, launch:check) are blocked by this single failure.
+
+**Single next action:** Set Cloudflare A record for `constructaiq.trade` to `76.76.21.21` DNS-only (grey cloud). Allow propagation, then re-run `npm run launch:check -- --include-smoke`; must exit 0 for GO.
+
+*Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
+
+Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-5Q5BF)*
