@@ -449,12 +449,133 @@ the Vercel domain blocker (P0) is resolved.
 
 ---
 
+## Phase 5 data-source verification — 2026-04-25 17:46 UTC
+
+This section records the attempt to verify live production data sources through
+the five specified endpoints.
+
+### Prerequisite check
+
+The prerequisite for this phase is that `constructaiq.trade` serves the app
+and `/api/status` returns JSON. That condition has not been met.
+
+All five endpoints return HTTP 403 from Vercel's edge layer before reaching
+the Next.js application. The response body is the plain-text string
+`Host not in allowlist` — not JSON. All `jq` commands exited with parse
+error (exit 5).
+
+### Probe results
+
+#### `curl -s https://constructaiq.trade/api/status | jq .data`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-type: text/plain
+
+Host not in allowlist
+```
+jq exit: **5** (parse error — not JSON)
+
+#### `curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-type: text/plain
+
+Host not in allowlist
+```
+jq exit: **5** (parse error — not JSON)
+
+#### `curl -s https://constructaiq.trade/api/federal | jq '{dataSource, fromCache, contractors: (.contractors | length), agencies: (.agencies | length), fetchError}'`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-type: text/plain
+
+Host not in allowlist
+```
+jq exit: **5** (parse error — not JSON)
+
+#### `curl -s https://constructaiq.trade/api/weekly-brief | jq '{source, live, configured, warning, error}'`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-type: text/plain
+
+Host not in allowlist
+```
+jq exit: **5** (parse error — not JSON)
+
+#### `curl -s https://constructaiq.trade/api/dashboard | jq '{fetched_at, cshi: (.cshi | type), signals: (.signals | length), commodities: (.commodities | length), forecast: (.forecast | type)}'`
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-type: text/plain
+
+Host not in allowlist
+```
+jq exit: **5** (parse error — not JSON)
+
+### Data-source status summary
+
+| Surface | Expected (when live) | Observed | Fallback active? |
+|---------|---------------------|----------|-----------------|
+| `/api/status` `.data.federalSource` | `"usaspending.gov"` | **UNOBSERVABLE** | Unknown — domain blocked |
+| `/api/status` `.data.weeklyBriefSource` | `"ai"` | **UNOBSERVABLE** | Unknown — domain blocked |
+| `/api/status?deep=1` `.data.dashboardShapeOk` | `true` | **UNOBSERVABLE** | Unknown — domain blocked |
+| `/api/federal` `dataSource` | `"usaspending.gov"` | **UNOBSERVABLE** | Unknown — domain blocked |
+| `/api/federal` `contractors` count | `> 0` | **UNOBSERVABLE** | Unknown — domain blocked |
+| `/api/federal` `agencies` count | `> 0` | **UNOBSERVABLE** | Unknown — domain blocked |
+| `/api/weekly-brief` `source` | `"ai"` | **UNOBSERVABLE** | Unknown — domain blocked |
+| `/api/weekly-brief` `live` | `true` | **UNOBSERVABLE** | Unknown — domain blocked |
+| `/api/dashboard` `forecast` type | `"object"` | **UNOBSERVABLE** | Unknown — domain blocked |
+| `/api/dashboard` `cshi` type | `"object"` | **UNOBSERVABLE** | Unknown — domain blocked |
+| `/api/dashboard` `signals` length | `> 0` | **UNOBSERVABLE** | Unknown — domain blocked |
+| `/api/dashboard` `commodities` length | `> 0` | **UNOBSERVABLE** | Unknown — domain blocked |
+
+### `npm run lint`
+
+ESLint exited 0 — no code errors. `next lint` fails in this sandbox due to
+missing Sentry OpenTelemetry peers (pre-existing sandbox gap, not a code
+defect — same as all prior phases).
+
+| Tool | Exit code | Result |
+|------|-----------|--------|
+| ESLint (direct) | **0** | No errors, no warnings |
+| `next lint` | 1 | Sandbox-only: missing `@opentelemetry/sdk-trace-base` — not a code defect |
+
+### Fallback classification
+
+No fallback state can be confirmed or denied — all endpoints are unreachable.
+The fallback behavior documented in the Known Fallbacks section of this report
+(written from code analysis) remains the authoritative description of what will
+activate if individual data sources are unavailable once the domain is live.
+None of those fallbacks are launch blockers on their own; the only launch
+blocker is the Vercel domain binding.
+
+### Data-source verification interpretation
+
+**All data-source states are unobservable.** The single prerequisite — that
+`constructaiq.trade` serves the Next.js application — is still unmet as of
+2026-04-25 17:46 UTC.
+
+This verification pass must be repeated in full after the Vercel domain
+binding is completed and `/api/status` returns HTTP 200 JSON. The five
+commands in this section are the exact commands to rerun at that time.
+
+---
+
 ## Go / No-Go Summary
 
 | Dimension        | Verdict     | Rationale                                                                                       |
 |------------------|-------------|-------------------------------------------------------------------------------------------------|
-| **Codebase**     | **GO**      | Build, lint, and all 317 tests are green at SHA `8c1cd98d`. Confirmed green on revalidation (2026-04-25 17:33 UTC), Phase 5 domain recheck (17:39 UTC), and Phase 5 env verification (17:43 UTC). No code regression introduced. |
-| **Public launch**| **NO-GO**   | Domain still returns HTTP 403 `x-deny-reason: host_not_allowed` as of Phase 5 env verification 2026-04-25 17:43 UTC. Vercel domain binding is **OPEN**. Env var booleans from `/api/status` are **UNOBSERVABLE** — prerequisite not met. P0 env vars (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`) are unverified launch blockers. |
+| **Codebase**     | **GO**      | Build, lint, and all 317 tests are green at SHA `8c1cd98d`. Confirmed green on revalidation (2026-04-25 17:33 UTC), Phase 5 domain recheck (17:39 UTC), env verification (17:43 UTC), and data-source verification (17:46 UTC). No code regression introduced. |
+| **Public launch**| **NO-GO**   | Domain still returns HTTP 403 `x-deny-reason: host_not_allowed` as of Phase 5 data-source verification 2026-04-25 17:46 UTC. Vercel domain binding is **OPEN**. All `/api/status`, `/api/federal`, `/api/weekly-brief`, and `/api/dashboard` probes return 403. Federal, Weekly Brief, and Dashboard data-source states are **UNOBSERVABLE**. P0 env vars remain unverified. |
 
 **The codebase is candidate-ready. The infrastructure is not.**
 
