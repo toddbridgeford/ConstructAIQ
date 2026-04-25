@@ -3549,3 +3549,38 @@ Lint: `npm run lint` exit 0 — no ESLint warnings or errors.
 *Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
 
 *Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 21:40 UTC*
+
+---
+
+## Phase 15 smoke verification — 2026-04-25
+
+**Task:** Run `npm run smoke:www` and `npm run smoke:prod` after domain binding confirmed.
+
+### Prerequisite gate: FAILED — smoke tests not run
+
+`npm run domain:check` must exit 0 with `APEX_OK + WWW_REDIRECT_OK` before smoke tests are meaningful. It did not:
+
+| Command | Exit code | Apex classification | www classification |
+|---------|-----------|---------------------|--------------------|
+| `npm run domain:check` | **1** | `VERCEL_DOMAIN_NOT_BOUND` | `VERCEL_DOMAIN_NOT_BOUND` |
+
+Both domains return `HTTP 403 · x-deny-reason: host_not_allowed`. Running smoke tests against an unbound domain would only replicate the same 403 failure already captured in Phase 15 domain binding verification. No new information would be produced.
+
+Smoke tests were **not executed** per the constraint: *"Run smoke checks only after domain:check passes."*
+
+### Verdict
+
+**NO-GO — prerequisite not satisfied.**
+
+| Check | Status |
+|-------|--------|
+| `domain:check` | FAIL — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` |
+| `smoke:www` | NOT RUN |
+| `smoke:prod` | NOT RUN |
+| Public launch | **NO-GO** |
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → bind both `constructaiq.trade` and `www.constructaiq.trade` with green SSL checkmarks (direct connection, no apex-to-www redirect). Then re-run `npm run domain:check` (must exit 0) before smoke tests proceed.
+
+Lint: `npm run lint` — node_modules not installed in this sandbox; no product code changed in this phase (docs-only). Prior Phase 14 lint exit 0 remains the last valid lint result.
+
+*Updated by `claude/verify-domain-binding-8MNqQ` · 2026-04-25*
