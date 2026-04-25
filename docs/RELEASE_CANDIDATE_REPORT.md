@@ -3923,3 +3923,43 @@ npm run lint
 **Next action:** Vercel UI → construct-aiq → Settings → Domains — confirm both `constructaiq.trade` and `www.constructaiq.trade` are bound to the correct project with green SSL checkmarks. Remove any apex→www redirect rule. Then re-run `npm run domain:check` (must exit 0).
 
 *Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*
+
+---
+
+## Phase 17 canonical redirect check — 2026-04-25 21:31 UTC
+
+### Commands run
+
+```bash
+npm run domain:check
+node scripts/check-domain-status.mjs --json
+npm run lint
+```
+
+### Results
+
+| Field | apex | www |
+|-------|------|-----|
+| exit code | **1** | — |
+| HTTP status | 403 | 403 |
+| x-deny-reason | `host_not_allowed` | `host_not_allowed` |
+| location | null | null |
+| classification | `VERCEL_DOMAIN_NOT_BOUND` | `VERCEL_DOMAIN_NOT_BOUND` |
+| proxyWarning | false | false |
+| cf-ray | null | null |
+
+### Interpretation
+
+`APEX_REDIRECTS_TO_WWW` cannot be observed — Vercel returns 403 before any redirect logic runs. The apex canonical check is blocked by the same `VERCEL_DOMAIN_NOT_BOUND` condition. No change from Phase 17 proxy check.
+
+The operator reports the Vercel binding has been completed. Live probes still return `host_not_allowed`, which indicates either propagation lag (Vercel edge cache, typically 2–5 min) or the domains are bound to a different Vercel project than the one serving the deployment.
+
+### Lint
+
+`npm run lint` exits 127 — `node_modules` not installed in this sandbox. Last verified lint result: exit 0 (Phase 16). No lint-affecting code changes since.
+
+### Verdict
+
+**NO-GO** — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` on both. Apex redirect check blocked. Next action: confirm Vercel domain binding propagated (green SSL checkmarks on both domains in the correct project), wait if needed, then re-run `npm run domain:check`.
+
+*Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*

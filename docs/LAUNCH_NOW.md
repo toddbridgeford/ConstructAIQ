@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 17 — domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND · proxyWarning false)**
+**Updated: 2026-04-25 (Phase 17 canonical redirect check — domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND · proxyWarning false)**
 
 ---
 
@@ -15,7 +15,8 @@
 | Build | **GO** — 84 routes · 0 errors |
 | Lint | **GO** — no ESLint warnings or errors (last verified Phase 16; node_modules absent in sandbox) |
 | Tests | **GO** — 356/356 · 24 files |
-| Cloudflare proxy | **GO** — `proxyWarning: false` · DNS-only confirmed (no `cf-ray`, `cf-cache-status`, or `server: cloudflare` in responses) |
+| Cloudflare proxy | **GO** — `proxyWarning: false` · DNS-only confirmed |
+| Apex canonical redirect | **BLOCKED** — cannot evaluate; Vercel rejects both domains before redirect logic runs |
 | domain:check | **NO-GO** — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` on both |
 | smoke:prod | **NO-GO** — 1/6 passed |
 | smoke:www | **NO-GO** — 1/2 passed |
@@ -25,12 +26,13 @@
 
 ## Next action — do this now
 
-**Bind both domains directly in Vercel. Cloudflare DNS-only is confirmed — no DNS change needed.**
+**Both domains still return `host_not_allowed`. Confirm the binding has propagated in Vercel.**
 
 1. Vercel → **construct-aiq** project → **Settings → Domains**
 2. Confirm `constructaiq.trade` is listed and shows a green SSL checkmark — connected directly to Production, **no redirect to www**
 3. Confirm `www.constructaiq.trade` is listed and shows a green SSL checkmark — connected directly, no Vercel-level redirect rule
-4. Run:
+4. If the UI shows the domains but the check still fails: wait 2–5 minutes for Vercel edge propagation, then re-run
+5. Run:
 
 ```bash
 npm run domain:check
