@@ -3847,3 +3847,79 @@ Bind both domains directly in Vercel. No code changes required.
 When `domain:check` exits 0, resume from `docs/CLAUDE_POST_CANONICAL_REMEDIATION_PROMPT.md`. That prompt drives the env/data/smoke verification and will flip the verdict to GO if all gates pass.
 
 *Updated by `claude/update-launch-docs-MXJjd` · 2026-04-25*
+
+---
+
+## Phase 17 Cloudflare/Vercel domain check — 2026-04-25 21:29 UTC
+
+### Commands run
+
+```bash
+npm run domain:check
+node scripts/check-domain-status.mjs --json
+npm run lint
+```
+
+### `node scripts/check-domain-status.mjs --json` output
+
+```json
+{
+  "apex": {
+    "url": "https://constructaiq.trade",
+    "status": 403,
+    "denyReason": "host_not_allowed",
+    "location": null,
+    "server": null,
+    "cfCacheStatus": null,
+    "cfRay": null,
+    "xVercelId": null,
+    "classification": "VERCEL_DOMAIN_NOT_BOUND",
+    "proxyWarning": false
+  },
+  "www": {
+    "url": "https://www.constructaiq.trade/dashboard",
+    "status": 403,
+    "denyReason": "host_not_allowed",
+    "location": null,
+    "server": null,
+    "cfCacheStatus": null,
+    "cfRay": null,
+    "xVercelId": null,
+    "classification": "VERCEL_DOMAIN_NOT_BOUND",
+    "proxyWarning": false
+  },
+  "ok": false,
+  "proxyWarning": false,
+  "exitCode": 1
+}
+```
+
+### Key observations
+
+| Field | apex | www |
+|-------|------|-----|
+| exit code | **1** | — |
+| HTTP status | 403 | 403 |
+| x-deny-reason | `host_not_allowed` | `host_not_allowed` |
+| location | null | null |
+| classification | `VERCEL_DOMAIN_NOT_BOUND` | `VERCEL_DOMAIN_NOT_BOUND` |
+| proxyWarning | **false** | **false** |
+| cf-ray | null | null |
+| cf-cache-status | null | null |
+| server: cloudflare | absent | absent |
+
+### Cloudflare proxy status
+
+**Proxy confirmed disabled.** No Cloudflare proxy headers (`cf-ray`, `cf-cache-status`, `server: cloudflare`) were present in either response. `proxyWarning: false` on both apex and www. The operator's DNS-only change is reflected in the network probes.
+
+### Lint
+
+`npm run lint` could not execute — `node_modules` not installed in this sandbox environment. Last verified lint result: exit 0 (Phase 16, 2026-04-25). No lint-affecting code changes have been made since that pass.
+
+### Verdict
+
+**NO-GO** — `domain:check` exits 1. Both domains return `host_not_allowed` (403). Cloudflare proxy is disabled. Sole remaining blocker is Vercel domain binding.
+
+**Next action:** Vercel UI → construct-aiq → Settings → Domains — confirm both `constructaiq.trade` and `www.constructaiq.trade` are bound to the correct project with green SSL checkmarks. Remove any apex→www redirect rule. Then re-run `npm run domain:check` (must exit 0).
+
+*Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*

@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 16 final — domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND)**
+**Updated: 2026-04-25 (Phase 17 — domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND · proxyWarning false)**
 
 ---
 
@@ -13,8 +13,9 @@
 | Dimension | Status |
 |-----------|--------|
 | Build | **GO** — 84 routes · 0 errors |
-| Lint | **GO** — no ESLint warnings or errors |
+| Lint | **GO** — no ESLint warnings or errors (last verified Phase 16; node_modules absent in sandbox) |
 | Tests | **GO** — 356/356 · 24 files |
+| Cloudflare proxy | **GO** — `proxyWarning: false` · DNS-only confirmed (no `cf-ray`, `cf-cache-status`, or `server: cloudflare` in responses) |
 | domain:check | **NO-GO** — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` on both |
 | smoke:prod | **NO-GO** — 1/6 passed |
 | smoke:www | **NO-GO** — 1/2 passed |
@@ -24,13 +25,12 @@
 
 ## Next action — do this now
 
-**Bind both domains directly in Vercel. No code changes needed.**
+**Bind both domains directly in Vercel. Cloudflare DNS-only is confirmed — no DNS change needed.**
 
 1. Vercel → **construct-aiq** project → **Settings → Domains**
 2. Confirm `constructaiq.trade` is listed and shows a green SSL checkmark — connected directly to Production, **no redirect to www**
 3. Confirm `www.constructaiq.trade` is listed and shows a green SSL checkmark — connected directly, no Vercel-level redirect rule
-4. If the DNS provider is Cloudflare: set both records to **DNS-only** (grey cloud) — proxied records cause `host_not_allowed` even when the domain appears bound
-5. Run:
+4. Run:
 
 ```bash
 npm run domain:check
