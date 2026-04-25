@@ -4370,3 +4370,41 @@ curl -s https://constructaiq.trade/api/status | jq .runtime  # jq exit 5
 **Single next action:** Set Cloudflare A record for `constructaiq.trade` to `76.76.21.21` with proxy OFF (grey cloud). Re-run `npm run launch:check -- --include-smoke`; must exit 0 for GO.
 
 *Updated by `claude/verify-dns-cloudflare-sKNiP` · 2026-04-25*
+
+---
+
+## Phase 19 DNS-only verification — 2026-04-25T00:00:00Z
+
+**Branch:** `claude/verify-dns-propagation-5Q5BF`
+
+### Result table
+
+| Probe | Result |
+|-------|--------|
+| `socket.gethostbyname('constructaiq.trade')` | `104.21.50.117` — Cloudflare 104.x IP |
+| `socket.gethostbyname('www.constructaiq.trade')` | `104.21.50.117` — Cloudflare 104.x IP |
+| `domain:check` exit code | 1 |
+| apex HTTP status | 403 |
+| apex `x-deny-reason` | `host_not_allowed` |
+| apex classification | `VERCEL_DOMAIN_NOT_BOUND` |
+| www HTTP status | 403 |
+| www `x-deny-reason` | `host_not_allowed` |
+| www classification | `VERCEL_DOMAIN_NOT_BOUND` |
+| apex `proxyWarning` (header-based) | false |
+| www `proxyWarning` (header-based) | false |
+| apex `cf-ray` | null |
+| apex `location` | null |
+
+### Analysis
+
+The operator reported grey-clouding both Cloudflare records, but the apex still resolves to `104.21.50.117` — a Cloudflare-owned IP in the `104.16.0.0/12` range. The proxy is still active. `proxyWarning: false` is an artefact of header-only detection: Cloudflare passes Vercel's 403 response through without injecting `cf-ray` or `server: cloudflare` headers, so the script sees no proxy headers. IP resolution is the authoritative signal.
+
+Both domains return HTTP 403 `host_not_allowed` from Vercel, confirming the domain is not yet bound.
+
+### Verdict
+
+**NO-GO.** Cloudflare proxy not disabled. Apex must resolve to `76.76.21.21` before `domain:check` can exit 0 and the domain can be bound in Vercel.
+
+**Next action:** Confirm Cloudflare A record for `constructaiq.trade` is saved as DNS-only (grey cloud) with value `76.76.21.21`. Allow up to 5 minutes for propagation, then re-run Phase 19 verification.
+
+*Updated by `claude/verify-dns-propagation-5Q5BF` · 2026-04-25*
