@@ -91,9 +91,9 @@ function stateStatus(obligated: number, all: StateAlloc[]): string {
 }
 
 function agencyStatus(pct: number): string {
-  if (pct >= 70) return 'ON_TRACK'
+  if (pct >= 70) return 'HIGH_SHARE'
   if (pct >= 50) return 'AVERAGE'
-  return 'LAGGING'
+  return 'LOW_SHARE'
 }
 
 // executionPct > 68 is a proxy for above 5-year historical average
@@ -146,9 +146,9 @@ function downloadStateCSV(rows: StateAlloc[]) {
 }
 
 function downloadAgencyCSV(rows: AgencyRow[]) {
-  const header = "Agency,Obligated %,Status"
+  const header = "Agency,Award Share (index),Status"
   const lines = rows.map(r =>
-    `"${r.name}",${r.obligatedPct}%,"${agencyStatus(r.obligatedPct)}"`)
+    `"${r.name}",${r.obligatedPct},"${agencyStatus(r.obligatedPct)}"`)
   const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv" })
   const url  = URL.createObjectURL(blob)
   const a    = Object.assign(document.createElement("a"), { href: url, download: "federal-by-agency.csv" })
@@ -204,11 +204,11 @@ function ColHeader({ label, sortKey, currentKey, currentDir, onSort, width }: Co
 
 function StatusBadge({ status }: { status: string }) {
   const { col, label } =
-    status === 'ABOVE_AVERAGE' ? { col: GREEN, label: 'ABOVE AVG' } :
-    status === 'ON_TRACK'      ? { col: GREEN, label: 'ON TRACK'  } :
-    status === 'BELOW'         ? { col: RED,   label: 'BELOW'     } :
-    status === 'LAGGING'       ? { col: RED,   label: 'LAGGING'   } :
-                                 { col: AMBER,  label: 'AVERAGE'   }
+    status === 'ABOVE_AVERAGE' ? { col: GREEN, label: 'ABOVE AVG'  } :
+    status === 'HIGH_SHARE'    ? { col: GREEN, label: 'HIGH'        } :
+    status === 'BELOW'         ? { col: RED,   label: 'BELOW'       } :
+    status === 'LOW_SHARE'     ? { col: RED,   label: 'LOW'         } :
+                                 { col: AMBER,  label: 'AVERAGE'    }
   return (
     <span style={{
       fontFamily:    MONO,
@@ -785,7 +785,7 @@ export default function FederalPage() {
                 <StatBadge
                   label="Avg YoY"
                   value={`${avgYoY > 0 ? '+' : ''}${avgYoY.toFixed(1)}%`}
-                  sub="execution pace vs prior year"
+                  sub="award momentum vs prior year"
                 />
               </>
             )}
@@ -883,7 +883,7 @@ export default function FederalPage() {
           }}>
             <div style={{ fontFamily: MONO, fontSize: 10, color: T4, letterSpacing: '0.08em',
                           textTransform: 'uppercase', marginBottom: 16 }}>
-              {tab === 'state' ? 'Top 15 States · Awards ($M)' : 'Agency Execution · % Obligated'}
+              {tab === 'state' ? 'Top 15 States · Awards ($M)' : 'Agency Award Share · Indexed to 100'}
             </div>
             {loading ? (
               <div style={{ height: 280, background: BG2, borderRadius: 8 }} />
@@ -924,7 +924,7 @@ export default function FederalPage() {
                   <Tooltip
                     contentStyle={{ background: BG2, border: `1px solid ${BD2}`, borderRadius: 8,
                                     fontFamily: MONO, fontSize: 11, color: T1 }}
-                    formatter={(v: number) => [`${v}%`, 'Obligated']}
+                    formatter={(v: number) => [String(v), 'Award share (index)']}
                   />
                   <Bar dataKey="obligatedPct" radius={[0,5,5,0]} barSize={16}>
                     {allAgencies.map(a => (
@@ -995,7 +995,7 @@ export default function FederalPage() {
                       Signal
                     </th>
                     <ColHeader label="Top Agency"  sortKey="agency"   currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
-                    <ColHeader label="Execution %"  sortKey="exec"    currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
+                    <ColHeader label="Award Rate %"  sortKey="exec"    currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
                     <th style={{
                       padding: '0 16px', height: 40, background: BG2, fontFamily: MONO,
                       fontSize: 10, color: T4, letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -1066,8 +1066,8 @@ export default function FederalPage() {
               <table className="fed-table">
                 <thead>
                   <tr>
-                    <ColHeader label="Agency"     sortKey="agency"   currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
-                    <ColHeader label="Obligated %" sortKey="obligated" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} width={160} />
+                    <ColHeader label="Agency"      sortKey="agency"   currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
+                    <ColHeader label="Award Share" sortKey="obligated" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} width={160} />
                     <th style={{
                       padding: '0 16px', height: 40, background: BG2, fontFamily: MONO,
                       fontSize: 10, color: T4, letterSpacing: '0.08em', textTransform: 'uppercase',

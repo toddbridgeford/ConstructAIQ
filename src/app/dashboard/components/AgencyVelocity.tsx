@@ -59,7 +59,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
       }}
     >
       <div style={{ color: color.t3, marginBottom: 2 }}>{label}</div>
-      <div style={{ color: barColor(val), fontWeight: 700 }}>{val.toFixed(1)}% Obligated</div>
+      <div style={{ color: barColor(val), fontWeight: 700 }}>{val.toFixed(0)} award share (top = 100)</div>
     </div>
   )
 }
@@ -86,18 +86,18 @@ export function AgencyVelocity({ agencies }: AgencyVelocityProps) {
     >
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontFamily: MONO, fontSize: 10, color: color.t4, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 2 }}>
-          Agency Execution Velocity
+          Federal Award Share by Agency
         </div>
         <div style={{ fontFamily: SYS, fontSize: 14, color: color.t2, lineHeight: 1.4 }}>
-          Which agencies are moving fastest on construction investment?
+          Relative share of recent construction contract awards. Top agency indexed to 100.
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
         {[
-          { label: ">70% On Track", c: color.green },
-          { label: "40–70% Moderate", c: color.amber },
-          { label: "<40% Lagging", c: color.red },
+          { label: ">70 High", c: color.green },
+          { label: "40–70 Moderate", c: color.amber },
+          { label: "<40 Low", c: color.red },
         ].map((item) => (
           <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <div style={{ width: 10, height: 10, borderRadius: 2, background: item.c }} />

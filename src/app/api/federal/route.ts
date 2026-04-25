@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import {
   getStateAllocations,
   getFederalLeaderboard,
+  GEO_CACHE_KEY,
+  LEADERBOARD_CACHE_KEY,
+  LEADERBOARD_LOOKBACK_MONTHS,
+  LEADERBOARD_AWARD_LIMIT,
+  FEDERAL_NAICS_CODES,
   type StateAllocation,
   type ContractorLeader,
   type AgencyShare,
@@ -117,6 +122,22 @@ export async function GET() {
     const fromCache  = Boolean(statesRes.fromCache && leaderRes.fromCache)
     const updatedAt  = leaderRes.fetchedAt || statesRes.fetchedAt
 
+    const geoSource = liveGeo
+      ? (statesRes.fromCache ? 'usaspending.gov/cached' : 'usaspending.gov/live')
+      : 'static-fallback'
+    const leaderboardSource = liveLeader
+      ? (leaderRes.fromCache ? 'usaspending.gov/cached' : 'usaspending.gov/live')
+      : 'none'
+
+    const federalMeta = {
+      leaderboardLookbackMonths: LEADERBOARD_LOOKBACK_MONTHS,
+      leaderboardAwardLimit:     LEADERBOARD_AWARD_LIMIT,
+      naicsCodes:                FEDERAL_NAICS_CODES,
+      cacheKeys:                 { geo: GEO_CACHE_KEY, leaderboard: LEADERBOARD_CACHE_KEY },
+      geoSource,
+      leaderboardSource,
+    }
+
     return NextResponse.json(
       {
         programs:         PROGRAMS,
@@ -132,6 +153,7 @@ export async function GET() {
         dataSource,
         fromCache,
         updatedAt,
+        federalMeta,
         ...(fetchError ? { fetchError } : {}),
       },
       { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } },
@@ -160,6 +182,14 @@ export async function GET() {
       fromCache:  false,
       updatedAt:  new Date().toISOString(),
       fetchError: err instanceof Error ? err.message : String(err),
+      federalMeta: {
+        leaderboardLookbackMonths: LEADERBOARD_LOOKBACK_MONTHS,
+        leaderboardAwardLimit:     LEADERBOARD_AWARD_LIMIT,
+        naicsCodes:                FEDERAL_NAICS_CODES,
+        cacheKeys:                 { geo: GEO_CACHE_KEY, leaderboard: LEADERBOARD_CACHE_KEY },
+        geoSource:        'static-fallback',
+        leaderboardSource:'none',
+      },
     })
   }
 }

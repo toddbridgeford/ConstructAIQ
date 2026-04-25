@@ -149,6 +149,19 @@ describe('aggregateContractors', () => {
     expect(out).toHaveLength(1)
     expect(out[0].name).toBe('Real Co')
   })
+
+  it('awardValue is an integer number of $M (no cents)', () => {
+    const rows: AwardRow[] = [
+      award({ 'Recipient Name': 'Precise Co', 'recipient_id': 'p1',
+              'Awarding Agency': 'DoD', 'Award Amount': 123_456_789 }),
+      award({ 'Recipient Name': 'Precise Co', 'recipient_id': 'p1',
+              'Awarding Agency': 'DoD', 'Award Amount':  76_543_211 }),
+    ]
+    const out = aggregateContractors(rows)
+    // 123_456_789 + 76_543_211 = 200_000_000 → exactly 200 $M
+    expect(out[0].awardValue).toBe(200)
+    expect(Number.isInteger(out[0].awardValue)).toBe(true)
+  })
 })
 
 describe('aggregateAgencies', () => {
@@ -186,6 +199,27 @@ describe('aggregateAgencies', () => {
       award({ 'Awarding Agency': `Agency ${i}`, 'Award Amount': (12 - i) * 1_000_000 }),
     )
     expect(aggregateAgencies(rows)).toHaveLength(8)
+  })
+
+  it('obligatedPct is always in the range 0–100 inclusive', () => {
+    const rows: AwardRow[] = Array.from({ length: 5 }, (_, i) =>
+      award({ 'Awarding Agency': `Agency ${i}`, 'Award Amount': (i + 1) * 1_000_000 }),
+    )
+    const out = aggregateAgencies(rows)
+    for (const a of out) {
+      expect(a.obligatedPct).toBeGreaterThanOrEqual(0)
+      expect(a.obligatedPct).toBeLessThanOrEqual(100)
+      expect(Number.isInteger(a.obligatedPct)).toBe(true)
+    }
+  })
+
+  it('top agency always has obligatedPct === 100', () => {
+    const rows: AwardRow[] = [
+      award({ 'Awarding Agency': 'BigAgency',   'Award Amount': 999_000_000 }),
+      award({ 'Awarding Agency': 'SmallAgency', 'Award Amount':   1_000_000 }),
+    ]
+    const out = aggregateAgencies(rows)
+    expect(out[0].obligatedPct).toBe(100)
   })
 })
 

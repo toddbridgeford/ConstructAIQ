@@ -1,8 +1,8 @@
 import { supabaseAdmin } from '@/lib/supabase'
 
-const CACHE_KEY                 = 'federal_geo_fy2025'
-const LEADERBOARD_CACHE_KEY     = 'federal_leaderboard_v1'
-const CACHE_TTL_MS              = 24 * 60 * 60 * 1000  // 24 hours
+export const GEO_CACHE_KEY              = 'federal_geo_fy2025'
+export const LEADERBOARD_CACHE_KEY      = 'federal_leaderboard_v1'
+const        CACHE_TTL_MS               = 24 * 60 * 60 * 1000  // 24 hours
 
 export interface StateAllocation {
   state:        string
@@ -54,7 +54,8 @@ interface AwardResult {
 }
 
 // Construction NAICS codes: residential, non-residential, civil/specialty
-const NAICS = ['2361','2362','2371','2372','2379','2381','2382','2383','2389']
+export const FEDERAL_NAICS_CODES = ['2361','2362','2371','2372','2379','2381','2382','2383','2389']
+const        NAICS                = FEDERAL_NAICS_CODES
 
 function agencyColor(pct: number): string {
   return pct >= 70 ? '#30d158' : pct >= 50 ? '#f5a623' : '#ff453a'
@@ -114,7 +115,7 @@ export async function getStateAllocations(
       const { data: cached } = await supabaseAdmin
         .from('federal_cache')
         .select('data_json, cached_at')
-        .eq('key', CACHE_KEY)
+        .eq('key', GEO_CACHE_KEY)
         .single()
 
       if (cached) {
@@ -140,7 +141,7 @@ export async function getStateAllocations(
     // Write to cache (fire-and-forget — never block the response)
     supabaseAdmin
       .from('federal_cache')
-      .upsert({ key: CACHE_KEY, data_json: data, cached_at: fetchedAt })
+      .upsert({ key: GEO_CACHE_KEY, data_json: data, cached_at: fetchedAt })
       .then(({ error }) => {
         if (error) console.warn('[federal] Cache write failed:', error.message)
       })
@@ -157,9 +158,10 @@ export async function getStateAllocations(
 // Federal contractor + agency leaderboard — live USASpending aggregation
 // ───────────────────────────────────────────────────────────────────────────
 
-const LEADERBOARD_LOOKBACK_MONTHS = 24
-const LEADERBOARD_PAGES           = 5     // 5 × 100 awards = top 500 by value
-const LEADERBOARD_PAGE_LIMIT      = 100
+export const LEADERBOARD_LOOKBACK_MONTHS = 24
+const        LEADERBOARD_PAGES           = 5     // 5 × 100 awards = top 500 by value
+const        LEADERBOARD_PAGE_LIMIT      = 100
+export const LEADERBOARD_AWARD_LIMIT     = LEADERBOARD_PAGES * LEADERBOARD_PAGE_LIMIT
 const LEADERBOARD_TOP_CONTRACTORS = 20
 const LEADERBOARD_TOP_AGENCIES    = 8
 
