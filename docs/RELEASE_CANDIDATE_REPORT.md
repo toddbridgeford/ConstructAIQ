@@ -1909,5 +1909,165 @@ Next action summary: [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md)
 
 ---
 
+---
+
+## Phase 7 env and data verification — 2026-04-25 18:31 UTC
+
+### Prerequisite check
+
+Before running env and data probes, the prerequisite was confirmed:
+
+```bash
+curl -sSo /dev/null -w "%{http_code}" https://constructaiq.trade/api/status
+```
+
+Result: **403** — prerequisite **not met**.
+
+`constructaiq.trade` still returns `x-deny-reason: host_not_allowed`. The
+Vercel domain binding has not been completed. All seven env/data probes were
+run to produce a complete evidence record; every result is unobservable for
+the same reason.
+
+Full response from `/api/status` (representative of all endpoints):
+
+```
+HTTP/2 403
+x-deny-reason: host_not_allowed
+content-length: 21
+content-type: text/plain
+date: Sat, 25 Apr 2026 18:31:57 GMT
+
+Host not in allowlist
+```
+
+### Probe results
+
+All seven probes received the plain-text body `Host not in allowlist`, not
+JSON. jq exited 5 (parse error) on every command.
+
+| Probe | Command | HTTP | jq exit | Result |
+|-------|---------|------|---------|--------|
+| env booleans | `curl -s …/api/status \| jq .env` | 403 | 5 | **UNOBSERVABLE** |
+| runtime | `curl -s …/api/status \| jq .runtime` | 403 | 5 | **UNOBSERVABLE** |
+| data sources | `curl -s …/api/status \| jq .data` | 403 | 5 | **UNOBSERVABLE** |
+| deep shape | `curl -s …/api/status?deep=1 \| jq .data` | 403 | 5 | **UNOBSERVABLE** |
+| federal | `curl -s …/api/federal \| jq {dataSource…}` | 403 | 5 | **UNOBSERVABLE** |
+| weekly-brief | `curl -s …/api/weekly-brief \| jq {source…}` | 403 | 5 | **UNOBSERVABLE** |
+| dashboard shape | `curl -s …/api/dashboard \| jq {fetched_at…}` | 403 | 5 | **UNOBSERVABLE** |
+
+### Expected values (from code analysis — to be confirmed once live)
+
+#### `/api/status | jq .env`
+
+| Boolean | Env var(s) | Expected | Observed | Classification |
+|---------|------------|----------|----------|----------------|
+| `supabaseConfigured` | `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` | `true` | **UNOBSERVABLE** | 🔴 **Launch blocker** if `false` — all data routes fail |
+| `cronSecretConfigured` | `CRON_SECRET` | `true` | **UNOBSERVABLE** | 🔴 **Launch blocker** if `false` — data-refresh cron cannot authenticate |
+| `anthropicConfigured` | `ANTHROPIC_API_KEY` | `true` | **UNOBSERVABLE** | 🟡 Warning if `false` — Weekly Brief falls back to static |
+| `upstashConfigured` | `UPSTASH_REDIS_REST_URL` + `_TOKEN` | `true` | **UNOBSERVABLE** | 🟡 Warning if `false` — rate limiting is DB-only |
+| `sentryConfigured` | `NEXT_PUBLIC_SENTRY_DSN` | `true` | **UNOBSERVABLE** | 🟡 Warning if `false` — error capture is console-only |
+
+#### `/api/status | jq .runtime`
+
+| Field | Expected | Observed | Classification |
+|-------|----------|----------|----------------|
+| `siteLocked` | `false` | **UNOBSERVABLE** | 🔴 **Launch blocker** if `true` — all visitors hit Basic Auth |
+| `nodeEnv` | `"production"` | **UNOBSERVABLE** | 🟡 Warning if not `"production"` |
+| `appUrl` | `"https://constructaiq.trade"` | **UNOBSERVABLE** | Survivable if absent |
+
+#### `/api/status | jq .data`
+
+| Field | Expected | Observed | Classification |
+|-------|----------|----------|----------------|
+| `federalSource` | `"usaspending.gov"` | **UNOBSERVABLE** | 🟡 Warning if `"static-fallback"` — leaderboard and agency rows will be empty |
+| `weeklyBriefSource` | `"ai"` | **UNOBSERVABLE** | 🟡 Warning if `"static-fallback"` — brief panel shows UNAVAILABLE badge |
+
+#### `/api/status?deep=1 | jq .data`
+
+| Field | Expected | Observed | Classification |
+|-------|----------|----------|----------------|
+| `dashboardShapeOk` | `true` | **UNOBSERVABLE** | 🔴 **Launch blocker** if `false` — primary screen is broken |
+
+#### `/api/federal | jq {dataSource, fromCache, contractors, agencies, fetchError}`
+
+| Field | Expected | Observed | Classification |
+|-------|----------|----------|----------------|
+| `dataSource` | `"usaspending.gov"` | **UNOBSERVABLE** | 🟡 Warning if `"static-fallback"` |
+| `fromCache` | `true` or `false` | **UNOBSERVABLE** | Informational |
+| `contractors` count | `> 0` | **UNOBSERVABLE** | 🟡 Warning if `0` |
+| `agencies` count | `> 0` | **UNOBSERVABLE** | 🟡 Warning if `0` |
+| `fetchError` | `null` / absent | **UNOBSERVABLE** | 🟡 Warning if set |
+
+#### `/api/weekly-brief | jq {source, live, configured, warning, error}`
+
+| Field | Expected | Observed | Classification |
+|-------|----------|----------|----------------|
+| `source` | `"ai"` | **UNOBSERVABLE** | 🟡 Warning if `"static-fallback"` |
+| `live` | `true` | **UNOBSERVABLE** | 🟡 Warning if `false` |
+| `configured` | `true` | **UNOBSERVABLE** | 🟡 Warning if `false` |
+| `warning` | absent | **UNOBSERVABLE** | Informational if present |
+| `error` | absent | **UNOBSERVABLE** | 🟡 Warning if set |
+
+#### `/api/dashboard | jq {fetched_at, cshi, signals, commodities, forecast}`
+
+| Field | Expected | Observed | Classification |
+|-------|----------|----------|----------------|
+| `fetched_at` | ISO timestamp | **UNOBSERVABLE** | — |
+| `cshi` type | `"object"` | **UNOBSERVABLE** | 🔴 **Launch blocker** if not `"object"` |
+| `signals` length | `> 0` | **UNOBSERVABLE** | 🔴 **Launch blocker** if `0` |
+| `commodities` length | `> 0` | **UNOBSERVABLE** | 🟡 Warning if `0` |
+| `forecast` type | `"object"` | **UNOBSERVABLE** | 🔴 **Launch blocker** if not `"object"` |
+
+### Classification summary
+
+| Priority | Item | Trigger condition | Status |
+|----------|------|-------------------|--------|
+| 🔴 P0 | `supabaseConfigured` | `false` | UNOBSERVABLE |
+| 🔴 P0 | `cronSecretConfigured` | `false` | UNOBSERVABLE |
+| 🔴 P0 | `siteLocked` | `true` | UNOBSERVABLE |
+| 🔴 P0 | `dashboardShapeOk` | `false` | UNOBSERVABLE |
+| 🔴 P0 | `cshi` type | not `"object"` | UNOBSERVABLE |
+| 🔴 P0 | `signals` length | `0` | UNOBSERVABLE |
+| 🔴 P0 | `forecast` type | not `"object"` | UNOBSERVABLE |
+| 🟡 P1 | `anthropicConfigured` | `false` | UNOBSERVABLE — Weekly Brief degrades to static |
+| 🟡 P1 | `upstashConfigured` | `false` | UNOBSERVABLE — rate limiting is DB-only |
+| 🟡 P1 | `sentryConfigured` | `false` | UNOBSERVABLE — errors are console-only |
+| 🟡 P1 | `federalSource` | `"static-fallback"` | UNOBSERVABLE — leaderboard empty, banner shown |
+| 🟡 P1 | `weeklyBriefSource` | `"static-fallback"` | UNOBSERVABLE — UNAVAILABLE badge shown |
+| 🟡 P1 | `commodities` length | `0` | UNOBSERVABLE |
+
+No secrets are recorded in this section. Env var names are listed as keys
+only; no values appear.
+
+### Phase 7 env/data interpretation
+
+**All env booleans and data-source states are unobservable.** The Vercel
+domain binding must be completed before any probe can reach the Next.js
+application. Until `/api/status` returns HTTP 200 with a JSON body, the
+classification table above cannot be populated with observed values.
+
+This verification pass must be repeated in full once the domain is live.
+The exact commands to rerun:
+
+```bash
+curl -s https://constructaiq.trade/api/status | jq .env
+curl -s https://constructaiq.trade/api/status | jq .runtime
+curl -s https://constructaiq.trade/api/status | jq .data
+curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data
+curl -s https://constructaiq.trade/api/federal \
+  | jq '{dataSource, fromCache, contractors: (.contractors|length), agencies: (.agencies|length), fetchError}'
+curl -s https://constructaiq.trade/api/weekly-brief \
+  | jq '{source, live, configured, warning, error}'
+curl -s https://constructaiq.trade/api/dashboard \
+  | jq '{fetched_at, cshi: (.cshi|type), signals: (.signals|length), commodities: (.commodities|length), forecast: (.forecast|type)}'
+```
+
+**Public launch: NO-GO.** Sole prerequisite: complete Vercel domain binding.
+
+See [docs/VERCEL_DOMAIN_FIX.md](./VERCEL_DOMAIN_FIX.md) Steps 1–4.
+See [docs/OPERATOR_HANDOFF.md](./OPERATOR_HANDOFF.md) for current action summary.
+
+---
+
 *This document is the single source of truth for ConstructAIQ launch state.
-Last updated: 2026-04-25 18:30 UTC by `claude/fix-doc-sha-consistency-7Y01M`.*
+Last updated: 2026-04-25 18:31 UTC by `claude/fix-doc-sha-consistency-7Y01M`.*
