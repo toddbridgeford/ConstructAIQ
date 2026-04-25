@@ -923,6 +923,8 @@ call, Supabase connection). Expected empty states do not generate Sentry noise.
 
 ## Post-Launch Monitoring Checklist
 
+> **Full 24-hour watch guide:** [docs/POST_LAUNCH_WATCH.md](./POST_LAUNCH_WATCH.md)
+
 Run these checks after launch and on any deploy or infrastructure change.
 
 ### Immediate post-launch (within 30 minutes of going live)
@@ -1196,7 +1198,7 @@ curl -s 'https://constructaiq.trade/api/status?deep=1' | jq .data.dashboardShape
 # must be true
 ```
 
-See [Post-Launch Monitoring Checklist](#post-launch-monitoring-checklist) above for the full list.
+See [docs/POST_LAUNCH_WATCH.md](./POST_LAUNCH_WATCH.md) for the full 24-hour watch guide, and [Post-Launch Monitoring Checklist](#post-launch-monitoring-checklist) above for the condensed inline version.
 
 ---
 
