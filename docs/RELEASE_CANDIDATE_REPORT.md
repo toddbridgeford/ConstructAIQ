@@ -4158,3 +4158,5 @@ Root cause: all 403 responses carry `x-deny-reason: host_not_allowed`. TLS hands
 After DNS propagates, re-run `npm run domain:check` (must exit 0), then `npm run launch:check -- --include-smoke` (must exit 0).
 
 *Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*
+
+Launch GO checklist skipped because Public launch remains NO-GO.
