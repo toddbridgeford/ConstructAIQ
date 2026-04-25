@@ -4700,3 +4700,39 @@ Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 ·
 **Verdict:** All data shapes unverifiable. Every API endpoint returns `Host not in allowlist` (plain-text 403) because the domain is not bound in Vercel. No blocker or warning classification is possible. Public launch remains NO-GO. Next action: bind domain in Vercel, confirm `smoke:prod` exits 0, then re-run data/dashboard verification.
 
 Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI · data/dashboard)*
+
+---
+
+## Phase 20 final launch gate — 2026-04-25
+
+*Branch: `claude/verify-dns-propagation-OEExI`*
+
+### Command table
+
+| Command | Exit | Result |
+|---------|------|--------|
+| `npm run launch:check -- --include-smoke` | 1 | FAILED — smoke:prod ✗ · smoke:www ✗ · build/lint/tests ✗ in sandbox |
+| `npm run build` | 127 | node_modules absent in sandbox — CI authoritative (exit 0) |
+| `npm run lint` | 127 | node_modules absent in sandbox — CI authoritative (exit 0) |
+| `npm test` | 127 | node_modules absent in sandbox — CI authoritative (exit 0) |
+| `npm run smoke:prod` | 1 | 1/6 passed · 5 failed — `host_not_allowed` 403 |
+| `npm run smoke:www` | 1 | 1/2 passed · 1 failed — `host_not_allowed` 403 |
+
+### Smoke results
+
+| Check | smoke:prod | smoke:www |
+|-------|-----------|-----------|
+| GET / returns 200 | FAIL — 403 | — |
+| GET /dashboard returns 200 | FAIL — 403 | — |
+| /api/status returns 200 | FAIL — 403 | — |
+| /api/dashboard returns 200 | FAIL — 403 | — |
+| www DNS resolves | PASS | PASS |
+| www is bound to this Vercel project | FAIL — 403 | FAIL — 403 |
+
+### Final verdict
+
+**NO-GO.** `launch:check --include-smoke` exits 1. Exact failing gate: Gate 4 (smoke) — `smoke:prod` and `smoke:www` both exit 1. Gate 5 (build/lint/tests) exits 127 in sandbox; CI is authoritative and previously verified exit 0. No product code issue. Single root cause: domain not bound in Vercel project. Next action: add `constructaiq.trade` and `www.constructaiq.trade` in Vercel dashboard → ConstructAIQ → Settings → Domains, then re-run full verification sequence.
+
+`docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO.
+
+Launch GO checklist skipped because Public launch remains NO-GO. *(2026-04-25 · claude/verify-dns-propagation-OEExI · final launch gate)*
