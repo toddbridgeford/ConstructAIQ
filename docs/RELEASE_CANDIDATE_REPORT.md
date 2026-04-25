@@ -3274,3 +3274,51 @@ DNS resolution is not the issue; Vercel is rejecting at the edge before any Next
 | `domain:check` exits 0 · APEX_OK + WWW_REDIRECT_OK | Yes | **FAIL** |
 
 *Updated by `claude/verify-production-domains-w0Ibi` · 2026-04-25 20:30 UTC*
+
+---
+
+## Phase 14 canonical domain check — 2026-04-25 20:45 UTC
+
+Re-verification after operator reported both domains added to Vercel with green checkmarks.
+
+### Command results
+
+#### `npm run domain:check` (exit code: 1)
+
+| Domain | HTTP status | x-deny-reason | Location | Classification |
+|--------|-------------|---------------|----------|----------------|
+| constructaiq.trade | 403 | host_not_allowed | — | VERCEL_DOMAIN_NOT_BOUND |
+| www.constructaiq.trade | 403 | host_not_allowed | — | VERCEL_DOMAIN_NOT_BOUND |
+
+#### `node scripts/check-domain-status.mjs --json` (exit code: 1)
+
+```json
+{
+  "apex": {
+    "url": "https://constructaiq.trade",
+    "status": 403,
+    "denyReason": "host_not_allowed",
+    "location": null,
+    "classification": "VERCEL_DOMAIN_NOT_BOUND"
+  },
+  "www": {
+    "url": "https://www.constructaiq.trade/dashboard",
+    "status": 403,
+    "denyReason": "host_not_allowed",
+    "location": null,
+    "classification": "VERCEL_DOMAIN_NOT_BOUND"
+  },
+  "ok": false,
+  "exitCode": 1
+}
+```
+
+### Verdict
+
+**NO-GO — VERCEL_DOMAIN_NOT_BOUND on both apex and www.**
+
+Both domains still return `HTTP 403 · x-deny-reason: host_not_allowed`. Despite the operator's report of green checkmarks, Vercel is rejecting requests at the edge. This may indicate a propagation delay or a binding to the wrong project.
+
+**Next action:** Re-confirm in Vercel UI that both `constructaiq.trade` and `www.constructaiq.trade` are bound to the **ConstructAIQ** project (not another project). After confirming, re-run `npm run domain:check` — it must exit 0 with `APEX_OK + WWW_REDIRECT_OK` before any GO status is granted.
+
+*Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 20:45 UTC*
