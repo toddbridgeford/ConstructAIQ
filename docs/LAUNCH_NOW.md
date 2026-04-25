@@ -1,6 +1,6 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 13)**
+**Updated: 2026-04-25 (Phase 14 final — launch:check exit 1)**
 
 ---
 
@@ -12,10 +12,10 @@
 
 | Dimension | Status |
 |-----------|--------|
-| Build | **GO** — 84 routes · 0 errors |
-| Lint | **GO** — no warnings or errors |
+| Build | **GO** — 84 routes · 0 errors (92.2s) |
+| Lint | **GO** — no ESLint warnings or errors |
 | Tests | **GO** — 344/344 passed |
-| Smoke | **NO-GO** — `host_not_allowed` on apex + www · `domain:check` exit 1 |
+| Smoke | **NO-GO** — smoke:prod 1/6 passed · smoke:www 1/2 passed · both fail on `host_not_allowed` |
 | Public launch | **NO-GO** |
 
 ---

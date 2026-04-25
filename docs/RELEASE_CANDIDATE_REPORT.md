@@ -3274,3 +3274,244 @@ DNS resolution is not the issue; Vercel is rejecting at the edge before any Next
 | `domain:check` exits 0 · APEX_OK + WWW_REDIRECT_OK | Yes | **FAIL** |
 
 *Updated by `claude/verify-production-domains-w0Ibi` · 2026-04-25 20:30 UTC*
+
+---
+
+## Phase 14 canonical domain check — 2026-04-25 20:45 UTC
+
+Re-verification after operator reported both domains added to Vercel with green checkmarks.
+
+### Command results
+
+#### `npm run domain:check` (exit code: 1)
+
+| Domain | HTTP status | x-deny-reason | Location | Classification |
+|--------|-------------|---------------|----------|----------------|
+| constructaiq.trade | 403 | host_not_allowed | — | VERCEL_DOMAIN_NOT_BOUND |
+| www.constructaiq.trade | 403 | host_not_allowed | — | VERCEL_DOMAIN_NOT_BOUND |
+
+#### `node scripts/check-domain-status.mjs --json` (exit code: 1)
+
+```json
+{
+  "apex": {
+    "url": "https://constructaiq.trade",
+    "status": 403,
+    "denyReason": "host_not_allowed",
+    "location": null,
+    "classification": "VERCEL_DOMAIN_NOT_BOUND"
+  },
+  "www": {
+    "url": "https://www.constructaiq.trade/dashboard",
+    "status": 403,
+    "denyReason": "host_not_allowed",
+    "location": null,
+    "classification": "VERCEL_DOMAIN_NOT_BOUND"
+  },
+  "ok": false,
+  "exitCode": 1
+}
+```
+
+### Verdict
+
+**NO-GO — VERCEL_DOMAIN_NOT_BOUND on both apex and www.**
+
+Both domains still return `HTTP 403 · x-deny-reason: host_not_allowed`. Despite the operator's report of green checkmarks, Vercel is rejecting requests at the edge. This may indicate a propagation delay or a binding to the wrong project.
+
+**Next action:** Re-confirm in Vercel UI that both `constructaiq.trade` and `www.constructaiq.trade` are bound to the **ConstructAIQ** project (not another project). After confirming, re-run `npm run domain:check` — it must exit 0 with `APEX_OK + WWW_REDIRECT_OK` before any GO status is granted.
+
+*Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 20:45 UTC*
+
+---
+
+## Phase 14 smoke verification — 2026-04-25 20:55 UTC
+
+### Prerequisite check
+
+`npm run domain:check` was re-run before attempting smoke. Result unchanged from Phase 14 canonical domain check above.
+
+| Gate | Required | Result |
+|------|----------|--------|
+| `domain:check` exits 0 · APEX_OK + WWW_REDIRECT_OK | Yes | **FAIL — exit 1** |
+
+### Smoke tests
+
+**Not run.** Smoke tests require a reachable production host. Both `constructaiq.trade` and `www.constructaiq.trade` still return `HTTP 403 · x-deny-reason: host_not_allowed`. Running smoke against an unreachable host would produce meaningless results and was skipped per stop-on-failure policy.
+
+| Command | Status |
+|---------|--------|
+| `npm run smoke:www` | **NOT RUN** — prerequisite not met |
+| `npm run smoke:prod` | **NOT RUN** — prerequisite not met |
+
+### Verdict
+
+**NO-GO — smoke gate blocked by unresolved VERCEL_DOMAIN_NOT_BOUND.**
+
+Public launch status unchanged: **NO-GO**.
+
+**Next action:** Operator must resolve Vercel domain binding. After `npm run domain:check` exits 0, re-run smoke:www then smoke:prod.
+
+*Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 20:55 UTC*
+
+---
+
+## Phase 14 env verification — 2026-04-25 21:05 UTC
+
+### Prerequisite check
+
+`npm run smoke:prod` requires the domain to be reachable. Domain check still exits 1.
+
+| Gate | Required | Result |
+|------|----------|--------|
+| `domain:check` exits 0 | Yes | **FAIL — exit 1, VERCEL_DOMAIN_NOT_BOUND** |
+| `npm run smoke:prod` exits 0 | Yes | **NOT RUN** |
+
+### /api/status probe
+
+`curl -s https://constructaiq.trade/api/status` attempted directly.
+
+| Field | Value |
+|-------|-------|
+| HTTP status | 403 |
+| Response body | `Host not in allowlist` |
+| `.env` fields | **Not retrievable** |
+| `.runtime` fields | **Not retrievable** |
+
+### Env boolean status
+
+Cannot be determined — endpoint unreachable due to unresolved domain binding.
+
+| Variable | Required | Status |
+|----------|----------|--------|
+| supabaseConfigured | Launch blocker | **UNKNOWN** |
+| cronSecretConfigured | Launch blocker | **UNKNOWN** |
+| runtime.siteLocked | Must be false | **UNKNOWN** |
+| anthropicConfigured | Warning | **UNKNOWN** |
+| upstashConfigured | Warning | **UNKNOWN** |
+| sentryConfigured | Warning | **UNKNOWN** |
+
+### Verdict
+
+**NO-GO — env verification blocked by unresolved VERCEL_DOMAIN_NOT_BOUND.**
+
+Public launch status: **NO-GO**.
+
+**Next action:** Resolve Vercel domain binding → `domain:check` exits 0 → `smoke:prod` exits 0 → re-run env check.
+
+*Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 21:05 UTC*
+
+---
+
+## Phase 14 data verification — 2026-04-25 21:15 UTC
+
+### Prerequisite check
+
+`npm run smoke:prod` requires a reachable production host. Domain check exits 1.
+
+| Gate | Required | Result |
+|------|----------|--------|
+| `domain:check` exits 0 | Yes | **FAIL — exit 1, VERCEL_DOMAIN_NOT_BOUND** |
+| `smoke:prod` exits 0 | Yes | **NOT RUN** |
+
+### Endpoint probe results
+
+All five data endpoints probed directly with `curl`.
+
+| Endpoint | HTTP status | JSON | Notes |
+|----------|-------------|------|-------|
+| `/api/status` (`.data`) | 403 | No — `Host not in allowlist` | Cannot read |
+| `/api/status?deep=1` (`.data`) | 403 | No — `Host not in allowlist` | Cannot read |
+| `/api/federal` | 403 | No | Cannot read |
+| `/api/weekly-brief` | 403 | No | Cannot read |
+| `/api/dashboard` | 403 | No | Cannot read |
+
+### Data classification
+
+All fields unknown — endpoint unreachable.
+
+| Check | Classification | Status |
+|-------|---------------|--------|
+| Dashboard shape valid | Launch blocker | **UNKNOWN** |
+| `cshi` type | Launch blocker | **UNKNOWN** |
+| Federal data source | Warning | **UNKNOWN** |
+| Weekly brief source | Warning | **UNKNOWN** |
+| Signals / commodities count | Warning | **UNKNOWN** |
+
+### Verdict
+
+**NO-GO — data verification blocked by unresolved VERCEL_DOMAIN_NOT_BOUND.**
+
+Public launch status: **NO-GO**.
+
+**Next action:** Resolve Vercel domain binding → `domain:check` exits 0 → `smoke:prod` exits 0 → re-run data verification.
+
+*Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 21:15 UTC*
+
+---
+
+## Phase 14 final launch gate — 2026-04-25 21:30 UTC
+
+### `npm run launch:check -- --include-smoke` (exit code: 1)
+
+#### Gate 5 — build / lint / unit tests
+
+| Check | Exit | Detail |
+|-------|------|--------|
+| `npm run build` | **0** | `✓ Compiled successfully` · 84 routes · 0 errors · 92.2s |
+| `npm run lint` | **0** | `✔ No ESLint warnings or errors` · 2.8s |
+| `npm test` | **0** | 24 files · 344/344 passed · 3.3s |
+
+#### Gate 4 — production smoke
+
+| Check | Result | Detail |
+|-------|--------|--------|
+| `GET /` returns 200 | **FAIL** | got 403 |
+| `GET /dashboard` returns 200 | **FAIL** | got 403 |
+| `/api/status` returns 200 | **FAIL** | got 403 |
+| `/api/dashboard` returns 200 | **FAIL** | got 403 |
+| www DNS resolves | **PASS** | `www.constructaiq.trade` responded |
+| www bound to Vercel project | **FAIL** | 403 `host_not_allowed` |
+
+| Command | Exit | Passed | Failed |
+|---------|------|--------|--------|
+| `npm run smoke:prod` | **1** | 1/6 | 5/6 |
+| `npm run smoke:www` | **1** | 1/2 | 1/2 |
+
+#### Launch:check summary
+
+```
+✓  build
+✓  lint
+✓  unit tests
+✗  smoke:prod
+✗  smoke:www
+
+✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www
+```
+
+### Verdict
+
+**NO-GO — launch:check exits 1.**
+
+All code-quality gates pass. Sole failure: Vercel domain not bound. Both `constructaiq.trade` and `www.constructaiq.trade` return `HTTP 403 · x-deny-reason: host_not_allowed` at the Vercel edge. Zero product code changes are needed.
+
+**Failing gate:** `smoke:prod` + `smoke:www` — `host_not_allowed` on apex and www.
+
+**Next action:** Vercel UI → ConstructAIQ project → Settings → Domains → confirm both `constructaiq.trade` and `www.constructaiq.trade` are bound here with green SSL checkmarks. Re-run `npm run domain:check` (must exit 0), then `npm run launch:check -- --include-smoke` (must exit 0) to flip verdict to GO.
+
+*Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 21:30 UTC*
+
+---
+
+## Phase 14 GO checklist — 2026-04-25 21:40 UTC
+
+Launch GO checklist skipped because Public launch remains NO-GO.
+
+`docs/LAUNCH_NOW.md` verdict: **Public launch — NO-GO** (Smoke row: `host_not_allowed` · `domain:check` exit 1 · `launch:check --include-smoke` exit 1).
+
+`docs/LAUNCH_GO_CHECKLIST.md` was not created.
+
+Lint: `npm run lint` exit 0 — no ESLint warnings or errors.
+
+*Updated by `claude/verify-domain-config-20GZj` · 2026-04-25 21:40 UTC*
