@@ -1,36 +1,43 @@
 # Launch Authority
 
-**Updated: 2026-04-25 (Phase 16 final — domain:check exit 1 · VERCEL_DOMAIN_NOT_BOUND)**
+**Updated: 2026-04-25 (Phase 17 final gate — launch:check exit 1 · smoke FAILED · DNS blocker)**
 
 ---
 
-> **STOP: code is launch-ready. Sole blocker: both domains return `host_not_allowed`.**
+> **STOP: code is launch-ready. Sole blocker: apex A record points to Cloudflare IPs, not Vercel.**
 
 ---
 
 ## Verdict
 
-| Dimension | Status |
-|-----------|--------|
-| Build | **GO** — 84 routes · 0 errors |
-| Lint | **GO** — no ESLint warnings or errors |
-| Tests | **GO** — 356/356 · 24 files |
-| domain:check | **NO-GO** — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` on both |
-| smoke:prod | **NO-GO** — 1/6 passed |
-| smoke:www | **NO-GO** — 1/2 passed |
-| Public launch | **NO-GO** |
+| Gate | Dimension | Status |
+|------|-----------|--------|
+| 5 | Build | **GO** — 84 routes · compiled in 60.1s · exit 0 |
+| 5 | Lint | **GO** — no ESLint warnings or errors · exit 0 |
+| 5 | Tests | **GO** — 356/356 · 24 files · exit 0 |
+| 4 | smoke:prod | **NO-GO** — 1/6 passed · exit 1 · all 403 `host_not_allowed` |
+| 4 | smoke:www | **NO-GO** — 1/2 passed · exit 1 · all 403 `host_not_allowed` |
+| 3 | env/data | **BLOCKED** — all API endpoints return `Host not in allowlist` |
+| 2 | Apex DNS target | **NO-GO** — resolves to Cloudflare IPs (`104.21.50.117`, `172.67.206.20`), not Vercel (`76.76.21.21`) |
+| — | launch:check | **FAILED** — exit 1 · failing gates: smoke:prod, smoke:www |
+| — | Public launch | **NO-GO** |
 
 ---
 
 ## Next action — do this now
 
-**Bind both domains directly in Vercel. No code changes needed.**
+**Fix the apex A record — it must point to Vercel's IP, not a Cloudflare IP.**
 
-1. Vercel → **construct-aiq** project → **Settings → Domains**
-2. Confirm `constructaiq.trade` is listed and shows a green SSL checkmark — connected directly to Production, **no redirect to www**
-3. Confirm `www.constructaiq.trade` is listed and shows a green SSL checkmark — connected directly, no Vercel-level redirect rule
-4. If the DNS provider is Cloudflare: set both records to **DNS-only** (grey cloud) — proxied records cause `host_not_allowed` even when the domain appears bound
-5. Run:
+The apex resolves to `104.21.50.117` / `172.67.206.20` (Cloudflare ranges). Vercel requires:
+
+| Record | Type | Value |
+|--------|------|-------|
+| `constructaiq.trade` | A | `76.76.21.21` |
+| `www.constructaiq.trade` | CNAME | `cname.vercel-dns.com` |
+
+Both records must be **DNS-only** (grey cloud) in Cloudflare.
+
+After updating DNS:
 
 ```bash
 npm run domain:check

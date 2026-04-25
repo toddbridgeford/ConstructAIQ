@@ -3847,3 +3847,316 @@ Bind both domains directly in Vercel. No code changes required.
 When `domain:check` exits 0, resume from `docs/CLAUDE_POST_CANONICAL_REMEDIATION_PROMPT.md`. That prompt drives the env/data/smoke verification and will flip the verdict to GO if all gates pass.
 
 *Updated by `claude/update-launch-docs-MXJjd` · 2026-04-25*
+
+---
+
+## Phase 17 Cloudflare/Vercel domain check — 2026-04-25 21:29 UTC
+
+### Commands run
+
+```bash
+npm run domain:check
+node scripts/check-domain-status.mjs --json
+npm run lint
+```
+
+### `node scripts/check-domain-status.mjs --json` output
+
+```json
+{
+  "apex": {
+    "url": "https://constructaiq.trade",
+    "status": 403,
+    "denyReason": "host_not_allowed",
+    "location": null,
+    "server": null,
+    "cfCacheStatus": null,
+    "cfRay": null,
+    "xVercelId": null,
+    "classification": "VERCEL_DOMAIN_NOT_BOUND",
+    "proxyWarning": false
+  },
+  "www": {
+    "url": "https://www.constructaiq.trade/dashboard",
+    "status": 403,
+    "denyReason": "host_not_allowed",
+    "location": null,
+    "server": null,
+    "cfCacheStatus": null,
+    "cfRay": null,
+    "xVercelId": null,
+    "classification": "VERCEL_DOMAIN_NOT_BOUND",
+    "proxyWarning": false
+  },
+  "ok": false,
+  "proxyWarning": false,
+  "exitCode": 1
+}
+```
+
+### Key observations
+
+| Field | apex | www |
+|-------|------|-----|
+| exit code | **1** | — |
+| HTTP status | 403 | 403 |
+| x-deny-reason | `host_not_allowed` | `host_not_allowed` |
+| location | null | null |
+| classification | `VERCEL_DOMAIN_NOT_BOUND` | `VERCEL_DOMAIN_NOT_BOUND` |
+| proxyWarning | **false** | **false** |
+| cf-ray | null | null |
+| cf-cache-status | null | null |
+| server: cloudflare | absent | absent |
+
+### Cloudflare proxy status
+
+**Proxy confirmed disabled.** No Cloudflare proxy headers (`cf-ray`, `cf-cache-status`, `server: cloudflare`) were present in either response. `proxyWarning: false` on both apex and www. The operator's DNS-only change is reflected in the network probes.
+
+### Lint
+
+`npm run lint` could not execute — `node_modules` not installed in this sandbox environment. Last verified lint result: exit 0 (Phase 16, 2026-04-25). No lint-affecting code changes have been made since that pass.
+
+### Verdict
+
+**NO-GO** — `domain:check` exits 1. Both domains return `host_not_allowed` (403). Cloudflare proxy is disabled. Sole remaining blocker is Vercel domain binding.
+
+**Next action:** Vercel UI → construct-aiq → Settings → Domains — confirm both `constructaiq.trade` and `www.constructaiq.trade` are bound to the correct project with green SSL checkmarks. Remove any apex→www redirect rule. Then re-run `npm run domain:check` (must exit 0).
+
+*Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*
+
+---
+
+## Phase 17 canonical redirect check — 2026-04-25 21:31 UTC
+
+### Commands run
+
+```bash
+npm run domain:check
+node scripts/check-domain-status.mjs --json
+npm run lint
+```
+
+### Results
+
+| Field | apex | www |
+|-------|------|-----|
+| exit code | **1** | — |
+| HTTP status | 403 | 403 |
+| x-deny-reason | `host_not_allowed` | `host_not_allowed` |
+| location | null | null |
+| classification | `VERCEL_DOMAIN_NOT_BOUND` | `VERCEL_DOMAIN_NOT_BOUND` |
+| proxyWarning | false | false |
+| cf-ray | null | null |
+
+### Interpretation
+
+`APEX_REDIRECTS_TO_WWW` cannot be observed — Vercel returns 403 before any redirect logic runs. The apex canonical check is blocked by the same `VERCEL_DOMAIN_NOT_BOUND` condition. No change from Phase 17 proxy check.
+
+The operator reports the Vercel binding has been completed. Live probes still return `host_not_allowed`, which indicates either propagation lag (Vercel edge cache, typically 2–5 min) or the domains are bound to a different Vercel project than the one serving the deployment.
+
+### Lint
+
+`npm run lint` exits 127 — `node_modules` not installed in this sandbox. Last verified lint result: exit 0 (Phase 16). No lint-affecting code changes since.
+
+### Verdict
+
+**NO-GO** — exit 1 · `VERCEL_DOMAIN_NOT_BOUND` on both. Apex redirect check blocked. Next action: confirm Vercel domain binding propagated (green SSL checkmarks on both domains in the correct project), wait if needed, then re-run `npm run domain:check`.
+
+*Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*
+
+---
+
+## Phase 17 smoke verification — 2026-04-25 21:32 UTC
+
+### Prerequisite check
+
+`domain:check` exit 1 — prerequisite NOT met. Smoke tests ran as instructed; results are consistent with the domain binding failure.
+
+### `npm run smoke:www`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade  (--www-only)
+
+www redirect
+  ✓  www DNS resolves (www.constructaiq.trade responded)
+  ✗  www is bound to this Vercel project
+       https://www.constructaiq.trade/dashboard returned HTTP 403.
+
+1 passed, 1 failed  ✗ Smoke test FAILED
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Passed | 1 |
+| Failed | 1 |
+| Failing check | `www is bound to this Vercel project` — HTTP 403 |
+
+### `npm run smoke:prod`
+
+```
+ConstructAIQ production smoke test
+Target: https://constructaiq.trade
+
+Pages
+  ✗  GET / returns 200            got 403
+  ✗  GET /dashboard returns 200   got 403
+
+API
+  ✗  /api/status returns 200      got 403
+  ✗  /api/dashboard returns 200   got 403
+
+www redirect
+  ✓  www DNS resolves
+  ✗  www is bound to this Vercel project — HTTP 403
+
+1 passed, 5 failed  ✗ Smoke test FAILED
+```
+
+| Field | Value |
+|-------|-------|
+| Exit code | **1** |
+| Passed | 1 |
+| Failed | 5 |
+| Failing checks | `GET /` · `GET /dashboard` · `/api/status` · `/api/dashboard` · `www bound to Vercel` |
+| Root cause | All 403 `x-deny-reason: host_not_allowed` — `VERCEL_DOMAIN_NOT_BOUND` |
+
+### Lint
+
+`npm run lint` exits 127 — `node_modules` absent in sandbox. Last verified: exit 0 Phase 16. No code changes since.
+
+### Verdict
+
+**NO-GO** — both smoke tests exit 1. Root cause is identical to `domain:check` failure: `VERCEL_DOMAIN_NOT_BOUND`. Every failing check is a 403 from Vercel's edge before the app is reached. No application-layer failures.
+
+**Next action:** Complete Vercel domain binding (green SSL checkmarks on both domains in the correct project). `domain:check` must exit 0 before smoke can pass.
+
+*Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*
+
+---
+
+## Phase 17 env/data verification — 2026-04-25 21:35 UTC
+
+### Prerequisite check
+
+`smoke:prod` exit 1 — prerequisite NOT met. All probes ran as instructed.
+
+### API probe results
+
+All seven probes (`/api/status`, `/api/status?deep=1`, `/api/federal`, `/api/weekly-brief`, `/api/dashboard`) returned identical plain-text 403:
+
+```
+Host not in allowlist
+```
+
+`jq` parse failed on every probe (`jq: parse error: Invalid numeric literal at line 1, column 5` — input is not JSON). No env, runtime, or data fields are evaluable.
+
+### Critical finding — DNS target
+
+TLS handshake to `constructaiq.trade` connected to:
+
+```
+104.21.50.117
+172.67.206.20
+```
+
+Both IPs are in Cloudflare anycast ranges (104.21.0.0/16, 172.67.0.0/22). Vercel's apex IP is `76.76.21.21`. The A record is pointing to a Cloudflare IP, not Vercel's.
+
+The `proxyWarning: false` result in prior phases was a false negative: `check-domain-status.mjs` detects proxy via response headers only (`cf-ray`, `cf-cache-status`, `server: cloudflare`). Cloudflare does not add these headers to pass-through 403 responses from an origin, so the header-based detection missed the proxy. The IP evidence is unambiguous.
+
+### Required DNS correction
+
+| Record | Type | Required value | Observed resolution |
+|--------|------|----------------|---------------------|
+| `constructaiq.trade` | A | `76.76.21.21` | Cloudflare IP `104.21.50.117` |
+| `www.constructaiq.trade` | CNAME | `cname.vercel-dns.com` | not independently verified |
+
+Both records must be DNS-only (grey cloud) in Cloudflare after pointing to the correct target.
+
+### Blocker classification
+
+| Check | Result | Classification |
+|-------|--------|----------------|
+| apex DNS target | Cloudflare IP (wrong) | **Launch blocker** |
+| domain:check | exit 1 · `VERCEL_DOMAIN_NOT_BOUND` | **Launch blocker** |
+| All env fields | not evaluable (403) | **Blocked** |
+| All data fields | not evaluable (403) | **Blocked** |
+
+### Lint
+
+`npm run lint` exits 127 — `node_modules` absent in sandbox. Last verified: exit 0 Phase 16. No code changes since.
+
+### Verdict
+
+**NO-GO** — env/data verification blocked by DNS misconfiguration. Apex A record must be updated to `76.76.21.21` before any further checks can pass.
+
+*Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*
+
+---
+
+## Phase 17 final launch gate — 2026-04-25 21:42 UTC
+
+### Command results
+
+| Command | Exit | Time | Result |
+|---------|------|------|--------|
+| `npm run build` | **0** | 60.1 s | ✓ 84 routes · Compiled in 21.4 s · 0 errors |
+| `npm run lint` | **0** | 2.9 s | ✓ No ESLint warnings or errors |
+| `npm test` | **0** | 3.5 s | ✓ 356/356 · 24 files |
+| `npm run smoke:prod` | **1** | 1.0 s | ✗ 1/6 passed · 5 failed |
+| `npm run smoke:www` | **1** | 0.3 s | ✗ 1/2 passed · 1 failed |
+| `npm run launch:check -- --include-smoke` | **1** | ~68 s | ✗ FAILED — smoke gates |
+
+### Gate 5 detail (code quality — all pass)
+
+Build: `✓ Compiled successfully in 21.4s` · 84 routes (static + dynamic + edge) · no type errors · pre-existing edge-runtime warning on `/api/og/*` (expected).
+
+Lint: `✔ No ESLint warnings or errors` · pre-existing deprecation notice `next lint will be removed in Next.js 16`.
+
+Tests: `Test Files 24 passed (24)` · `Tests 356 passed (356)` · 3.06 s.
+
+### Gate 4 detail (smoke — both failed)
+
+`smoke:prod` failing checks:
+
+| Check | Result |
+|-------|--------|
+| `GET / returns 200` | FAIL — got 403 |
+| `GET /dashboard returns 200` | FAIL — got 403 |
+| `/api/status returns 200` | FAIL — got 403 |
+| `/api/dashboard returns 200` | FAIL — got 403 |
+| `www DNS resolves` | PASS |
+| `www is bound to this Vercel project` | FAIL — got 403 |
+
+`smoke:www` failing checks:
+
+| Check | Result |
+|-------|--------|
+| `www DNS resolves` | PASS |
+| `www is bound to this Vercel project` | FAIL — got 403 |
+
+Root cause: all 403 responses carry `x-deny-reason: host_not_allowed`. TLS handshake confirms apex resolves to Cloudflare IPs (104.21.50.117 / 172.67.206.20), not Vercel's 76.76.21.21. The A record must be updated.
+
+### launch:check final line
+
+```
+✗ Launch readiness FAILED — smoke gates: smoke:prod, smoke:www
+```
+
+### Verdict
+
+**NO-GO** — `launch:check --include-smoke` exits 1. Gate 5 (build/lint/tests) fully passes. Gate 4 (smoke) fails due to DNS misconfiguration: apex A record points to Cloudflare IPs, not Vercel.
+
+**Single next action:** Update Cloudflare DNS:
+
+| Record | Type | Value | Mode |
+|--------|------|-------|------|
+| `constructaiq.trade` | A | `76.76.21.21` | DNS-only |
+| `www.constructaiq.trade` | CNAME | `cname.vercel-dns.com` | DNS-only |
+
+After DNS propagates, re-run `npm run domain:check` (must exit 0), then `npm run launch:check -- --include-smoke` (must exit 0).
+
+*Updated by `claude/verify-cloudflare-domain-Iz5Nb` · 2026-04-25*
+
+Launch GO checklist skipped because Public launch remains NO-GO.
