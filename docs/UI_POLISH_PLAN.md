@@ -81,7 +81,81 @@ All sizes and weights come from `src/lib/theme.ts`. Never set `fontSize` or `fon
 
 ## Color and Semantic Token Direction
 
-_To be populated from GSTACK audit findings._
+### Palette source of truth
+
+All colors come from `src/lib/theme.ts` → `color.*` and `signal.*`. No component file may declare a raw hex string. The current violation count: `/trust/page.tsx` has 12 hardcoded hex strings (`'#333'`, `'#111'`, `'#f5f5f5'`, `'#555'`, `'#aaa'`, etc.) with no `color.*` import — this is the highest-priority token compliance fix on the Trust surface.
+
+### Semantic signal system
+
+Each hue carries exactly one meaning. Using the same color for two different signals destroys the communication value of the palette.
+
+| Hue | `theme.ts` token | Semantic meaning | Forbidden uses |
+|-----|-----------------|-----------------|----------------|
+| **Amber** `#f5a623` | `color.amber` / `signal.watch` | Primary data value accent — headline metric, Verdict WATCH state | Do not use as a general warning; do not use for CTA buttons |
+| **Blue** `#0a84ff` | `color.blue` | Forecast projections, confidence bands, CTAs, selected state, links | Do not use as a positive/healthy signal; do not double as a warning |
+| **Green** `#30d158` | `color.green` / `signal.expand` | Expansion, positive direction, fresh data, healthy pipeline | Do not use decoratively; do not use for non-directional accents |
+| **Red** `#ff453a` | `color.red` / `signal.contract` | Contraction, risk, failed pipeline, stale data | Do not use for anything other than negative signals |
+| **Gray** `t3` `#a0a0ab` / `t4` `#6e6e73` | `color.t3`, `color.t4` | Context, metadata, source attribution, timestamps, secondary labels | Do not use as a primary text color; minimum 11px at this weight |
+| **Federal** `#0066CC` | `signal.federal` | Federal infrastructure data specifically — IIJA/IRA program context | Do not use as a generic blue; reserve for federal data surfaces |
+
+**Amber conflict to resolve:** `color.amber` is currently used both as the KPI headline accent (construction spending) and as the `signal.watch` state (market condition). These are compatible uses — amber = "primary attention metric" — but the Sidebar newsletter CTA also uses `color.amber` for "Subscribe," which places a commercial action in the same color as market warning signals. Move the CTA accent to `color.blue` to separate commercial and analytical uses.
+
+### Gradient policy
+
+Decorative gradients are prohibited unless the gradient encodes data meaning (e.g. a heatmap scale, a confidence band fill).
+
+**Currently violating:**
+
+| Pattern | File | Action |
+|---------|------|--------|
+| `.grad-text` — gradient headline text | `src/app/globals.css:200` · `src/app/components/HeroSection.tsx:143` | Remove `.grad-text`; replace with `color.t1` (white) or `color.amber` solid |
+| `.btn-fl` glow shadow at rest | `src/app/globals.css:129–138` | Remove `box-shadow` at rest; hover = background color change only, no `translateY`, no amplified shadow |
+| `.btn-g` glassmorphism | `src/app/globals.css:151–158` | Remove `backdrop-filter: blur(8px)`; replace with `color.bg2` solid background |
+| Hero background triple radial-gradient | `src/app/globals.css:186–189` | Subtle enough to retain — three radial glows at 5–13% opacity qualify as texture, not decoration. Keep but do not add more. |
+
+**Rule:** One decorative background gradient maximum per surface, at opacity ≤ 15%. Gradient text on headlines is prohibited unconditionally — it is the single most-recognized AI-generated landing page pattern.
+
+### Semantic token map
+
+The following table maps each semantic role to its `theme.ts` source token. Use the semantic name in documentation and design discussion; use the `theme.ts` token in code.
+
+| Semantic token | `theme.ts` value | Hex | Notes |
+|----------------|-----------------|-----|-------|
+| `bg` | `color.bg0` | `#000` | Page background — dark surfaces |
+| `surface` | `color.bg1` / `color.bg2` | `#0d0d0d` / `#1a1a1a` | Card and panel backgrounds |
+| `border` | `color.bd1` / `color.bd2` | `#2a2a2a` / `#383838` | Card borders / table dividers |
+| `text-primary` | `color.t1` | `#fff` | Headings, KPI values, primary body |
+| `text-secondary` | `color.t2` | `#ebebf0` | Subheadings, card titles |
+| `text-muted` | `color.t3` | `#a0a0ab` | Source attribution, timestamps, secondary labels |
+| `text-disabled` | `color.t4` | `#6e6e73` | Placeholder text, inactive states — minimum 11px |
+| `accent-primary` | `color.blue` | `#0a84ff` | CTAs, links, forecast lines, selected state |
+| `status-fresh` | `color.green` | `#30d158` | Fresh data, healthy pipeline, expansion signal |
+| `status-warning` | `color.amber` | `#f5a623` | Delayed data, WATCH market condition |
+| `status-risk` | `color.red` | `#ff453a` | Failed pipeline, stale data, CONTRACTING signal |
+| `forecast` | `color.blue` | `#0a84ff` | Forecast line, confidence band stroke — same as `accent-primary`; confidence band fill uses `color.blueDim` (`#001a3d`) |
+
+### `color.purple` — phantom token
+
+`color.purple` (`#5e5ce6`) has one use: `OverviewSection.tsx:403` as the CSHI Score KPI accent. It has no entry in `signal.*` and no documented semantic meaning. **Resolution required before polish pass:**
+
+- Option A: Add `signal.composite: color.purple` to `theme.ts` with a comment — "Composite index accent; used only for CSHI Score KPI."
+- Option B: Replace with `color.blue` and remove the purple differentiation.
+
+Do not leave an undocumented accent color in the token system. It will propagate.
+
+### Light-surface exception (Trust Center)
+
+`/trust/page.tsx` renders on a white background (`#ffffff`). The dark-theme `color.*` tokens (`color.t1 = #fff`) are not usable directly. The light-surface palette must use:
+
+| Role | Value | `theme.ts` source |
+|------|-------|-----------------|
+| Page background | `color.lightBg` | `#f8f8f8` |
+| Card background | `color.lightBgAlt` | `#fafafa` |
+| Border | `color.lightBd` | `#e5e5e5` |
+| Primary text | `#111111` | No current token — map to a new `color.lightT1` or use inline as a documented exception |
+| Secondary text | `#555555` | No current token — map to `color.lightT2` |
+
+The immediate fix is to import `color` from `theme.ts` and use the `lightBg*` and `lightBd` tokens that already exist. The two missing light text tokens (`lightT1`, `lightT2`) should be added to `theme.ts` in the same pass rather than leaving raw hex strings in the component.
 
 ---
 
