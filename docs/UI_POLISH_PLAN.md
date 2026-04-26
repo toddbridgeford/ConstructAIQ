@@ -234,7 +234,72 @@ The current `.btn-fl:hover` violation — `transform: translateY(-2px)` — is o
 
 ## Top 10 UI Changes Ranked by Impact
 
-_To be populated from GSTACK Priority Fixes table._
+Ranked by user-facing decision impact and weighted GStack score movement. Items 6–10 to follow.
+
+---
+
+### 1 · Above-fold homepage decision clarity
+
+**Surface:** Homepage  
+**Problem:** The active hero (`HomeHero.tsx`, rendered at `page.tsx:130`) is a centered SaaS layout — eyebrow, H1, subtitle, KPI number, two CTAs, all stacked and center-aligned. The product's actual differentiator — a live 12-month forecast chart — does not appear until the user scrolls past three more sections. `HeroSection.tsx` (the correct 60/40 split layout with a live chart left and signals rail right) is already built but not wired into `page.tsx`.
+
+**Change:** Replace `<HomeHero>` with `<HeroSection>` at `page.tsx:130`. Remove the `grad-text` gradient class from `HeroSection.tsx:143` (replace with `color.t1`). Remove the `CONSTRUCTAIQ` all-caps brand eyebrow from the hero — the user is already on the site.
+
+**Why it matters:** A first-time user who sees a real forecast chart above the fold understands "this is a data platform" in under three seconds. A user who sees a centered headline and subtitle must read before they understand. Data products earn trust by showing data, not by describing themselves. This is also the single change that eliminates the most-recognized AI-generated landing page pattern from the homepage.
+
+**Expected impact:** GStack Visual Hierarchy +2 (5→7); Emotional Resonance +2 (5→7); overall weighted score +0.50. Eliminates GSTACK pattern #6 (centered SaaS hero) and #5 (gradient headline text).
+
+---
+
+### 2 · Dashboard primary verdict hierarchy
+
+**Surface:** Dashboard  
+**Problem:** On initial load the dashboard defaults to the `forecast` section (`useState('forecast')` at `dashboard/page.tsx:152`), but the NAV_SECTIONS array lists `overview` first. This mismatch means the first tab in the nav is not the active section — the user's mental model of position is wrong before they've done anything. More critically, the Verdict Banner (EXPAND / CONTRACT / WATCH) is absent from the dashboard entirely — it appears on the homepage but not on the surface where market direction actually drives decisions.
+
+**Change:** (a) Move `forecast` to position 0 in `NAV_SECTIONS` to match `useState('forecast')`, or change the default to `'overview'` — whichever matches the intended entry point per product strategy. (b) Surface the Verdict state (EXPAND / CONTRACT / WATCH) as the topmost element in the dashboard above the KPI row — a single line, the color of the signal, the label, and the date. This is the decision the dashboard exists to support; it should be the first thing a returning user reads.
+
+**Why it matters:** Professional users returning to the dashboard daily are looking for one thing: has the signal changed? Burying that signal below KPI cards and a nav inconsistency means every session starts with orientation cost instead of decision clarity. (UX audit finding mn4 + CLAUDE.md dashboard hierarchy target.)
+
+**Expected impact:** GStack Visual Hierarchy +1 (5→6); removes UX heuristic violation mn4. Verdict surfacing makes the dashboard's primary output immediately legible.
+
+---
+
+### 3 · DataTrustBadge minimum legibility on all decision metrics
+
+**Surface:** Dashboard · Homepage  
+**Problem:** The DataTrustBadge — the component that communicates how current and reliable each data source is — renders its most critical fields at 9px (`status label` at `DataTrustBadge.tsx:119`) and 10px (`source name`, `as-of date`). At 9px on a dark background, a "STALE" warning is nearly invisible. Contrast ratios at these sizes fall to ≈3.5:1 against `color.bg2` — below the WCAG AA minimum of 4.5:1. The badge architecture is correct; the size floor is wrong.
+
+**Change:** Raise every text size in `DataTrustBadge.tsx` to a minimum of 11px. Specifically: status label `119` → 11px; data-type chip `127` → 11px; source name → 12px; as-of date → 11px. Apply the same floor to `OverviewSection.tsx:172` (SVG axis labels at 9px) and `OverviewSection.tsx:232` (KpiCard source line at 9px).
+
+**Why it matters:** The Trust Center and DataTrustBadge are ConstructAIQ's transparency differentiator. If the badge that says "STALE" is illegible, the transparency mechanism fails at the moment it matters most — when data quality has degraded and a professional user needs to know. This is a trust failure disguised as a typography fix. (UX audit M1; GSTACK Accessibility finding.)
+
+**Expected impact:** GStack Accessibility +2 (4→6); Typography +0.5 (5→5.5); overall weighted score +0.20. Resolves WCAG AA contrast failure on all DataTrustBadge instances.
+
+---
+
+### 4 · Trust / Status page purpose clarity and navigation
+
+**Surface:** Trust · Status  
+**Problem:** Both `/trust` and `/status` open with `CONSTRUCTAIQ` as the all-caps MONO eyebrow above the H1 — the same brand label used on every other audited page. The user is already on the platform; the eyebrow adds no orientation. On `/trust`, the sticky left-column section nav (the only wayfinding through six long methodology sections) disappears entirely on viewports under 700px with `display: none !important` and no mobile fallback. A tablet user reading AI Guardrails has no way to navigate between sections. On `/status`, the Source Health table rows show raw database category keys (`government_data`, `federal`, `permits`) in per-row cells even though `CATEGORY_LABELS` already translates them for section headers.
+
+**Change:** (a) Replace the `CONSTRUCTAIQ` eyebrow on both pages with a context-setting label: `/trust` → `DATA TRANSPARENCY` (or remove entirely); `/status` → `PLATFORM STATUS`. (b) Replace `.tc-nav { display: none !important }` at `trust/page.tsx:158` with a horizontally-scrollable anchor chip row (`overflow-x: auto; white-space: nowrap`) that appears at the top of `.tc-content` on narrow viewports. (c) Apply `CATEGORY_LABELS[row.category] ?? row.category` to the per-row category cell at `status/page.tsx:756`.
+
+**Why it matters:** The Trust Center is the product's primary credibility surface — the document that explains why ConstructAIQ's data can be trusted. If a mobile user cannot navigate it, and if a desktop user's first impression is "CONSTRUCTAIQ" (brand reinforcement, not content orientation), the surface fails its purpose before the user reads a word. The raw key bug on `/status` makes the platform look unfinished to any operator who opens the table. (UX audit mn1, M2, mn3; GSTACK Component Consistency finding.)
+
+**Expected impact:** GStack Visual Hierarchy +1 on both surfaces; Accessibility +1.5 (Trust mobile nav fix); Component Consistency +0.5 (raw key fix); overall weighted score +0.20.
+
+---
+
+### 5 · Navigation simplification — remove unbuilt routes
+
+**Surface:** Dashboard (Sidebar)  
+**Problem:** `Sidebar.tsx:37–53` NAV array contains 15 items. At least 11 routes are not verified as built pages: `/portfolio`, `/sectors`, `/intelligence`, `/projects`, `/ground-signal`, `/reality-gap`, `/research`, `/ccci`, `/distress`, `/compare`, `/my-brief`. A first-time user clicking any of these lands on a 404 or empty shell — the most credibility-destroying outcome possible for a platform whose value proposition is data transparency. `My Portfolio` (`NAV[0]`) is the topmost link and sends new users to an empty state immediately. `Forecast` and `WARN Act` are hash-anchor links (`/dashboard#forecast`, `/dashboard#signals`) mixed into the same nav array as full page routes, with no visual distinction.
+
+**Change:** (a) Remove all unbuilt routes from the primary NAV array. Ship a 4–6 item nav: Overview, Forecast (promote to full page or keep as dashboard anchor sub-item), Federal, Methodology. (b) Move `My Portfolio` to a secondary position — after Overview, not before it. (c) Separate hash-anchor section links from full page routes: either promote Forecast to a standalone page, or nest it as a sub-item under a `Dashboard` parent in the sidebar, clearly marked as a section link rather than a page link.
+
+**Why it matters:** An aspirational nav is worse than a short nav. Every dead link is a trust-destroying event. A 15-item nav where 11 items 404 tells a professional user that the platform is incomplete. A 5-item nav that works perfectly tells them the platform is focused and production-ready. This is the single highest-impact trust fix in the UX audit. (UX audit C1, C4; CLAUDE.md "Known bugs" C1.)</p>
+
+**Expected impact:** Eliminates UX severity-4 critical finding C1 (unbuilt nav routes) and C4 (My Portfolio as first item). GStack Emotional Resonance +1 (platform credibility); Component Consistency +0.5; overall weighted score +0.15.
 
 ---
 
