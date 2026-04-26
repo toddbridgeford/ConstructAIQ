@@ -261,6 +261,225 @@ The newsletter section (line 134–136) is sandwiched between role cards (no dat
 
 ---
 
+## Dashboard Surface Findings
+
+> Audited files: `src/app/dashboard/page.tsx` · `src/app/components/DataTrustBadge.tsx`
+> Supporting reads: `DashboardShell.tsx` · `OverviewSection.tsx` · `HeroForecast.tsx` · `VerdictBanner.tsx` · `SectionHeader.tsx` · `KPICard.tsx`
+
+---
+
+### Scores — Dashboard Surface
+
+| Dimension | Score | Key finding |
+|-----------|-------|-------------|
+| Typography | 5/10 | `TS.kpi` token used correctly for KPI values; `h2` in `SectionHeader`; but 7+ all-caps MONO labels in Overview alone and `fontSize: 9` source lines repeated across three components |
+| Color & Palette | 6/10 | Amber/green/blue KPI accent differentiation is clean and semantic; `color.purple` is used only for CSHI Score — a phantom palette entry with no supporting semantic meaning |
+| Spacing & Rhythm | 5/10 | `L.sectionGap` and `L.cardPad` tokens used in `OverviewSection`; `HeroForecast` local `Card` wrapper uses raw `"24px 28px"` padding and `borderRadius: 20` against the theme's `cardRadius: 12` |
+| Visual Hierarchy | 5/10 | Dashboard correctly defaults to the `forecast` section; but three "primary signal" surfaces compete in Overview before any KPI: `VerdictBanner`, forecast direction chip, and `TOP SIGNAL` banner |
+| Component Consistency | 4/10 | Two separate KPI card implementations (`KpiCard` in `OverviewSection.tsx` vs `KPICard.tsx`) with different backgrounds, radii, value sizes, and sparkline libraries; `DataTrustBadge` placed at section top in some sections and card bottom in others |
+| Accessibility | 4/10 | `VerdictBanner` has `role="status"` and `aria-label` (good); `SectionHeader` uses `h2` (good); `fontSize: 9` in source lines and SVG axis labels; hover-only chart tooltip has no keyboard access; `KPICard.tsx` accepts emoji icons |
+
+---
+
+### Pattern Findings — Dashboard
+
+---
+
+#### ✗ Too many cards with equal weight
+**File:** `src/app/dashboard/sections/OverviewSection.tsx:497–509`
+
+```tsx
+<div className="ov-cards">          {/* grid-template-columns: repeat(4,1fr) */}
+  orderedCards.map(({ el }) => el)   // 4 cards, all same size
+</div>
+```
+
+All four KPI cards render at identical sizes with identical `background: color.bg1`, `borderRadius: L.cardRadius`, `border: 1px solid ${color.bd1}`, `padding: L.cardPad`. Construction Spending is the headline series — the one the forecast trains on, the one that drives the Verdict. It receives the same visual weight as CSHI Score (a derived composite index) and Permits (annualized, 59 cities only).
+
+The accent colors differ (`amber` / `green` / `blue` / `purple`) which provides some differentiation. But size and layout are identical, so the differentiation is subtle enough that a new user has no signal about which metric is the platform's primary output.
+
+---
+
+#### ✗ Three competing "primary signal" surfaces in Overview
+**Files:** `dashboard/page.tsx:394–396` · `OverviewSection.tsx:431–483`
+
+The Overview view (`activeSection === 'overview'`) renders in sequence:
+
+```
+1. VerdictBanner         ← "EXPAND / CONTRACT / WATCH" — full-width colored banner
+2. UpcomingReleaseAlert  ← amber calendar chip (conditional)
+3. DataTrustBadge        ← freshness status (compact row)
+4. Forecast direction chip ← "FORECAST +2.3% growth over 12 months — model estimate"
+5. TOP SIGNAL banner     ← amber MONO label + signals[0].title
+6. Role note             ← "Optimized for lender decisions" (10px MONO, conditional)
+7. 4 KPI cards
+```
+
+Before the user sees a single KPI number, they have encountered five distinct "most important thing" surfaces. VerdictBanner and the TOP SIGNAL banner both use `color.amber` for emphasis. The forecast direction chip uses `color.blue`. None of these is visually subordinate to any other. The user cannot identify the primary metric without reading all five.
+
+---
+
+#### ✗ Duplicate KPI card implementations
+**Files:** `src/app/dashboard/sections/OverviewSection.tsx:218–264` · `src/app/dashboard/components/KPICard.tsx:1–92`
+
+Two separate KPI card components exist with incompatible specs:
+
+| Property | `KpiCard` (OverviewSection) | `KPICard.tsx` |
+|----------|-----------------------------|---------------|
+| Background | `color.bg1` | `color.bg2` |
+| Border radius | `L.cardRadius` (12) | `16` (raw) |
+| Value font size | `TS.kpi.fontSize` (48px) | `22px` (raw) |
+| Sparkline | Custom SVG `<polyline>` | `recharts` `LineChart` |
+| Source line | 9px MONO below label | Not present |
+| Label style | `TS.label` token | Inline MONO 10px uppercase |
+
+A user comparing the Overview section to any section that renders `KPICard.tsx` would see a visually incompatible card. The same KPI concept is expressed at 48px vs 22px, on bg1 vs bg2, with radius 12 vs 16.
+
+---
+
+#### ✗ All-caps MONO label proliferation — Overview section
+**File:** `src/app/dashboard/sections/OverviewSection.tsx`
+
+Labels via `TS.label` (which applies `textTransform: uppercase, fontFamily: mono, fontSize: 11`):
+
+| Label | Line | Applied via |
+|-------|------|-------------|
+| `Construction Spending` | 231 (KpiCard `label` prop) | `TS.label` in KpiCard |
+| `Construction Employment` | 366 | `TS.label` in KpiCard |
+| `Permits (annualized)` | 381 | `TS.label` in KpiCard |
+| `CSHI Score` | 396 | `TS.label` in KpiCard |
+| `Construction Spending — 12 Months` | 524 | `TS.label` direct |
+| `Live Signals` | 538 | `TS.label` direct |
+
+Plus a manually styled all-caps label:
+
+| Label | Line | Style |
+|-------|------|-------|
+| `TOP SIGNAL` | 472 | `fontFamily: MONO, fontSize: 10, color: color.amber, letterSpacing: '0.08em'` |
+
+**7 all-caps MONO labels** in a single section, before the user has scrolled once. The `TS.label` style was designed to label a section or a data point — using it on 4 adjacent KPI cards and 2 panel headers in the same view means the label style communicates nothing about relative importance.
+
+---
+
+#### ✗ Inconsistent trust/freshness badge placement and logic
+**Files:** `OverviewSection.tsx:420–428` · `HeroForecast.tsx:136–152`
+
+In **OverviewSection**, `DataTrustBadge` is placed at the top of the section before any data:
+
+```tsx
+{freshness && (
+  <DataTrustBadge
+    source="Census Bureau · BLS"
+    type="actual"
+    status={!freshness.isoDate ? 'unknown' : freshness.isStale ? 'stale' : 'fresh'}
+    dataAsOf={freshness.isoDate || undefined}
+    // no expanded, no qualityScore, no lastRefreshed, no caveat
+  />
+)}
+```
+
+In **HeroForecast**, `DataTrustBadge` is placed at the bottom of the ForecastChart card:
+
+```tsx
+<DataTrustBadge
+  source="ConstructAIQ Ensemble (HW · SARIMA · XGBoost)"
+  type="forecast"
+  status={statusFromAge(fore.runAt)}
+  qualityScore={Math.round(fore.metrics.accuracy)}
+  lastRefreshed={fore.runAt || undefined}
+  caveat={...}
+  expanded  // ← different density
+/>
+```
+
+The two usages differ in: position within the section, `expanded` prop, `qualityScore`, `lastRefreshed`, `caveat`, and status computation logic. The status in OverviewSection is computed inline from `freshness.isStale`; the status in HeroForecast is computed from `statusFromAge(fore.runAt)`. These are different functions with potentially different thresholds. A user encountering both badges on the same dashboard visit cannot build a consistent mental model of what the badge represents.
+
+---
+
+#### ✗ Card sameness — `HeroForecast` local Card wrapper vs theme cardRadius
+**File:** `src/app/dashboard/sections/HeroForecast.tsx:36–38`
+
+```tsx
+function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return <div style={{ background:BG1, borderRadius:20, border:`1px solid ${BD1}`, padding:"24px 28px", ...style }}>{children}</div>
+}
+```
+
+`borderRadius: 20` — the theme's `layout.cardRadius` is `12`. The local `Card` wrapper uses a hardcoded `20`, which is also `radius.xl3` but applied without importing or referencing the token. The ForecastChart card visually differs from all Overview KPI cards (radius 12) and all status page cards (radius 12) on the same platform. The discrepancy is subtle but compounds across sections.
+
+---
+
+#### ✗ Low-contrast small labels — repeated at 9px across multiple components
+**Files:** `OverviewSection.tsx:232` · `SpendingTrend` in `OverviewSection.tsx:172` · `DataTrustBadge.tsx:119`
+
+```tsx
+// OverviewSection.tsx:232 — KpiCard source line
+<div style={{ fontFamily: MONO, fontSize: 9, color: color.t4, letterSpacing: '0.06em', marginTop: 3 }}>
+  {sourceLine}  // e.g. "Census Bureau · ACTUAL"
+</div>
+
+// SpendingTrend x-axis labels (OverviewSection.tsx:172)
+<text ... fontSize={9} fill={color.t4} fontFamily={MONO}>
+
+// DataTrustBadge.tsx:119 — status label
+<span style={{ fontSize: 9, fontWeight: 700, color: dot, letterSpacing: '0.07em' }}>
+  {STATUS_LABELS[status].toUpperCase()}
+</span>
+```
+
+`fontSize: 9` at `color.t4` (`#6e6e73`) on `color.bg1` (`#0d0d0d`) is a contrast ratio of approximately 3.5:1 — below WCAG AA's 4.5:1 requirement for normal text. The source attribution line in `KpiCard` is the most critical: it tells the user where the data comes from, and it is the least readable text on the card.
+
+---
+
+#### ✗ `color.purple` used for CSHI Score only — phantom palette entry in data context
+**Files:** `OverviewSection.tsx:403` · `src/lib/theme.ts:13`
+
+```tsx
+// OverviewSection.tsx
+accent={color.purple}  // used only for CSHI Score KpiCard
+```
+
+`color.purple: '#5e5ce6'` is defined in `theme.ts` but appears in one place in the audited codebase: the CSHI Score card accent. Purple has no documented semantic meaning in the signal or data system. Amber = spending data, Green = employment/positive direction, Blue = forecast/action. Purple = ? The CSHI card stands out from the other three KPI cards not because it's more important, but because its accent color has no established meaning in the visual language.
+
+---
+
+#### ✗ Hover-only tooltip in SpendingTrend — no keyboard access
+**File:** `src/app/dashboard/sections/OverviewSection.tsx:179–188`
+
+```tsx
+{data.map((_, i) => (
+  <rect key={i}
+        ...
+        fill="transparent"
+        onMouseEnter={() => setHovered(i)}
+        // no onFocus, no tabIndex, no keyboard handler
+        style={{ cursor: 'crosshair' }} />
+))}
+```
+
+The 12-month spending trend chart's data tooltip is mouse-only. Keyboard and touch users cannot access the month-by-month values. This is the primary data visualization in the Overview section.
+
+---
+
+### Visual Hierarchy Detail — Overview Signal Overload
+
+Before the first KPI number appears in `OverviewSection`, the rendered hierarchy is:
+
+```
+VerdictBanner            height: 72px — colored background, MONO "EXPAND" 13px bold
+UpcomingReleaseAlert     height: ~37px — amber chip (conditional, from /api/calendar)
+DataTrustBadge           height: ~18px — compact trust row
+Forecast direction chip  height: ~28px — blue chip "FORECAST +2.3% growth…"
+TOP SIGNAL banner        height: ~44px — dark card with amber MONO label
+Role note                height: ~16px — 10px MONO t4 text (conditional)
+──────────────────────────────────────────────────
+4 KPI cards              height: ~130px — the actual data
+```
+
+Five layers of context and signal framing before the data. The intent is good — the user should know the market verdict before reading raw numbers. But the execution renders five equally-weighted "intro" elements in sequence, none of which is visually dominant over another.
+
+---
+
 ## Notes / Open Questions
 
 > **TODO:** Capture open questions and deferred decisions as the audit progresses.
