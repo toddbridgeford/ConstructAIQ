@@ -5,10 +5,11 @@ import { FederalLeaderboard } from "../components/FederalLeaderboard"
 import { FederalStateTable }  from "../components/FederalStateTable"
 import { SectionHeader }      from "../components/SectionHeader"
 import { ErrorState }         from "@/app/components/ui/ErrorState"
-import { FreshnessIndicator } from "@/app/components/ui/FreshnessIndicator"
+import { DataTrustBadge }     from "@/app/components/DataTrustBadge"
 import { Skeleton }           from "@/app/components/Skeleton"
 import { color } from "@/lib/theme"
 import { federalProvenance }  from "@/lib/dashboardProvenance"
+import { statusFromFederalProvenance } from "@/lib/data-trust-utils"
 import type { FederalResponse } from "@/lib/api-types"
 
 const BG1 = color.bg1, BD1 = color.bd1
@@ -64,11 +65,22 @@ export function FederalSection({ federal }: FederalSectionProps) {
         <FederalStateTable stateAllocations={federal?.stateAllocations ?? []} />
       </Card>
 
-      {federal?.cached_at && (
-        <FreshnessIndicator updated_at={federal.cached_at} label={
-          prov.state === 'cached' ? 'Federal data cached (USASpending.gov)' : 'Federal data cached'
-        } />
-      )}
+      <div style={{ marginTop: 12 }}>
+        <DataTrustBadge
+          source="USASpending.gov"
+          cadence="Daily"
+          type={prov.state === 'fallback' ? 'fallback' : 'actual'}
+          status={statusFromFederalProvenance(prov.state)}
+          lastRefreshed={federal?.cached_at || undefined}
+          caveat={
+            prov.state === 'fallback'
+              ? 'Static fallback — contractor and agency leaderboards are intentionally empty'
+              : prov.state === 'error'
+              ? 'Upstream error — showing most recently cached allocation data'
+              : undefined
+          }
+        />
+      </div>
     </section>
   )
 }
