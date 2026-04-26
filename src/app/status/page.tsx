@@ -110,9 +110,9 @@ function shortDate(iso: string): string {
 // ── Status indicator dot ──────────────────────────────────────────────────
 
 const STATUS_DOT: Record<'ok' | 'warn' | 'stale', { bg: string; label: string }> = {
-  ok:    { bg: color.green,  label: 'Current' },
-  warn:  { bg: color.amber,  label: 'Aging'   },
-  stale: { bg: color.red,    label: 'Stale'   },
+  ok:    { bg: color.green,  label: 'Current'  },
+  warn:  { bg: color.amber,  label: 'Delayed'  },
+  stale: { bg: color.red,    label: 'Stale'    },
 }
 
 const HEALTH_BADGE: Record<string, { bg: string; label: string }> = {
@@ -388,7 +388,7 @@ export default function StatusPage() {
         <div style={{ marginBottom: space.xl, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.md }}>
           <div>
             <div style={{ fontFamily: font.mono, fontSize: 11, color: color.t4, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
-              ConstructAIQ
+              PLATFORM STATUS
             </div>
             <h1 style={{ fontFamily: font.sys, fontSize: 28, fontWeight: 700, color: color.t1, marginBottom: 8 }}>
               Platform Health
@@ -489,7 +489,8 @@ export default function StatusPage() {
             <div style={{ fontFamily: font.sys, fontSize: 15, fontWeight: 600, color: color.t1, marginBottom: 16 }}>
               Data Freshness
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 320 }}>
               <thead>
                 <tr>
                   {['Source', 'Updated', 'Status'].map(h => (
@@ -547,6 +548,7 @@ export default function StatusPage() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Prediction Activity */}
@@ -657,7 +659,8 @@ export default function StatusPage() {
             Per-source ingestion status — latest run per source
           </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 540 }}>
             <thead>
               <tr>
                 {['Source', 'Category', 'Rows', 'Last run', 'Status'].map(h => (
@@ -754,7 +757,7 @@ export default function StatusPage() {
                             {row.source_label}
                           </td>
                           <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 11, color: color.t4 }}>
-                            {row.category}
+                            {CATEGORY_LABELS[row.category] ?? row.category}
                           </td>
                           <td style={{ padding: '8px 0', borderBottom: `1px solid ${color.bd1}`, fontFamily: font.mono, fontSize: 12, color: color.t3 }}>
                             {row.rows_written != null ? row.rows_written.toLocaleString() : '—'}
@@ -776,6 +779,7 @@ export default function StatusPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* ── Environment Readiness ── */}
