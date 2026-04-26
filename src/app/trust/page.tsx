@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { font } from '@/lib/theme'
+import { font, color, space } from '@/lib/theme'
 
 export const metadata: Metadata = {
   title: 'ConstructAIQ Trust Center',
@@ -15,52 +15,52 @@ const SYS  = font.sys
 const MONO = font.mono
 
 const prose: React.CSSProperties = {
-  fontFamily: SYS, fontSize: 15, lineHeight: 1.8, color: '#333', marginBottom: 16,
+  fontFamily: SYS, fontSize: 15, lineHeight: 1.8, color: color.lightT2, marginBottom: space.md,
 }
 
 const sectionH2: React.CSSProperties = {
   fontFamily: SYS, fontSize: 24, fontWeight: 700,
-  color: '#111', marginBottom: 16, paddingBottom: 12,
-  borderBottom: '2px solid #eee',
+  color: color.lightT1, marginBottom: space.md, paddingBottom: 12,
+  borderBottom: `2px solid ${color.lightBd}`,
 }
 
 const h3Style: React.CSSProperties = {
   fontFamily: SYS, fontSize: 17, fontWeight: 600,
-  color: '#111', marginBottom: 8, marginTop: 28,
+  color: color.lightT1, marginBottom: space.sm, marginTop: 28,
 }
 
 const tableStyle: React.CSSProperties = {
   width: '100%', borderCollapse: 'collapse',
   fontFamily: SYS, fontSize: 14,
-  marginTop: 20, marginBottom: 8,
+  marginTop: space[5], marginBottom: space.sm,
 }
 
 const thStyle: React.CSSProperties = {
   textAlign: 'left', padding: '10px 14px',
-  background: '#f5f5f5', fontWeight: 600,
+  background: color.lightBgSub, fontWeight: 600,
   fontSize: 11, letterSpacing: '0.05em',
-  textTransform: 'uppercase', color: '#555',
-  borderBottom: '2px solid #eee',
+  textTransform: 'uppercase', color: color.lightT3,
+  borderBottom: `2px solid ${color.lightBd}`,
 }
 
 const tdStyle: React.CSSProperties = {
-  padding: '10px 14px', borderBottom: '1px solid #eee',
-  color: '#333', verticalAlign: 'top', lineHeight: 1.6,
+  padding: '10px 14px', borderBottom: `1px solid ${color.lightBd}`,
+  color: color.lightT2, verticalAlign: 'top', lineHeight: 1.6,
 }
 
 const noteStyle: React.CSSProperties = {
-  fontFamily: MONO, fontSize: 12, color: '#555', lineHeight: 1.6,
+  fontFamily: MONO, fontSize: 12, color: color.lightT3, lineHeight: 1.6,
 }
 
 const linkStyle: React.CSSProperties = {
-  color: '#0a84ff', textDecoration: 'none', fontFamily: SYS, fontSize: 14,
+  color: color.blue, textDecoration: 'none', fontFamily: SYS, fontSize: 14,
 }
 
 const calloutStyle: React.CSSProperties = {
-  background: '#f8f8f8', border: '1px solid #e5e5e5',
+  background: color.lightBg, border: `1px solid ${color.lightBd}`,
   borderLeft: '3px solid #aaa', borderRadius: '0 8px 8px 0',
-  padding: '14px 20px', marginBottom: 20,
-  fontFamily: SYS, fontSize: 14, color: '#444', lineHeight: 1.7,
+  padding: '14px 20px', marginBottom: space[5],
+  fontFamily: SYS, fontSize: 14, color: color.lightT2, lineHeight: 1.7,
 }
 
 // ── Section anchors ───────────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ const DATA_SOURCES = [
 
 export default function TrustCenterPage() {
   return (
-    <div style={{ minHeight: '100vh', background: '#ffffff', color: '#111111' }}>
+    <div style={{ minHeight: '100vh', background: '#ffffff', color: color.lightT1 }}>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         a { color: inherit; text-decoration: none; }
@@ -167,18 +167,18 @@ export default function TrustCenterPage() {
       <div className="tc-shell" style={{
         maxWidth: 1100, margin: '0 auto',
         display: 'flex', flexDirection: 'row',
-        gap: 48, padding: '48px 40px',
+        gap: space.xxl, padding: `${space.xxl}px ${space[10]}px`,
       }}>
 
         {/* ── Left nav ── */}
         <nav className="tc-nav" style={{
           width: 200, flexShrink: 0,
-          position: 'sticky', top: 32,
+          position: 'sticky', top: space.xl,
           alignSelf: 'flex-start', height: 'fit-content',
         }}>
           <div style={{
-            fontFamily: SYS, fontSize: 11, color: '#888',
-            fontWeight: 500, marginBottom: 16,
+            fontFamily: SYS, fontSize: 11, color: color.lightT4,
+            fontWeight: 500, marginBottom: space.md,
           }}>
             Contents
           </div>
@@ -186,13 +186,13 @@ export default function TrustCenterPage() {
             <a key={s.id} href={`#${s.id}`} style={{
               display: 'block', padding: '6px 12px', borderRadius: 6,
               fontFamily: SYS, fontSize: 14, textDecoration: 'none',
-              marginBottom: 2, color: '#555', fontWeight: 400,
+              marginBottom: 2, color: color.lightT3, fontWeight: 400,
               borderLeft: '3px solid transparent',
             }}>
               {s.label}
             </a>
           ))}
-          <div style={{ marginTop: 24, borderTop: '1px solid #eee', paddingTop: 20 }}>
+          <div style={{ marginTop: space.lg, borderTop: `1px solid ${color.lightBd}`, paddingTop: space[5] }}>
             <Link href="/methodology" style={{ ...linkStyle, display: 'block', marginBottom: 8 }}>
               ← Full Methodology
             </Link>
@@ -208,14 +208,14 @@ export default function TrustCenterPage() {
           {/* Page header */}
           <div style={{ marginBottom: 56 }}>
             <div style={{
-              fontFamily: MONO, fontSize: 10, color: '#888',
-              letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16,
+              fontFamily: MONO, fontSize: 10, color: color.lightT4,
+              letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: space.md,
             }}>
               DATA TRANSPARENCY
             </div>
             <h1 style={{
               fontFamily: SYS, fontSize: 36, fontWeight: 700,
-              color: '#111', lineHeight: 1.2, marginBottom: 16,
+              color: color.lightT1, lineHeight: 1.2, marginBottom: space.md,
             }}>
               Trust Center
             </h1>
@@ -230,15 +230,15 @@ export default function TrustCenterPage() {
           {/* Mobile section nav — chips, hidden on desktop */}
           <div className="tc-mobile-nav" style={{
             overflowX: 'auto', whiteSpace: 'nowrap',
-            marginBottom: 32, gap: 8, paddingBottom: 4,
+            marginBottom: space.xl, gap: space.sm, paddingBottom: 4,
           }}>
             {SECTIONS.map(s => (
               <a key={s.id} href={`#${s.id}`} style={{
                 display: 'inline-block', padding: '6px 14px',
-                borderRadius: 20, border: '1px solid #ddd',
-                fontFamily: SYS, fontSize: 13, color: '#555',
-                textDecoration: 'none', marginRight: 8,
-                backgroundColor: '#f5f5f5',
+                borderRadius: 20, border: `1px solid ${color.lightBd}`,
+                fontFamily: SYS, fontSize: 13, color: color.lightT3,
+                textDecoration: 'none', marginRight: space.sm,
+                backgroundColor: color.lightBgSub,
               }}>
                 {s.label}
               </a>
@@ -246,7 +246,7 @@ export default function TrustCenterPage() {
           </div>
 
           {/* ── DATA SOURCES ── */}
-          <section id="data-sources" style={{ marginBottom: 64, scrollMarginTop: 32 }}>
+          <section id="data-sources" style={{ marginBottom: space[16], scrollMarginTop: space.xl }}>
             <h2 style={sectionH2}>Data Sources</h2>
             <p style={prose}>
               Every data point on ConstructAIQ originates from a public government or
@@ -375,12 +375,12 @@ export default function TrustCenterPage() {
                 <tbody>
                   {DATA_SOURCES.map(row => (
                     <tr key={row.source}>
-                      <td style={{ ...tdStyle, fontWeight: 600, whiteSpace: 'nowrap', color: '#111' }}>
+                      <td style={{ ...tdStyle, fontWeight: 600, whiteSpace: 'nowrap', color: color.lightT1 }}>
                         {row.source}
                       </td>
                       <td style={tdStyle}>{row.provides}</td>
                       <td style={{ ...tdStyle, ...noteStyle, whiteSpace: 'nowrap' }}>{row.cadence}</td>
-                      <td style={{ ...tdStyle, ...noteStyle, color: '#666' }}>{row.notes}</td>
+                      <td style={{ ...tdStyle, ...noteStyle, color: color.lightT3 }}>{row.notes}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -389,7 +389,7 @@ export default function TrustCenterPage() {
           </section>
 
           {/* ── FRESHNESS AND SOURCE HEALTH ── */}
-          <section id="freshness" style={{ marginBottom: 64, scrollMarginTop: 32 }}>
+          <section id="freshness" style={{ marginBottom: space[16], scrollMarginTop: space.xl }}>
             <h2 style={sectionH2}>Freshness and Source Health</h2>
             <p style={prose}>
               ConstructAIQ attaches freshness metadata to every data point and API
@@ -546,7 +546,7 @@ export default function TrustCenterPage() {
           </section>
 
           {/* ── FORECAST METHODOLOGY ── */}
-          <section id="forecast-methodology" style={{ marginBottom: 64, scrollMarginTop: 32 }}>
+          <section id="forecast-methodology" style={{ marginBottom: space[16], scrollMarginTop: space.xl }}>
             <h2 style={sectionH2}>Forecast Methodology</h2>
 
             <div style={calloutStyle}>
@@ -702,7 +702,7 @@ export default function TrustCenterPage() {
           </section>
 
           {/* ── PREDICTION VALIDATION ── */}
-          <section id="prediction-validation" style={{ marginBottom: 64, scrollMarginTop: 32 }}>
+          <section id="prediction-validation" style={{ marginBottom: space[16], scrollMarginTop: space.xl }}>
             <h2 style={sectionH2}>Prediction Validation</h2>
             <p style={prose}>
               ConstructAIQ tracks whether its forecasts were correct after the fact.
@@ -826,7 +826,7 @@ export default function TrustCenterPage() {
           </section>
 
           {/* ── AI ANALYST GUARDRAILS ── */}
-          <section id="ai-guardrails" style={{ marginBottom: 64, scrollMarginTop: 32 }}>
+          <section id="ai-guardrails" style={{ marginBottom: space[16], scrollMarginTop: space.xl }}>
             <h2 style={sectionH2}>AI Analyst Guardrails</h2>
             <p style={prose}>
               The{' '}
@@ -939,7 +939,7 @@ export default function TrustCenterPage() {
           </section>
 
           {/* ── LIMITATIONS ── */}
-          <section id="limitations" style={{ marginBottom: 64, scrollMarginTop: 32 }}>
+          <section id="limitations" style={{ marginBottom: space[16], scrollMarginTop: space.xl }}>
             <h2 style={sectionH2}>Limitations</h2>
             <p style={prose}>
               ConstructAIQ is a free platform built on public data. The limitations
@@ -1092,7 +1092,7 @@ export default function TrustCenterPage() {
               or the series definitions used. When accuracy matters, go to the source.
             </p>
 
-            <div style={{ ...calloutStyle, borderLeft: '3px solid #f5a623', marginTop: 28, marginBottom: 0 }}>
+            <div style={{ ...calloutStyle, borderLeft: `3px solid ${color.amber}`, marginTop: 28, marginBottom: 0 }}>
               Signals, forecasts, and AI explanations on this platform are
               analytical outputs intended to inform decisions. They are not
               professional advice. Consult qualified professionals before making
@@ -1102,8 +1102,8 @@ export default function TrustCenterPage() {
 
           {/* Footer nav */}
           <div style={{
-            borderTop: '1px solid #eee', paddingTop: 32,
-            display: 'flex', gap: 24, flexWrap: 'wrap',
+            borderTop: `1px solid ${color.lightBd}`, paddingTop: space.xl,
+            display: 'flex', gap: space.lg, flexWrap: 'wrap',
           }}>
             <Link href="/methodology" style={linkStyle}>Full Methodology →</Link>
             <Link href="/status" style={linkStyle}>Source Health →</Link>

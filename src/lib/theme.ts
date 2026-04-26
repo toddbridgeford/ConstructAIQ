@@ -29,6 +29,11 @@ export const color = {
   lightBgSub:    '#f5f5f5',
   lightBgSkel:   '#f0f0f0',
   lightBd:       '#e5e5e5',
+  // Light-surface text tokens (for /trust, /methodology, and other light pages)
+  lightT1:       '#111111',  // headings on light surfaces
+  lightT2:       '#333333',  // prose body on light surfaces
+  lightT3:       '#555555',  // muted labels / notes on light surfaces
+  lightT4:       '#888888',  // very muted hints / captions on light surfaces
   bg0: '#000',
   bg1: '#0d0d0d',
   bg2: '#1a1a1a',
