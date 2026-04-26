@@ -6,6 +6,7 @@ import { WeeklyBrief } from "../components/WeeklyBrief"
 import { NLQInterface } from "../components/NLQInterface"
 import { WarnFeed } from "../components/WarnFeed"
 import { SectionHeader } from "../components/SectionHeader"
+import { DataTrustBadge } from "@/app/components/DataTrustBadge"
 import type { SignalsResponse, BriefResponse, WarnData } from "@/lib/api-types"
 import type { FreshnessInfo } from "@/lib/freshness"
 
@@ -46,6 +47,17 @@ export function SignalsSection({ signals, brief, warn, freshness }: Props) {
         shareSection="signals"
         freshness={freshness}
       />
+      <div style={{ marginBottom: 16 }}>
+        <DataTrustBadge
+          source="ConstructAIQ Signal Engine · BLS · Census Bureau"
+          cadence="Continuous / Daily refresh"
+          type="derived"
+          status={freshness ? (!freshness.isoDate ? 'unknown' : freshness.isStale ? 'stale' : 'fresh') : 'unknown'}
+          dataAsOf={freshness?.isoDate || undefined}
+          caveat="Signals are derived from statistical anomaly detection on public data — not financial advice"
+        />
+      </div>
+
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
           <span style={{ fontFamily: MONO, fontSize: 19, fontWeight: 700, color: color.t1, letterSpacing: "-0.02em" }}>
