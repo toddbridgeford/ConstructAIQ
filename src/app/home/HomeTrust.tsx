@@ -29,16 +29,18 @@ export function HomeTrust({ stats }: Props) {
             <div style={{ fontSize: 13, fontFamily: SYS, color: T3, lineHeight: 1.6, marginBottom: 16 }}>
               38+ official U.S. government and recognized industry sources. No scraped, unverified, or synthetic data.
             </div>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: `${color.green}12`, border: `1px solid ${color.green}40`,
-              borderRadius: 7, padding: '5px 12px',
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: color.green, display: 'inline-block' }} />
-              <span style={{ fontSize: 12, fontFamily: MONO, color: color.green }}>
-                {stats ? `${stats.observations_label}+ observations indexed` : '38+ data sources'}
-              </span>
-            </div>
+            {stats && (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: `${color.green}12`, border: `1px solid ${color.green}40`,
+                borderRadius: 7, padding: '5px 12px',
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: color.green, display: 'inline-block' }} />
+                <span style={{ fontSize: 12, fontFamily: MONO, color: color.green }}>
+                  {stats.observations_label}+ observations indexed
+                </span>
+              </div>
+            )}
           </div>
 
           {/* ── Methodology ── */}
@@ -91,9 +93,9 @@ export function HomeTrust({ stats }: Props) {
           gap: 32, flexWrap: 'wrap',
         }}>
           {[
-            { label: 'Cities tracked',      value: stats ? String(stats.cities_tracked)  : '40'  },
-            { label: 'Satellite MSAs',       value: stats ? String(stats.msas_tracked)    : '20'  },
-            { label: 'Gov. data sources',    value: stats ? `${stats.data_sources}+`      : '38+' },
+            { label: 'Cities tracked',      value: stats ? String(stats.cities_tracked)                       : '—' },
+            { label: 'Satellite MSAs',       value: stats ? String(stats.msas_tracked)                         : '—' },
+            { label: 'Gov. data sources',    value: stats ? `${stats.data_sources}+`                           : '—' },
             { label: 'Observations indexed', value: stats?.observations_label ? `${stats.observations_label}+` : '—' },
           ].map(({ label, value }, i) => (
             <Fragment key={label}>
