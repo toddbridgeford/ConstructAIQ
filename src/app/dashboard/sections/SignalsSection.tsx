@@ -7,6 +7,7 @@ import { NLQInterface } from "../components/NLQInterface"
 import { WarnFeed } from "../components/WarnFeed"
 import { SectionHeader } from "../components/SectionHeader"
 import { DataTrustBadge } from "@/app/components/DataTrustBadge"
+import { statusFromAge } from "@/lib/data-trust-utils"
 import type { SignalsResponse, BriefResponse, WarnData } from "@/lib/api-types"
 import type { FreshnessInfo } from "@/lib/freshness"
 
@@ -27,7 +28,7 @@ function Divider({ label }: { label: string }) {
     }}>
       <div style={{ flex: 1, height: 1, background: color.bd1 }} />
       <span style={{
-        fontFamily: MONO, fontSize: 9, color: color.t4,
+        fontFamily: MONO, fontSize: 11, color: color.t4,
         letterSpacing: "0.12em", flexShrink: 0,
       }}>
         {label}
@@ -52,7 +53,7 @@ export function SignalsSection({ signals, brief, warn, freshness }: Props) {
           source="ConstructAIQ Signal Engine · BLS · Census Bureau"
           cadence="Continuous / Daily refresh"
           type="derived"
-          status={freshness ? (!freshness.isoDate ? 'unknown' : freshness.isStale ? 'stale' : 'fresh') : 'unknown'}
+          status={statusFromAge(freshness?.isoDate || null)}
           dataAsOf={freshness?.isoDate || undefined}
           caveat="Signals are derived from statistical anomaly detection on public data — not financial advice"
         />

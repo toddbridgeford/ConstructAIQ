@@ -7,6 +7,7 @@ import { MaterialsCorrelation } from "../components/MaterialsCorrelation"
 import { SectionHeader }        from "../components/SectionHeader"
 import { EmptyState }           from "@/app/components/ui/EmptyState"
 import { DataTrustBadge }       from "@/app/components/DataTrustBadge"
+import { statusFromAge } from "@/lib/data-trust-utils"
 import { color, font } from "@/lib/theme"
 import Link from "next/link"
 import type { CommodityItem } from "@/lib/api-types"
@@ -51,7 +52,7 @@ export function MaterialsSection({ commodities, procurementValue, heatmapData, c
           source="BLS Producer Price Indexes · EIA"
           cadence="Monthly / Weekly"
           type="derived"
-          status={freshness ? (!freshness.isoDate ? 'unknown' : freshness.isStale ? 'stale' : 'fresh') : 'unknown'}
+          status={statusFromAge(freshness?.isoDate || null)}
           dataAsOf={freshness?.isoDate || undefined}
           caveat="BUY/SELL/HOLD signals are derived from price momentum — not financial advice"
         />

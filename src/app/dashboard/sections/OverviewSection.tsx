@@ -5,6 +5,7 @@ import { color, font, type as TS, signal as SIG, layout as L, fmtB } from "@/lib
 import { BenchmarkBadge, type BenchmarkResult } from "@/app/components/ui/BenchmarkBadge"
 import { InsightChip } from "@/app/components/ui/InsightChip"
 import { DataTrustBadge } from "@/app/components/DataTrustBadge"
+import { statusFromAge } from "@/lib/data-trust-utils"
 import { getPrefs } from "@/lib/preferences"
 import { RecommendationsCard } from '@/app/dashboard/components/RecommendationsCard'
 import { WatchlistCard } from '@/app/dashboard/components/WatchlistCard'
@@ -169,7 +170,7 @@ function SpendingTrend({ data }: { data: { month: string; value: number }[] }) {
         if (i % step !== 0 && i !== n - 1) return null
         return (
           <text key={i} x={px(i)} y={VH - 4}
-                textAnchor="middle" fontSize={9} fill={color.t4} fontFamily={MONO}>
+                textAnchor="middle" fontSize={11} fill={color.t4} fontFamily={MONO}>
             {d.month}
           </text>
         )
@@ -229,7 +230,7 @@ function KpiCard({ label, sourceLine, value, mom, spark, accent, bench }: KpiCar
     }}>
       <div>
         <div style={{ ...TS.label, color: color.t3 }}>{label}</div>
-        <div style={{ fontFamily: MONO, fontSize: 9, color: color.t4, letterSpacing: '0.06em', marginTop: 3 }}>
+        <div style={{ fontFamily: MONO, fontSize: 11, color: color.t4, letterSpacing: '0.06em', marginTop: 3 }}>
           {sourceLine}
         </div>
       </div>
@@ -422,7 +423,7 @@ export function OverviewSection({
           source="Census Bureau · BLS"
           cadence="Monthly"
           type="actual"
-          status={!freshness.isoDate ? 'unknown' : freshness.isStale ? 'stale' : 'fresh'}
+          status={statusFromAge(freshness.isoDate || null)}
           dataAsOf={freshness.isoDate || undefined}
         />
       )}
