@@ -167,7 +167,68 @@ _To be populated from GSTACK audit findings._
 
 ## Motion Rules
 
-_To be populated from GSTACK audit findings._
+### Governing principle
+
+Motion communicates state change. It does not decorate, entertain, or signal effort. Every animation must answer the question: "What changed, and where?" If the answer is "nothing changed — this is just visual flair," the animation is removed.
+
+### `prefers-reduced-motion` — non-negotiable
+
+Every transition and animation in the codebase must be wrapped or suppressed under `prefers-reduced-motion: reduce`. This is not optional polish — it is a baseline accessibility requirement for users with vestibular disorders.
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+```
+
+Add this block to `src/app/globals.css` if not already present. Do not rely on component-level guards alone.
+
+### Properties that must never be animated
+
+Animating layout-affecting properties causes browser reflow on every frame, degrades performance on lower-end hardware, and creates disorienting jumps for users with motion sensitivity.
+
+**Never animate:** `width`, `height`, `top`, `left`, `right`, `bottom`, `margin`, `padding`, `grid-template-columns`, `flex-basis`
+
+**Safe to animate:** `opacity`, `transform` (translate/scale/rotate only), `color`, `background-color`, `border-color`, `box-shadow` (sparingly)
+
+The current `.btn-fl:hover` violation — `transform: translateY(-2px)` — is on the safe-to-animate list technically, but the combination of lift + amplified shadow crosses the line into decorative. Remove the transform and shadow amplification; retain background-color change only.
+
+### Homepage — MOTION_INTENSITY 3
+
+- **Hover states:** `opacity` or `background-color` change on interactive elements. Duration 150–200ms, `ease-out`. No scale transforms, no shadow amplification, no translateY on cards.
+- **Section entry:** One fade-in per section as it enters the viewport — `opacity: 0 → 1`, duration 200ms, `ease-out`. Maximum one animated element per section; do not stagger every card in a grid.
+- **Live data updates:** When the verdict banner or KPI value updates, a single `opacity` pulse (0.6 → 1, 300ms) is acceptable to signal freshness. No slide, no bounce.
+- **Prohibited:** Scroll-driven parallax, sequential card stagger animations, looping background animations, `@keyframes` on any element that is not communicating a state change.
+- **Existing `.live-dot` `@keyframes pulse`:** Acceptable — a pulsing dot on a live data indicator is functional (it signals "this is live"), not decorative. Retain.
+
+### Dashboard — MOTION_INTENSITY 2
+
+- **Loading → data:** Skeleton shimmer to populated content is the primary motion event on this surface. Duration 200ms `opacity` crossfade. The chart drawing itself (line progressing left to right) counts as the motion for the forecast section — no additional entrance animation needed.
+- **Hover states:** `background-color` change on table rows, KPI cards, and nav items. Duration 120–150ms, `ease-out`. No transforms.
+- **State changes:** Section tab switch — `opacity` fade of outgoing content, 150ms. Do not animate the panel width or slide panels in/out.
+- **Prohibited:** Animated layout shifts between sections, chart re-animation on scroll, parallax on any element, any animation that fires more than once per user action.
+- **PAR progress bar `transition: width 0.6s ease`:** This exists in `/status` and is acceptable because the width change directly encodes a data value update. Retain. Do not replicate this pattern for decorative bars.
+
+### Trust / Status — MOTION_INTENSITY 2
+
+- **Near-static by design.** These are reference and monitoring surfaces. A construction lender reading AI Guardrails or an operator checking pipeline freshness is not looking for visual activity.
+- **Focus feedback:** `:focus-visible` outlines on all interactive elements (anchor links, table rows with click handlers). No motion required — a solid `color.blue` outline at `2px offset` is sufficient.
+- **Hover feedback:** Table row `background-color` change, 120ms. Nothing else.
+- **Prohibited:** Animated table rows, count-up number animations on KPI cards, any entrance animation on prose sections, skeleton shimmer on static content (use it only on data-fetched content).
+- **Section entry on /status:** A single `opacity` fade (150ms) on the Data Freshness and Source Health panels when data loads from the API is acceptable. Do not animate the KPI cards separately from the panels they belong to.
+
+### Existing motion audit
+
+| Element | File | Current behavior | Action |
+|---------|------|-----------------|--------|
+| `.live-dot` pulse | `globals.css` | `@keyframes pulse` opacity loop | **Retain** — functional live signal |
+| `.btn-fl` hover | `globals.css:134–137` | `translateY(-2px)` + shadow amplification | **Remove** transform and shadow amplification; keep `background-color` change |
+| PAR progress bar | `status/page.tsx` | `transition: width 0.6s ease` | **Retain** — encodes data value |
+| Sidebar mode transition | `Sidebar.tsx` | Width/opacity transition on mode change | **Retain** — functional state change |
+| Skeleton shimmer | `status/page.tsx` | CSS animation on loading placeholders | **Retain** — communicates loading state |
 
 ---
 
