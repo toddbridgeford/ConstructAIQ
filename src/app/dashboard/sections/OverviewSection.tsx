@@ -195,7 +195,7 @@ function SpendingTrend({ data }: { data: { month: string; value: number }[] }) {
           <rect x={tip.tx} y={tip.ty} width={tip.tw} height={tip.th}
                 rx={4} ry={4} fill={color.bg2} stroke={color.bd2} strokeWidth={0.5} />
           <text x={tip.tx + 6} y={tip.ty + 12}
-                fontSize={9} fill={color.t3} fontFamily={MONO}>{tip.month}</text>
+                fontSize={11} fill={color.t3} fontFamily={MONO}>{tip.month}</text>
           <text x={tip.tx + 6} y={tip.ty + 27}
                 fontSize={11} fill={color.t1} fontFamily={MONO} fontWeight="600">{tip.label}</text>
           <circle cx={tip.cx} cy={tip.cy} r={3.5}
@@ -446,7 +446,7 @@ export function OverviewSection({
           <span style={{ fontFamily: MONO, fontSize: 12, color: color.t2 }}>
             {forecastDirection}
           </span>
-          <span style={{ fontFamily: MONO, fontSize: 9, color: color.t4 }}>
+          <span style={{ fontFamily: MONO, fontSize: 11, color: color.t4 }}>
             — model estimate · ensemble forecast
           </span>
         </div>
