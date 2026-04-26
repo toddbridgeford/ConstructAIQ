@@ -7,7 +7,7 @@ import {
   LayoutDashboard, TrendingUp, Building2, MapPin, FolderOpen,
   Radio, BarChart2, AlertTriangle, MessageSquare,
   BookOpen, PieChart, Newspaper, Mail, Calendar, Layers, ScanSearch, Globe2, FileText,
-  DollarSign, Activity, ArrowLeftRight, type LucideIcon,
+  DollarSign, Activity, ArrowLeftRight, ShieldCheck, Target, type LucideIcon,
 } from "lucide-react"
 import { color, font, layout as L, type as TS } from "@/lib/theme"
 import { getPrefs, removeMarket, PREF_EVENT, type UserPreferences } from "@/lib/preferences"
@@ -53,7 +53,10 @@ const NAV: NavItem[] = [
 ]
 
 const BOTTOM: NavItem[] = [
-  { label: "Methodology", href: "/methodology", Icon: BookOpen },
+  { label: "Methodology",       href: "/methodology", Icon: BookOpen    },
+  { label: "Forecast Accuracy", href: "/forecasts",   Icon: Target      },
+  { label: "Trust Center",      href: "/trust",       Icon: ShieldCheck },
+  { label: "Platform Status",   href: "/status",      Icon: Activity    },
 ]
 
 function toSectionId(href: string): string | null {

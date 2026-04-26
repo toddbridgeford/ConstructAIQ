@@ -15,6 +15,7 @@ const BASE_LINKS = [
   { label: "Federal",      href: "/federal"      },
   { label: "Materials",    href: "/materials"    },
   { label: "Ask",          href: "/ask"          },
+  { label: "Forecasts",    href: "/forecasts"    },
 ]
 
 interface NavProps {
