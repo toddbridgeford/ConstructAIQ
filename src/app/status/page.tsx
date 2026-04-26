@@ -655,7 +655,7 @@ export default function StatusPage() {
           <div style={{ fontFamily: font.sys, fontSize: 15, fontWeight: 600, color: color.t1, marginBottom: 4 }}>
             Source Health
           </div>
-          <div style={{ fontFamily: font.mono, fontSize: 10, color: color.t4, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 16 }}>
+          <div style={{ fontFamily: font.sys, fontSize: 12, color: color.t4, marginBottom: 16 }}>
             Per-source ingestion status — latest run per source
           </div>
 
@@ -793,7 +793,7 @@ export default function StatusPage() {
           <div style={{ fontFamily: font.sys, fontSize: 15, fontWeight: 600, color: color.t1, marginBottom: 4 }}>
             Environment Readiness
           </div>
-          <div style={{ fontFamily: font.mono, fontSize: 10, color: color.t4, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 16 }}>
+          <div style={{ fontFamily: font.sys, fontSize: 12, color: color.t4, marginBottom: 16 }}>
             Required services — boolean only, no secret values exposed
           </div>
 
@@ -915,7 +915,7 @@ export default function StatusPage() {
           <div style={{ fontFamily: font.sys, fontSize: 15, fontWeight: 600, color: color.t1, marginBottom: 4 }}>
             Data State
           </div>
-          <div style={{ fontFamily: font.mono, fontSize: 10, color: color.t4, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 16 }}>
+          <div style={{ fontFamily: font.sys, fontSize: 12, color: color.t4, marginBottom: 16 }}>
             Live vs cached vs fallback — what users are currently seeing
           </div>
 
@@ -1067,7 +1067,7 @@ export default function StatusPage() {
           <div style={{ fontFamily: font.sys, fontSize: 15, fontWeight: 600, color: color.t1, marginBottom: 4 }}>
             API Configuration
           </div>
-          <div style={{ fontFamily: font.mono, fontSize: 10, color: color.t4, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 16 }}>
+          <div style={{ fontFamily: font.sys, fontSize: 12, color: color.t4, marginBottom: 16 }}>
             Live data active per configured key
           </div>
 

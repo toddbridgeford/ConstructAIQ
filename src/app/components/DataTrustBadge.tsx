@@ -63,7 +63,7 @@ function QualityBar({ score }: { score: number }) {
           }}
         />
       ))}
-      <span style={{ fontSize: 9, fontFamily: font.mono, color: barColor, marginLeft: 4 }}>
+      <span style={{ fontSize: 11, fontFamily: font.mono, color: barColor, marginLeft: 4 }}>
         {score}
       </span>
     </span>
@@ -116,7 +116,7 @@ export function DataTrustBadge({
             display:      'inline-block',
             flexShrink:   0,
           }} />
-          <span style={{ fontSize: 9, fontWeight: 700, color: dot, letterSpacing: '0.07em' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: dot, letterSpacing: '0.07em' }}>
             {STATUS_LABELS[status].toUpperCase()}
           </span>
         </span>
@@ -130,14 +130,14 @@ export function DataTrustBadge({
 
         {/* Data type */}
         <span style={{
-          fontSize:      9,
+          fontSize:      11,
           fontWeight:    600,
           color:         tSec,
           letterSpacing: '0.06em',
           border:        `1px solid ${isDark ? color.bd2 : '#d4d4d4'}`,
           borderRadius:  3,
           padding:       '0px 4px',
-          lineHeight:    '14px',
+          lineHeight:    '16px',
           display:       'inline-block',
         }}>
           {TYPE_LABELS[type].toUpperCase()}

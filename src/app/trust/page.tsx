@@ -177,8 +177,8 @@ export default function TrustCenterPage() {
           alignSelf: 'flex-start', height: 'fit-content',
         }}>
           <div style={{
-            fontFamily: MONO, fontSize: 10, color: '#888',
-            letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16,
+            fontFamily: SYS, fontSize: 11, color: '#888',
+            fontWeight: 500, marginBottom: 16,
           }}>
             Contents
           </div>

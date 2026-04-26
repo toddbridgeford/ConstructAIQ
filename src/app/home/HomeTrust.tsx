@@ -19,8 +19,8 @@ export function HomeTrust({ stats }: Props) {
         <div className="hp-trust">
           {/* ── Data Provenance ── */}
           <div style={{ background: WHITE, border: `1px solid ${BD}`, borderRadius: 14, padding: '28px 24px' }}>
-            <div style={{ fontSize: 11, fontFamily: MONO, color: T3, letterSpacing: '0.1em', marginBottom: 14 }}>
-              DATA PROVENANCE
+            <div style={{ fontSize: 13, fontFamily: SYS, color: T1, fontWeight: 600, marginBottom: 14 }}>
+              Data Provenance
             </div>
             <div style={{ fontSize: 14, fontFamily: SYS, color: T1, fontWeight: 600, lineHeight: 1.7, marginBottom: 12 }}>
               Census Bureau · BLS · FRED · BEA
@@ -45,8 +45,8 @@ export function HomeTrust({ stats }: Props) {
 
           {/* ── Methodology ── */}
           <div style={{ background: WHITE, border: `1px solid ${BD}`, borderRadius: 14, padding: '28px 24px' }}>
-            <div style={{ fontSize: 11, fontFamily: MONO, color: T3, letterSpacing: '0.1em', marginBottom: 14 }}>
-              METHODOLOGY
+            <div style={{ fontSize: 13, fontFamily: SYS, color: T1, fontWeight: 600, marginBottom: 14 }}>
+              Methodology
             </div>
             <div style={{ fontSize: 14, fontFamily: SYS, color: T1, fontWeight: 600, lineHeight: 1.7, marginBottom: 12 }}>
               Open methodology.
@@ -66,8 +66,8 @@ export function HomeTrust({ stats }: Props) {
 
           {/* ── Free Forever ── */}
           <div style={{ background: WHITE, border: `1px solid ${BD}`, borderRadius: 14, padding: '28px 24px' }}>
-            <div style={{ fontSize: 11, fontFamily: MONO, color: T3, letterSpacing: '0.1em', marginBottom: 14 }}>
-              FREE FOREVER
+            <div style={{ fontSize: 13, fontFamily: SYS, color: T1, fontWeight: 600, marginBottom: 14 }}>
+              Free Forever
             </div>
             <div style={{ fontSize: 14, fontFamily: SYS, color: T1, fontWeight: 600, lineHeight: 1.7, marginBottom: 12 }}>
               No subscription.
