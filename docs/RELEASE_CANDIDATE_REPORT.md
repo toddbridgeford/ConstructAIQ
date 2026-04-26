@@ -1,6 +1,18 @@
 # Release Candidate Report
 
-> **Operator:** Phase 22 (2026-04-25) — Anthropic sandbox TLS proxy confirmed; all prior HTTP verification was measuring the proxy, not Vercel. Vercel dashboard shows both domains as Valid Configuration + Production. Run [docs/POST_BINDING_VERIFICATION_20260425.md](./POST_BINDING_VERIFICATION_20260425.md) from your own terminal to complete launch gates. Current verdict → [docs/LAUNCH_NOW.md](./LAUNCH_NOW.md)
+## Current State
+
+**Public launch: GO.**
+
+Phase 22/23 trust and launch verification are complete. `constructaiq.trade` is live on Vercel Production with all required gates passing.
+
+The historical NO-GO sections below are retained for **audit history only**. They record earlier states where individual gates (domain binding, CRON_SECRET, Codespace environment gaps) had not yet been resolved. Those blockers are fully resolved.
+
+**Current launch authority: [docs/LAUNCH_NOW.md](./LAUNCH_NOW.md)**
+
+---
+
+> **Operator note (Phase 22, 2026-04-25):** Anthropic sandbox TLS proxy confirmed; all prior HTTP verification was measuring the proxy, not Vercel. Vercel dashboard shows both domains as Valid Configuration + Production. Run [docs/POST_BINDING_VERIFICATION_20260425.md](./POST_BINDING_VERIFICATION_20260425.md) from your own terminal to complete launch gates. Current verdict → [docs/LAUNCH_NOW.md](./LAUNCH_NOW.md)
 
 ## Release Candidate Code SHA
 
