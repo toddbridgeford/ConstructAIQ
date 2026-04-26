@@ -303,7 +303,68 @@ Ranked by user-facing decision impact and weighted GStack score movement. Items 
 
 ---
 
-## What Not to Change
+### 6 · Replace generic feature-grid sameness with evidence-led sections
+
+**Surface:** Homepage  
+**Problem:** Two homepage sections rely entirely on identical card layouts that describe the platform without showing it. `HomeRoles.tsx` (rendered at `page.tsx:132`) renders five cards for Contractors, Suppliers, Lenders, Developers, and Public-sector analysts — every card has the same `color.blue` left-border, the same `borderRadius`, the same two-line text layout, and the same background. No card shows data. `HomeTrust.tsx` renders three cards (Data Provenance, Methodology, Free Forever) that are pixel-identical in every visual property. "Free Forever" — the platform's strongest commercial differentiator — is visually indistinguishable from the provenance card beside it.
+
+**Change:** (a) In `HomeRoles.tsx`: give each role card one differentiating property that maps to a real product capability — not color for color's sake, but a visible data point specific to that role. Contractors see current permit volume; Lenders see CSHI + rate; Suppliers see the top material signal. If live data is not yet available per role, display `—` explicitly rather than a generic description. (b) In `HomeTrust.tsx`: give "Free Forever" a single accent that marks it as the hero claim — `borderLeft: 3px solid ${color.amber}` against the neutral `color.bd1` borders on the other two cards. No other visual changes to the card layout.
+
+**Why it matters:** A data product that describes itself instead of demonstrating itself is indistinguishable from its competitors. Every construction industry platform claims to serve "contractors, lenders, and developers." ConstructAIQ's advantage is the data — showing one live number per role makes the argument the competition cannot make. The "Free Forever" accent fix is a ten-minute change that makes the platform's most unexpected claim visually prominent. (GSTACK patterns #1 generic feature grids, #2 card sameness.)
+
+**Expected impact:** GStack Emotional Resonance +1 (5→6); Visual Hierarchy +0.5; eliminates AI slop patterns #1 and #2 from homepage. The role-specific data change depends on API availability per role; the `HomeTrust.tsx` accent change is unconditional.
+
+---
+
+### 7 · Improve empty / error / loading state separation
+
+**Surface:** Dashboard · Status  
+**Problem:** The dashboard `load()` function (`dashboard/page.tsx:169–181`) calls `safe('/api/dashboard')`, which swallows errors and returns null. If the fetch fails, `dashCore` remains null permanently and every KPI panel shows `—` indefinitely — visually identical to the loading state. There is no timeout, no retry signal, and no error message. A professional operator cannot tell whether the API is slow, down, or misconfigured. Separately, on `/status`, KPI cards render a static `—` during load while the tables directly below them use proper skeleton shimmer — the page looks partially broken during the 200–800ms load window (UX audit M3).
+
+**Change:** (a) In `dashboard/page.tsx`: add an `error` state to `load()`. After ~8 seconds without a successful response, set `error = true` and render an explicit message in place of the KPI row: "Data unavailable — check [/status](/status) for pipeline health." Do not show `—` after timeout. (b) In `status/page.tsx`: apply the same skeleton shimmer pattern used on the Data Freshness and Source Health tables to the six KPI cards at the top of the page. Replace the static `—` placeholder with a shimmer rectangle of equivalent width during the loading state.
+
+**Why it matters:** Silent failure in a data platform destroys professional trust faster than any visual flaw. A construction lender who opens the dashboard and sees every metric as `—` at 8:00am on a decision day has no way to know if the platform is broken. An explicit "Data unavailable" state with a link to /status is honest and actionable. The KPI shimmer fix on /status is a 30-minute consistency fix that makes the page feel production-ready instead of partially rendered. (UX audit C2, M3.)
+
+**Expected impact:** Eliminates UX severity-4 critical finding C2 (silent error state). Resolves UX M3 (skeleton inconsistency). GStack Component Consistency +0.5; Emotional Resonance +0.5 (platform reliability signal); overall weighted score +0.10.
+
+---
+
+### 8 · Reduce all-caps muted label overuse
+
+**Surface:** Homepage · Dashboard · Trust · Status  
+**Problem:** `TS.label` (`fontSize:11, font.mono, letterSpacing:0.08em, textTransform:uppercase`) appears 12 times on a single homepage scroll and 7 times in Dashboard Overview. When every section eyebrow, card title, nav item, and brand label uses the same style at the same `color.t3` weight, no element reads as more important than any other. The label style — designed as a single hierarchical accent — has become visual noise. Specific violations: `CONSTRUCTAIQ` eyebrow on all four audited pages (zero information value), `WHO IT IS FOR` in `HomeRoles.tsx:33`, `DATA PROVENANCE` / `FREE FOREVER` as card eyebrows in `HomeTrust.tsx:22,46,67`, and seven labeled KPI categories in `OverviewSection.tsx` that use the same style as the section header above them.
+
+**Change:** Apply the two-role rule from the Typography Direction section: `TS.label` is permitted only (1) directly above a numeric KPI value, (2) as a single section-type eyebrow that names the data category. All other uses: replace `CONSTRUCTAIQ` eyebrows with nothing or with a `type.h3` context label; replace card eyebrows in `HomeTrust.tsx` with `type.h3` in `font.sys`; in `HomeRoles.tsx` remove the `WHO IT IS FOR` label or replace with `type.h2`. The goal is to reduce `TS.label` instances from 12 per homepage scroll to 3–4 maximum.
+
+**Why it matters:** Hierarchy is the primary tool for communicating priority. When the label style that should signal "this is a data category" appears on brand names, card titles, and nav items at equal visual weight, users cannot distinguish signal from structure. Reducing the label count to its intended two roles restores the hierarchy that the component was designed to create. (GSTACK pattern #3, audit score Typography 5/10, Visual Hierarchy 5/10.)
+
+**Expected impact:** GStack Typography +1 (5→6); Visual Hierarchy +1 (5→6); overall weighted score +0.40. High-surface-area fix — touches homepage, dashboard, trust, and status in a single pass.
+
+---
+
+### 9 · Standardize freshness status colors and vocabulary
+
+**Surface:** Dashboard · Trust · Status  
+**Problem:** The same concept — how current the data is — uses three different label systems across the product. `DataTrustBadge` uses `fresh / stale / delayed / failed / fallback / unknown`. The `/status` Data Freshness table uses `ok → "Current"`, `warn → "Aging"`, `stale → "Stale"`. The `/trust` freshness documentation uses `Fresh / Stale / Delayed / Unknown`. "Aging" exists only on `/status` and maps to nothing in the Trust Center. "Delayed" exists on the badge and in `/trust` docs but not on `/status`. A professional cross-referencing the dashboard badge against the Trust Center documentation finds three different systems for the same concept. (UX audit C3; GSTACK Color & Palette finding.)
+
+**Change:** Standardize on the `DataTrustBadge` vocabulary as the canonical set: `fresh / stale / delayed / failed / fallback / unknown`. Two file changes: (a) `status/page.tsx:113` — rename `STATUS_DOT.warn.label` from `'Aging'` to `'Delayed'`. (b) `trust/page.tsx:509–513` — update the Source Health state documentation to replace `'Aging'` with `'Delayed'` wherever it appears. Verify `HEALTH_BADGE` labels in `status/page.tsx` (`ok → 'Fresh'`, `warn → 'Degraded'`, `failed → 'Failed'`) against DataTrustBadge — `'Degraded'` is not in the canonical vocabulary; replace with `'Delayed'`.
+
+**Why it matters:** Vocabulary consistency is a trust mechanism, not a cosmetic fix. The Trust Center exists to explain how to interpret the platform's data signals. If the vocabulary on /status contradicts the vocabulary in the Trust Center, the transparency layer is broken. A professional who learns the badge vocabulary on the dashboard should encounter the same terms everywhere. Two label renames resolve all three vocabularies. (UX audit C3; GSTACK Priority Fix #5.)
+
+**Expected impact:** Eliminates UX severity-4 critical finding C3 (three incompatible freshness vocabularies). GStack Color & Palette +1; Component Consistency +1; overall weighted score +0.30.
+
+---
+
+### 10 · Tighten mobile tables and overflow handling
+
+**Surface:** Trust · Status · Dashboard  
+**Problem:** Three distinct overflow and mobile-layout failures compound across the audited surfaces. (a) `/trust` left-nav vanishes on viewports under 700px (`display:none !important`) with no fallback — covered in item 4, but also causes the Trust Center's dense HTML tables (Data Sources summary, Source Health) to overflow horizontally with no scroll affordance on narrow viewports. (b) `/status` Source Health and Data Freshness tables have no defined `max-width` or `overflow-x: auto` wrapper — on a 375px iPhone, column content clips or forces horizontal page scroll. (c) `ForecastChart` in the dashboard uses a fixed `width={620}` prop — it does not respond to container size and overflows on narrow screens. The chart already uses `viewBox`, so the fix is minimal.
+
+**Change:** (a) Wrap every data table in `/trust` and `/status` in `<div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>`. Add `min-width` to table elements sufficient to preserve column readability (e.g. `minWidth: 560` for the Data Sources table). (b) In `ForecastChart.tsx`: remove the fixed `width` prop and replace with `width="100%"` — the `viewBox` already exists so this is a one-line change that makes the chart fully responsive. (c) Apply the horizontal scrollable chip-row solution for the `/trust` left-nav on mobile (already specified in item 4) — this also resolves the table overflow since users can navigate to each section independently rather than scrolling through all six.
+
+**Why it matters:** The Apple HIG minimum touch target is 44×44pt. A table that clips at 375px is not usable on the primary mobile form factor. ConstructAIQ's professional audience includes operators who check platform status and trust documentation on phones and tablets. A fixed-width chart that overflows its container on any non-desktop viewport is a production regression, not a polish gap. The ForecastChart fix is a one-line change. (CLAUDE.md Known Bug #6: ForecastChart fixed width; UX audit M2: Trust Center mobile nav; GSTACK Accessibility 4/10.)
+
+**Expected impact:** GStack Accessibility +1.5 (4→5.5); overall weighted score +0.10. Resolves a production regression (ForecastChart overflow) and two mobile usability failures across Trust and Status. Directly supports CLAUDE.md sprint item 9 (Mobile/iPhone pass).
 
 _To be populated — components and patterns confirmed working well._
 
