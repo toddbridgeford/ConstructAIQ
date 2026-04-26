@@ -44,21 +44,259 @@ Score the visual/product design and identify AI slop patterns before polish chan
 
 ---
 
-## AI Slop Patterns
+## AI Slop Patterns Detected
 
-> **TODO:** List specific file locations and line numbers for each pattern found.
+Nine patterns checked across homepage, dashboard, trust, and status surfaces.
 
-Patterns to check for:
+---
 
-- [x] Generic feature/persona grids — `HomeRoles.tsx` five equal-weight role cards, identical `color.blue` border and padding on all five
-- [x] Card sameness — `HomeTrust.tsx` three pixel-identical cards; `HomeStatusCards.tsx` three identical status cards
-- [x] All-caps MONO label proliferation — 12 instances on homepage, 7 in Overview alone, brand-name "ConstructAIQ" eyebrow on all four audited pages
-- [x] Vague trust/progress claims — "38+ sources" (`HomeTrust.tsx:30`) vs "312 DATA SOURCES" (`HeroSection.tsx:137`) contradict each other; hardcoded fallback stats look dynamic
-- [x] Overused or decorative gradients — `HeroSection.tsx:143` uses `.grad-text` CSS class on hero headline
-- [x] Centered generic SaaS hero patterns — `HomeHero.tsx:11–108` is textbook: all-caps eyebrow → H1 → subtitle → hero KPI → two CTAs, center-aligned, no dominant visual object
-- [x] Stat-stuffed eyebrows — `HeroSection.tsx:137` "312 DATA SOURCES · 3-MODEL AI ENSEMBLE · LIVE" presents three authority-signaling numbers without supporting context in the same line
-- [x] Duplicate CTAs across a single page — `DashboardFooter` "The Signal" newsletter subscribe + `Sidebar.tsx:337–360` "Subscribe to The Signal" both use `color.amber` styling
-- [x] Newsletter capture before value demonstration — `HomeNewsletter` appears at `page.tsx:134–136` before `HomeStatusCards` (first live data surface)
+### 1. Generic feature/persona grids
+
+**Status:** PRESENT · **Severity:** HIGH
+
+**File:** `src/app/home/HomeRoles.tsx:36–62` (rendered at `src/app/page.tsx:132`)
+
+```tsx
+// HomeRoles.tsx:37–47 — every card is structurally identical
+gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))'
+// All five cards:
+borderLeft:   `3px solid ${color.blue}`   // same on all five
+borderRadius: '0 10px 10px 0'             // same on all five
+padding:      '18px 20px'                 // same on all five
+background:   BG                          // same on all five
+```
+
+Five cards for Contractors, Suppliers, Lenders, Developers, and Public-sector analysts. Every card has the same blue left-border at the same weight, the same background, the same padding, and the same two-line text layout. A contractor and a public-sector analyst are visually indistinguishable. No card shows actual data. All five promise relevance without demonstrating it.
+
+**Fix:** Replace the grid with a role-indexed data preview. Each card shows one live stat specific to that role — Contractors see permit volume, Lenders see current rate + CSHI change, Suppliers see the top material signal. If the data isn't ready, the card can say so explicitly. A data product earns trust by showing data, not by describing itself.
+
+---
+
+### 2. Card sameness
+
+**Status:** PRESENT · **Severity:** MEDIUM
+
+**File:** `src/app/home/HomeTrust.tsx:21–84`
+
+```tsx
+// All three cards share the same spec — pixel-identical layout:
+background:   WHITE         // card 1, 2, 3
+border:       `1px solid ${BD}`
+borderRadius: 14
+padding:      '28px 24px'
+// eyebrow:  fontSize:11, fontFamily:MONO, color:T3, letterSpacing:'0.1em'
+// body:     fontSize:14, fontFamily:SYS, color:T1, fontWeight:600
+```
+
+The three cards carry meaningfully different messages — "Data Provenance" (verifiability), "Methodology" (technical rigor), "Free Forever" (pricing). They receive identical visual treatment. "Free Forever" is the platform's strongest commercial differentiator and the most unexpected claim for a data product. It looks exactly like the provenance card next to it.
+
+**Fix:** Give "Free Forever" one distinguishing visual property — an amber accent on the border-left, or a slightly elevated background — to signal that it is the hero claim of the three. The other two cards can remain neutral.
+
+---
+
+### 3. All-caps muted labels everywhere
+
+**Status:** PRESENT · **Severity:** HIGH
+
+**Files:** All homepage components · `src/app/dashboard/sections/OverviewSection.tsx` · `src/app/trust/page.tsx` · `src/app/status/page.tsx`
+
+`TS.label` (`fontSize:11, fontFamily:font.mono, letterSpacing:'0.08em', textTransform:'uppercase'`) is the intended style for a single hierarchical accent — one per section. Current usage:
+
+| Surface | Count | Example labels |
+|---|---|---|
+| Homepage (one scroll) | 12 | CONSTRUCTAIQ, WHO IT IS FOR, DATA PROVENANCE, FREE FOREVER, BUILT ON TRUSTED SOURCES… |
+| Dashboard Overview | 7 | CONSTRUCTION SPENDING, LIVE SIGNALS, TOP SIGNAL, CONSTRUCTION EMPLOYMENT… |
+| /trust header | 1 | ConstructAIQ (brand eyebrow) |
+| /status header | 1 | ConstructAIQ (brand eyebrow) |
+
+When the same label style appears 12 times on a single page at the same `color.t3` weight, it communicates nothing about hierarchy. Every element reads at equal importance, which is the same as no hierarchy at all.
+
+**Fix:** Reserve `TS.label` for two uses only: (1) KPI data labels directly above a numeric value, and (2) a single section eyebrow that names the section type. Remove it from card eyebrows inside trust/provenance cards, from page-header brand labels, and from navigation items. Replace section eyebrows with `type.h3` in `font.sys` where the label is a section title rather than a data category.
+
+---
+
+### 4. Vague trust/progress claims
+
+**Status:** PRESENT · **Severity:** MEDIUM
+
+**Files:** `src/app/home/HomeTrust.tsx:30,39,94–97` · `src/app/components/HeroSection.tsx:137,147`
+
+Two contradictory source counts appear on the same platform:
+
+```tsx
+// HomeTrust.tsx:30
+"38+ official U.S. government and recognized industry sources."
+
+// HeroSection.tsx:137 — eyebrow label
+"312 DATA SOURCES · 3-MODEL AI ENSEMBLE · LIVE"
+
+// HeroSection.tsx:147 — hero subtitle
+"12-month AI forecast · 38+ live data sources · Open API · Free forever."
+```
+
+A user reading both surfaces sees 38 and 312. Neither number is explained in context. (38 = source agencies; 312 = individual series — but this distinction is not visible to the user.)
+
+Additionally, `HomeTrust.tsx:94–97` hardcodes fallback stats that display as live data:
+
+```tsx
+{ label: 'Cities tracked',   value: stats ? String(stats.cities_tracked) : '40'  },
+{ label: 'Satellite MSAs',   value: stats ? String(stats.msas_tracked)   : '20'  },
+{ label: 'Gov. data sources', value: stats ? `${stats.data_sources}+`    : '38+' },
+```
+
+When `stats` is null — on slow loads, pre-rendered pages, or API failure — the stats bar displays `40`, `20`, `38+` as if they are live. They are marketing copy in a data display slot.
+
+**Fix:** (1) Remove the "312 DATA SOURCES" eyebrow from `HeroSection.tsx:137` entirely — it is stat-stuffing without context. (2) Replace hardcoded fallbacks in `HomeTrust.tsx:94–97` with `null` renders or skeleton placeholders — never display a hardcoded number in a slot designed for live data.
+
+---
+
+### 5. Overused gradients
+
+**Status:** PRESENT · **Severity:** MEDIUM
+
+**Files:** `src/app/globals.css:186–189, 200` · `src/app/components/HeroSection.tsx:143`
+
+Three gradient uses, stacked:
+
+```css
+/* globals.css:186–189 — hero background */
+.hero {
+  background:
+    radial-gradient(ellipse 85% 55% at 15% 0%,   rgba(10,132,255,0.13) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 40% at 85% 15%,  rgba(48,209,88,0.05)  0%, transparent 50%),
+    radial-gradient(ellipse 50% 65% at 50% 105%, rgba(10,132,255,0.08) 0%, transparent 60%),
+    #060608;
+}
+
+/* globals.css:200 — headline text */
+.grad-text {
+  background: linear-gradient(135deg, #0A84FF 0%, #40C4FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+```
+
+```tsx
+// HeroSection.tsx:143
+<span className="grad-text">intelligence platform</span>
+```
+
+Gradient headline text is the single most replicated pattern in AI-generated landing pages of 2023–2026. The three stacked radial gradients in the hero background are the second most common. Together they signal "I used a template" before the user reads a word.
+
+The hero background gradients are subtle enough to keep. The gradient headline text is not.
+
+**Fix:** Remove the `.grad-text` class from `HeroSection.tsx:143`. Replace with `color: color.t1` (white) or, if the second word needs differentiation, `color: color.amber`. Solid color on a hero headline reads as confidence. Gradient text reads as decoration.
+
+---
+
+### 6. Centered generic SaaS hero pattern
+
+**Status:** PRESENT · **Severity:** HIGH
+
+**File:** `src/app/home/HomeHero.tsx` (rendered at `src/app/page.tsx:130`)
+
+Layout structure of the active hero:
+
+```
+textAlign: 'center'
+maxWidth: 800
+↓
+All-caps MONO eyebrow ("CONSTRUCTAIQ")
+↓
+H1 headline — centered
+↓
+Subtitle paragraph — centered
+↓
+Hero KPI (96px spending number) — centered
+↓
+Two CTAs side-by-side — centered
+```
+
+Every element is center-aligned, equal-width, stacked vertically. There is no asymmetry, no dominant visual object, no data in view. The actual product differentiator — the live forecast chart — does not appear until the user scrolls through three more sections.
+
+`HeroSection.tsx` (lines 132–251) already implements the correct alternative: a 60/40 split with the live forecast chart on the left and a live signals rail on the right. It fetches real data and falls back to illustrative data gracefully. It is not wired into `page.tsx`.
+
+**Fix:** Replace `<HomeHero>` with `<HeroSection>` at `page.tsx:130`. The correct hero is already built. Wire it in, remove the gradient text, and the platform's strongest first impression — a live forecast chart — becomes the above-the-fold experience.
+
+---
+
+### 7. Gradient CTA buttons
+
+**Status:** PRESENT · **Severity:** MEDIUM
+
+**File:** `src/app/globals.css:129–138`
+
+```css
+.btn-fl {
+  background: #0A84FF;
+  box-shadow: 0 4px 24px rgba(10,132,255,0.40);    /* ← decorative glow */
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+.btn-fl:hover {
+  background: #409CFF;
+  box-shadow: 0 8px 32px rgba(10,132,255,0.54);    /* ← amplified glow */
+  transform: translateY(-2px);                      /* ← lift effect */
+}
+```
+
+The primary CTA button has a persistent blue glow shadow and physically lifts on hover with an amplified shadow. This is the exact button style generated by Tailwind UI hero blocks, shadcn/ui, and most AI-assisted landing page generators. It signals "off-the-shelf template" to any designer who has seen it before.
+
+The `.btn-g` ghost button (`globals.css:151–158`) adds `backdrop-filter: blur(8px)` — glassmorphism — which has the same template-recognition problem.
+
+**Fix:** Remove `box-shadow` from `.btn-fl` at rest. On hover, change background color only — no transform, no amplified shadow. A flat button that changes color on hover is more credible for a professional data product than one that glows and levitates.
+
+---
+
+### 8. Decorative trust indicators not backed by real data
+
+**Status:** PRESENT · **Severity:** MEDIUM
+
+**File:** `src/app/home/HomeTrust.tsx:32–41`
+
+```tsx
+<div style={{
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  background: `${color.green}12`, border: `1px solid ${color.green}40`,
+  borderRadius: 7, padding: '5px 12px',
+}}>
+  <span style={{ width: 6, height: 6, borderRadius: '50%', background: color.green }} />
+  <span style={{ fontSize: 12, fontFamily: MONO, color: color.green }}>
+    {stats ? `${stats.observations_label}+ observations indexed` : '38+ data sources'}
+  </span>
+</div>
+```
+
+The green pill badge renders as a live data signal — green dot, green text, green border — but falls back to the hardcoded string `'38+ data sources'` when `stats` is null. A user on a slow connection or a pre-rendered page sees a green "live" indicator displaying static marketing copy. The visual affordance (green dot = live) directly contradicts the content (hardcoded string = not live).
+
+**Fix:** When `stats` is null, render nothing in this slot — no badge, no fallback string. A missing badge is honest. A green-dot badge that shows a hardcoded number is a lie about data freshness on the Trust Center's own page.
+
+---
+
+### 9. Default component-library look
+
+**Status:** PARTIAL · **Severity:** LOW
+
+**Files:** `src/app/home/HomeTrust.tsx:21` · `src/app/globals.css:264`
+
+No component library (shadcn/ui, Radix, Material UI) is imported anywhere in the codebase — all components are custom-built with inline styles or CSS classes. The code is original. The visual output, however, pattern-matches library defaults closely enough to trigger recognition:
+
+```tsx
+// HomeTrust.tsx:21 — Trust card
+background: WHITE, border: `1px solid ${BD}`, borderRadius: 14, padding: '28px 24px'
+// ↑ Indistinguishable from shadcn/ui <Card> defaults
+```
+
+```css
+/* globals.css:264 — Pricing card */
+.price-card { border-radius: 20px; padding: 40px 32px;
+              border: 1px solid rgba(255,255,255,0.07);
+              background: rgba(255,255,255,0.03); }
+/* ↑ Indistinguishable from Tailwind UI "dark card" component */
+```
+
+The HomeTrust cards and the pricing page cards both use the exact radius/border/background combination that appears in virtually every component library's card primitive. They are custom code that looks like copy-paste.
+
+**Fix:** Introduce one deliberate visual deviation from the library default in each card type — a colored left-border accent, a subtle inner shadow, an asymmetric border-radius, or an inset glow — something that signals intentional design rather than a default. The deviation does not need to be large; it needs to be there.
 
 ---
 
