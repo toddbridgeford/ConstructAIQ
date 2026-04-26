@@ -105,13 +105,13 @@ const DATA_SOURCES = [
     source:   'USASpending.gov',
     provides: 'Federal construction contract awards, filtered to NAICS codes 2361–2389',
     cadence:  'Daily (when live)',
-    notes:    'Represents obligations (money committed), not disbursements (money spent or delivered).',
+    notes:    'Represents obligations (money committed), not disbursements (money spent or delivered). May serve from a 24-hour Supabase cache if the upstream API is unavailable.',
   },
   {
     source:   'SAM.gov',
     provides: 'Active federal solicitation notices for construction work',
-    cadence:  'Live feed',
-    notes:    'Pre-solicitations and active bids. Data is sourced directly from SAM.gov public APIs.',
+    cadence:  'Periodic (not always live)',
+    notes:    'Pre-solicitations and active bids. Sourced from SAM.gov public APIs. May serve cached results; check the freshness indicator on the solicitation feed.',
   },
   {
     source:   'Census Bureau — Building Permit Survey',
@@ -135,7 +135,13 @@ const DATA_SOURCES = [
     source:   'Energy Information Administration (EIA)',
     provides: 'Diesel and WTI crude oil price series',
     cadence:  'Weekly',
-    notes:    'Used in materials cost index.',
+    notes:    'Used as energy and transportation cost inputs in the materials cost index.',
+  },
+  {
+    source:   'Construction cost indices (composite)',
+    provides: 'Lumber, steel, concrete, and copper price series from BLS PPI sub-categories and EIA',
+    cadence:  'Monthly / Weekly',
+    notes:    'Materials signals are derived from BLS Producer Price Indexes (PCU series) and EIA fuel prices. No proprietary cost database is used.',
   },
 ] as const
 
@@ -223,11 +229,118 @@ export default function TrustCenterPage() {
             <p style={prose}>
               Every data point on ConstructAIQ originates from a public government or
               intergovernmental API. No proprietary data is purchased or licensed.
-              No data is scraped from websites. The harvest pipeline runs daily via
-              GitHub Actions and stores observations in a Supabase time-series database.
+              No data is scraped from websites.
+            </p>
+            <p style={prose}>
+              The harvest pipeline runs on a daily schedule and stores observations in a
+              Supabase time-series database. Most government statistical series have inherent
+              publication lag — Census construction spending, for example, is typically
+              released five to six weeks after the reference month. The dashboard always
+              shows the most recently published data, not current conditions.
+            </p>
+
+            <div style={calloutStyle}>
+              <strong>Caching and fallback:</strong> When an upstream API is unavailable,
+              ConstructAIQ serves the most recently harvested data from its database.
+              The UI and API responses include freshness metadata so you can see exactly
+              how current the data is. Some sources — particularly federal award and
+              solicitation data — may be cached for up to 24 hours. Check the freshness
+              indicator on each section or visit{' '}
+              <Link href="/status" style={{ ...linkStyle, fontSize: 14 }}>/status</Link>{' '}
+              for the current state of each pipeline.
+            </div>
+
+            <h3 style={h3Style}>Census Bureau — construction spending</h3>
+            <p style={prose}>
+              The primary spending series — total construction (TTLCONS), residential
+              starts (HOUST), and building permits (PERMIT) — come from the Census Bureau
+              Value of Construction Put in Place survey. Releases lag the reference month
+              by approximately five to six weeks. Preliminary values are revised at the
+              following release and again at annual benchmarks. The forecast models train
+              on preliminary values and may diverge slightly from subsequently revised data.
+            </p>
+
+            <h3 style={h3Style}>Bureau of Labor Statistics (BLS)</h3>
+            <p style={prose}>
+              Construction employment (CES2000000001) and sector Producer Price Indexes
+              (PCU2362 series for commercial building, PCU237 for civil engineering) come
+              from BLS public APIs. Employment data is seasonally adjusted and subject to
+              annual benchmark revision. PPI sub-series feed the materials cost signals
+              for lumber, steel, concrete, and copper.
+            </p>
+
+            <h3 style={h3Style}>Federal Reserve / FRED</h3>
+            <p style={prose}>
+              Macroeconomic context — 30-year mortgage rates, the federal funds effective
+              rate, housing starts (HOUST), and other macro series — is sourced via the
+              FRED API using published series IDs. Most macro series are monthly; the
+              federal funds rate is weekly. FRED data undergoes the same harvest-and-cache
+              cycle as other sources.
+            </p>
+
+            <h3 style={h3Style}>USASpending.gov</h3>
+            <p style={prose}>
+              Federal construction contract awards are pulled from USASpending.gov,
+              filtered to NAICS codes 2361–2389. The platform shows obligation amounts —
+              the money an agency has contractually committed — not disbursements or
+              completed payments. Obligation-to-disbursement timelines vary widely by
+              program. The federal infrastructure tracker (IIJA, IRA programs) uses this
+              source. Data is refreshed daily when the upstream API is available; otherwise
+              the previous harvest is served.
+            </p>
+
+            <h3 style={h3Style}>SAM.gov solicitations</h3>
+            <p style={prose}>
+              Active federal bid opportunities — pre-solicitations, solicitations, and
+              sources sought notices for NAICS 236/237/238 — are sourced from the SAM.gov
+              public API. The solicitation feed is not guaranteed to be real-time; results
+              may reflect a recent snapshot rather than the live feed. Check the freshness
+              indicator on the solicitation section.
+            </p>
+
+            <h3 style={h3Style}>City permit data</h3>
+            <p style={prose}>
+              Monthly residential building permit issuance at the city level comes from
+              the Census Bureau Building Permit Survey. Coverage is limited to the
+              approximately 59 cities in the Census survey universe. Jurisdictions outside
+              this universe — many smaller cities and rural areas — are not represented.
+              This is a structural limitation of the underlying public data.
+            </p>
+
+            <h3 style={h3Style}>Satellite and ground-activity signals</h3>
+            <p style={prose}>
+              Ground-disturbance signals for 20 US metropolitan areas are derived from
+              ESA Sentinel-2 satellite imagery (Copernicus programme) using the Bare Soil
+              Index (BSI). Each satellite makes approximately one pass every 12 days under
+              clear conditions; the signal is aggregated to a monthly value. Cloud cover,
+              seasonal vegetation change, and pass timing can cause gaps. BSI is a proxy
+              for construction ground activity, not a legal record of permits or work in
+              progress.
+            </p>
+
+            <h3 style={h3Style}>WARN Act notices</h3>
+            <p style={prose}>
+              Advance layoff notices filed by construction companies under the federal
+              Worker Adjustment and Retraining Notification (WARN) Act are harvested from
+              DOL public filings. WARN notices are required only from employers with 100 or
+              more workers laying off 50 or more employees. Small companies, voluntary
+              departures, and layoffs below the threshold are not captured. The signal
+              reflects large-scale workforce reductions, not industry-wide employment trends.
+            </p>
+
+            <h3 style={h3Style}>Construction cost data</h3>
+            <p style={prose}>
+              Materials cost signals — BUY/SELL/HOLD designations for lumber, steel,
+              concrete, copper, diesel, and WTI crude — are derived from BLS Producer
+              Price Indexes and EIA weekly price series. No proprietary construction cost
+              database is used. The signals reflect commodity price trends, not installed
+              construction cost or project bid data, which ConstructAIQ does not collect.
             </p>
 
             <div style={{ overflowX: 'auto' }}>
+              <p style={{ ...prose, marginBottom: 12, marginTop: 28 }}>
+                <strong>Summary table</strong>
+              </p>
               <table style={tableStyle}>
                 <thead>
                   <tr>
