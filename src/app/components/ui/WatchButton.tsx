@@ -254,12 +254,7 @@ export function WatchButton({
             Connect your API key
           </div>
           <div style={{ fontSize: 12, lineHeight: 1.45, color: color.t3, marginBottom: 10 }}>
-            Watchlists sync across devices. Paste your free ConstructAIQ API key
-            — or{' '}
-            <Link href="/api-access" style={{ color: color.amber, textDecoration: 'underline' }}>
-              get one here
-            </Link>
-            .
+            Watchlists sync across devices. Paste your free ConstructAIQ API key.
           </div>
           <input
             type="password"

@@ -49,15 +49,18 @@ test.describe('Dashboard', () => {
   })
 
   test('sidebar shows Material Costs nav item', async ({ page }) => {
-    await expect(page.getByText('Material Costs', { exact: true })).toBeVisible({ timeout: 15_000 })
+    // Use .first() — "Material Costs" also appears in the ScenarioBuilder
+    // slider label, so a bare getByText would hit two elements (strict mode).
+    await expect(page.getByText('Material Costs', { exact: true }).first()).toBeVisible({ timeout: 15_000 })
   })
 
   // ── Section content ────────────────────────────────────────────────────────
 
-  test('overview section renders construction-related content', async ({ page }) => {
-    // The default active section is 'overview'. After hydration and API load the
-    // OverviewSection renders KPI cards with construction-domain labels.
-    // We check for text that is structurally present in the component and
+  test('dashboard body renders construction-related content', async ({ page }) => {
+    // The default active section is 'forecast'.  After hydration and API load the
+    // ForecastChart renders its series picker ("Total Spending", etc.) and the
+    // HeroForecast section renders labels with forecast/intelligence copy.
+    // We check for text structurally present in the rendered section that is
     // absent from the global error page.
     await page.waitForTimeout(3_000)
 
@@ -68,6 +71,7 @@ test.describe('Dashboard', () => {
       body!.includes('Employment')   ||
       body!.includes('Permits')      ||
       body!.includes('Spending')     ||
+      body!.includes('Forecast')     ||
       body!.includes('CSHI')
 
     expect(hasConstruction).toBe(true)

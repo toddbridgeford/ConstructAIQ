@@ -134,7 +134,7 @@ export default function CCCIPage() {
           {[
             { label: "Download Full Report →", href: "#", primary: true },
             { label: "Embed This Data →", href: "/embed", primary: false },
-            { label: "API Access →", href: "/pricing", primary: false },
+            { label: "Methodology →", href: "/methodology", primary: false },
           ].map(({ label, href, primary }) => (
             <Link key={label} href={href} style={{ background: primary ? AMBER : "transparent", color: primary ? "#000" : T3, border: primary ? "none" : `1px solid ${BD2}`, fontFamily: MONO, fontSize: 12, padding: "10px 20px", borderRadius: 8, textDecoration: "none" }}>{label}</Link>
           ))}

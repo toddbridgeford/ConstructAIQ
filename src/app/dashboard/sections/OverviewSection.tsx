@@ -28,22 +28,23 @@ const MONO = font.mono
 const SYS  = font.sys
 
 interface OverviewProps {
-  spendVal:    number
+  spendVal:    number | null
   spendMom:    number
   spendSpark:  number[]
-  empVal:      number
+  empVal:      number | null
   empMom:      number
   empSpark:    number[]
-  permitVal:   number
+  permitVal:   number | null
   permitMom:   number
   permitSpark: number[]
-  cshiScore:   number
-  cshiChange:  number
+  cshiScore:   number | null
+  cshiChange:  number | null
   cshiSpark:   number[]
   spendObs:    { date: string; value: number }[]
   signals:     Signal[]
   loading:     boolean
   freshness?:  FreshnessInfo
+  forecastDirection?: string | null
 }
 
 // ── Anomaly detection ──────────────────────────────────────────────────────
@@ -205,15 +206,16 @@ function SpendingTrend({ data }: { data: { month: string; value: number }[] }) {
 }
 
 interface KpiCardProps {
-  label:  string
-  value:  string
-  mom:    number
-  spark:  number[]
-  accent: string
-  bench?: BenchmarkResult | null
+  label:      string
+  sourceLine: string
+  value:      string
+  mom:        number
+  spark:      number[]
+  accent:     string
+  bench?:     BenchmarkResult | null
 }
 
-function KpiCard({ label, value, mom, spark, accent, bench }: KpiCardProps) {
+function KpiCard({ label, sourceLine, value, mom, spark, accent, bench }: KpiCardProps) {
   return (
     <div style={{
       background:    color.bg1,
@@ -225,7 +227,12 @@ function KpiCard({ label, value, mom, spark, accent, bench }: KpiCardProps) {
       gap:           8,
       minWidth:      0,
     }}>
-      <div style={{ ...TS.label, color: color.t3 }}>{label}</div>
+      <div>
+        <div style={{ ...TS.label, color: color.t3 }}>{label}</div>
+        <div style={{ fontFamily: MONO, fontSize: 9, color: color.t4, letterSpacing: '0.06em', marginTop: 3 }}>
+          {sourceLine}
+        </div>
+      </div>
       <div style={{
         fontSize:   TS.kpi.fontSize,
         fontFamily: TS.kpi.fontFamily,
@@ -275,7 +282,7 @@ export function OverviewSection({
   empVal,   empMom,   empSpark,
   permitVal, permitMom, permitSpark,
   cshiScore, cshiChange, cshiSpark,
-  spendObs, signals, loading, freshness,
+  spendObs, signals, loading, freshness, forecastDirection,
 }: OverviewProps) {
 
   const [spendBench,  setSpendBench]  = useState<BenchmarkResult | null>(null)
@@ -342,6 +349,7 @@ export function OverviewSection({
         <KpiCard
           key="spend"
           label="Construction Spending"
+          sourceLine="Census Bureau · ACTUAL"
           value={spendVal != null ? fmtB(spendVal) : '—'}
           mom={spendMom}
           spark={spendSpark}
@@ -355,7 +363,8 @@ export function OverviewSection({
       el: (
         <KpiCard
           key="emp"
-          label="Employment"
+          label="Construction Employment"
+          sourceLine="BLS · ACTUAL"
           value={empDisplay}
           mom={empMom}
           spark={empSpark}
@@ -370,6 +379,7 @@ export function OverviewSection({
         <KpiCard
           key="permit"
           label="Permits (annualized)"
+          sourceLine="Census Bureau · ACTUAL · 59 cities"
           value={permitDisplay}
           mom={permitMom}
           spark={permitSpark}
@@ -384,6 +394,7 @@ export function OverviewSection({
         <KpiCard
           key="cshi"
           label="CSHI Score"
+          sourceLine="ConstructAIQ · DERIVED SCORE"
           value={cshiScore != null ? cshiScore.toFixed(1) : '—'}
           mom={cshiChange ?? 0}
           spark={cshiSpark.length >= 2 ? cshiSpark : []}
@@ -414,6 +425,30 @@ export function OverviewSection({
           status={!freshness.isoDate ? 'unknown' : freshness.isStale ? 'stale' : 'fresh'}
           dataAsOf={freshness.isoDate || undefined}
         />
+      )}
+
+      {/* ── Forecast direction chip ── */}
+      {!loading && forecastDirection && (
+        <div style={{
+          display:       'inline-flex',
+          alignItems:    'center',
+          gap:           8,
+          background:    `${color.blue}12`,
+          border:        `1px solid ${color.blue}30`,
+          borderRadius:  7,
+          padding:       '5px 12px',
+          alignSelf:     'flex-start',
+        }}>
+          <span style={{ fontFamily: MONO, fontSize: 10, color: color.blue, letterSpacing: '0.06em' }}>
+            FORECAST
+          </span>
+          <span style={{ fontFamily: MONO, fontSize: 12, color: color.t2 }}>
+            {forecastDirection}
+          </span>
+          <span style={{ fontFamily: MONO, fontSize: 9, color: color.t4 }}>
+            — model estimate · ensemble forecast
+          </span>
+        </div>
       )}
 
       {/* ── Top signal driver ── */}
@@ -502,7 +537,7 @@ export function OverviewSection({
         }}>
           <div style={{ ...TS.label, color: color.t3, marginBottom: 14 }}>Live Signals</div>
 
-          {topSignals.length === 0 ? (
+          {topSignals.length === 0 && loading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} style={{
                 height: 52, marginBottom: 10, borderRadius: 8,
@@ -510,6 +545,17 @@ export function OverviewSection({
                 backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite',
               }} />
             ))
+          ) : topSignals.length === 0 ? (
+            <div style={{
+              padding: '20px 0', textAlign: 'center',
+              fontFamily: SYS, fontSize: 13, color: color.t4, lineHeight: 1.6,
+            }}>
+              No active signals detected.
+              <br />
+              <span style={{ fontSize: 12 }}>
+                Signals generate when anomalies or divergences exceed detection thresholds.
+              </span>
+            </div>
           ) : (
             topSignals.map((sig, i) => {
               const border = signalBorder(sig.type)

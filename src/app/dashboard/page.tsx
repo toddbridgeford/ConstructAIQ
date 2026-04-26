@@ -149,7 +149,7 @@ function UpcomingReleaseAlert() {
 }
 
 export default function Dashboard() {
-  const [activeSection,   setSection]        = useState('overview')
+  const [activeSection,   setSection]        = useState('forecast')
   const [showRolePrompt,  setShowRolePrompt]  = useState(false)
 
   useEffect(() => {
@@ -290,6 +290,18 @@ export default function Dashboard() {
         s + (c.signal === 'BUY' ? 72 : c.signal === 'SELL' ? 32 : 54), 0) / commodities.length)
     : 61
 
+  // ── Forecast direction — shown as a chip in the overview ───────────────────────
+  const forecastDirection: string | null = (() => {
+    const hist = fore?.history ?? []
+    const ens  = fore?.ensemble ?? []
+    const last = hist[hist.length - 1] ?? null
+    if (last === null || ens.length === 0) return null
+    const end = ens[ens.length - 1]?.base ?? last
+    const pct = last > 0 ? ((end - last) / last) * 100 : 0
+    const dir = pct > 0.5 ? 'growth' : pct < -0.5 ? 'contraction' : 'flat'
+    return `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% ${dir} over 12 months`
+  })()
+
   // ── Freshness — derived from actual obs timestamps ───────────────────────────
   const overviewFreshness  = formatFreshness(dashCore?.construction_spending?.data_as_of ?? dashCore?.cshi?.updatedAt)
   const forecastFreshness  = formatFreshness(dashCore?.forecast?.run_at)
@@ -353,6 +365,7 @@ export default function Dashboard() {
               signals={sigList}
               loading={dashCore === null}
               freshness={overviewFreshness}
+              forecastDirection={forecastDirection}
             />
           </ErrorBoundary>
         )

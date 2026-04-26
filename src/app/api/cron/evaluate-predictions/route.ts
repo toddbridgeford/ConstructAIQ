@@ -44,6 +44,9 @@ export async function GET(request: Request) {
 
   const start = Date.now()
   let evaluated = 0
+  let correct   = 0
+  const errors: string[] = []
+  let fatalError: string | null = null
 
   try {
     const { protocol, host } = new URL(request.url)
@@ -59,12 +62,11 @@ export async function GET(request: Request) {
       .limit(50)
 
     if (fetchErr) {
+      fatalError = fetchErr.message
       return NextResponse.json({ error: fetchErr.message }, { status: 500 })
     }
 
     const rows = (due ?? []) as PredictionRow[]
-    let correct   = 0
-    const errors: string[] = []
 
     // 2. Resolve each row
     for (const row of rows) {
@@ -109,15 +111,19 @@ export async function GET(request: Request) {
       errors,
       runAt:     now,
     })
+  } catch (err) {
+    fatalError = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: fatalError }, { status: 500 })
   } finally {
     await writeSourceHealth({
       source_id:              'par_evaluation',
       source_label:           'PAR — Prediction Outcome Evaluation',
       category:               'scores',
-      status:                 'ok',
+      status:                 fatalError ? 'failed' : errors.length > 0 ? 'warn' : 'ok',
       rows_written:           evaluated,
       duration_ms:            Date.now() - start,
       expected_cadence_hours: 168,
+      ...(fatalError ? { error_message: fatalError } : {}),
     })
   }
 }

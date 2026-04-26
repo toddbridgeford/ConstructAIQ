@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { runEnsemble, type EnsembleResult } from '@/lib/models/ensemble'
 import { supabase, supabaseAdmin, upsertForecasts, insertSignal, type ForecastRow } from '@/lib/supabase'
+import { writeSourceHealth } from '@/lib/sourceHealth'
 
 function cronSecret() { return process.env.CRON_SECRET || '' }
 
@@ -162,6 +163,17 @@ export async function GET(request: Request) {
     })
   } catch {}
 
+  await writeSourceHealth({
+    source_id:              'forecast_ensemble',
+    source_label:           'Forecast Ensemble — TTLCONS + 7 series',
+    category:               'scores',
+    status:                 errors.length > 0 && processed.length === 0 ? 'failed'
+                              : errors.length > 0 ? 'warn' : 'ok',
+    rows_written:           forecastsWritten,
+    duration_ms:            duration,
+    expected_cadence_hours: 24,
+    ...(errors.length > 0 ? { error_message: errors.slice(0, 3).join('; ') } : {}),
+  })
 
   return NextResponse.json({
     status:           'ok',

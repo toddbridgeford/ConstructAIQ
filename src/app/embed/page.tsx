@@ -456,9 +456,9 @@ export default function EmbedGalleryPage() {
               DASHBOARD
             </button>
           </Link>
-          <Link href="/api-access">
+          <Link href="/trust">
             <button style={{ background: color.amber, color: "#000", fontFamily: MONO, fontSize: 12, fontWeight: 700, padding: "8px 18px", borderRadius: 10, letterSpacing: "0.06em", minHeight: 40 }}>
-              API ACCESS →
+              TRUST CENTER →
             </button>
           </Link>
         </div>
@@ -503,8 +503,8 @@ export default function EmbedGalleryPage() {
 
         {/* ── Back links ── */}
         <div style={{ textAlign: "center" }}>
-          <Link href="/api-access" style={{ fontFamily: SYS, fontSize: 14, color: color.t4, textDecoration: "underline" }}>
-            API Access & Documentation
+          <Link href="/trust" style={{ fontFamily: SYS, fontSize: 14, color: color.t4, textDecoration: "underline" }}>
+            Trust Center
           </Link>
           <span style={{ fontFamily: SYS, fontSize: 14, color: color.t4, margin: "0 14px" }}>·</span>
           <Link href="/dashboard" style={{ fontFamily: SYS, fontSize: 14, color: color.t4, textDecoration: "underline" }}>

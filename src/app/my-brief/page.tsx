@@ -109,10 +109,6 @@ function KeyPrompt({ onSave }: { onSave: (key: string) => void }) {
       <p style={{ fontFamily: SYS, fontSize: 14, color: color.t3, lineHeight: 1.6, margin: '0 0 24px' }}>
         Your personalized brief is generated from your watchlist.
         Paste your ConstructAIQ API key to get started.
-        Don&apos;t have one?{' '}
-        <Link href="/api-access" style={{ color: color.blue, textDecoration: 'none' }}>
-          Register free →
-        </Link>
       </p>
       <div style={{ display: 'flex', gap: 8 }}>
         <input

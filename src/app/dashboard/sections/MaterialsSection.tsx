@@ -6,6 +6,7 @@ import { MaterialsHeatmap }     from "../components/MaterialsHeatmap"
 import { MaterialsCorrelation } from "../components/MaterialsCorrelation"
 import { SectionHeader }        from "../components/SectionHeader"
 import { EmptyState }           from "@/app/components/ui/EmptyState"
+import { DataTrustBadge }       from "@/app/components/DataTrustBadge"
 import { color, font } from "@/lib/theme"
 import Link from "next/link"
 import type { CommodityItem } from "@/lib/api-types"
@@ -45,6 +46,17 @@ export function MaterialsSection({ commodities, procurementValue, heatmapData, c
     <section id="materials" style={{ paddingTop:48, paddingBottom:8 }}>
       <SectionHeader sectionId="04" title="Materials Intelligence" subtitle="BUY/SELL/HOLD signals for lumber, steel, concrete, copper, WTI, and diesel" shareSection="materials" freshness={freshness} />
 
+      <div style={{ marginBottom: 16 }}>
+        <DataTrustBadge
+          source="BLS Producer Price Indexes · EIA"
+          cadence="Monthly / Weekly"
+          type="derived"
+          status={freshness ? (!freshness.isoDate ? 'unknown' : freshness.isStale ? 'stale' : 'fresh') : 'unknown'}
+          dataAsOf={freshness?.isoDate || undefined}
+          caveat="BUY/SELL/HOLD signals are derived from price momentum — not financial advice"
+        />
+      </div>
+
       {!loading && items.length === 0 ? (
         <EmptyState
           icon={<PackageX size={32} />}
@@ -62,7 +74,7 @@ export function MaterialsSection({ commodities, procurementValue, heatmapData, c
                     <CommoditySignalCard
                       name={c.name} icon={c.icon||"📦"} value={c.value} unit={c.unit||"PPI"}
                       signal={c.signal||"HOLD"} mom7d={c.mom7d||c.mom||0} mom30d={c.mom30d||0} mom90d={c.mom90d||c.yoy||0}
-                      sparkData={c.sparkData || Array(12).fill(c.value)}
+                      sparkData={c.sparkData ?? []}
                     />
                   </div>
                 ))

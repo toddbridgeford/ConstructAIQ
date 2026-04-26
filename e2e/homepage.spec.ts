@@ -46,13 +46,14 @@ test.describe('Homepage', () => {
     expect(page.url()).toContain('/dashboard')
   })
 
-  // ── Subscribe CTA ──────────────────────────────────────────────────────────
+  // ── Secondary CTA ─────────────────────────────────────────────────────────
 
-  test('subscribe link is present in the hero', async ({ page }) => {
-    // The hero section renders an explicit <Link href="/subscribe"> —
-    // no body-text fallback; if the link is gone the test must fail.
-    const subscribeLink = page.locator('a[href="/subscribe"]').first()
-    await expect(subscribeLink).toBeVisible({ timeout: 10_000 })
+  test('Methodology secondary CTA is present in the hero', async ({ page }) => {
+    // HomeHero renders two CTAs: "Open Dashboard →" (primary) and
+    // "Read Methodology →" (secondary).  The subscribe link was removed
+    // when the hero was reframed around role promises.
+    const methodologyLink = page.locator('a[href="/methodology"]').first()
+    await expect(methodologyLink).toBeVisible({ timeout: 10_000 })
   })
 
   // ── Error page guard ───────────────────────────────────────────────────────

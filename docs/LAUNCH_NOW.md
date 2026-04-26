@@ -465,3 +465,5 @@ After `launch:check` exits 0: proceed to [docs/POST_LAUNCH_WATCH.md](./POST_LAUN
 | [docs/CANONICAL_DOMAIN_DECISION.md](./CANONICAL_DOMAIN_DECISION.md) | Why apex canonical |
 | [docs/RELEASE_CANDIDATE_REPORT.md](./RELEASE_CANDIDATE_REPORT.md) | Full sign-off history |
 | [docs/POST_LAUNCH_WATCH.md](./POST_LAUNCH_WATCH.md) | First-24-hour monitoring |
+| [docs/PRODUCT_BLUEPRINT.md](./PRODUCT_BLUEPRINT.md) | Product and engineering direction |
+| [docs/NEXT_30_DAYS.md](./NEXT_30_DAYS.md) | Near-term roadmap |

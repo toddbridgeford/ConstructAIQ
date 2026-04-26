@@ -30,6 +30,26 @@ type SourceHealthRow = {
   expected_cadence_hours: number
 }
 
+type EnvStatus = {
+  supabaseConfigured:   boolean
+  anthropicConfigured:  boolean
+  upstashConfigured:    boolean
+  sentryConfigured:     boolean
+  cronSecretConfigured: boolean
+}
+
+type DataState = {
+  federalSource:     'usaspending.gov' | 'static-fallback' | 'unknown'
+  weeklyBriefSource: 'ai' | 'static-fallback'
+  dashboardShapeOk?: boolean
+}
+
+type RuntimeInfo = {
+  nodeEnv:    string
+  appUrl:     string | null
+  siteLocked: boolean
+}
+
 type StatusData = {
   freshness:          FreshnessRow[]
   api_health:         ApiHealth
@@ -48,6 +68,9 @@ type StatusData = {
   events_last_30d: number
   source_health:   SourceHealthRow[]
   as_of:           string
+  env?:            EnvStatus
+  data?:           DataState
+  runtime?:        RuntimeInfo
 }
 
 type PARData = {
@@ -755,6 +778,280 @@ export default function StatusPage() {
           </table>
         </div>
 
+        {/* ── Environment Readiness ── */}
+        <div style={{
+          background: color.bg1,
+          border: `1px solid ${color.bd1}`,
+          borderRadius: 12,
+          padding: `${space.md}px ${space.lg}px`,
+          marginBottom: space.md,
+        }}>
+          <div style={{ fontFamily: font.sys, fontSize: 15, fontWeight: 600, color: color.t1, marginBottom: 4 }}>
+            Environment Readiness
+          </div>
+          <div style={{ fontFamily: font.mono, fontSize: 10, color: color.t4, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 16 }}>
+            Required services — boolean only, no secret values exposed
+          </div>
+
+          {loading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} style={{ height: 36, marginBottom: 4, borderRadius: 6, background: color.bg3 }} />
+            ))
+          ) : !status?.env ? (
+            <div style={{ fontFamily: font.mono, fontSize: 12, color: color.t4, padding: '12px 0' }}>
+              Environment data unavailable — /api/status did not return env fields.
+            </div>
+          ) : (
+            <>
+              {([
+                {
+                  key:   'supabaseConfigured'   as const,
+                  label: 'Supabase',
+                  desc:  'NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY',
+                  critical: true,
+                },
+                {
+                  key:   'anthropicConfigured'  as const,
+                  label: 'Anthropic (AI analyst)',
+                  desc:  'ANTHROPIC_API_KEY',
+                  critical: false,
+                },
+                {
+                  key:   'upstashConfigured'    as const,
+                  label: 'Upstash Redis (rate limiting)',
+                  desc:  'UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN',
+                  critical: false,
+                },
+                {
+                  key:   'sentryConfigured'     as const,
+                  label: 'Sentry (error monitoring)',
+                  desc:  'NEXT_PUBLIC_SENTRY_DSN',
+                  critical: false,
+                },
+                {
+                  key:   'cronSecretConfigured' as const,
+                  label: 'Cron secret',
+                  desc:  'CRON_SECRET — required for harvest and forecast crons',
+                  critical: true,
+                },
+              ]).map(({ key, label, desc, critical }) => {
+                const configured = status.env![key]
+                const dotColor   = configured ? color.green : critical ? color.red : color.amber
+                const statusText = configured ? 'Configured' : critical ? 'Missing — required' : 'Not configured'
+                return (
+                  <div key={key} style={{
+                    display:        'flex',
+                    alignItems:     'center',
+                    justifyContent: 'space-between',
+                    padding:        '10px 0',
+                    borderBottom:   `1px solid ${color.bd1}`,
+                  }}>
+                    <div>
+                      <span style={{ fontFamily: font.sys, fontSize: 13, color: color.t2 }}>{label}</span>
+                      <span style={{ fontFamily: font.mono, fontSize: 11, color: color.t4, marginLeft: 10 }}>{desc}</span>
+                    </div>
+                    <span style={{
+                      display:    'inline-flex',
+                      alignItems: 'center',
+                      gap:        5,
+                      fontFamily: font.mono,
+                      fontSize:   11,
+                      color:      dotColor,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, display: 'inline-block' }} />
+                      {statusText}
+                    </span>
+                  </div>
+                )
+              })}
+
+              {/* Site locked status — neutral indicator, not red/green */}
+              <div style={{
+                display:        'flex',
+                alignItems:     'center',
+                justifyContent: 'space-between',
+                padding:        '10px 0',
+              }}>
+                <div>
+                  <span style={{ fontFamily: font.sys, fontSize: 13, color: color.t2 }}>Site lock</span>
+                  <span style={{ fontFamily: font.mono, fontSize: 11, color: color.t4, marginLeft: 10 }}>
+                    SITE_LOCKED env var
+                  </span>
+                </div>
+                <span style={{
+                  display:    'inline-flex',
+                  alignItems: 'center',
+                  gap:        5,
+                  fontFamily: font.mono,
+                  fontSize:   11,
+                  color:      status.runtime?.siteLocked ? color.amber : color.t3,
+                  whiteSpace: 'nowrap',
+                }}>
+                  <span style={{
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: status.runtime?.siteLocked ? color.amber : color.t4,
+                    display: 'inline-block',
+                  }} />
+                  {status.runtime?.siteLocked ? 'Site locked — visitors see maintenance page' : 'Unlocked — public access active'}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* ── Data State ── */}
+        <div style={{
+          background: color.bg1,
+          border: `1px solid ${color.bd1}`,
+          borderRadius: 12,
+          padding: `${space.md}px ${space.lg}px`,
+          marginBottom: space.xl,
+        }}>
+          <div style={{ fontFamily: font.sys, fontSize: 15, fontWeight: 600, color: color.t1, marginBottom: 4 }}>
+            Data State
+          </div>
+          <div style={{ fontFamily: font.mono, fontSize: 10, color: color.t4, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 16 }}>
+            Live vs cached vs fallback — what users are currently seeing
+          </div>
+
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} style={{ height: 36, marginBottom: 4, borderRadius: 6, background: color.bg3 }} />
+            ))
+          ) : !status?.data ? (
+            <div style={{ fontFamily: font.mono, fontSize: 12, color: color.t4, padding: '12px 0' }}>
+              Data state unavailable — /api/status did not return data fields.
+            </div>
+          ) : (
+            <>
+              {/* Federal data source */}
+              {(() => {
+                const src = status.data.federalSource
+                const dotColor = src === 'usaspending.gov' ? color.green : src === 'static-fallback' ? color.amber : color.t4
+                const label = src === 'usaspending.gov'
+                  ? 'Live — USASpending.gov cache is current (< 24 h)'
+                  : src === 'static-fallback'
+                  ? 'Static fallback — federal award cache is stale or missing'
+                  : 'Unknown — federal_cache lookup failed'
+                return (
+                  <div style={{
+                    display:        'flex',
+                    alignItems:     'flex-start',
+                    justifyContent: 'space-between',
+                    gap:            16,
+                    padding:        '10px 0',
+                    borderBottom:   `1px solid ${color.bd1}`,
+                  }}>
+                    <div>
+                      <span style={{ fontFamily: font.sys, fontSize: 13, color: color.t2 }}>Federal data</span>
+                      <span style={{ fontFamily: font.mono, fontSize: 11, color: color.t4, marginLeft: 10 }}>
+                        IIJA · IRA · NAICS 2361–2389 contract awards
+                      </span>
+                    </div>
+                    <span style={{
+                      display:    'inline-flex',
+                      alignItems: 'center',
+                      gap:        5,
+                      fontFamily: font.mono,
+                      fontSize:   11,
+                      color:      dotColor,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, display: 'inline-block' }} />
+                      {label}
+                    </span>
+                  </div>
+                )
+              })()}
+
+              {/* Weekly brief source */}
+              {(() => {
+                const src = status.data.weeklyBriefSource
+                const dotColor = src === 'ai' ? color.green : color.amber
+                const label = src === 'ai'
+                  ? 'AI-generated — ANTHROPIC_API_KEY configured'
+                  : 'Static fallback — ANTHROPIC_API_KEY not configured'
+                return (
+                  <div style={{
+                    display:        'flex',
+                    alignItems:     'flex-start',
+                    justifyContent: 'space-between',
+                    gap:            16,
+                    padding:        '10px 0',
+                    borderBottom:   `1px solid ${color.bd1}`,
+                  }}>
+                    <div>
+                      <span style={{ fontFamily: font.sys, fontSize: 13, color: color.t2 }}>Weekly intelligence brief</span>
+                      <span style={{ fontFamily: font.mono, fontSize: 11, color: color.t4, marginLeft: 10 }}>
+                        /api/weekly-brief · AI or static
+                      </span>
+                    </div>
+                    <span style={{
+                      display:    'inline-flex',
+                      alignItems: 'center',
+                      gap:        5,
+                      fontFamily: font.mono,
+                      fontSize:   11,
+                      color:      dotColor,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, display: 'inline-block' }} />
+                      {label}
+                    </span>
+                  </div>
+                )
+              })()}
+
+              {/* Dashboard shape (only shown when deep check was run) */}
+              {status.data.dashboardShapeOk !== undefined && (() => {
+                const ok       = status.data!.dashboardShapeOk
+                const dotColor = ok ? color.green : color.red
+                const label    = ok
+                  ? 'OK — TTLCONS, employment, and permit series all present'
+                  : 'Missing series — dashboard KPIs may show —'
+                return (
+                  <div style={{
+                    display:        'flex',
+                    alignItems:     'flex-start',
+                    justifyContent: 'space-between',
+                    gap:            16,
+                    padding:        '10px 0',
+                  }}>
+                    <div>
+                      <span style={{ fontFamily: font.sys, fontSize: 13, color: color.t2 }}>Dashboard data shape</span>
+                      <span style={{ fontFamily: font.mono, fontSize: 11, color: color.t4, marginLeft: 10 }}>
+                        ?deep=1 verified
+                      </span>
+                    </div>
+                    <span style={{
+                      display:    'inline-flex',
+                      alignItems: 'center',
+                      gap:        5,
+                      fontFamily: font.mono,
+                      fontSize:   11,
+                      color:      dotColor,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, display: 'inline-block' }} />
+                      {label}
+                    </span>
+                  </div>
+                )
+              })()}
+
+              {status.data.dashboardShapeOk === undefined && (
+                <div style={{ padding: '10px 0', fontFamily: font.mono, fontSize: 12, color: color.t4 }}>
+                  Dashboard shape not verified — append <code style={{ background: color.bg3, padding: '1px 4px', borderRadius: 3 }}>?deep=1</code> to /api/status to run the check.
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
         {/* ── API Configuration ── */}
         <div style={{
           background: color.bg1,
@@ -820,10 +1117,21 @@ export default function StatusPage() {
         </div>
 
         {/* ── Footer note ── */}
-        <div style={{ fontFamily: font.sys, fontSize: 13, color: color.t4, lineHeight: 1.7, textAlign: 'center' }}>
+        <div style={{ fontFamily: font.sys, fontSize: 13, color: color.t4, lineHeight: 1.7, textAlign: 'center', marginBottom: 16 }}>
           PAR accumulates as the platform ages — early figures reflect small sample sizes.
           Outcomes are evaluated weekly (Wednesdays) once the prediction horizon elapses.
           These numbers are live and are not editorially adjusted.
+        </div>
+        <div style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', gap: 24, flexWrap: 'wrap' }}>
+          <a href="/trust" style={{ fontFamily: font.mono, fontSize: 11, color: color.t4, textDecoration: 'none', letterSpacing: '0.04em' }}>
+            Trust Center →
+          </a>
+          <a href="/methodology" style={{ fontFamily: font.mono, fontSize: 11, color: color.t4, textDecoration: 'none', letterSpacing: '0.04em' }}>
+            Methodology →
+          </a>
+          <a href="/methodology/track-record" style={{ fontFamily: font.mono, fontSize: 11, color: color.t4, textDecoration: 'none', letterSpacing: '0.04em' }}>
+            Forecast Track Record →
+          </a>
         </div>
 
       </div>
