@@ -28,19 +28,19 @@ Score the visual/product design and identify AI slop patterns before polish chan
 
 ## Rating Table
 
-> **TODO:** Complete after full audit pass.
+> Scores are aggregated across all four audited surfaces: Homepage · Dashboard · Trust Center · Status.
 
 | Dimension | Score (1–10) | Key finding |
 |-----------|-------------|-------------|
-| Typography | — | |
-| Color & Palette | — | |
-| Spacing & Rhythm | — | |
-| Visual Hierarchy | — | |
-| Component Consistency | — | |
-| Accessibility | — | |
-| Motion & Interaction | — | |
-| Emotional Resonance | — | |
-| **Overall** | **—** | |
+| Typography | 5/10 | Aeonik Pro not loaded anywhere; `fontSize:9` in 3+ components fails WCAG AA; 12+ all-caps MONO labels on homepage; `/trust` bypasses color tokens for all text styling |
+| Color & Palette | 5/10 | `/trust` uses 12 hardcoded hex strings (no `color.*` imports); `color.purple` is a phantom palette entry; three incompatible freshness label vocabularies; dark/light split has no design bridge |
+| Spacing & Rhythm | 5/10 | Five different raw padding values across adjacent homepage sections; `space.*` tokens used on `/status` but absent from all homepage and `/trust` components |
+| Visual Hierarchy | 5/10 | Newsletter before data evidence on homepage; five competing "primary signal" surfaces before first KPI on dashboard; `/trust` has six dense prose sections with no visual relief between them |
+| Component Consistency | 4/10 | Three distinct KPI card implementations across the product; `DataTrustBadge` placement and props inconsistent across sections; `/trust` is a fully isolated design system with no shared components |
+| Accessibility | 4/10 | 9–10px labels fail WCAG AA throughout dashboard and `/status`; `/trust` left nav vanishes on mobile with no fallback; hover-only chart tooltip; `thStyle` 11px contrast failure in `/trust` table |
+| Motion & Interaction | 5/10 | PAR progress bar has `transition: width 0.6s ease` (good); sidebar mode transitions work; no documented motion standards; hover-only tooltips on primary chart in Overview |
+| Emotional Resonance | 5/10 | Dashboard dark premium feel is directionally correct; Trust Center content depth is a genuine product strength; homepage generic SaaS hero undercuts the product's actual differentiation |
+| **Overall** | **5/10** | Token system (`theme.ts`) is architecturally sound but bypassed in most non-dashboard components. Dashboard is the strongest surface. Homepage and `/trust` are weakest. |
 
 ---
 
@@ -50,15 +50,15 @@ Score the visual/product design and identify AI slop patterns before polish chan
 
 Patterns to check for:
 
-- [ ] Generic feature/persona grids (equal-weight cards, no visual differentiation)
-- [ ] Card sameness (same structure, same radius, same eyebrow across unrelated content)
-- [ ] All-caps MONO label proliferation (overused as section eyebrows and status labels)
-- [ ] Vague trust/progress claims ("38+ sources", "3-model AI", "LIVE")
-- [ ] Overused or decorative gradients (gradient text, gradient backgrounds)
-- [ ] Centered generic SaaS hero patterns (eyebrow + H1 + subtitle + two CTAs)
-- [ ] Stat-stuffed eyebrows (numbers used to imply authority without context)
-- [ ] Duplicate CTAs across a single page
-- [ ] Newsletter capture before value demonstration
+- [x] Generic feature/persona grids — `HomeRoles.tsx` five equal-weight role cards, identical `color.blue` border and padding on all five
+- [x] Card sameness — `HomeTrust.tsx` three pixel-identical cards; `HomeStatusCards.tsx` three identical status cards
+- [x] All-caps MONO label proliferation — 12 instances on homepage, 7 in Overview alone, brand-name "ConstructAIQ" eyebrow on all four audited pages
+- [x] Vague trust/progress claims — "38+ sources" (`HomeTrust.tsx:30`) vs "312 DATA SOURCES" (`HeroSection.tsx:137`) contradict each other; hardcoded fallback stats look dynamic
+- [x] Overused or decorative gradients — `HeroSection.tsx:143` uses `.grad-text` CSS class on hero headline
+- [x] Centered generic SaaS hero patterns — `HomeHero.tsx:11–108` is textbook: all-caps eyebrow → H1 → subtitle → hero KPI → two CTAs, center-aligned, no dominant visual object
+- [x] Stat-stuffed eyebrows — `HeroSection.tsx:137` "312 DATA SOURCES · 3-MODEL AI ENSEMBLE · LIVE" presents three authority-signaling numbers without supporting context in the same line
+- [x] Duplicate CTAs across a single page — `DashboardFooter` "The Signal" newsletter subscribe + `Sidebar.tsx:337–360` "Subscribe to The Signal" both use `color.amber` styling
+- [x] Newsletter capture before value demonstration — `HomeNewsletter` appears at `page.tsx:134–136` before `HomeStatusCards` (first live data surface)
 
 ---
 
@@ -68,9 +68,9 @@ Patterns to check for:
 
 | Priority | Fix | File | Rationale |
 |----------|-----|------|-----------|
-| 1 | | | |
-| 2 | | | |
-| 3 | | | |
+| 1 | Remove unbuilt routes from Sidebar NAV | `Sidebar.tsx:37–53` | Every broken link destroys the platform's credibility on every visit — a short nav that works is better than a full nav that 404s |
+| 2 | Standardize freshness vocabulary | `status/page.tsx:111–115` · `trust/page.tsx:431–513` | Three incompatible label systems for the same concept ("Aging" / "Stale" / "Delayed") actively undermine the Trust Center's transparency mission |
+| 3 | Add error/timeout state to dashboard `load()` | `dashboard/page.tsx:169–181` | Silent `—` on API failure is indistinguishable from a loading state; professional users relying on the platform for decisions cannot tell if data is unavailable |
 
 ---
 
@@ -477,6 +477,181 @@ Role note                height: ~16px — 10px MONO t4 text (conditional)
 ```
 
 Five layers of context and signal framing before the data. The intent is good — the user should know the market verdict before reading raw numbers. But the execution renders five equally-weighted "intro" elements in sequence, none of which is visually dominant over another.
+
+---
+
+## Trust and Status Surface Findings
+
+> Audited files: `src/app/trust/page.tsx` · `src/app/status/page.tsx`
+
+---
+
+### Scores — Trust and Status Surface
+
+| Dimension | /trust | /status | Key finding |
+|-----------|--------|---------|-------------|
+| Typography | 4/10 | 6/10 | `/trust` uses raw hex for all text color values; both pages open with a 10px MONO all-caps brand-name eyebrow; `thStyle` 11px `#555` on `#f5f5f5` fails WCAG AA |
+| Color & Palette | 3/10 | 7/10 | `/trust` bypasses `theme.ts` entirely — 12 hardcoded hex strings, zero `color.*` imports; `/status` uses theme tokens correctly; cross-page dark/light split with no design bridge |
+| Spacing & Rhythm | 5/10 | 6/10 | `/trust` uses consistent `marginBottom: 64` per section but no `space.*` tokens; `/status` uses `space.*` tokens throughout |
+| Visual Hierarchy | 4/10 | 6/10 | `/trust`: six prose-heavy sections separated only by a 2px `#eee` H2 border-bottom; `/status`: logical PAR → freshness → source health → env flow, but no back-to-dashboard navigation |
+| Component Consistency | 3/10 | 5/10 | `/trust` is fully isolated — no shared components, all callouts identical regardless of content severity; `/status` `KPICard` is a third distinct KPI card implementation |
+| Accessibility | 3/10 | 5/10 | `/trust`: left nav `display:none` on `<700px` with no fallback; `thStyle` 11px ≈ 3.5:1 contrast — WCAG AA fail; no `<main>` landmark; `/status`: 10px `color.t4` labels on dark bg ≈ 3.0:1 — WCAG AA fail |
+
+---
+
+### Pattern Findings — Trust and Status
+
+---
+
+#### ✗ Trust Center bypasses theme.ts for all color values
+**File:** `src/app/trust/page.tsx:17–63`
+
+`/trust` imports only `font` from `@/lib/theme`. `color` and `space` are not imported. Every color in the file is a raw hex string:
+
+| Style constant | Hex value used | Available theme token |
+|---|---|---|
+| `prose.color` | `'#333'` | `color.t2` |
+| `sectionH2.color` | `'#111'` | `color.t1` |
+| `sectionH2.borderBottom` | `'2px solid #eee'` | `color.bd1` |
+| `thStyle.background` | `'#f5f5f5'` | `color.bg2` |
+| `thStyle.color` | `'#555'` | `color.t3` |
+| `calloutStyle.background` | `'#f8f8f8'` | `color.bg2` |
+| `calloutStyle.borderLeft` | `'3px solid #aaa'` | `color.bd2` |
+| `calloutStyle.color` | `'#444'` | `color.t2` |
+| `linkStyle.color` | `'#0a84ff'` | `color.blue` |
+| `noteStyle.color` | `'#555'` | `color.t3` |
+
+Any future palette update requires manual edits here. The Trust Center will drift from the rest of the platform at the next theme change.
+
+---
+
+#### ✗ Incompatible dark/light split between /trust and /status
+**Files:** `src/app/trust/page.tsx:152` · `src/app/status/page.tsx:375`
+
+```tsx
+// trust/page.tsx:152
+<div style={{ minHeight: '100vh', background: '#ffffff', color: '#111111' }}>
+
+// status/page.tsx:375
+<div style={{ minHeight: '100vh', background: color.bg0, color: color.t1 }}>
+```
+
+`/trust` is a pure light-theme page (`#ffffff` background). `/status` is a pure dark-theme page (`color.bg0` = `#000000`). A user navigating from `/status` → `/trust` via the callout links ("check /status for pipeline health") experiences an immediate full-contrast visual reversal. No shared component, badge, card style, or typography treatment bridges the two pages. They read as different products.
+
+---
+
+#### ✗ All callout boxes use the same neutral gray border regardless of content severity
+**File:** `src/app/trust/page.tsx:59–64`
+
+```tsx
+const calloutStyle: React.CSSProperties = {
+  background:  '#f8f8f8',
+  border:      '1px solid #e5e5e5',
+  borderLeft:  '3px solid #aaa',   // ← always neutral gray
+  ...
+}
+```
+
+The Trust Center uses callouts with very different severity levels, all rendered identically:
+
+| Callout content | Severity | Appropriate accent |
+|---|---|---|
+| "Caching and fallback: When an upstream API is unavailable…" | Informational | gray — correct |
+| "Forecasts are statistical model outputs — not statements of fact." | Critical caveat | amber |
+| "These guardrails are design intentions, not a guarantee…" | Critical AI disclaimer | amber |
+| "Current PAR values are sourced from live evaluation records" | Reference pointer | blue |
+
+The critical AI guardrails disclaimer looks identical to the neutral reference pointer. Severity is entirely unmarked.
+
+---
+
+#### ✗ Trust page left nav disappears on mobile with no fallback
+**File:** `src/app/trust/page.tsx:156–159`
+
+```css
+@media (max-width: 700px) {
+  .tc-nav { display: none !important; }
+}
+```
+
+On any viewport under 700px — all phones, most tablets in portrait — the six-section navigation vanishes. No replacement: no sticky header row, no `<select>` dropdown, no back-to-top link, no contents anchor. A user on a tablet trying to navigate from "Limitations" back to "AI Guardrails" must scroll blind. (Also documented in `UX_HEURISTICS_AUDIT.md` M2.)
+
+---
+
+#### ✗ Three incompatible freshness vocabularies — trust docs compound the confusion
+**Files:** `src/app/trust/page.tsx:431–513` · `src/app/status/page.tsx:111–115` · `src/app/components/DataTrustBadge.tsx:13–19`
+
+The Freshness section of `/trust` defines four status labels: **Fresh** / **Stale** / **Delayed** / **Unknown**.
+
+The Source Health section of `/trust` (lines 489–507) introduces a second, separate vocabulary for pipeline run states: **Fresh** / **Degraded** / **Failed** / **Skipped** / **Unknown**.
+
+The Data Freshness table on `/status` uses a third vocabulary:
+
+```tsx
+const STATUS_DOT = {
+  ok:    { label: 'Current' },   // not in DataTrustBadge or trust docs
+  warn:  { label: 'Aging'   },   // not in DataTrustBadge or trust docs
+  stale: { label: 'Stale'   },
+}
+```
+
+**"Aging"** exists only on `/status`. A user who reads the Trust Center to understand what "Aging" means in the Data Freshness table will not find the term. This directly contradicts the Trust Center's stated purpose: *"to give users a complete and honest picture of what they are looking at."*
+
+---
+
+#### ✗ Raw database category keys displayed in Source Health per-row cells
+**File:** `src/app/status/page.tsx:756–758`
+
+```tsx
+<td style={{ fontFamily: font.mono, fontSize: 11, color: color.t4 }}>
+  {row.category}   // renders: "government_data", "federal", "permits", "ai"
+</td>
+```
+
+Section headers correctly apply `CATEGORY_LABELS[cat]` (line 695): `government_data` → "Government Data". But every data row renders the raw key. Operators reading the table see "government_data" next to "Census Bureau Construction Spending." The fix is one expression: `CATEGORY_LABELS[row.category] ?? row.category`. (Also documented in `UX_HEURISTICS_AUDIT.md` mn3.)
+
+---
+
+#### ✗ Brand-name eyebrow above H1 on both transparency pages
+**Files:** `src/app/trust/page.tsx:207` · `src/app/status/page.tsx:390`
+
+```tsx
+// trust/page.tsx:207
+<div style={{ fontFamily: MONO, fontSize: 10, color: '#888', textTransform: 'uppercase' }}>
+  ConstructAIQ
+</div>
+
+// status/page.tsx:390
+<div style={{ fontFamily: font.mono, fontSize: 11, color: color.t4, textTransform: 'uppercase' }}>
+  ConstructAIQ
+</div>
+```
+
+Both pages open with "ConstructAIQ" as the all-caps MONO eyebrow. The user is already on ConstructAIQ. The first visual hierarchy slot above the H1 states the brand name the user already knows. Something like "DATA TRANSPARENCY" or "PLATFORM STATUS" would orient without restating the obvious. This is the same finding as `UX_HEURISTICS_AUDIT.md` mn1 and the homepage audit, now confirmed across all four audited pages.
+
+---
+
+### Accessibility Detail — /trust contrast failures
+
+`thStyle` in `trust/page.tsx:38–44` renders table column headers at `fontSize: 11`, `color: '#555'`, on `background: '#f5f5f5'`.
+
+- `#555555` on `#f5f5f5` = contrast ratio ≈ **3.5:1**
+- WCAG AA minimum for text under 18px = **4.5:1**
+- Result: **FAIL** — all four column headers in the Data Sources summary table
+
+`noteStyle` at `fontSize: 12`, `color: '#555'` on `#ffffff` table body = ≈ 5.9:1 — **passes**.
+
+---
+
+### Accessibility Detail — /status contrast at 10px
+
+KPI card labels, table column headers, entity graph labels, and Source Health category row labels in `/status` use `fontSize: 10` with `color: color.t4` (`#6e6e73`) on `color.bg2` (`#1c1c1e`).
+
+- `#6e6e73` on `#1c1c1e` = contrast ratio ≈ **3.0:1**
+- WCAG AA minimum = **4.5:1**
+- Result: **FAIL** — all 10px labels throughout the status page
+
+Status badge text at 11px uses the dot color directly (`color: badge.bg`). Green (`#34c759`) and amber (`#f59e0b`) on `#0d0d0d` both pass (≈ 7:1+). Gray `#888` for skipped/unknown on `#0d0d0d` ≈ 3.8:1 — **fails**.
 
 ---
 
