@@ -27,7 +27,7 @@ Last audited: 2026-04-23
 | /research       | Research hub — live data and weekly brief            |
 | /methodology    | Open model documentation                             |
 | /methodology/track-record | Forecast accuracy record                 |
-| /api-access     | API docs, key registration, widget generator         |
+| /api-access     | REMOVED — API documentation is internal until the developer program is reopened |
 | /ask            | AI natural language query interface                  |
 | /portfolio      | Portfolio management                                 |
 | /sectors        | Sector analysis                                      |

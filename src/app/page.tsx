@@ -196,7 +196,6 @@ export default function HomePage() {
             { label: 'Dashboard',   href: '/dashboard'   },
             { label: 'Federal',     href: '/federal'     },
             { label: 'Methodology', href: '/methodology' },
-            { label: 'API Access',  href: '/api-access'  },
             { label: 'About',       href: '/about'       },
           ].map(({ label, href }) => (
             <Link key={href} href={href}
