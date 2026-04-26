@@ -1,6 +1,6 @@
 # UI Polish Plan
 
-**Status:** Shell — Phase 24  
+**Status:** Complete — Phase 24  
 **Branch:** `claude/cleanup-launch-docs-eXjy2`  
 **Source audits:** `docs/UX_HEURISTICS_AUDIT.md` · `docs/GSTACK_DESIGN_AUDIT.md`  
 **Note:** `.claude/skills/taste-SKILL.md` was not found in this repository. This plan uses the design parameters and audit findings provided in the task brief.
@@ -161,7 +161,52 @@ The immediate fix is to import `color` from `theme.ts` and use the `lightBg*` an
 
 ## Spacing and Density Rules
 
-_To be populated from GSTACK audit findings._
+### Token-first rule
+
+Every section padding and card interior margin must come from `space.*` in `src/lib/theme.ts`. No raw pixel value for spacing belongs in a component file. The current violation: five adjacent homepage sections use raw vertical padding values of 48px, 56px, 64px, 64px, and 80px — a spread that gives equal-priority sections unequal visual weight with no semantic reason.
+
+**Canonical spacing values:**
+
+| Token | Value | Use |
+|-------|-------|-----|
+| `space.sm` = 8 | 8px | Inline gaps — label to value, icon to text |
+| `space.md` = 16 | 16px | Card interior sub-gaps, between stacked fields |
+| `layout.cardPad` = 24 | 24px | Card interior padding (all surfaces) |
+| `space.lg` = 24 | 24px | Same as cardPad — use `layout.cardPad` in card context |
+| `space.xl` = 32 | 32px | Between card groups within a section |
+| `space.xxl` = 48 | 48px | Section vertical padding (homepage, trust, status) |
+| `layout.sectionGap` = 32 | 32px | Gap between dashboard sections |
+
+### Per-surface density targets
+
+**Homepage (VISUAL_DENSITY 4 — spacious/marketing):**
+- Section vertical padding: `space.xxl` (48px) top and bottom — all sections uniform
+- Card interior padding: `layout.cardPad` (24px)
+- Grid gap between cards: `space.md` (16px) for status cards; `space.sm` (12px) for role cards
+- No section should use a padding value not in the `space.*` table above
+
+**Dashboard (VISUAL_DENSITY 7 — professional dense data):**
+- KPI card interior: `layout.cardPad` (24px) or tighter at 20px for the compact row
+- Section gap: `layout.sectionGap` (32px)
+- Table row height: `layout.rowHeight` (52px) — do not increase; density is intentional
+- Do not add padding to make the dashboard feel "lighter" — if it feels crowded, reduce panel count, not padding
+
+**Trust / Status (VISUAL_DENSITY 5 — balanced prose + data):**
+- Section vertical padding: `space.xxl` (48px)
+- Prose line-height: `1.6` (already set in `type.body`) — do not reduce
+- Table cell padding: `12px 16px` — sufficient for readability without wasted space
+
+### Immediate fixes required
+
+| File | Current | Fix |
+|------|---------|-----|
+| `page.tsx:134` | `padding: '48px 40px'` | Replace 40px horizontal with `space.xl` (32px) or document as layout.maxContent gutter |
+| `page.tsx:138` | `padding: '64px 40px'` | Standardize to `space.xxl` (48px) vertical |
+| `page.tsx:149` | `padding: '80px 40px'` | Standardize to `space.xxl` (48px) vertical |
+| `HomeRoles.tsx:31` | `padding: '56px 40px'` | Standardize to `space.xxl` (48px) vertical |
+| `HomeTrust.tsx:13` | `padding: '64px 40px'` | Standardize to `space.xxl` (48px) vertical |
+
+The 40px horizontal gutter value recurs throughout and is not in `space.*`. It is effectively the page-level content margin — add it as `layout.pagePad: 40` in `theme.ts` so it has a single source of truth.
 
 ---
 
@@ -394,4 +439,22 @@ These are explicit guardrails for the polish pass. Each item describes a temptat
 
 ## Validation Checklist
 
-_To be populated — pre-commit checks for each polish change._
+Run this checklist after every polish change before committing. Each item maps to a specific audit finding. A change that passes code review but fails this checklist is not complete.
+
+| # | Check | Pass condition | Audit source |
+|---|-------|---------------|--------------|
+| 1 | Homepage explains user decision in under 5 seconds | A first-time visitor sees a live data chart or a primary market signal above the fold without scrolling | GSTACK pattern #6; UX mn1 |
+| 2 | Dashboard shows primary verdict before secondary metrics | The EXPAND / CONTRACT / WATCH verdict state (color + label) is visible before the KPI row | CLAUDE.md dashboard hierarchy; UX mn4 |
+| 3 | Every decision metric has source, freshness, and data-type context | Each KPI section has a visible `DataTrustBadge` or equivalent — status dot, source name, as-of date | UX C3; GSTACK Trust findings |
+| 4 | Trust and Status pages have clear top summaries | Neither page opens with `CONSTRUCTAIQ` as the first visible heading; each has an orientation label that names the page's purpose | UX mn1; GSTACK Homepage pattern finding |
+| 5 | Removed API pages remain absent from primary navigation | `/api-access` is not linked from `HomeNav`, `Sidebar`, or the homepage footer nav row | UX API page surface check |
+| 6 | Empty, error, and loading states are visually distinct | Loading = shimmer skeleton; Error (after 8s timeout) = explicit message with /status link; Empty = explicit empty state, never `—` after timeout | UX C2; UX M3 |
+| 7 | Color semantics are consistent across all surfaces | Green = expansion/fresh/healthy only; Amber = warning/delayed/WATCH only; Red = failed/stale/risk only; Blue = forecast/CTAs/links only; no color used for two different semantic roles | GSTACK Color & Palette; UX C3 |
+| 8 | Motion is restrained and respects reduced-motion | `prefers-reduced-motion` block is present in `globals.css`; no `width`/`height`/`margin` properties animated; no `transform: translateY` on CTA buttons | Motion Rules section |
+| 9 | No unsupported claims added | No new copy asserts user counts, customer names, accuracy percentages, or MAPE values without a direct source link to `methodology/track-record` or a live query | GSTACK pattern #4; "What not to change" |
+
+---
+
+## Advisory Note
+
+This plan is advisory. No product code changed in this phase.
