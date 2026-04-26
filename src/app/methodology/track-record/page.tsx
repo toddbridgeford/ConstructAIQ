@@ -334,9 +334,9 @@ export default function TrackRecordPage() {
                                            textDecoration:"underline" }}>
             Open Dashboard
           </Link>
-          <Link href="/api-access" style={{ fontFamily:SYS, fontSize:14, color:T4,
-                                            textDecoration:"underline" }}>
-            API Access
+          <Link href="/trust" style={{ fontFamily:SYS, fontSize:14, color:T4,
+                                       textDecoration:"underline" }}>
+            Trust Center
           </Link>
         </div>
       </div>

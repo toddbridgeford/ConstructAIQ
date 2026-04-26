@@ -48,7 +48,7 @@ const ACCESS_TIERS = [
       "Researcher tier: 10,000 req/day with .edu email",
       "Embeddable chart widgets",
     ],
-    cta: { label: "Get API Key", href: "/api-access" },
+    cta: { label: "View Methodology", href: "/methodology" },
   },
   {
     label:    "Enterprise",

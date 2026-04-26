@@ -182,11 +182,7 @@ export function WatchlistCard() {
           color: color.t2, margin: '0 0 14px',
         }}>
           Save the metros, states, projects, and federal rows you care about.
-          Your watchlist syncs across every device signed in with your{' '}
-          <Link href="/api-access" style={{ color: color.amber }}>
-            free API key
-          </Link>
-          .
+          Your watchlist syncs across every device signed in with your free API key.
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <input

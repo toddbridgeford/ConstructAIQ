@@ -82,7 +82,7 @@ Expected likely core routes:
 - `/portfolio`
 - `/methodology`
 - `/subscribe`
-- `/api-access`
+- `/trust`
 
 ### 0.3 Add baseline QA checklist
 Create `docs/qa/smoke-checklist.md` with manual checks for:
