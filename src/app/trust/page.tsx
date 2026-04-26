@@ -528,56 +528,153 @@ export default function TrustCenterPage() {
             <h2 style={sectionH2}>Forecast Methodology</h2>
 
             <div style={calloutStyle}>
-              Forecasts are statistical model outputs. They are not predictions of reality.
-              Economic data is noisy, subject to revision, and influenced by events no model
-              can anticipate. Use confidence intervals as a guide to uncertainty, not as
-              guarantees.
+              Forecasts are statistical model outputs — they are not statements of fact
+              about the future. Economic data is noisy, subject to revision, and influenced
+              by events no model can anticipate. Every forecast should be read alongside
+              its confidence bands, the freshness of the underlying data, and any caveats
+              shown on the dashboard.
             </div>
+
+            <h3 style={h3Style}>Forecasts are model outputs, not facts</h3>
+            <p style={prose}>
+              A forecast is the output of a statistical model trained on historical
+              patterns. It reflects what the model expects given the data it was trained
+              on — not a determination of what will actually happen. Construction spending
+              is affected by interest rate decisions, weather events, legislative changes,
+              supply shocks, and many other factors that are structurally outside the
+              scope of any time-series model.
+            </p>
+            <p style={prose}>
+              ConstructAIQ does not express certainty about forecast outcomes. The
+              dashboard displays directional trends and probability ranges, not point
+              predictions presented as facts.
+            </p>
 
             <h3 style={h3Style}>3-model ensemble</h3>
             <p style={prose}>
               ConstructAIQ forecasts are produced by combining three models:
             </p>
-            <ul style={{ ...prose, paddingLeft: 24, marginBottom: 20 }}>
+            <ul style={{ ...prose, paddingLeft: 24, marginBottom: 16 }}>
               <li style={{ marginBottom: 8 }}>
-                <strong>Holt-Winters Double Exponential Smoothing</strong> — captures level
-                and trend in a time series without requiring stationarity.
+                <strong>Holt-Winters Double Exponential Smoothing</strong> — captures
+                level and trend in a time series without requiring stationarity.
               </li>
               <li style={{ marginBottom: 8 }}>
                 <strong>SARIMA(1,1,0)(0,1,0)[12]</strong> — a seasonal autoregressive
                 integrated moving-average model tuned for monthly construction series.
               </li>
               <li style={{ marginBottom: 8 }}>
-                <strong>XGBoost gradient-boosted tree</strong> — a machine-learning model
-                trained on lagged features derived from the same series.
+                <strong>XGBoost gradient-boosted tree</strong> — a machine-learning
+                model trained on lagged features derived from the same series.
               </li>
             </ul>
             <p style={prose}>
               The three forecasts are blended using accuracy weights. Weights are
-              recalculated each run based on each model&apos;s recent mean absolute percentage
-              error (MAPE). A model with lower recent MAPE receives a higher blend weight.
+              recalculated each run based on each model&apos;s recent mean absolute
+              percentage error (MAPE) on held-out data. A model with lower recent
+              MAPE receives a higher blend weight for that run.
             </p>
 
-            <h3 style={h3Style}>Confidence intervals</h3>
+            <h3 style={h3Style}>Confidence bands represent uncertainty</h3>
             <p style={prose}>
-              Every forecast includes an 80% and a 95% prediction interval, computed
-              from the distribution of model residuals on held-out data. The 80% band
-              means that — if the model&apos;s error distribution holds — approximately 80 out
-              of 100 future outcomes should fall within that range. The 95% band is wider
-              and represents a higher-confidence envelope.
+              Every forecast includes an 80% and a 95% prediction interval. These
+              are not upper and lower bounds on the future — they are estimates of
+              where the outcome would fall if the model&apos;s historical error distribution
+              holds in the future.
+            </p>
+            <p style={prose}>
+              An 80% band means approximately 80 out of 100 future outcomes would be
+              expected to fall within that range, based on past residuals. The 95% band
+              is wider and represents a higher-confidence envelope. Wider bands indicate
+              higher model uncertainty — typically when series history is short, recent
+              volatility is elevated, or the models disagree with each other.
+            </p>
+            <p style={prose}>
+              When the MAPE shown on the dashboard is elevated, the forecast carries
+              more uncertainty than usual and the bands should be weighted accordingly.
+              The dashboard surfaces a caveat when this is the case.
             </p>
 
-            <h3 style={h3Style}>Training data</h3>
+            <h3 style={h3Style}>Forecasts change as data is revised</h3>
             <p style={prose}>
-              Each model is trained on the full available history for the target series.
-              Series length varies; shorter series produce wider confidence intervals.
-              The forecast horizon is 12 months. Extrapolation beyond 12 months is not
-              supported.
+              Forecasts are recomputed each time the cron runs. If the upstream data
+              changes — because a government agency published a revision to a prior
+              month&apos;s figures — the models retrain on the revised history and the
+              forecast may shift.
+            </p>
+            <p style={prose}>
+              Census Bureau construction spending figures are revised at the following
+              monthly release and again at annual benchmarks. A large revision to recent
+              history can materially change the trend the models detect, and therefore
+              change the forecast direction. This is expected behavior, not a bug.
+              It reflects the fact that the underlying data itself changed.
+            </p>
+            <p style={prose}>
+              The forecast displayed on the dashboard is the most recently computed run.
+              The <code style={{ fontFamily: MONO, fontSize: 13 }}>runAt</code> timestamp
+              shown on the DataTrustBadge indicates when that run completed. If the
+              pipeline has not run recently, the displayed forecast may be based on
+              data that has since been revised.
             </p>
 
+            <h3 style={h3Style}>Backtesting</h3>
             <p style={prose}>
-              Full model documentation, including equations, training procedure, and
-              accuracy history, is at{' '}
+              Backtesting is the process of evaluating a model against historical data
+              it did not see during training. ConstructAIQ uses a walk-forward
+              backtesting approach: models are trained up to a cutoff date, a forecast
+              is generated for the following months, and then realized actuals from
+              Census Bureau releases are compared to those predictions once they become
+              available.
+            </p>
+            <p style={prose}>
+              Backtest results measure MAPE (mean absolute percentage error) —
+              the average percentage by which the forecast missed the realized value —
+              and PAR (Prediction Accuracy Rate), which measures how often realized
+              outcomes fall within the stated confidence intervals. These metrics are
+              computed from realized outcomes and are not adjusted after the fact.
+            </p>
+            <p style={prose}>
+              Current backtest results and accuracy history are available at{' '}
+              <Link href="/methodology/track-record" style={linkStyle}>
+                /methodology/track-record
+              </Link>{' '}
+              and via the{' '}
+              <Link href="/api/par" style={linkStyle}>/api/par</Link> endpoint.
+              This page does not state specific accuracy figures because those figures
+              change as new predictions mature.
+            </p>
+
+            <h3 style={h3Style}>Using forecasts responsibly</h3>
+            <p style={prose}>
+              Before acting on a forecast, check:
+            </p>
+            <ul style={{ ...prose, paddingLeft: 24 }}>
+              <li style={{ marginBottom: 8 }}>
+                <strong>Data freshness</strong> — the DataTrustBadge beneath the
+                forecast chart shows when the forecast was last computed and whether
+                the underlying source data is current. A stale forecast based on
+                unrevised data carries additional uncertainty.
+              </li>
+              <li style={{ marginBottom: 8 }}>
+                <strong>Confidence band width</strong> — wider bands mean the models
+                are less certain. When bands are wide, the directional signal is weaker.
+              </li>
+              <li style={{ marginBottom: 8 }}>
+                <strong>MAPE and caveats</strong> — elevated MAPE triggers a caveat
+                on the dashboard. This means recent model error is above the platform&apos;s
+                normal range and the forecast should be treated with more caution.
+              </li>
+              <li>
+                <strong>Structural context</strong> — consider whether recent events
+                (policy changes, rate moves, supply disruptions) are likely to be
+                outside the model&apos;s training distribution. If so, treat the forecast
+                as a baseline, not a reliable projection.
+              </li>
+            </ul>
+
+            <p style={prose}>
+              Full model documentation — equations, training procedure, walk-forward
+              methodology, and accuracy history — is at{' '}
               <Link href="/methodology" style={linkStyle}>/methodology</Link>.
             </p>
           </section>
