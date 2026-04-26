@@ -1,8 +1,9 @@
 # GSTACK Design Audit
 
-> **Note:** `.claude/skills/gstack-SKIL.md` was not found in this repository.
-> This document uses the GStack scoring framework as described in the task brief.
-> Populate the sections below once the full audit pass is complete.
+**Audit status:** Complete — Phase 24. All sections populated.
+**Audited:** 2026-04-26
+**Surfaces:** Homepage · Dashboard · Trust Center · Status
+**Overall score:** 5/10 (weighted average across eight GStack dimensions)
 
 ---
 
@@ -970,10 +971,14 @@ Status badge text at 11px uses the dot color directly (`color: badge.bg`). Green
 
 ## Notes / Open Questions
 
-> **TODO:** Capture open questions and deferred decisions as the audit progresses.
+- **HeroSection.tsx vs HomeHero.tsx** — Confirmed: `HeroSection.tsx` (dark theme, 60/40 split, live chart) is built but not imported in `page.tsx`. `HomeHero.tsx` (centered SaaS pattern, light theme) is active. Priority Fix #1 resolves this.
+- **`type.hero` at 88px** — Defined in `theme.ts` but used by no audited component. Likely reserved for a future hero headline. No action required.
+- **`gradOrange` and `gradGreen`** — Defined in `theme.ts` but not found in the audited surfaces. May be used in unadited components or are leftover. Safe to remove in a token cleanup pass.
+- **`DataTrustBadge` font** — Full `font.mono` is appropriate for the status label (technical accent); `font.sys` may be preferable for the source name and cadence fields. Defer to typography pass.
+- **`gstack-SKIL.md` skill file** — Not present in this repository. The audit used the GStack framework as described in the task brief. Create `.claude/skills/gstack-SKIL.md` before the next audit cycle.
 
-- Is `HeroSection.tsx` still active or superseded by `HomeHero.tsx`? (Both exist; only `HomeHero` is imported in `page.tsx`)
-- The theme defines `type.hero` at 88px but no audited component uses it — is this intentional?
-- `gradOrange` and `gradGreen` are defined in `theme.ts` but not found in the audited files — are they used elsewhere or leftover?
-- Should `DataTrustBadge` use `font.sys` for source names and cadence (currently full MONO)?
-- Confirm whether the `gstack-SKIL.md` skill file should be created before the next audit pass
+---
+
+## Advisory Note
+
+This audit is advisory only. No product code changed in this phase.
