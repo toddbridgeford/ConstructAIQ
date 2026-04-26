@@ -4784,3 +4784,68 @@ Operator reported completing Vercel UI steps (domains attached as Production, no
 **Exact next operator action:** Go to Vercel dashboard → `construct-aiq` project → Settings → Domains. Confirm `constructaiq.trade` and `www.constructaiq.trade` are listed with "Valid configuration". If either shows an error or is absent, remove and re-add. Ensure neither has a redirect configured — both must be direct Production domains with no apex-to-www redirect. After confirming, re-run `npm run domain:check` (must exit 0 before any further verification step).
 
 `docs/POST_BINDING_VERIFICATION_20260425.md` not created — Public launch is not GO. *(2026-04-25 · claude/verify-launch-dns-Ok9Li · Phase 21)*
+
+---
+
+## Phase 22 Trust Center verification
+
+**Date:** 2026-04-26  
+**Branch:** `claude/remove-public-api-pages-iRjfJ`
+
+### Command results
+
+| Command | Result |
+|---|---|
+| `npm run lint` | ✔ No ESLint warnings or errors |
+| `npm test` | 25 test files · 385 tests · all pass |
+| `npm run build` | ✓ Compiled · 83 static pages generated · exit 0 |
+
+Pre-existing warning: `⚠ Using edge runtime on a page currently disables static generation for that page` — affects `/api/og/*` routes only; not introduced by this work.
+
+### Trust Center — content verification
+
+| Section | Present | No fake numbers |
+|---|---|---|
+| Data Sources | ✓ — 11 sources, honest lag/caching language | ✓ |
+| Freshness & Source Health | ✓ — defines as-of, last refreshed, cadence, fresh/stale/delayed/unknown, live/cached/fallback | ✓ |
+| Forecast Methodology | ✓ — 3-model ensemble, confidence bands, data revision, backtesting, responsible use | ✓ |
+| Prediction Validation | ✓ — PAR defined, directional accuracy, sample size caveat, live links to /api/par and /status | ✓ |
+| AI Analyst Guardrails | ✓ — 6 guardrails including insufficient-data response, no invented numbers, no professional advice as certainty | ✓ |
+| Limitations | ✓ — 7 limitations including original-source links for verification | ✓ |
+
+No PAR values, MAPE figures, customer counts, or usage claims are stated in the page. Accuracy figures are sourced from `/api/par`, `/status`, and `/methodology/track-record` only.
+
+### API public pages — removal verification
+
+```
+src/app/api-access/page.tsx  — DELETED (prior session)
+src/app/docs/api/page.tsx    — DELETED (prior session)
+```
+
+Remaining references to `api-access` in codebase:
+- `src/app/ROUTES.md` — tombstone entry (intentional)
+- `src/app/api/keys/issue/route.ts` — backend route response field, **not removed** (correct)
+- `docs/STABILIZATION_REPORT.md` — historical record
+- `e2e/trust.spec.ts` — test asserting `/api-access` returns 404 (correct)
+- `e2e/api-access.spec.ts` — tombstone comment
+
+No public navigation points to `/api-access` or `/docs/api`.
+
+### Backend API routes — untouched
+
+`src/app/api/` contains 64 route directories. No route was modified or deleted. `src/app/api/README.md` untouched.
+
+### Dashboard context improvements (Phase 22 task)
+
+| Change | File |
+|---|---|
+| KPI cards now show source + type sub-label (e.g. "Census Bureau · ACTUAL", "BLS · ACTUAL", "ConstructAIQ · DERIVED SCORE") | `OverviewSection.tsx` |
+| Forecast direction chip shown in overview when forecast data is available | `OverviewSection.tsx`, `page.tsx` |
+| Signals empty state: shimmer only while loading; "No active signals detected" shown after load completes | `OverviewSection.tsx` |
+| MaterialsSection: removed flat-line sparkline fallback (`Array(12).fill(c.value)` → `[]`) | `MaterialsSection.tsx` |
+| MaterialsSection: added DataTrustBadge for BLS/EIA sources with "derived signal" caveat | `MaterialsSection.tsx` |
+
+### Remaining warnings
+
+None introduced. Pre-existing edge runtime warning on `/api/og/*` persists.
+
