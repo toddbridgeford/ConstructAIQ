@@ -110,7 +110,7 @@ function shortDate(iso: string): string {
 // ── Status indicator dot ──────────────────────────────────────────────────
 
 const STATUS_DOT: Record<'ok' | 'warn' | 'stale', { bg: string; label: string }> = {
-  ok:    { bg: color.green,  label: 'Current'  },
+  ok:    { bg: color.green,  label: 'Fresh'    },
   warn:  { bg: color.amber,  label: 'Delayed'  },
   stale: { bg: color.red,    label: 'Stale'    },
 }
@@ -119,9 +119,9 @@ const HEALTH_BADGE: Record<string, { bg: string; label: string }> = {
   ok:             { bg: color.green,  label: 'Fresh'          },
   warn:           { bg: color.amber,  label: 'Degraded'       },
   failed:         { bg: color.red,    label: 'Failed'         },
-  skipped:        { bg: '#888',       label: 'Skipped'        },
-  not_configured: { bg: '#888',       label: 'Not configured' },
-  unknown:        { bg: '#888',       label: 'Unknown'        },
+  skipped:        { bg: color.t4,     label: 'Skipped'        },
+  not_configured: { bg: color.t4,     label: 'Not configured' },
+  unknown:        { bg: color.t4,     label: 'Unknown'        },
 }
 
 const STATUS_PRIORITY: Record<string, number> = {
@@ -394,8 +394,10 @@ export default function StatusPage() {
               Platform Health
             </h1>
             <p style={{ fontFamily: font.sys, fontSize: 14, color: color.t3, lineHeight: 1.6, maxWidth: 480 }}>
-              Live data freshness, prediction accuracy, and engine output across all ConstructAIQ systems.
-              These numbers update continuously — no editorial adjustment.
+              Operational diagnostics for ConstructAIQ: pipeline freshness, prediction accuracy, and
+              infrastructure state — for operators and anyone verifying source integrity.
+              Unknown status means no harvest record exists yet, not necessarily a failure.
+              Metrics update on each cron run with no editorial adjustment.
             </p>
           </div>
           {status && (
@@ -518,8 +520,8 @@ export default function StatusPage() {
                   ))
                 ) : status?.freshness.length === 0 ? (
                   <tr>
-                    <td colSpan={3} style={{ padding: '16px 0', fontFamily: font.mono, fontSize: 12, color: color.t4 }}>
-                      No series data yet
+                    <td colSpan={3} style={{ padding: '16px 0', fontFamily: font.sys, fontSize: 13, color: color.t4 }}>
+                      No freshness records yet — this table populates after the first harvest cron run.
                     </td>
                   </tr>
                 ) : (
@@ -1107,7 +1109,7 @@ export default function StatusPage() {
                     whiteSpace:   'nowrap',
                   }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: active ? color.green : color.amber, display: 'inline-block' }} />
-                    {active ? 'Live data active' : 'Key not configured — using empty state'}
+                    {active ? 'Live data active' : 'Key not configured — feature unavailable'}
                   </span>
                 </div>
               )

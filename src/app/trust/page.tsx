@@ -530,7 +530,7 @@ export default function TrustCenterPage() {
             <p style={prose}>
               The Data Freshness table on{' '}
               <Link href="/status" style={linkStyle}>/status</Link> aggregates freshness
-              per series (rather than per pipeline run) and shows <strong>Current</strong>,{' '}
+              per series (rather than per pipeline run) and shows <strong>Fresh</strong>,{' '}
               <strong>Delayed</strong>, or <strong>Stale</strong> based on how recently
               observations were written to the database for that series.
             </p>
