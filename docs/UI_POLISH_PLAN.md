@@ -366,7 +366,29 @@ Ranked by user-facing decision impact and weighted GStack score movement. Items 
 
 **Expected impact:** GStack Accessibility +1.5 (4→5.5); overall weighted score +0.10. Resolves a production regression (ForecastChart overflow) and two mobile usability failures across Trust and Status. Directly supports CLAUDE.md sprint item 9 (Mobile/iPhone pass).
 
-_To be populated — components and patterns confirmed working well._
+---
+
+## What Not to Change
+
+These are explicit guardrails for the polish pass. Each item describes a temptation that would consume effort, add visual complexity, and produce no improvement to the decisions the platform is built to support.
+
+- **Do not add more charts just to look impressive.** Every chart must answer a question a real construction professional asks. A chart that visualizes data already covered by a KPI card is redundancy dressed as richness. The current dashboard has the right chart count — the problem is hierarchy and sizing, not chart count.
+
+- **Do not reintroduce public API marketing pages.** The `/api-access` page is intentionally absent from all primary navigation. The platform's audience at this stage is construction professionals, not developers looking for an API to integrate. API promotion belongs in the footer reference row when API adoption becomes a tracked goal — not in the primary nav during the polish pass.
+
+- **Do not hide fallback or static data.** If a number cannot be fetched live, show a skeleton, a `—`, or an explicit unavailability message — never substitute a hardcoded number in a live-data display slot. The `HomeTrust.tsx` fallback stats (`40`, `20`, `38+`) and the green-dot badge that displays hardcoded copy are trust failures. The fix is to remove the fallback display, not to improve the styling of the fallback.
+
+- **Do not remove source and freshness context.** The `DataTrustBadge`, as-of dates, and source attributions are not clutter — they are the product's transparency differentiator. Do not suppress them for visual cleanliness. If they feel like clutter, the problem is placement or size, not existence. Fix the 9px legibility failure; do not remove the badge.
+
+- **Do not change backend APIs, route handlers, or data-fetching logic during this visual polish pass.** Changes to `src/app/api/` routes, Supabase queries, and cron jobs are out of scope. The polish pass operates entirely within component files, `globals.css`, and `theme.ts`. Any data correctness issues found during the pass are logged as separate tasks.
+
+- **Do not invent traction, customer, accuracy, PAR, or MAPE claims.** No copy should assert user counts, customer names, accuracy percentages, or forecast performance metrics that are not sourced from a verifiable live query or a documented back-test in `src/app/methodology/track-record/`. The platform's credibility depends on every number being traceable. A claim like "95% forecast accuracy" that is not linked to a methodology page is worse than no claim at all.
+
+- **Do not make the dashboard less dense than it needs to be for professional users.** VISUAL_DENSITY 7 is intentional. Construction lenders, federal analysts, and major contractors need six KPI values, a 12-month forecast, and market signals on one screen. Do not remove panels, increase padding, or reduce data display in the name of "cleanliness." If something feels crowded, the fix is hierarchy — making the primary element larger and the secondary elements quieter — not removal.
+
+- **Do not use decorative gradients as a substitute for design quality.** Gradient headlines, glowing buttons, and multi-layer radial hero backgrounds are the visual equivalent of exclamation marks — they signal effort without communicating content. The gradient policy in the Color Direction section is the ceiling, not a target. The goal is to reach that ceiling by removing gradients, not by replacing removed gradients with new ones.
+
+- **Do not undertake a full visual redesign before fixing hierarchy and trust clarity.** The platform's current score is 5/10 not because the visual language is wrong but because the hierarchy is disordered and the trust surfaces are inconsistent. Items 1–10 in this plan, executed in order, move the score to approximately 7/10 without changing the visual identity. A redesign — new component library, new color system, new layout grid — would consume the same effort for no guaranteed improvement. Fix what is broken before replacing what is not.
 
 ---
 
