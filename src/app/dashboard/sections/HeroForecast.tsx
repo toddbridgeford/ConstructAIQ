@@ -13,9 +13,11 @@ import { DriverPanel }     from "../components/DriverPanel"
 import { BottomSheet }     from "@/app/components/BottomSheet"
 import { Skeleton }       from "@/app/components/Skeleton"
 import { EmptyState }     from "@/app/components/ui/EmptyState"
+import { DataTrustBadge } from "@/app/components/DataTrustBadge"
 import { CloudOff } from "lucide-react"
 import { color, font } from "@/lib/theme"
 import { forecastAvailability } from "@/lib/dashboardProvenance"
+import { statusFromAge } from "@/lib/data-trust-utils"
 import type { ForecastData } from "../types"
 import type { FreshnessInfo } from "@/lib/freshness"
 
@@ -129,6 +131,25 @@ export function HeroForecast({ fore, foreAccuracy, foreMAPE, freshness, loading 
               </p>
             ) : null
           })()}
+
+          {/* Data provenance */}
+          {fore && (
+            <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${color.bd1}` }}>
+              <DataTrustBadge
+                source="ConstructAIQ Ensemble (HW · SARIMA · XGBoost)"
+                type="forecast"
+                status={statusFromAge(fore.runAt)}
+                qualityScore={fore.metrics?.accuracy != null ? Math.round(fore.metrics.accuracy) : undefined}
+                lastRefreshed={fore.runAt || undefined}
+                caveat={
+                  fore.metrics?.mape != null && fore.metrics.mape > 6
+                    ? `MAPE ${fore.metrics.mape.toFixed(1)}% — elevated uncertainty, wider confidence bands apply`
+                    : undefined
+                }
+                expanded
+              />
+            </div>
+          )}
 
           {/* Scenario trigger — mobile only */}
           {isMobile && (

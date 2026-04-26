@@ -37,6 +37,7 @@ interface Props {
 export function HomeStatusCards({ cards }: Props) {
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+      <div style={{ ...TS.label, color: T3, marginBottom: 24 }}>CURRENT MARKET CONDITIONS</div>
       <div className="hp-cards">
         {cards.map(c => <StatusCard key={c.label} {...c} />)}
       </div>

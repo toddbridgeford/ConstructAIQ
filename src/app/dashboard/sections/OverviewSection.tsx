@@ -4,6 +4,7 @@ import Link from "next/link"
 import { color, font, type as TS, signal as SIG, layout as L, fmtB } from "@/lib/theme"
 import { BenchmarkBadge, type BenchmarkResult } from "@/app/components/ui/BenchmarkBadge"
 import { InsightChip } from "@/app/components/ui/InsightChip"
+import { DataTrustBadge } from "@/app/components/DataTrustBadge"
 import { getPrefs } from "@/lib/preferences"
 import { RecommendationsCard } from '@/app/dashboard/components/RecommendationsCard'
 import { WatchlistCard } from '@/app/dashboard/components/WatchlistCard'
@@ -406,9 +407,13 @@ export function OverviewSection({
       `}</style>
 
       {freshness && (
-        <div style={{ fontFamily: font.mono, fontSize: 10, color: freshness.isStale ? color.amber : color.t4 }}>
-          {freshness.label}{freshness.isStale && ' ⚠ Data may be stale'}
-        </div>
+        <DataTrustBadge
+          source="Census Bureau · BLS"
+          cadence="Monthly"
+          type="actual"
+          status={!freshness.isoDate ? 'unknown' : freshness.isStale ? 'stale' : 'fresh'}
+          dataAsOf={freshness.isoDate || undefined}
+        />
       )}
 
       {/* ── Top signal driver ── */}

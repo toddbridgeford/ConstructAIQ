@@ -70,16 +70,16 @@ export function HomeTrust({ stats }: Props) {
             <div style={{ fontSize: 14, fontFamily: SYS, color: T1, fontWeight: 600, lineHeight: 1.7, marginBottom: 12 }}>
               No subscription.
               <br />No credit card.
-              <br />No data sold. Open API.
+              <br />No account required.
             </div>
             <div style={{ fontSize: 13, fontFamily: SYS, color: T3, lineHeight: 1.6, marginBottom: 16 }}>
-              Dashboard: free forever. API: 1,000 req/day free, 10,000/day for .edu researchers.
+              The full dashboard is open to everyone. No sign-in, no paywall, no data sold.
             </div>
-            <Link href="/api-access" style={{
+            <Link href="/dashboard" style={{
               fontSize: 13, fontFamily: SYS, fontWeight: 500,
               color: color.blue, textDecoration: 'none',
             }}>
-              Get API access →
+              Open the dashboard →
             </Link>
           </div>
         </div>

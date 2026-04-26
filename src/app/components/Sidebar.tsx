@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, TrendingUp, Building2, MapPin, FolderOpen,
   Radio, BarChart2, AlertTriangle, MessageSquare,
-  BookOpen, Key, PieChart, Newspaper, Mail, Calendar, Layers, ScanSearch, Globe2, FileText,
+  BookOpen, PieChart, Newspaper, Mail, Calendar, Layers, ScanSearch, Globe2, FileText,
   DollarSign, Activity, ArrowLeftRight, type LucideIcon,
 } from "lucide-react"
 import { color, font, layout as L, type as TS } from "@/lib/theme"
@@ -54,7 +54,6 @@ const NAV: NavItem[] = [
 
 const BOTTOM: NavItem[] = [
   { label: "Methodology", href: "/methodology", Icon: BookOpen },
-  { label: "API Access",  href: "/api-access",  Icon: Key      },
 ]
 
 function toSectionId(href: string): string | null {
