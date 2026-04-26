@@ -370,35 +370,156 @@ export default function TrustCenterPage() {
           <section id="freshness" style={{ marginBottom: 64, scrollMarginTop: 32 }}>
             <h2 style={sectionH2}>Freshness and Source Health</h2>
             <p style={prose}>
-              Each API response from ConstructAIQ includes metadata that tells you
-              exactly how current the data is.
+              ConstructAIQ attaches freshness metadata to every data point and API
+              response so users can see exactly how current the data is. This section
+              explains the vocabulary used throughout the platform.
             </p>
 
-            <h3 style={h3Style}>Response freshness fields</h3>
+            <h3 style={h3Style}>Data as-of</h3>
             <p style={prose}>
-              Every endpoint returns a <code style={{ fontFamily: MONO, fontSize: 13 }}>live</code> boolean
-              and an <code style={{ fontFamily: MONO, fontSize: 13 }}>as_of</code> or{' '}
-              <code style={{ fontFamily: MONO, fontSize: 13 }}>updated_at</code> timestamp.{' '}
-              <code style={{ fontFamily: MONO, fontSize: 13 }}>live: true</code> means the response
-              was computed from a fresh upstream API call or a recently harvested database row.{' '}
-              <code style={{ fontFamily: MONO, fontSize: 13 }}>live: false</code> means the platform
-              fell back to cached or seeded data because the upstream source was unavailable.
+              <strong>Data as-of</strong> is the reference date of the underlying data —
+              the end of the period the data describes. For example, if the Census Bureau
+              releases construction spending data in late May for the month of March, the
+              data as-of date is March 31. The dashboard displays the most recently
+              published period, which lags real-world conditions by weeks or months
+              depending on the source.
             </p>
+            <p style={prose}>
+              Data as-of is distinct from when ConstructAIQ fetched the data. A value can
+              have been fetched today but still describe conditions from six weeks ago.
+            </p>
+
+            <h3 style={h3Style}>Last refreshed</h3>
+            <p style={prose}>
+              <strong>Last refreshed</strong> is the timestamp of the most recent
+              successful pipeline run for a given source — the last time ConstructAIQ
+              successfully fetched and stored data from the upstream API. It appears
+              on the DataTrustBadge shown under each dashboard section and on{' '}
+              <Link href="/status" style={linkStyle}>/status</Link>.
+            </p>
+            <p style={prose}>
+              If last refreshed is recent but data as-of is old, the pipeline is
+              healthy — the upstream source simply has not published newer data yet.
+              If last refreshed is old, the pipeline may have failed or the upstream
+              source may be unavailable.
+            </p>
+
+            <h3 style={h3Style}>Cadence</h3>
+            <p style={prose}>
+              <strong>Cadence</strong> is the expected publication frequency for a
+              source. The harvest pipeline runs daily, but each source only publishes
+              data at its own pace:
+            </p>
+            <ul style={{ ...prose, paddingLeft: 24 }}>
+              <li style={{ marginBottom: 6 }}>
+                <strong>Monthly</strong> — Census Bureau construction spending, BLS employment and PPI, BEA state GDP
+              </li>
+              <li style={{ marginBottom: 6 }}>
+                <strong>Weekly</strong> — EIA diesel and crude prices, FRED mortgage rates
+              </li>
+              <li style={{ marginBottom: 6 }}>
+                <strong>~Every 12 days</strong> — Sentinel-2 satellite passes; processed to monthly signals
+              </li>
+              <li style={{ marginBottom: 6 }}>
+                <strong>As filed</strong> — WARN Act layoff notices (filed by employers on their own schedule)
+              </li>
+              <li>
+                <strong>Periodic</strong> — SAM.gov solicitation notices (harvested when the pipeline runs; not guaranteed to be real-time)
+              </li>
+            </ul>
+
+            <h3 style={h3Style}>Freshness status labels</h3>
+            <p style={prose}>
+              The DataTrustBadge on each dashboard section uses one of four status labels:
+            </p>
+            <ul style={{ ...prose, paddingLeft: 24 }}>
+              <li style={{ marginBottom: 8 }}>
+                <strong>Fresh</strong> — the pipeline ran successfully within the last 24 hours.
+              </li>
+              <li style={{ marginBottom: 8 }}>
+                <strong>Stale</strong> — the pipeline last ran between 1 and 6 days ago.
+                The data may still be the most recently published value from the upstream
+                source, but the pipeline has not confirmed it recently.
+              </li>
+              <li style={{ marginBottom: 8 }}>
+                <strong>Delayed</strong> — the pipeline has not run in 7 or more days.
+                The data is likely behind. Check{' '}
+                <Link href="/status" style={linkStyle}>/status</Link> to see whether a
+                pipeline failure is responsible.
+              </li>
+              <li>
+                <strong>Unknown</strong> — no timestamp is available for this source.
+                This occurs on initial deployment before the first harvest run completes.
+              </li>
+            </ul>
+
+            <h3 style={h3Style}>Response mode: live, cached, fallback</h3>
+            <p style={prose}>
+              API responses and dashboard sections indicate one of three response modes:
+            </p>
+            <ul style={{ ...prose, paddingLeft: 24 }}>
+              <li style={{ marginBottom: 8 }}>
+                <strong>Live</strong> — the data was computed from a recent upstream API
+                call or a Supabase row written within the expected cadence window.
+                <code style={{ fontFamily: MONO, fontSize: 12, marginLeft: 6 }}>live: true</code>
+                in API responses.
+              </li>
+              <li style={{ marginBottom: 8 }}>
+                <strong>Cached</strong> — the upstream API was not called this request,
+                but a recently harvested row from Supabase was served instead. The data
+                is real but was not fetched at this moment. Federal award data, for
+                example, is cached for up to 24 hours between harvest runs.
+              </li>
+              <li>
+                <strong>Fallback</strong> — the upstream source was unavailable and no
+                recent cache exists. The platform serves the most recently stored data
+                (which may be days or weeks old) or static seed data. Fallback responses
+                are always labeled in the UI and in API response metadata.
+                <code style={{ fontFamily: MONO, fontSize: 12, marginLeft: 6 }}>live: false</code>
+                in API responses.
+              </li>
+            </ul>
 
             <h3 style={h3Style}>Source health dashboard</h3>
             <p style={prose}>
-              Real-time source health — last run time, row count, and status for each data
-              pipeline — is available at{' '}
-              <Link href="/status" style={linkStyle}>/status</Link>.
-              Each source shows one of three states: <strong>ok</strong> (ran recently and
-              wrote rows), <strong>warn</strong> (ran but with fewer rows than expected),
-              or <strong>stale</strong> (has not run within the expected window).
+              <Link href="/status" style={linkStyle}>/status</Link> shows the live
+              operational state of every data pipeline. Each source in the Source Health
+              table has one of these states:
+            </p>
+            <ul style={{ ...prose, paddingLeft: 24 }}>
+              <li style={{ marginBottom: 6 }}>
+                <strong>Fresh</strong> (green) — ran within the expected cadence window and wrote rows.
+              </li>
+              <li style={{ marginBottom: 6 }}>
+                <strong>Degraded</strong> (amber) — ran but wrote fewer rows than expected.
+              </li>
+              <li style={{ marginBottom: 6 }}>
+                <strong>Failed</strong> (red) — the last run produced an error or wrote no rows.
+              </li>
+              <li style={{ marginBottom: 6 }}>
+                <strong>Skipped</strong> — the run was intentionally skipped (e.g., source
+                is not yet integrated for the current environment).
+              </li>
+              <li>
+                <strong>Unknown</strong> — no run record exists yet; the pipeline has not
+                completed its first run.
+              </li>
+            </ul>
+            <p style={prose}>
+              The Data Freshness table on{' '}
+              <Link href="/status" style={linkStyle}>/status</Link> aggregates freshness
+              per series (rather than per pipeline run) and shows <strong>Current</strong>,{' '}
+              <strong>Aging</strong>, or <strong>Stale</strong> based on how recently
+              observations were written to the database for that series.
             </p>
 
             <div style={calloutStyle}>
               Fallback and cached data is always labeled. When the dashboard shows stale or
-              fallback data, the UI surfaces a freshness indicator so users are not misled
-              about the data&apos;s recency.
+              fallback data, the DataTrustBadge surfaces the mode and timestamp so users
+              are not misled about the data&apos;s recency. If a source is showing
+              fallback data, check{' '}
+              <Link href="/status" style={{ ...linkStyle, fontSize: 14 }}>/status</Link>{' '}
+              to see whether the pipeline has failed.
             </div>
           </section>
 
