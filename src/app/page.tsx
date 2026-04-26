@@ -11,6 +11,7 @@ import {
 import { HomeVerdictBanner } from "./home/HomeVerdictBanner"
 import { HomeNav }           from "./home/HomeNav"
 import { HomeHero }          from "./home/HomeHero"
+import { HomeRoles }         from "./home/HomeRoles"
 import { HomeNewsletter }    from "./home/HomeNewsletter"
 import { HomeStatusCards }   from "./home/HomeStatusCards"
 import { HomeLiveStats }     from "./home/HomeLiveStats"
@@ -128,6 +129,8 @@ export default function HomePage() {
       <HomeNav />
       <HomeHero spendDisp={spendDisp} spendMom={spendMom} />
 
+      <HomeRoles />
+
       <section style={{ background: BG, borderTop: `1px solid ${BD}`, padding: '48px 40px' }}>
         <HomeNewsletter />
       </section>
@@ -149,8 +152,8 @@ export default function HomePage() {
             fontSize: 18, fontFamily: SYS, fontWeight: 400,
             color: T3, lineHeight: 1.7, marginBottom: 32,
           }}>
-            Used by contractors, lenders, and suppliers across the US.
-            Start with the dashboard.
+            All data sourced from US government agencies.
+            All forecasts documented. All of it free.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/dashboard" style={{

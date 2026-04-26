@@ -23,17 +23,27 @@ export function HomeHero({ spendDisp, spendMom }: Props) {
           fontSize: 'clamp(36px,5vw,52px)',
           fontFamily: SYS, fontWeight: 700,
           lineHeight: 1.15, letterSpacing: '-0.03em',
-          color: T1, marginBottom: 16,
+          color: T1, marginBottom: 14,
         }}>
-          The US construction economy,<br />in real time.
+          Free construction market intelligence.
         </h1>
 
         <p style={{
-          fontSize: 18, fontFamily: SYS, fontWeight: 400,
-          color: T3, lineHeight: 1.65,
-          maxWidth: 460, margin: '0 auto 56px',
+          fontSize: 18, fontFamily: SYS, fontWeight: 500,
+          color: T1, lineHeight: 1.5,
+          maxWidth: 560, margin: '0 auto 14px',
         }}>
-          For contractors, lenders, and suppliers. Free.
+          Transparent sources. Validated forecasts. AI-explained signals.
+        </p>
+
+        <p style={{
+          fontSize: 16, fontFamily: SYS, fontWeight: 400,
+          color: T3, lineHeight: 1.65,
+          maxWidth: 500, margin: '0 auto 56px',
+        }}>
+          Know when markets are moving, where demand is building, and
+          what signals matter — for contractors, suppliers, lenders,
+          and developers.
         </p>
 
         {/* ── Spending KPI ── */}
@@ -82,7 +92,7 @@ export function HomeHero({ spendDisp, spendMom }: Props) {
           }}>
             Open Dashboard →
           </Link>
-          <Link href="/subscribe" style={{
+          <Link href="/methodology" style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             background: 'transparent', color: T1,
             fontSize: 15, fontWeight: 500,
@@ -90,7 +100,7 @@ export function HomeHero({ spendDisp, spendMom }: Props) {
             border: `1px solid ${BD}`,
             letterSpacing: '-0.01em', textDecoration: 'none',
           }}>
-            Subscribe to The Signal
+            Read Methodology →
           </Link>
         </div>
       </div>
