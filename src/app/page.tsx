@@ -10,7 +10,7 @@ import {
 } from "./home/home-utils"
 import { HomeVerdictBanner } from "./home/HomeVerdictBanner"
 import { HomeNav }           from "./home/HomeNav"
-import { HomeHero }          from "./home/HomeHero"
+import { HeroSection }       from "./components/HeroSection"
 import { HomeRoles }         from "./home/HomeRoles"
 import { HomeNewsletter }    from "./home/HomeNewsletter"
 import { HomeStatusCards }   from "./home/HomeStatusCards"
@@ -59,7 +59,6 @@ export default function HomePage() {
   const obs0      = parseFloat(census?.observations?.[0]?.value ?? '0')
   const obs1      = parseFloat(census?.observations?.[1]?.value ?? '0')
   const spendMom  = obs0 > 0 && obs1 > 0 ? ((obs0 - obs1) / obs1) * 100 : 0
-  const spendDisp = census ? fmtMillions(obs0) : null
 
   // ── BLS series ──
   const empSer  = blsSeries(bls, 'CES2000000001')
@@ -127,7 +126,7 @@ export default function HomePage() {
 
       <HomeVerdictBanner verdict={verdict} loading={verdictLoading} />
       <HomeNav />
-      <HomeHero spendDisp={spendDisp} spendMom={spendMom} />
+      <HeroSection />
 
       <HomeRoles />
 

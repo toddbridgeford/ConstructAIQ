@@ -134,22 +134,22 @@ export function HeroSection() {
       <div className="eyebrow d1">
         <span className="live-dot" />
         <span style={{ fontFamily:MONO, fontSize:11, color:AMBER, letterSpacing:"0.08em" }}>
-          312 DATA SOURCES · 3-MODEL AI ENSEMBLE · LIVE
+          3-MODEL AI ENSEMBLE · LIVE
         </span>
       </div>
 
       <h1 className="hero-h1 d2">
         The free construction<br />
-        <span className="grad-text">intelligence platform</span>
+        <span>intelligence platform</span>
       </h1>
 
       <p className="hero-sub d3">
-        12-month AI forecast · 38+ live data sources · Open API · Free forever. No credit card.
+        12-month AI forecast · 38+ live data sources · Free forever.
       </p>
 
       <div className="hero-ctas d4">
-        <Link href="/dashboard" className="btn-fl">See Live Intelligence →</Link>
-        <Link href="/pricing"   className="btn-g">Get Free Access</Link>
+        <Link href="/dashboard" className="btn-fl">Open Dashboard →</Link>
+        <Link href="/trust"     className="btn-g">Trust Center →</Link>
       </div>
 
       {/* 60 / 40: chart left, signals right */}
