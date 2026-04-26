@@ -302,27 +302,102 @@ The HomeTrust cards and the pricing page cards both use the exact radius/border/
 
 ## Priority Fixes
 
-> **TODO:** Rank top fixes by user impact once audit is complete.
+Ordered by weighted score impact: dimension weight × expected score gain. Fixes that touch Typography (20%) or Visual Hierarchy (20%) deliver the most overall movement per unit of effort.
 
-| Priority | Fix | File | Rationale |
-|----------|-----|------|-----------|
-| 1 | Remove unbuilt routes from Sidebar NAV | `Sidebar.tsx:37–53` | Every broken link destroys the platform's credibility on every visit — a short nav that works is better than a full nav that 404s |
-| 2 | Standardize freshness vocabulary | `status/page.tsx:111–115` · `trust/page.tsx:431–513` | Three incompatible label systems for the same concept ("Aging" / "Stale" / "Delayed") actively undermine the Trust Center's transparency mission |
-| 3 | Add error/timeout state to dashboard `load()` | `dashboard/page.tsx:169–181` | Silent `—` on API failure is indistinguishable from a loading state; professional users relying on the platform for decisions cannot tell if data is unavailable |
+| # | Dimension(s) | Specific change | File / area | Expected gain |
+|---|---|---|---|---|
+| 1 | Visual Hierarchy (20%) + Emotional Resonance (5%) | Wire `HeroSection.tsx` into `page.tsx` in place of `HomeHero`. The live 60/40 split layout with forecast chart left + signals rail right is already built. Remove centered SaaS layout, remove grad-text, move real data above the fold. | `page.tsx:130` — replace `<HomeHero>` with `<HeroSection>` | Visual Hierarchy +2 → 7/10; Emotional Resonance +2 → 7/10; **overall +0.50** |
+| 2 | Typography (20%) | Add `@font-face` declarations to `globals.css` for Aeonik Pro woff2 files and apply font class to `<html>` and `<body>` in `layout.tsx`. Until the font loads, every type decision in `theme.ts` renders in the system fallback chain — the typographic identity is entirely absent. | `src/app/globals.css` · `src/app/layout.tsx` | Typography +2 → 7/10; **overall +0.40** |
+| 3 | Color & Palette (20%) + Spacing & Rhythm (15%) | Add `import { color, space } from '@/lib/theme'` to `trust/page.tsx` and replace all 12 hardcoded hex strings (`'#333'`, `'#111'`, `'#f5f5f5'`, `'#aaa'`, etc.) with their `color.*` equivalents. Replace raw `48px/64px/80px` section padding with `space.*` tokens. | `src/app/trust/page.tsx:17–64, 152, 163` | Color +1.5 → 6.5/10; Spacing +1 → 6/10; **overall +0.45** |
+| 4 | Typography (20%) + Visual Hierarchy (20%) | Cap `TS.label` usage to two roles only: (1) the label directly above a numeric KPI value, (2) one section-type eyebrow per page. Remove it from HomeTrust card eyebrows, page-header brand labels (`ConstructAIQ` above H1 on all four pages), and navigation items. Replace section eyebrows that name prose sections with `type.h3` in `font.sys`. | `HomeHero.tsx:20` · `HomeRoles.tsx:33` · `HomeTrust.tsx:22,46,67` · `trust/page.tsx:207` · `status/page.tsx:390` | Typography +1 → 6/10; Visual Hierarchy +1 → 6/10; **overall +0.40** |
+| 5 | Color & Palette (20%) + Component Consistency (10%) | Standardize freshness vocabulary to the `DataTrustBadge` set: `fresh / stale / delayed / failed / fallback / unknown`. In `status/page.tsx:111–115` rename `STATUS_DOT.warn.label` from `'Aging'` to `'Delayed'`. In `trust/page.tsx:509–513` update the Source Health state list to use `Delayed` not `Aging`. Everywhere the same concept now uses the same word. | `src/app/status/page.tsx:111–115` · `src/app/trust/page.tsx:509–513` | Color +1 → 6/10; Consistency +1 → 5/10; **overall +0.30** |
+| 6 | Component Consistency (10%) | Delete `KPICard.tsx` and the local `KpiCard` function in `OverviewSection.tsx`. Consolidate into one canonical component: `color.bg1` background, `layout.cardRadius` (12) border-radius, `type.kpi` (48px) for hero values, `type.kpiSm` (32px) for secondary values, custom SVG sparkline. Any section currently using `KPICard.tsx` (recharts, `borderRadius:16`, `22px` value) must be migrated. | `src/app/dashboard/components/KPICard.tsx` · `src/app/dashboard/sections/OverviewSection.tsx:218–264` | Consistency +3 → 7/10; **overall +0.30** |
+| 7 | Spacing & Rhythm (15%) | Replace every raw section padding value in homepage components with `space.*` tokens. Target: all sections use one of `space.xxl` (48), `space.xl` (32), or a named multiple. Remove the five-value spread (48/56/64/64/80px) that currently gives adjacent sections different visual weight for no semantic reason. | `src/app/page.tsx:134,138,149` · `src/app/home/HomeRoles.tsx:31` · `src/app/home/HomeTrust.tsx:13` | Spacing +2 → 7/10; **overall +0.30** |
+| 8 | Visual Hierarchy (20%) | Move `<HomeNewsletter>` from `page.tsx:134–136` (between Roles and StatusCards) to after `<HomeLiveStats>` at line 142. Email capture should appear after the product has demonstrated value — live market data, live stats — not before the first data surface. | `src/app/page.tsx:134–142` — reorder section sequence | Visual Hierarchy +1 → 7/10; **overall +0.20** |
+| 9 | Accessibility (5%) + Typography (20%) | Raise every `fontSize: 9` instance to a minimum of `11`. Affected: `DataTrustBadge.tsx:119` (status label), `OverviewSection.tsx:172` (SVG axis text), `OverviewSection.tsx:232` (KpiCard source line). At 9px on dark backgrounds, contrast ratios fall to ≈3.5:1 — below WCAG AA 4.5:1 minimum for informational text. | `src/app/components/DataTrustBadge.tsx:119` · `src/app/dashboard/sections/OverviewSection.tsx:172,232` | Accessibility +2 → 6/10; Typography +0.5 → 6.5/10; **overall +0.20** |
+| 10 | Accessibility (5%) | Replace `.tc-nav { display: none !important }` at `trust/page.tsx:158` with a horizontally-scrollable anchor chip row that appears at the top of `.tc-content` on viewports under 700px. Six chips, one per section, `overflow-x: auto`, `white-space: nowrap`. The Trust Center is six long sections; mobile users need navigation. | `src/app/trust/page.tsx:156–159` | Accessibility +1.5 → 5.5/10; **overall +0.075** |
+| 11 | Color & Palette (20%) | Resolve `color.purple` (`#5e5ce6`). It appears in one place: `OverviewSection.tsx:403` as the CSHI Score KPI accent. Either (a) document purple's semantic meaning in `theme.ts` alongside `signal.*` — e.g. `signal.composite: color.purple` — or (b) replace with `color.blue` and demote CSHI from accent-color differentiation. An unexplained accent color in a data system creates noise, not signal. | `src/lib/theme.ts` · `src/app/dashboard/sections/OverviewSection.tsx:403` | Color +0.5 → 6.5/10; **overall +0.10** |
+| 12 | Emotional Resonance (5%) | Remove `box-shadow: 0 4px 24px rgba(10,132,255,0.40)` from `.btn-fl` at rest and simplify hover to background-color change only — no `transform: translateY(-2px)`, no amplified shadow. The glow-and-lift CTA button is the signature of AI-generated landing pages. A flat color-change is faster, more credible, and more consistent with the product's "calm, executive-readable" positioning. | `src/app/globals.css:129–138` | Emotional Resonance +0.5 → 5.5/10; **overall +0.025** |
 
 ---
 
 ## What a 10 Looks Like for ConstructAIQ
 
-> **TODO:** Define the target state in product-specific terms.
+A 10 is not generic design excellence. It is a specific visual identity that could only belong to a US construction intelligence platform — one that earns trust through data transparency, communicates authority through precision, and serves professionals who make real financial and operational decisions from what they see.
 
-A 10 for ConstructAIQ means:
+---
 
-- **Typography:** Aeonik Pro rendering at every size; MONO used only for numeric data values, series IDs, and timestamps — never for prose or section headers
-- **Color:** Amber signals "primary data accent," blue signals "action/forecast," green/red signal "direction" — no role confusion, no phantom palette entries
-- **Hierarchy:** One dominant element per screen; forecasting is unmistakably the hero on the dashboard; the homepage hero communicates the product in 5 seconds without scrolling
-- **Consistency:** Every card, badge, and label drawn from the same token set; `theme.ts` is the single source of truth with zero inline hex strings in component files
-- **Emotional resonance:** The product feels like Revolut Business composure applied to construction data — calm, precise, executive-readable — not a generic SaaS marketing page
+### Typography
+
+Aeonik Pro renders at every size across every surface — homepage, dashboard, trust, status. No page falls back to system sans-serif. `font.mono` is used for exactly three things: numeric KPI values, series IDs (TTLCONS, CES2000000001), and timestamps. It is never used for section eyebrows, card titles, page-level navigation, or prose. The scale distinction between SYS and MONO is legible and intentional — prose reads in Aeonik, data reads in mono. A designer looking at any single screen can identify the typographic system in under ten seconds.
+
+---
+
+### Color and Palette
+
+The palette is a signal system, not a decoration system:
+
+- **Amber** means "primary data value" — construction spending, the headline metric, the Verdict
+- **Blue** means "forecast and action" — projected values, CTAs, confidence bands
+- **Green** means "expansion / positive direction" — employment growth, markets heating
+- **Red** means "contraction / risk" — decline, alert, failed pipeline
+- **Gray** (`t3`, `t4`) means "context and metadata" — source attributions, timestamps, secondary labels
+
+No color is used outside this system. `color.purple` either has a documented semantic role or is removed. The freshness vocabulary (`fresh / stale / delayed / failed / fallback / unknown`) uses these colors consistently across every surface that shows pipeline status — DataTrustBadge, /status data freshness table, /trust source health documentation, API responses. A professional who learns the color meaning on the dashboard does not need to relearn it on /status.
+
+---
+
+### Spacing and Rhythm
+
+Every page section uses spacing from the `space.*` token scale. The rhythm is legible: sections breathe at `space.xxl` (48px) vertical padding, card interiors use `layout.cardPad` (24px), and inline label-to-value gaps use `space.sm` (8px) or `space.md` (16px). No adjacent sections use raw pixel values that differ from their neighbors by arbitrary amounts (48/56/64/64/80px). A designer scrolling through source code sees consistent token names, not a history of one-off size decisions.
+
+---
+
+### Visual Hierarchy
+
+Every screen has one dominant element. On the dashboard, the ForecastChart fills the width at the top of the forecast section — the 12-month ensemble line is immediately visible, the confidence bands are the widest visual element on the screen, and the current spending value is the largest number. KPI cards below it are supporting context, not competing primaries.
+
+On the homepage, the live forecast chart is the above-the-fold hero. A user who has never heard of ConstructAIQ opens the page and sees a real chart with real numbers before they read a headline. The data is the argument.
+
+On /trust, the section navigation is always visible — on desktop as a sticky left column, on mobile as a scrollable chip row at the top of the content. Six sections of dense methodology documentation are navigable in under two taps.
+
+---
+
+### Source and Freshness Trust Context
+
+Every data surface carries exactly one `DataTrustBadge` — placed at the bottom of the section it describes, expanded on forecast sections (showing quality bar and caveat), compact on KPI sections. The badge shows the same four fields everywhere: status dot + label, source name, data type, as-of date. "Fresh" always means the same thing: pipeline ran within 24 hours. "Stale" always means 1–6 days. "Delayed" always means 7+ days. A professional reading the Trust Center learns the vocabulary once and encounters the same terms on the dashboard, on /status, and in API responses.
+
+No number on any surface is hardcoded as a fallback that pretends to be live. When data is unavailable, the slot shows a skeleton or an explicit unavailability state — never a static number in a live-data display context. When the API is down, the dashboard says so after 8 seconds rather than displaying silent dashes indefinitely.
+
+---
+
+### Role-Specific Clarity
+
+The homepage roles section does not describe five audiences in identical blue-bordered cards. It shows one live data point per role: Contractors see current permit volume for the top market in their segment. Lenders see CSHI plus the current 30-year rate. Suppliers see the top material BUY/SELL signal. The data does not just promise relevance — it demonstrates it before the user commits to navigating further.
+
+The dashboard Verdict Banner surfaces one of three states — EXPAND, CONTRACT, WATCH — and the color matches the signal system: green/red/amber. A new user landing on the dashboard knows the market direction before they read a number.
+
+---
+
+### Dense but Readable Dashboard
+
+The dashboard is dense by design — six KPI numbers, a 12-month chart, confidence bands, model weights, signals, materials — but density is organized by hierarchy, not sprawl. The primary metric (construction spending forecast) is the largest element. The four KPI cards below it are supporting context at a consistent size. The signals panel is visually quieter than the forecast chart. An operator can read the dashboard status in under 30 seconds without having to decide which number matters most.
+
+No section is padded to feel lighter at the cost of information. No chart is decorative. Every element earns its space by answering a question a real construction professional would ask.
+
+---
+
+### No Fake Metrics
+
+No number on any surface is illustrative, synthetic, hardcoded, or derived from `Math.random()`. Sparklines show real `observations` rows from the Supabase time-series store. Heatmap values come from real BSI calculations. The Weekly Brief is generated by the Claude API from real data context, not served from a static string. When a number cannot be fetched, the slot shows a loading shimmer or an explicit unavailability message — never a number that looks real but isn't.
+
+---
+
+### Professional Emotional Tone
+
+The platform feels like Revolut Business composure applied to construction intelligence. It is calm, not exclamatory. It is precise, not approximate. It is confident, not promotional. It does not animate things that don't need animation. Its primary CTA buttons are flat, solid-fill, and change color on hover — no glow, no lift. Its headlines are in sentence case or title case, not ALL CAPS. Its color is used to communicate, not to decorate.
+
+A construction lender, a federal infrastructure analyst, or a major contractor's CFO opens the dashboard and feels that the platform understands what they need — not that it is trying to sell them something. The product's emotional argument is: *we built this the way serious data infrastructure gets built, and we made it free.* Every design decision either reinforces that argument or works against it.
 
 ---
 
