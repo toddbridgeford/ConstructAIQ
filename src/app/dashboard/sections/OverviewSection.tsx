@@ -446,7 +446,7 @@ export function OverviewSection({
             {forecastDirection}
           </span>
           <span style={{ fontFamily: MONO, fontSize: 9, color: color.t4 }}>
-            — model estimate · see Forecast tab
+            — model estimate · ensemble forecast
           </span>
         </div>
       )}

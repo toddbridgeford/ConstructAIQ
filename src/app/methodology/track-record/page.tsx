@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import {
   LineChart, Line, XAxis, YAxis, Tooltip,
-  CartesianGrid, ResponsiveContainer, Legend,
+  CartesianGrid, ResponsiveContainer,
 } from "recharts"
 import { Nav }     from "@/app/components/Nav"
 import { Skeleton } from "@/app/components/Skeleton"
@@ -18,6 +18,23 @@ const MONO = font.mono, SYS = font.sys
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+interface ParBreakdownItem { par: number; sample_size: number }
+
+interface ParData {
+  overall_par: number | null
+  by_horizon:  Record<string, ParBreakdownItem>
+  by_type:     Record<string, ParBreakdownItem>
+  sample_size: number
+  as_of:       string
+  note:        string
+}
+
+interface WeeklyEntry {
+  week_ending: string
+  par:         number | null
+  sample_size: number
+}
+
 interface TrackRecord {
   month:    string
   forecast: number
@@ -31,17 +48,22 @@ interface TrackData {
   directionAcc: number | null
   n:            number
 }
-interface ForecastMeta {
-  metrics:   { mape: number; accuracy: number; n: number }
-  bestModel: string
-  trainedOn: number
-}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function fmtMonth(iso: string): string {
   try { return new Date(iso + "-01").toLocaleDateString("en-US", { month:"short", year:"numeric" }) }
   catch { return iso }
+}
+
+function fmtDate(iso: string): string {
+  try { return new Date(iso).toLocaleDateString("en-US", { month:"short", day:"numeric" }) }
+  catch { return iso }
+}
+
+function horizonLabel(key: string): string {
+  const map: Record<string, string> = { "30d":"1 month", "90d":"3 months", "180d":"6 months", "365d":"12 months" }
+  return map[key] ?? key
 }
 
 function errColor(pct: number): string {
@@ -55,16 +77,26 @@ function errBg(pct: number): string {
   return color.redDim
 }
 
+function parColor(par: number): string {
+  if (par >= 90) return GREEN
+  if (par >= 75) return AMBER
+  return RED
+}
+
 // ── Shared components ──────────────────────────────────────────────────────
 
-function KpiCard({ label, value, sub }: { label:string; value:string; sub?:string }) {
+function KpiCard({ label, value, sub, valueColor }: {
+  label: string; value: string; sub?: string; valueColor?: string
+}) {
   return (
     <div style={{ flex:"1 1 180px", background:BG1, borderRadius:16,
                   border:`1px solid ${BD1}`, padding:"20px 24px" }}>
       <div style={{ fontFamily:MONO, fontSize:10, color:T4, letterSpacing:"0.1em",
                     textTransform:"uppercase", marginBottom:8 }}>{label}</div>
-      <div style={{ fontFamily:MONO, fontSize:26, fontWeight:700, color:T1,
-                    letterSpacing:"-0.02em", lineHeight:1.1 }}>{value}</div>
+      <div style={{ fontFamily:MONO, fontSize:26, fontWeight:700,
+                    color:valueColor ?? T1, letterSpacing:"-0.02em", lineHeight:1.1 }}>
+        {value}
+      </div>
       {sub && <div style={{ fontFamily:SYS, fontSize:12, color:T3, marginTop:5 }}>{sub}</div>}
     </div>
   )
@@ -87,7 +119,25 @@ function SLabel({ children }: { children:React.ReactNode }) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ChartTooltip({ active, payload, label }: any) {
+function WeeklyTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  const p = payload[0]
+  return (
+    <div style={{ background:BG2, border:`1px solid ${BD2}`, borderRadius:10,
+                  padding:"10px 14px", fontFamily:MONO, fontSize:12 }}>
+      <div style={{ color:T4, marginBottom:4 }}>Week ending {fmtDate(label)}</div>
+      <div style={{ color:p.value != null ? parColor(p.value) : T4 }}>
+        PAR: {p.value != null ? `${p.value}%` : "no data"}
+      </div>
+      <div style={{ color:T4, fontSize:10, marginTop:2 }}>
+        {payload[1]?.value ?? 0} resolved
+      </div>
+    </div>
+  )
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function TrackTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
     <div style={{ background:BG2, border:`1px solid ${BD2}`, borderRadius:10,
@@ -102,40 +152,83 @@ function ChartTooltip({ active, payload, label }: any) {
   )
 }
 
+function InsufficientData() {
+  return (
+    <div style={{ padding:"40px 32px", textAlign:"center" }}>
+      <div style={{ fontFamily:SYS, fontSize:15, color:T3, lineHeight:1.7 }}>
+        Insufficient resolved predictions — check back as the platform ages.
+      </div>
+      <div style={{ fontFamily:MONO, fontSize:11, color:T4, marginTop:8 }}>
+        Predictions are resolved weekly after their horizon window elapses.
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function TrackRecordPage() {
-  const [track,    setTrack]    = useState<TrackData | null>(null)
-  const [meta,     setMeta]     = useState<ForecastMeta | null>(null)
-  const [loading,  setLoading]  = useState(true)
+  const [par,     setPar]     = useState<ParData | null>(null)
+  const [weekly,  setWeekly]  = useState<WeeklyEntry[]>([])
+  const [track,   setTrack]   = useState<TrackData | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
       async function safe(url: string) {
         try { const r = await fetch(url); return r.ok ? r.json() : null } catch { return null }
       }
-      const [trackD, foreD] = await Promise.all([
+      const [parD, weeklyD, trackD] = await Promise.all([
+        safe("/api/par"),
+        safe("/api/par/weekly"),
         safe("/api/forecast/track-record"),
-        safe("/api/forecast?series=TTLCONS"),
       ])
-      if (trackD) setTrack(trackD)
-      if (foreD)  setMeta(foreD)
+      if (parD)    setPar(parD)
+      if (weeklyD) setWeekly(weeklyD.weeks ?? [])
+      if (trackD)  setTrack(trackD)
       setLoading(false)
     }
     load()
   }, [])
 
-  // Chart data: merge forecast + actual by month
+  const hasEnoughData    = (par?.sample_size ?? 0) > 0
+  const overallPar       = par?.overall_par ?? null
+  const sampleSize       = par?.sample_size ?? 0
+  const byHorizon        = par?.by_horizon  ?? {}
+  const byType           = par?.by_type     ?? {}
+  const asOf             = par?.as_of       ?? ""
+
+  // Chart data: forecast vs actual from track-record API
   const chartData = (track?.records ?? []).map(r => ({
-    month:    r.month,
-    Forecast: r.forecast,
-    Actual:   r.actual,
+    month: r.month, Forecast: r.forecast, Actual: r.actual,
   }))
 
-  const mape         = track?.avgMape ?? meta?.metrics?.mape ?? null
-  const dirAcc       = track?.directionAcc
-  const bestModel    = meta?.bestModel ?? "—"
-  const nObs         = track?.n ?? meta?.trainedOn ?? null
+  // Weekly PAR chart data — only weeks with data
+  const weeklyChart = weekly.map(w => ({
+    week_ending: w.week_ending,
+    par:         w.par,
+    sample_size: w.sample_size,
+  }))
+
+  // Horizon breakdown sorted: 30d, 90d, 180d, 365d
+  const horizonOrder = ["30d", "90d", "180d", "365d"]
+  const horizonRows = horizonOrder
+    .filter(k => byHorizon[k])
+    .map(k => ({ key: k, label: horizonLabel(k), ...byHorizon[k] }))
+
+  // Also include any unlisted horizon keys not in the standard set
+  Object.keys(byHorizon).filter(k => !horizonOrder.includes(k)).forEach(k => {
+    horizonRows.push({ key: k, label: k, ...byHorizon[k] })
+  })
+
+  // Score-type rows (confidence levels if present)
+  const typeRows = Object.entries(byType).map(([key, v]) => ({
+    key,
+    label: key.replace("80pct","80% interval").replace("95pct","95% interval"),
+    ...v,
+  }))
+
+  const pendingNote = par?.note ?? ""
 
   return (
     <div style={{ minHeight:"100vh", background:BG0, color:T1, fontFamily:SYS,
@@ -158,12 +251,18 @@ export default function TrackRecordPage() {
             Forecast Track Record
           </h1>
           <p style={{ fontFamily:SYS, fontSize:17, color:T3, lineHeight:1.65, maxWidth:580 }}>
-            Every forecast we published vs. what actually happened.
-            No competitor publishes this. We do.
+            Live prediction accuracy computed from resolved outcomes — no hardcoded figures.
+            Predictions are checked against Census Bureau actuals as each horizon window elapses.
           </p>
+          {asOf && (
+            <div style={{ fontFamily:MONO, fontSize:11, color:T4,
+                          marginTop:12, letterSpacing:"0.04em" }}>
+              Figures as of {asOf}
+            </div>
+          )}
         </div>
 
-        {/* ── KPI row ──────────────────────────────────────────────── */}
+        {/* ── PAR KPI row ──────────────────────────────────────────── */}
         <div style={{ display:"flex", gap:16, flexWrap:"wrap", marginBottom:32 }}>
           {loading ? (
             [0,1,2,3].map(i => <Skeleton key={i} height={96} borderRadius={16}
@@ -171,156 +270,274 @@ export default function TrackRecordPage() {
           ) : (
             <>
               <KpiCard
-                label="12-Month MAPE"
-                value={mape != null ? `${mape.toFixed(1)}%` : "—"}
-                sub="Mean absolute percentage error"
+                label="Overall PAR"
+                value={overallPar != null ? `${overallPar}%` : "—"}
+                sub={sampleSize > 0
+                  ? `computed from ${sampleSize} resolved prediction${sampleSize !== 1 ? "s" : ""}`
+                  : "no resolved predictions yet"}
+                valueColor={overallPar != null ? parColor(overallPar) : T4}
               />
+              {horizonRows[0] && (
+                <KpiCard
+                  label={`PAR · ${horizonRows[0].label}`}
+                  value={`${horizonRows[0].par}%`}
+                  sub={`n = ${horizonRows[0].sample_size}`}
+                  valueColor={parColor(horizonRows[0].par)}
+                />
+              )}
+              {horizonRows[1] && (
+                <KpiCard
+                  label={`PAR · ${horizonRows[1].label}`}
+                  value={`${horizonRows[1].par}%`}
+                  sub={`n = ${horizonRows[1].sample_size}`}
+                  valueColor={parColor(horizonRows[1].par)}
+                />
+              )}
               <KpiCard
-                label="Best Model (last 12mo)"
-                value={bestModel.replace("holt-winters","Holt-Winters").replace("sarima","SARIMA").replace("xgboost","Custom GBT")}
-                sub="Lowest recent MAPE"
-              />
-              <KpiCard
-                label="Direction Accuracy"
-                value={dirAcc != null ? `${dirAcc}%` : "—"}
-                sub="Monthly direction calls correct"
-              />
-              <KpiCard
-                label="Observations"
-                value={nObs != null ? `${nObs}mo` : "—"}
-                sub="Training data depth"
+                label="Resolved Predictions"
+                value={sampleSize > 0 ? `${sampleSize}` : "0"}
+                sub={pendingNote || "outcomes checked weekly"}
               />
             </>
           )}
         </div>
 
-        {/* ── Forecast vs Actual Chart ──────────────────────────────── */}
+        {/* ── PAR by Horizon ───────────────────────────────────────── */}
         <Card style={{ marginBottom:24 }}>
-          <SLabel>Forecast vs Actual · TTLCONS · 12-Month-Ahead Predictions</SLabel>
+          <SLabel>PAR by Forecast Horizon</SLabel>
           <h2 style={{ fontFamily:SYS, fontSize:20, fontWeight:700, color:T1,
-                       letterSpacing:"-0.02em", marginBottom:24 }}>
-            What We Forecast vs. What Happened
+                       letterSpacing:"-0.02em", marginBottom:20 }}>
+            Accuracy by Horizon Window
           </h2>
           {loading ? (
-            <Skeleton height={280} borderRadius={12} />
-          ) : chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={chartData} margin={{ top:8, right:24, bottom:0, left:0 }}>
-                <CartesianGrid stroke={BD1} strokeDasharray="3,3" />
-                <XAxis
-                  dataKey="month" tick={{ fontFamily:MONO, fontSize:10, fill:T4 }}
-                  tickFormatter={fmtMonth} axisLine={false} tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontFamily:MONO, fontSize:10, fill:T4 }}
-                  tickFormatter={v => `$${(v/1000).toFixed(1)}T`}
-                  axisLine={false} tickLine={false} width={56}
-                />
-                <Tooltip content={<ChartTooltip />} />
-                <Legend
-                  wrapperStyle={{ fontFamily:MONO, fontSize:11, color:T4, paddingTop:12 }}
-                />
-                <Line dataKey="Forecast" stroke={AMBER} strokeWidth={2}
-                      dot={{ fill:AMBER, r:3 }} activeDot={{ r:5 }} />
-                <Line dataKey="Actual"   stroke={T1}   strokeWidth={2.5}
-                      dot={{ fill:T1, r:3 }} activeDot={{ r:5 }} strokeDasharray="none" />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div style={{ padding:"48px 0", textAlign:"center",
-                          fontFamily:SYS, fontSize:14, color:T4 }}>
-              Track record data unavailable
+            <Skeleton height={120} borderRadius={12} />
+          ) : !hasEnoughData ? (
+            <InsufficientData />
+          ) : horizonRows.length > 0 ? (
+            <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
+              {horizonRows.map(row => (
+                <div key={row.key} style={{
+                  flex:"1 1 160px", background:BG2, borderRadius:14,
+                  border:`1px solid ${BD1}`, padding:"18px 20px",
+                }}>
+                  <div style={{ fontFamily:MONO, fontSize:10, color:T4,
+                                letterSpacing:"0.08em", textTransform:"uppercase",
+                                marginBottom:8 }}>
+                    {row.label}
+                  </div>
+                  <div style={{ fontFamily:MONO, fontSize:28, fontWeight:700,
+                                color:parColor(row.par), lineHeight:1.1 }}>
+                    {row.par}%
+                  </div>
+                  <div style={{ fontFamily:MONO, fontSize:11, color:T4, marginTop:6 }}>
+                    n = {row.sample_size}
+                  </div>
+                </div>
+              ))}
             </div>
+          ) : (
+            <InsufficientData />
           )}
-          <div style={{ marginTop:16, fontFamily:SYS, fontSize:12, color:T4, lineHeight:1.6 }}>
-            Amber line: what the model forecast 12 months prior.
-            White line: Census C30 actuals. Dollar values in $B SAAR.
+          <div style={{ marginTop:18, fontFamily:SYS, fontSize:12, color:T4, lineHeight:1.6 }}>
+            PAR (Prediction Accuracy Rate): fraction of resolved predictions where the Census Bureau
+            actual fell within the stated confidence interval.
           </div>
         </Card>
 
-        {/* ── Monthly accuracy table ────────────────────────────────── */}
-        <Card style={{ marginBottom:24, padding:0, overflow:"hidden" }}>
-          <div style={{ padding:"24px 28px 0" }}>
-            <SLabel>Monthly Breakdown · Last 12 Months</SLabel>
+        {/* ── PAR by Score Type ────────────────────────────────────── */}
+        {typeRows.length > 0 && (
+          <Card style={{ marginBottom:24 }}>
+            <SLabel>PAR by Confidence Level</SLabel>
             <h2 style={{ fontFamily:SYS, fontSize:20, fontWeight:700, color:T1,
                          letterSpacing:"-0.02em", marginBottom:20 }}>
-              Forecast vs Actual — Month by Month
+              Accuracy by Interval Width
             </h2>
-          </div>
+            {loading ? (
+              <Skeleton height={80} borderRadius={12} />
+            ) : (
+              <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
+                {typeRows.map(row => (
+                  <div key={row.key} style={{
+                    flex:"1 1 180px", background:BG2, borderRadius:14,
+                    border:`1px solid ${BD1}`, padding:"18px 20px",
+                  }}>
+                    <div style={{ fontFamily:MONO, fontSize:10, color:T4,
+                                  letterSpacing:"0.08em", textTransform:"uppercase",
+                                  marginBottom:8 }}>
+                      {row.label}
+                    </div>
+                    <div style={{ fontFamily:MONO, fontSize:28, fontWeight:700,
+                                  color:parColor(row.par), lineHeight:1.1 }}>
+                      {row.par}%
+                    </div>
+                    <div style={{ fontFamily:MONO, fontSize:11, color:T4, marginTop:6 }}>
+                      n = {row.sample_size}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* ── Weekly PAR Trend ─────────────────────────────────────── */}
+        <Card style={{ marginBottom:24 }}>
+          <SLabel>PAR Trend · Last 12 Weeks</SLabel>
+          <h2 style={{ fontFamily:SYS, fontSize:20, fontWeight:700, color:T1,
+                       letterSpacing:"-0.02em", marginBottom:24 }}>
+            Rolling Accuracy — Weekly View
+          </h2>
           {loading ? (
-            <div style={{ padding:"0 28px 28px" }}>
-              <Skeleton height={280} borderRadius={12} />
-            </div>
+            <Skeleton height={200} borderRadius={12} />
+          ) : weeklyChart.some(w => w.par != null) ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={weeklyChart} margin={{ top:8, right:24, bottom:0, left:0 }}>
+                <CartesianGrid stroke={BD1} strokeDasharray="3,3" />
+                <XAxis
+                  dataKey="week_ending"
+                  tick={{ fontFamily:MONO, fontSize:10, fill:T4 }}
+                  tickFormatter={fmtDate}
+                  axisLine={false} tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontFamily:MONO, fontSize:10, fill:T4 }}
+                  tickFormatter={v => `${v}%`}
+                  axisLine={false} tickLine={false}
+                  domain={[0, 100]} width={40}
+                />
+                <Tooltip content={<WeeklyTooltip />} />
+                <Line
+                  dataKey="par" stroke={BLUE} strokeWidth={2}
+                  dot={{ fill:BLUE, r:3 }} activeDot={{ r:5 }}
+                  connectNulls={false}
+                />
+                <Line dataKey="sample_size" hide />
+              </LineChart>
+            </ResponsiveContainer>
           ) : (
-            <div style={{ overflowX:"auto" }}>
-              <table style={{ width:"100%", borderCollapse:"collapse" }}>
-                <thead>
-                  <tr>
-                    {["Month","Forecast ($B)","Actual ($B)","Error ($B)","% Error"].map(h => (
-                      <th key={h} style={{
-                        fontFamily:MONO, fontSize:10, color:T4,
-                        letterSpacing:"0.08em", textTransform:"uppercase",
-                        padding:"10px 20px", textAlign:"left",
-                        background:BG2, fontWeight:600, whiteSpace:"nowrap",
-                        borderBottom:`1px solid ${BD1}`,
-                      }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {(track?.records ?? []).map((r, i) => (
-                    <tr key={r.month} style={{ background: i % 2 === 0 ? BG2 : BG1 }}>
-                      <td style={{ fontFamily:MONO, fontSize:12, color:T2,
-                                   padding:"11px 20px", borderTop:`1px solid ${BD1}`,
-                                   whiteSpace:"nowrap" }}>
-                        {fmtMonth(r.month)}
-                      </td>
-                      <td style={{ fontFamily:MONO, fontSize:12, color:AMBER,
-                                   padding:"11px 20px", borderTop:`1px solid ${BD1}` }}>
-                        {r.forecast.toFixed(1)}
-                      </td>
-                      <td style={{ fontFamily:MONO, fontSize:12, color:T1, fontWeight:600,
-                                   padding:"11px 20px", borderTop:`1px solid ${BD1}` }}>
-                        {r.actual.toFixed(1)}
-                      </td>
-                      <td style={{ fontFamily:MONO, fontSize:12,
-                                   color: r.error >= 0 ? GREEN : RED,
-                                   padding:"11px 20px", borderTop:`1px solid ${BD1}` }}>
-                        {r.error >= 0 ? "+" : ""}{r.error.toFixed(1)}
-                      </td>
-                      <td style={{ padding:"11px 20px", borderTop:`1px solid ${BD1}` }}>
-                        <span style={{
-                          fontFamily:MONO, fontSize:11, fontWeight:700,
-                          color:errColor(r.pctError),
-                          background:errBg(r.pctError),
-                          borderRadius:6, padding:"2px 8px",
-                        }}>
-                          {r.pctError.toFixed(1)}%
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {(track?.records ?? []).length === 0 && (
-                    <tr>
-                      <td colSpan={5} style={{ padding:"32px", textAlign:"center",
-                                               fontFamily:SYS, fontSize:14, color:T4 }}>
-                        No track record data available
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <InsufficientData />
           )}
+          <div style={{ marginTop:14, fontFamily:SYS, fontSize:12, color:T4, lineHeight:1.6 }}>
+            Each point shows PAR for predictions resolved in that week.
+            Gaps indicate weeks with no resolved outcomes.
+          </div>
         </Card>
+
+        {/* ── Forecast vs Actual Chart ──────────────────────────────── */}
+        {(loading || chartData.length > 0) && (
+          <Card style={{ marginBottom:24 }}>
+            <SLabel>Forecast vs Actual · TTLCONS · 12-Month-Ahead Predictions</SLabel>
+            <h2 style={{ fontFamily:SYS, fontSize:20, fontWeight:700, color:T1,
+                         letterSpacing:"-0.02em", marginBottom:24 }}>
+              What We Forecast vs. What Happened
+            </h2>
+            {loading ? (
+              <Skeleton height={280} borderRadius={12} />
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={chartData} margin={{ top:8, right:24, bottom:0, left:0 }}>
+                  <CartesianGrid stroke={BD1} strokeDasharray="3,3" />
+                  <XAxis
+                    dataKey="month" tick={{ fontFamily:MONO, fontSize:10, fill:T4 }}
+                    tickFormatter={fmtMonth} axisLine={false} tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontFamily:MONO, fontSize:10, fill:T4 }}
+                    tickFormatter={v => `$${(v/1000).toFixed(1)}T`}
+                    axisLine={false} tickLine={false} width={56}
+                  />
+                  <Tooltip content={<TrackTooltip />} />
+                  <Line dataKey="Forecast" stroke={AMBER} strokeWidth={2}
+                        dot={{ fill:AMBER, r:3 }} activeDot={{ r:5 }} />
+                  <Line dataKey="Actual"   stroke={T1}   strokeWidth={2.5}
+                        dot={{ fill:T1, r:3 }} activeDot={{ r:5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+            <div style={{ marginTop:16, fontFamily:SYS, fontSize:12, color:T4, lineHeight:1.6 }}>
+              Amber: forecast published 12 months prior. White: Census C30 actuals (SAAR, $B).
+            </div>
+          </Card>
+        )}
+
+        {/* ── Monthly accuracy table ────────────────────────────────── */}
+        {(loading || (track?.records ?? []).length > 0) && (
+          <Card style={{ marginBottom:24, padding:0, overflow:"hidden" }}>
+            <div style={{ padding:"24px 28px 0" }}>
+              <SLabel>Monthly Breakdown · TTLCONS Historical Backtests</SLabel>
+              <h2 style={{ fontFamily:SYS, fontSize:20, fontWeight:700, color:T1,
+                           letterSpacing:"-0.02em", marginBottom:20 }}>
+                Forecast vs Actual — Month by Month
+              </h2>
+            </div>
+            {loading ? (
+              <div style={{ padding:"0 28px 28px" }}>
+                <Skeleton height={280} borderRadius={12} />
+              </div>
+            ) : (
+              <div style={{ overflowX:"auto" }}>
+                <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                  <thead>
+                    <tr>
+                      {["Month","Forecast ($B)","Actual ($B)","Error ($B)","% Error"].map(h => (
+                        <th key={h} style={{
+                          fontFamily:MONO, fontSize:10, color:T4,
+                          letterSpacing:"0.08em", textTransform:"uppercase",
+                          padding:"10px 20px", textAlign:"left",
+                          background:BG2, fontWeight:600, whiteSpace:"nowrap",
+                          borderBottom:`1px solid ${BD1}`,
+                        }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(track?.records ?? []).map((r, i) => (
+                      <tr key={r.month} style={{ background: i % 2 === 0 ? BG2 : BG1 }}>
+                        <td style={{ fontFamily:MONO, fontSize:12, color:T2,
+                                     padding:"11px 20px", borderTop:`1px solid ${BD1}`,
+                                     whiteSpace:"nowrap" }}>
+                          {fmtMonth(r.month)}
+                        </td>
+                        <td style={{ fontFamily:MONO, fontSize:12, color:AMBER,
+                                     padding:"11px 20px", borderTop:`1px solid ${BD1}` }}>
+                          {r.forecast.toFixed(1)}
+                        </td>
+                        <td style={{ fontFamily:MONO, fontSize:12, color:T1, fontWeight:600,
+                                     padding:"11px 20px", borderTop:`1px solid ${BD1}` }}>
+                          {r.actual.toFixed(1)}
+                        </td>
+                        <td style={{ fontFamily:MONO, fontSize:12,
+                                     color: r.error >= 0 ? GREEN : RED,
+                                     padding:"11px 20px", borderTop:`1px solid ${BD1}` }}>
+                          {r.error >= 0 ? "+" : ""}{r.error.toFixed(1)}
+                        </td>
+                        <td style={{ padding:"11px 20px", borderTop:`1px solid ${BD1}` }}>
+                          <span style={{
+                            fontFamily:MONO, fontSize:11, fontWeight:700,
+                            color:errColor(r.pctError), background:errBg(r.pctError),
+                            borderRadius:6, padding:"2px 8px",
+                          }}>
+                            {r.pctError.toFixed(1)}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* ── Honest Assessment ────────────────────────────────────── */}
         <Card style={{ marginBottom:48, border:`1px solid ${BD2}` }}>
           <SLabel>Honest Assessment</SLabel>
           <p style={{ fontFamily:SYS, fontSize:15, color:T3, lineHeight:1.8, margin:0 }}>
             Construction forecasting is hard. Input revisions, policy shocks, and structural
-            breaks create irreducible uncertainty. We publish this record because accountability
-            builds trust. If our model underperforms, we say so and explain why.
+            breaks create irreducible uncertainty. All accuracy figures on this page are computed
+            live from the <code style={{ fontFamily:MONO, fontSize:13, color:T2,
+              background:BG2, padding:"1px 5px", borderRadius:4 }}>/api/par</code> endpoint —
+            never hardcoded. If our models underperform, this page says so.
           </p>
         </Card>
 

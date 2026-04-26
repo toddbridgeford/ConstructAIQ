@@ -149,7 +149,7 @@ function UpcomingReleaseAlert() {
 }
 
 export default function Dashboard() {
-  const [activeSection,   setSection]        = useState('overview')
+  const [activeSection,   setSection]        = useState('forecast')
   const [showRolePrompt,  setShowRolePrompt]  = useState(false)
 
   useEffect(() => {
