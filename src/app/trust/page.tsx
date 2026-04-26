@@ -920,72 +920,161 @@ export default function TrustCenterPage() {
           <section id="limitations" style={{ marginBottom: 64, scrollMarginTop: 32 }}>
             <h2 style={sectionH2}>Limitations</h2>
             <p style={prose}>
-              ConstructAIQ is a free platform built on public data. There are real
-              constraints users should understand before making consequential decisions
-              from this data.
+              ConstructAIQ is a free platform built on public data. The limitations
+              below are real and consequential. Read them before relying on this
+              platform for decisions that matter.
             </p>
 
-            <h3 style={h3Style}>Data lag</h3>
+            <h3 style={h3Style}>Public data can lag by weeks or months</h3>
             <p style={prose}>
-              Most government statistical releases lag real-world conditions by 30–60 days.
-              Census construction spending data for March, for example, is typically
-              published in late May. The dashboard reflects the most recently published
-              data, not current conditions.
+              Most government statistical series reflect conditions from the recent
+              past, not the present. Census Bureau construction spending data for a
+              given month is typically published five to six weeks later. BLS
+              employment data for a reference month is released roughly two weeks
+              after month end. BEA state GDP data is quarterly and released months
+              after the reference quarter.
+            </p>
+            <p style={prose}>
+              The dashboard always shows the most recently published data — not
+              current market conditions. A user reading the dashboard in late April
+              is likely looking at February or early March data for most series.
+              This lag is inherent to public government statistics and cannot be
+              eliminated.
             </p>
 
-            <h3 style={h3Style}>Data revision</h3>
+            <h3 style={h3Style}>Public data can be revised after publication</h3>
             <p style={prose}>
-              Census Bureau and BLS data are subject to retroactive revision. Preliminary
-              estimates are routinely revised at annual benchmarks; large revisions are
-              possible. Forecasts trained on preliminary data may need to be re-evaluated
-              once revised data is published.
+              Preliminary government estimates are routinely revised. Census Bureau
+              construction spending figures are revised at the following monthly
+              release and again at annual benchmarks. BLS employment data undergoes
+              annual benchmark revisions that can substantially change prior-period
+              figures. Large revisions — moving an estimate by several percent — are
+              not uncommon after major economic events.
+            </p>
+            <p style={prose}>
+              ConstructAIQ forecasts train on whatever figures the upstream source
+              currently reports. If a prior period is revised, the next forecast run
+              will train on the revised history, and the forecast may shift. A
+              forecast computed before a revision and one computed after may differ
+              materially, both being correct given the data available at the time.
             </p>
 
-            <h3 style={h3Style}>Satellite data gaps</h3>
+            <h3 style={h3Style}>Permit data is incomplete and inconsistent across jurisdictions</h3>
             <p style={prose}>
-              The Sentinel-2 Bare Soil Index is computed from satellite imagery. Cloud
-              cover, seasonal vegetation, and satellite pass timing all affect data
-              availability. Gaps occur and are not interpolated — if a period has no
-              valid satellite observation, that period shows no data.
+              City-level permit data comes from the Census Bureau Building Permit
+              Survey, which covers a defined universe of approximately 59 cities.
+              Jurisdictions outside this universe are not represented. Coverage
+              varies: some surveyed cities report every month; others have gaps.
+              Permit definitions, fee structures, and reporting procedures differ
+              by municipality — a single-family permit in one jurisdiction is not
+              directly comparable to one in another.
+            </p>
+            <p style={prose}>
+              Permit issuance measures authorization to build, not construction
+              starts or completions. A permit may be issued months before work
+              begins, and some permits are never acted upon. Permit trends are a
+              leading signal, not a count of actual construction activity.
             </p>
 
-            <h3 style={h3Style}>Geographic coverage</h3>
+            <h3 style={h3Style}>Some feeds may be cached or in fallback mode</h3>
             <p style={prose}>
-              City permit data covers the Census Bureau survey universe (59 cities).
-              Markets outside the survey are not represented. Satellite BSI covers 20
-              US metropolitan areas. Federal award data is national but filtered to
-              construction NAICS codes, which may not capture all relevant awards.
+              ConstructAIQ depends on free-tier public APIs. When an upstream
+              source is temporarily unavailable, the platform serves the most
+              recently harvested data from its database rather than returning an
+              error. For some sources — particularly federal award and solicitation
+              data — this cache may be up to 24 hours old. In less common
+              situations, the platform may serve static fallback data that is
+              days or weeks behind.
+            </p>
+            <p style={prose}>
+              Every section and API response includes freshness metadata indicating
+              the response mode (live, cached, or fallback) and the timestamp of
+              the last successful data fetch. If you see a &ldquo;fallback&rdquo; or
+              &ldquo;stale&rdquo; indicator, the data shown may not reflect the current
+              state of the upstream source. Check{' '}
+              <Link href="/status" style={linkStyle}>/status</Link> to see which
+              pipelines are running normally.
             </p>
 
-            <h3 style={h3Style}>Federal obligations vs. disbursements</h3>
+            <h3 style={h3Style}>Forecasts are probabilistic, not determinate</h3>
             <p style={prose}>
-              USASpending.gov data reflects contract obligations — the amount of money
-              a federal agency has committed to pay. It does not reflect how much has
-              actually been spent or whether work has begun. Obligation-to-disbursement
-              timelines vary significantly by program and agency.
+              Every forecast is a probability distribution over possible futures,
+              not a statement about what will happen. The confidence intervals are
+              derived from historical model residuals — they describe how the
+              model has behaved in the past, not how the future will behave.
+            </p>
+            <p style={prose}>
+              The models do not account for structural breaks: events that fall
+              outside the historical distribution the models were trained on.
+              A sudden shift in interest rates, a major policy change, or an
+              economic shock will cause realized outcomes to fall outside the
+              stated intervals. This is not a model failure — it is an inherent
+              limitation of statistical forecasting. Treat confidence bands as
+              an estimate of normal-conditions uncertainty, not a guarantee
+              that extreme outcomes are impossible.
+            </p>
+            <p style={prose}>
+              Forecast accuracy degrades with horizon. A 1-month-ahead forecast
+              is more reliable than a 12-month-ahead forecast. The platform tracks
+              this by horizon — see{' '}
+              <Link href="/methodology/track-record" style={linkStyle}>
+                /methodology/track-record
+              </Link>{' '}
+              for current figures.
             </p>
 
-            <h3 style={h3Style}>Forecast uncertainty</h3>
+            <h3 style={h3Style}>AI explanations depend on available source data</h3>
             <p style={prose}>
-              Confidence intervals are estimated from historical model residuals. They
-              assume the future will behave similarly to the past. Structural breaks —
-              recessions, policy changes, natural disasters — are outside the model&apos;s
-              scope and will cause realized values to fall outside the stated intervals.
+              The AI analyst can only reason about data that has been ingested
+              into ConstructAIQ. If a source is stale, in fallback mode, or
+              covers only a subset of markets, the AI&apos;s answers reflect those
+              same constraints. An AI explanation of &ldquo;current&rdquo; construction
+              conditions in a given market is only as current as the most recently
+              harvested data for that market — which may lag real conditions by
+              weeks.
+            </p>
+            <p style={prose}>
+              The AI does not supplement ConstructAIQ data with external knowledge
+              or real-time web data. Questions about markets, periods, or metrics
+              not covered by an ingested source will return an explicit
+              &ldquo;insufficient data&rdquo; response rather than a generated estimate.
             </p>
 
-            <h3 style={h3Style}>Platform availability</h3>
+            <h3 style={h3Style}>Verify critical decisions against original records</h3>
             <p style={prose}>
-              ConstructAIQ uses free-tier APIs from federal agencies. If an upstream
-              source goes offline or changes its API, data for that source may gap until
-              the harvest pipeline is updated. Source health is visible at{' '}
-              <Link href="/status" style={linkStyle}>/status</Link>.
+              ConstructAIQ aggregates public data to surface signals and trends.
+              It is not a primary source. For decisions with legal, financial, or
+              operational consequences, verify the underlying figures against the
+              original government or agency records:
+            </p>
+            <ul style={{ ...prose, paddingLeft: 24 }}>
+              <li style={{ marginBottom: 6 }}>
+                Construction spending — <a href="https://www.census.gov/construction/c30/c30index.html" style={{ ...linkStyle, fontSize: 14 }}>Census Bureau C30</a>
+              </li>
+              <li style={{ marginBottom: 6 }}>
+                Employment — <a href="https://www.bls.gov/ces/" style={{ ...linkStyle, fontSize: 14 }}>BLS Current Employment Statistics</a>
+              </li>
+              <li style={{ marginBottom: 6 }}>
+                Federal awards — <a href="https://www.usaspending.gov" style={{ ...linkStyle, fontSize: 14 }}>USASpending.gov</a>
+              </li>
+              <li style={{ marginBottom: 6 }}>
+                Federal solicitations — <a href="https://sam.gov" style={{ ...linkStyle, fontSize: 14 }}>SAM.gov</a>
+              </li>
+              <li>
+                Building permits — <a href="https://www.census.gov/construction/bps/" style={{ ...linkStyle, fontSize: 14 }}>Census Bureau Building Permits Survey</a>
+              </li>
+            </ul>
+            <p style={prose}>
+              ConstructAIQ may show an aggregated or processed version of these
+              figures that differs from the primary source due to lag, caching,
+              or the series definitions used. When accuracy matters, go to the source.
             </p>
 
             <div style={{ ...calloutStyle, borderLeft: '3px solid #f5a623', marginTop: 28, marginBottom: 0 }}>
-              Signals, verdicts, and forecasts on this platform are statistical outputs.
-              They are designed to inform decisions, not replace domain expertise.
-              Consult qualified professionals before making consequential financial,
-              operational, or lending decisions.
+              Signals, forecasts, and AI explanations on this platform are
+              analytical outputs intended to inform decisions. They are not
+              professional advice. Consult qualified professionals before making
+              consequential financial, legal, operational, or procurement decisions.
             </div>
           </section>
 
