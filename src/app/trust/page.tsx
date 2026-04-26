@@ -154,9 +154,13 @@ export default function TrustCenterPage() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         a { color: inherit; text-decoration: none; }
         @media (max-width: 700px) {
-          .tc-shell   { flex-direction: column !important; padding: 24px 20px !important; }
-          .tc-nav     { display: none !important; }
-          .tc-content { max-width: 100% !important; }
+          .tc-shell        { flex-direction: column !important; padding: 24px 20px !important; }
+          .tc-nav          { display: none !important; }
+          .tc-content      { max-width: 100% !important; }
+          .tc-mobile-nav   { display: flex !important; }
+        }
+        @media (min-width: 701px) {
+          .tc-mobile-nav   { display: none !important; }
         }
       `}</style>
 
@@ -207,7 +211,7 @@ export default function TrustCenterPage() {
               fontFamily: MONO, fontSize: 10, color: '#888',
               letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16,
             }}>
-              ConstructAIQ
+              DATA TRANSPARENCY
             </div>
             <h1 style={{
               fontFamily: SYS, fontSize: 36, fontWeight: 700,
@@ -221,6 +225,24 @@ export default function TrustCenterPage() {
               and what the platform cannot do. The goal is to give users a complete and
               honest picture of what they are looking at.
             </p>
+          </div>
+
+          {/* Mobile section nav — chips, hidden on desktop */}
+          <div className="tc-mobile-nav" style={{
+            overflowX: 'auto', whiteSpace: 'nowrap',
+            marginBottom: 32, gap: 8, paddingBottom: 4,
+          }}>
+            {SECTIONS.map(s => (
+              <a key={s.id} href={`#${s.id}`} style={{
+                display: 'inline-block', padding: '6px 14px',
+                borderRadius: 20, border: '1px solid #ddd',
+                fontFamily: SYS, fontSize: 13, color: '#555',
+                textDecoration: 'none', marginRight: 8,
+                backgroundColor: '#f5f5f5',
+              }}>
+                {s.label}
+              </a>
+            ))}
           </div>
 
           {/* ── DATA SOURCES ── */}
@@ -509,7 +531,7 @@ export default function TrustCenterPage() {
               The Data Freshness table on{' '}
               <Link href="/status" style={linkStyle}>/status</Link> aggregates freshness
               per series (rather than per pipeline run) and shows <strong>Current</strong>,{' '}
-              <strong>Aging</strong>, or <strong>Stale</strong> based on how recently
+              <strong>Delayed</strong>, or <strong>Stale</strong> based on how recently
               observations were written to the database for that series.
             </p>
 

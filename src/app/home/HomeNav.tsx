@@ -28,6 +28,14 @@ export function HomeNav() {
               style={{ fontSize: 14, fontWeight: 500, color: T3, textDecoration: 'none' }}>
           Methodology
         </Link>
+        <Link href="/trust"
+              style={{ fontSize: 14, fontWeight: 500, color: T3, textDecoration: 'none' }}>
+          Trust Center
+        </Link>
+        <Link href="/forecasts"
+              style={{ fontSize: 14, fontWeight: 500, color: T3, textDecoration: 'none' }}>
+          Forecasts
+        </Link>
         <Link href="/dashboard" style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           background: BLUE, color: WHITE,

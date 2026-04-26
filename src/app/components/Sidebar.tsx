@@ -7,7 +7,7 @@ import {
   LayoutDashboard, TrendingUp, Building2, MapPin, FolderOpen,
   Radio, BarChart2, AlertTriangle, MessageSquare,
   BookOpen, PieChart, Newspaper, Mail, Calendar, Layers, ScanSearch, Globe2, FileText,
-  DollarSign, Activity, ArrowLeftRight, type LucideIcon,
+  DollarSign, Activity, ArrowLeftRight, ShieldCheck, Target, type LucideIcon,
 } from "lucide-react"
 import { color, font, layout as L, type as TS } from "@/lib/theme"
 import { getPrefs, removeMarket, PREF_EVENT, type UserPreferences } from "@/lib/preferences"
@@ -35,25 +35,28 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { label: "My Portfolio",       href: "/portfolio",           Icon: PieChart        },
   { label: "Overview",           href: "/dashboard",           Icon: LayoutDashboard },
-  { label: "Sectors",            href: "/sectors",             Icon: Layers          },
   { label: "Forecast",           href: "/dashboard#forecast",  Icon: TrendingUp      },
-  { label: "Market Intelligence", href: "/intelligence",        Icon: Globe2          },
   { label: "Federal Pipeline",   href: "/federal",             Icon: Building2       },
   { label: "City Permits",       href: "/permits",             Icon: MapPin          },
+  { label: "Material Costs",     href: "/materials",           Icon: BarChart2       },
+  { label: "Market Intelligence", href: "/intelligence",        Icon: Globe2          },
+  { label: "Sectors",            href: "/sectors",             Icon: Layers          },
   { label: "Projects",           href: "/projects",            Icon: FolderOpen      },
   { label: "Satellite",          href: "/ground-signal",       Icon: Radio           },
   { label: "Reality Gap",        href: "/reality-gap",         Icon: ScanSearch      },
-  { label: "Material Costs",     href: "/materials",           Icon: BarChart2       },
   { label: "Data Calendar",      href: "/calendar",            Icon: Calendar        },
   { label: "WARN Act",           href: "/dashboard#signals",   Icon: AlertTriangle   },
   { label: "Ask the Market",     href: "/ask",                 Icon: MessageSquare   },
   { label: "Research",           href: "/research",            Icon: Newspaper       },
+  { label: "My Portfolio",       href: "/portfolio",           Icon: PieChart        },
 ]
 
 const BOTTOM: NavItem[] = [
-  { label: "Methodology", href: "/methodology", Icon: BookOpen },
+  { label: "Methodology",       href: "/methodology", Icon: BookOpen    },
+  { label: "Forecast Accuracy", href: "/forecasts",   Icon: Target      },
+  { label: "Trust Center",      href: "/trust",       Icon: ShieldCheck },
+  { label: "Platform Status",   href: "/status",      Icon: Activity    },
 ]
 
 function toSectionId(href: string): string | null {
@@ -193,19 +196,6 @@ export function Sidebar({ mode: modeProp, activeSection, onNavigate }: Props) {
           const badge  = href === '/calendar' && calBadge ? calBadge : undefined
           return (
             <div key={href}>
-              {/* Section header above Market Intelligence */}
-              {href === '/intelligence' && mode === 'full' && (
-                <div style={{
-                  padding:       '12px 16px 4px',
-                  fontFamily:    font.mono,
-                  fontSize:      9,
-                  color:         color.t4,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                }}>
-                  Market Intelligence
-                </div>
-              )}
               <NavRow
                 href={href}
                 label={label}

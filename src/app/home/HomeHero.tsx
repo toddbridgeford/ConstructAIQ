@@ -17,7 +17,7 @@ export function HomeHero({ spendDisp, spendMom }: Props) {
       background: WHITE,
     }}>
       <div style={{ maxWidth: 800, width: '100%', textAlign: 'center' }}>
-        <div style={{ ...TS.label, color: T3, marginBottom: 24 }}>CONSTRUCTAIQ</div>
+        <div style={{ ...TS.label, color: T3, marginBottom: 24 }}>US CONSTRUCTION INTELLIGENCE</div>
 
         <h1 className="hp-h1" style={{
           fontSize: 'clamp(36px,5vw,52px)',
@@ -41,9 +41,8 @@ export function HomeHero({ spendDisp, spendMom }: Props) {
           color: T3, lineHeight: 1.65,
           maxWidth: 500, margin: '0 auto 56px',
         }}>
-          Know when markets are moving, where demand is building, and
-          what signals matter — for contractors, suppliers, lenders,
-          and developers.
+          Know whether to expand, hold, or reduce exposure — before
+          competitors see the same data.
         </p>
 
         {/* ── Spending KPI ── */}
@@ -88,7 +87,6 @@ export function HomeHero({ spendDisp, spendMom }: Props) {
             fontSize: 16, fontWeight: 600,
             padding: '14px 32px', borderRadius: 12, minHeight: 52,
             textDecoration: 'none', letterSpacing: '-0.01em',
-            boxShadow: '0 4px 20px rgba(10,132,255,0.28)',
           }}>
             Open Dashboard →
           </Link>
