@@ -683,40 +683,122 @@ export default function TrustCenterPage() {
           <section id="prediction-validation" style={{ marginBottom: 64, scrollMarginTop: 32 }}>
             <h2 style={sectionH2}>Prediction Validation</h2>
             <p style={prose}>
-              ConstructAIQ tracks forecast accuracy over time through a system called
-              Prediction Accuracy Rate (PAR). PAR is not a marketing number — it is a
-              live metric computed from realized outcomes.
+              ConstructAIQ tracks whether its forecasts were correct after the fact.
+              This section explains how that tracking works, what metrics are computed,
+              and where to find current accuracy figures. No specific accuracy values
+              are stated here because they change as predictions mature and new actuals
+              are published.
             </p>
 
-            <h3 style={h3Style}>How PAR works</h3>
+            <h3 style={h3Style}>What gets tracked</h3>
             <p style={prose}>
-              When a forecast is generated, the predicted value and confidence interval
-              are logged alongside a maturity date (the month being forecast). When that
-              month&apos;s actual Census Bureau data is published, the system compares the
-              realized value to the predicted range.
-            </p>
-            <p style={prose}>
-              PAR is defined as the fraction of matured predictions where the actual
-              value fell within the stated confidence interval. A PAR of 80% on the 80%
-              interval means the model is calibrated roughly as expected. A PAR
-              consistently above or below that level indicates over- or under-confidence.
-            </p>
-
-            <h3 style={h3Style}>Where to find current PAR values</h3>
-            <p style={prose}>
-              Current PAR values are computed from live data and are not stated here to
-              avoid this document going stale. See:
+              When a forecast run completes, the system logs each predicted value
+              together with:
             </p>
             <ul style={{ ...prose, paddingLeft: 24 }}>
               <li style={{ marginBottom: 6 }}>
+                The target series and the month being forecast (the maturity date)
+              </li>
+              <li style={{ marginBottom: 6 }}>
+                The point estimate (ensemble midpoint)
+              </li>
+              <li style={{ marginBottom: 6 }}>
+                The 80% and 95% confidence interval bounds at the time of the run
+              </li>
+              <li>
+                The forecast horizon — how many months ahead the prediction was made
+              </li>
+            </ul>
+            <p style={prose}>
+              Once the maturity date passes and the Census Bureau publishes actuals
+              for that period, the system evaluates each logged prediction against
+              the realized value. Predictions in the database are either{' '}
+              <strong>pending</strong> (maturity date has not elapsed or actuals have
+              not yet been harvested) or <strong>resolved</strong> (compared against
+              a realized value).
+            </p>
+
+            <h3 style={h3Style}>Prediction Accuracy Rate (PAR)</h3>
+            <p style={prose}>
+              PAR — Prediction Accuracy Rate — is the fraction of resolved predictions
+              where the realized value fell within the stated confidence interval.
+            </p>
+            <p style={prose}>
+              A PAR close to 80% on the 80% interval indicates the model is well
+              calibrated: its stated uncertainty matches its observed error rate.
+              PAR consistently above 80% on the 80% band suggests the model is
+              over-cautious — intervals are wider than they need to be. PAR
+              consistently below 80% suggests the model is over-confident — it is
+              missing outcomes it claimed to cover.
+            </p>
+            <p style={prose}>
+              PAR is computed separately by confidence interval level (80% and 95%)
+              and by forecast horizon (1-month-ahead, 3-month, 6-month, 12-month).
+              Shorter horizons are generally more accurate; accuracy degrades as
+              the horizon extends.
+            </p>
+
+            <h3 style={h3Style}>Forecast vs. actual: directional accuracy</h3>
+            <p style={prose}>
+              In addition to interval coverage, the system tracks directional
+              accuracy — whether the forecast correctly predicted the direction of
+              change (growth or contraction) relative to the prior period.
+              Directional accuracy matters for decisions that depend on the sign
+              of the move rather than the magnitude.
+            </p>
+            <p style={prose}>
+              Directional accuracy is typically higher than raw MAPE would suggest,
+              because a forecast can be directionally correct while still
+              over- or under-estimating the magnitude. Both metrics are shown on
+              the track record page.
+            </p>
+
+            <h3 style={h3Style}>Early-stage sample sizes</h3>
+            <p style={prose}>
+              PAR accumulates as predictions mature. When the platform is young or
+              has recently been redeployed, the resolved sample size may be small.
+              A PAR computed from a small sample carries wide confidence and should
+              not be treated as a stable indicator of model performance. The
+              sample size is reported alongside every PAR figure. Weight
+              longer-run figures more than recent-window figures when the platform
+              is early in its deployment.
+            </p>
+
+            <div style={calloutStyle}>
+              Current PAR values are sourced from live evaluation records and are
+              not stated on this page. This avoids the page going stale between
+              edits. Accuracy figures are only shown where they are fetched
+              directly from{' '}
+              <Link href="/api/par" style={{ ...linkStyle, fontSize: 14 }}>/api/par</Link>{' '}
+              or displayed from stored evaluation data on{' '}
+              <Link href="/status" style={{ ...linkStyle, fontSize: 14 }}>/status</Link>{' '}
+              and{' '}
+              <Link href="/methodology/track-record" style={{ ...linkStyle, fontSize: 14 }}>
+                /methodology/track-record
+              </Link>.
+            </div>
+
+            <h3 style={h3Style}>Where to find current accuracy figures</h3>
+            <ul style={{ ...prose, paddingLeft: 24 }}>
+              <li style={{ marginBottom: 8 }}>
                 <Link href="/methodology/track-record" style={linkStyle}>
                   /methodology/track-record
                 </Link>{' '}
-                — the full accuracy record with tables by horizon and forecast type
+                — full accuracy record: PAR by confidence level and horizon, MAPE
+                history, directional accuracy, and resolved vs. pending prediction counts
+              </li>
+              <li style={{ marginBottom: 8 }}>
+                <Link href="/status" style={linkStyle}>/status</Link>{' '}
+                — live platform health dashboard showing current PAR (overall and
+                trailing 7-day), prediction activity counts, and a 12-week PAR trend chart
               </li>
               <li>
                 <Link href="/api/par" style={linkStyle}>/api/par</Link>{' '}
-                — the raw JSON endpoint, available to any caller
+                — raw JSON endpoint returning{' '}
+                <code style={{ fontFamily: MONO, fontSize: 12 }}>overall_par</code>,{' '}
+                <code style={{ fontFamily: MONO, fontSize: 12 }}>sample_size</code>, and{' '}
+                <code style={{ fontFamily: MONO, fontSize: 12 }}>as_of</code>;
+                available to any caller without authentication
               </li>
             </ul>
           </section>
