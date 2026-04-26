@@ -130,10 +130,6 @@ export default function HomePage() {
 
       <HomeRoles />
 
-      <section style={{ background: BG, borderTop: `1px solid ${BD}`, padding: '48px 40px' }}>
-        <HomeNewsletter />
-      </section>
-
       <section style={{ background: BG, borderTop: `1px solid ${BD}`, padding: '64px 40px' }}>
         <HomeStatusCards cards={cards} />
       </section>
@@ -143,6 +139,10 @@ export default function HomePage() {
       <HomeTrust stats={stats} />
 
       <HomeMapSection mapStates={mapStates} mapDate={mapDate} />
+
+      <section style={{ background: BG, borderTop: `1px solid ${BD}`, padding: '48px 40px' }}>
+        <HomeNewsletter />
+      </section>
 
       {/* ── FINAL CTA ── */}
       <section style={{ padding: '80px 40px', textAlign: 'center', background: WHITE }}>
